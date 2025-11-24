@@ -1,15 +1,23 @@
-name: Check branch and commit naming
+name: Branch & commit naming check
 
 on:
   push:
+    branches:
+      - '**'
   pull_request:
+    types: [opened, synchronize, edited, reopened]
 
 jobs:
-  check-names:
+  check-naming:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Detect branch name
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check branch name and last commit
         run: |
           # Для push github.ref_name, для PR - github.head_ref
           BRANCH="${{ github.head_ref || github.ref_name }}"
@@ -20,21 +28,17 @@ jobs:
           if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
             echo "✅ Название ветки в порядке"
           else
-            echo "❌ Неправильное имя ветки: $BRANCH"
+            echo "::error:: Неправильное имя ветки: $BRANCH"
             echo "Ожидается формат: bugfix/125-fix-crash/Имя или feature/123-short-title/Имя"
-            exit 1
+            exit 1  
           fi
 
-      - uses: actions/checkout@v4
-
-      - name: Check last commit message
-        run: |
-          LAST_MSG="$(git log --no-merges -1 --pretty=%s)"
-          echo "Last commit: $LAST_MSG"
-          if echo "$LAST_MSG" | grep -Eq '#[0-9]+'; then
-            echo "✅ Commit создан правильно"
+          LAST_COMMIT_MSG="$(git log -1 --pretty=%B | head -n1)"
+          echo "Last commit message: $LAST_COMMIT_MSG"
+          
+          if [[ "$LAST_COMMIT_MSG" =~ #[0-9]+ ]]; then
+            echo "✅ В сообщении коммита есть номер задачи вида '#123'."
           else
-            echo "❌ В коммите нет номера задачи (#123)."
-            echo "Пример: Updated the rules #15"
+            echo "::error::В сообщении коммита нет номера задачи вида '#123'."
             exit 1
           fi
