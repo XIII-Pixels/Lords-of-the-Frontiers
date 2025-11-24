@@ -1,3 +1,8 @@
+name: Check branch & commit
+
+on:
+  pull_request:
+
 jobs:
   check-names:
     runs-on: ubuntu-latest
@@ -6,25 +11,24 @@ jobs:
       - name: Detect branch name
         shell: bash
         run: |
-        # Для push: GITHUB_REF_NAME, для PR: GITHUB_HEAD_REF
-        BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-        echo "Branch: $BRANCH"
+          # Для push: GITHUB_REF_NAME, для PR: GITHUB_HEAD_REF
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          echo "Branch: $BRANCH"
 
-        # Твоя проверка имени ветки
-        if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
-          echo "✅ Название ветки в порядке"
-        else
-          echo "::error::Неверное имя ветки."
-          echo "Ожидается что-то вроде:"
-          echo "  feature/123-short-title/ИмяФамилия"
-          echo "  bugfix/124-fix-crash/ИмяФамилия"
-          echo "  docs/123-some-doc/Автор"
-          echo "  refactor/123-some-refactor/Автор"
-          echo "  content/123-some-content/Автор"
-          echo "  balance/123-some-change/Автор"
-          echo "  ci/123-some-ci-change/Автор"
-          exit 1
-        fi
+          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
+            echo "✅ Название ветки в порядке"
+          else
+            echo "::error::Неверное имя ветки."
+            echo "Ожидается что-то вроде:"
+            echo "  feature/123-short-title/ИмяФамилия"
+            echo "  bugfix/124-fix-crash/ИмяФамилия"
+            echo "  docs/123-some-doc/Автор"
+            echo "  refactor/123-some-refactor/Автор"
+            echo "  content/123-some-content/Автор"
+            echo "  balance/123-some-change/Автор"
+            echo "  ci/123-some-ci-change/Автор"
+            exit 1
+          fi
 
       - name: Checkout
         uses: actions/checkout@v4
