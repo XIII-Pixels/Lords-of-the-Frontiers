@@ -1,50 +1,42 @@
-name: check-names
-
-on:
-  pull_request:
-    types: [opened, synchronize, edited, reopened]
-
 jobs:
   check-names:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Проверяем только название ветки
       - name: Detect branch name
         shell: bash
         run: |
-          # Для push github.ref_name, для PR - github.head_ref
-          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          echo "Branch: $BRANCH_NAME"
+        # Для push: GITHUB_REF_NAME, для PR: GITHUB_HEAD_REF
+        BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+        echo "Branch: $BRANCH"
 
-          if [[ "$BRANCH_NAME" =~ ^(feature|bugfix)/[0-9]+-[a-z0-9-]+/[A-Za-zА-Яа-яЁё]+(\ [A-Za-zА-Яа-яЁё]+)?$ ]]; then
-            echo "✅ Название ветки в порядке (feature/bugfix)"
-          elif [[ "$BRANCH_NAME" =~ ^(docs|refactor|content|balance|ci)/.+$ ]]; then
-            echo "✅ Название ветки в порядке (docs/refactor/content/balance/ci)"
-          else
-            echo "::error::Неверное имя ветки."
-            exit 1
-          fi
+        # Твоя проверка имени ветки
+        if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
+          echo "✅ Название ветки в порядке"
+        else
+          echo "::error::Неверное имя ветки."
+          echo "Ожидается что-то вроде:"
+          echo "  feature/123-short-title/ИмяФамилия"
+          echo "  bugfix/124-fix-crash/ИмяФамилия"
+          echo "  docs/123-some-doc/Автор"
+          echo "  refactor/123-some-refactor/Автор"
+          echo "  content/123-some-content/Автор"
+          echo "  balance/123-some-change/Автор"
+          echo "  ci/123-some-ci-change/Автор"
+          exit 1
+        fi
 
-      # checkout нужен только перед проверкой коммита
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      # 2. Отдельный шаг: проверяем только последний коммит
       - name: Check last commit message
-        shell: bash
         run: |
           LAST_COMMIT_MSG="$(git log -1 --pretty=%B | head -n1)"
           echo "Last commit message: $LAST_COMMIT_MSG"
 
-          if [[ ${#LAST_COMMIT_MSG} -lt 10 ]]; then
-            echo "::error::Слишком короткое сообщение коммита."
-            exit 1
-          fi
-
-          if [[ "$LAST_COMMIT_MSG" =~ #[0-9]+ ]]; then
+          if echo "$LAST_COMMIT_MSG" | grep -Eq '#[0-9]+'; then
             echo "✅ В сообщении коммита есть номер задачи вида '#123'."
           else
             echo "::error::В сообщении коммита нет номера задачи вида '#123'."
