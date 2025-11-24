@@ -17,11 +17,11 @@ jobs:
 
           # Разрешённые типы и формат:
           # type/123-short-title/Имя (Имя можно опустить)
-          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)\/[0-9]+-[a-z0-9-]+(\/[A-Za-zА-Яа-яЁё]+)?$'; then
+          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)\/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
             echo "✅ Название ветки в порядке"
           else
             echo "❌ Неправильное имя ветки: $BRANCH"
-            echo "Ожидается формат: feature/123-short-title/Имя или bugfix/124-fix-crash/Имя"
+            echo "Ожидается формат: bugfix/125-fix-crash/Имя или feature/123-short-title/Имя"
             exit 1
           fi
 
