@@ -18,7 +18,7 @@ jobs:
           # Разрешённые типы и формат:
           # type/123-short-title/Имя (Имя можно опустить)
           if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)\/[0-9]+-[a-z0-9-]+(\/[A-Za-zА-Яа-яЁё]+)?$'; then
-            echo "✅ Branch name OK"
+            echo "✅ Название ветки в порядке"
           else
             echo "❌ Неправильное имя ветки: $BRANCH"
             echo "Ожидается формат: feature/123-short-title/Имя или bugfix/124-fix-crash/Имя"
@@ -35,7 +35,7 @@ jobs:
           # Минимальное правило: не короче 10 символов
           if echo "$LAST_MSG" | grep -Eq '^.{10,}'; then
             if echo "$LAST_MSG" | grep -Eq '#[0-9]+'; then
-              echo "✅ Commit message OK"
+              echo "✅ Commit создан правильно"
             else
               echo "❌ В коммите нет номера задачи (#123)."
               exit 1
