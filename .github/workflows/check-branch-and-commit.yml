@@ -1,41 +1,49 @@
-name: Branch & commit naming check
+name: check-names
 
 on:
-  push:
-    branches:
-      - '**'
   pull_request:
     types: [opened, synchronize, edited, reopened]
 
 jobs:
-  check-naming:
+  check-names:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Проверяем только название ветки
+      - name: Detect branch name
+        shell: bash
+        run: |
+          # Для push github.ref_name, для PR - github.head_ref
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          echo "Branch: $BRANCH_NAME"
+
+          if [[ "$BRANCH_NAME" =~ ^(feature|bugfix)/[0-9]+-[a-z0-9-]+/[A-Za-zА-Яа-яЁё]+(\ [A-Za-zА-Яа-яЁё]+)?$ ]]; then
+            echo "✅ Название ветки в порядке (feature/bugfix)"
+          elif [[ "$BRANCH_NAME" =~ ^(docs|refactor|content|balance|ci)/.+$ ]]; then
+            echo "✅ Название ветки в порядке (docs/refactor/content/balance/ci)"
+          else
+            echo "::error::Неверное имя ветки."
+            exit 1
+          fi
+
+      # checkout нужен только перед проверкой коммита
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Check branch name and last commit
+      # 2. Отдельный шаг: проверяем только последний коммит
+      - name: Check last commit message
+        shell: bash
         run: |
-          # Для push github.ref_name, для PR - github.head_ref
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          echo "Branch: $BRANCH"
-
-          # Разрешённые типы и формат:
-          # type/123-short-title/Имя (Имя можно опустить)
-          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
-            echo "✅ Название ветки в порядке"
-          else
-            echo "::error:: Неправильное имя ветки: $BRANCH"
-            echo "Ожидается формат: bugfix/125-fix-crash/Имя или feature/123-short-title/Имя"
-            exit 1  
-          fi
-
           LAST_COMMIT_MSG="$(git log -1 --pretty=%B | head -n1)"
           echo "Last commit message: $LAST_COMMIT_MSG"
-          
+
+          if [[ ${#LAST_COMMIT_MSG} -lt 10 ]]; then
+            echo "::error::Слишком короткое сообщение коммита."
+            exit 1
+          fi
+
           if [[ "$LAST_COMMIT_MSG" =~ #[0-9]+ ]]; then
             echo "✅ В сообщении коммита есть номер задачи вида '#123'."
           else
