@@ -1,0 +1,46 @@
+name: Check branch and commit naming
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-names:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Detect branch name
+        run: |
+          # Для push github.ref_name, для PR - github.head_ref
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          echo "Branch: $BRANCH"
+
+          # Разрешённые типы и формат:
+          # type/123-short-title/Имя (Имя можно опустить)
+          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)\/[0-9]+-[a-z0-9-]+(\/[A-Za-zА-Яа-яЁё]+)?$'; then
+            echo "✅ Branch name OK"
+          else
+            echo "❌ Неправильное имя ветки: $BRANCH"
+            echo "Ожидается формат: feature/123-short-title/Имя или bugfix/124-fix-crash/Имя"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Check last commit message
+        run: |
+          LAST_MSG="$(git log -1 --pretty=%s)"
+          echo "Last commit: $LAST_MSG"
+
+          # Минимальное правило: не короче 10 символов
+          if echo "$LAST_MSG" | grep -Eq '^.{10,}'; then
+            if echo "$LAST_MSG" | grep -Eq '#[0-9]+'; then
+              echo "✅ Commit message OK"
+            else
+              echo "❌ В коммите нет номера задачи (#123)."
+              exit 1
+            fi
+          else
+            echo "❌ Слишком короткое сообщение коммита."
+            exit 1
+          fi
