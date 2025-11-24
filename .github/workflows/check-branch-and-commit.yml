@@ -17,7 +17,7 @@ jobs:
 
           # Разрешённые типы и формат:
           # type/123-short-title/Имя (Имя можно опустить)
-          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)\/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
+          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
             echo "✅ Название ветки в порядке"
           else
             echo "❌ Неправильное имя ветки: $BRANCH"
@@ -31,11 +31,14 @@ jobs:
         run: |
           LAST_MSG="$(git log -1 --pretty=%s)"
           echo "Last commit: $LAST_MSG"
-
+          if echo "$LAST_MSG" | grep -Eq '^Merge '; then
+            echo "ℹ️ Merge-коммит, пропускаем проверку сообщения"
+            exit 0
+          fi
           if echo "$LAST_MSG" | grep -Eq '#[0-9]+'; then
-                echo "✅ Commit message OK"
-              else
-                echo "❌ В коммите нет номера задачи (#123)."
-                echo "Пример: Updated the rules #15"
-                exit 1
-              fi
+            echo "✅ Commit создан правильно"
+          else
+            echo "❌ В коммите нет номера задачи (#123)."
+            echo "Пример: Updated the rules #15"
+            exit 1
+          fi
