@@ -11,7 +11,6 @@ jobs:
       - name: Detect branch name
         shell: bash
         run: |
-          # Для push: GITHUB_REF_NAME, для PR: GITHUB_HEAD_REF
           BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
           echo "Branch: $BRANCH"
 
@@ -19,21 +18,14 @@ jobs:
             echo "✅ Название ветки в порядке"
           else
             echo "::error::Неверное имя ветки."
-            echo "Ожидается что-то вроде:"
-            echo "  feature/123-short-title/ИмяФамилия"
-            echo "  bugfix/124-fix-crash/ИмяФамилия"
-            echo "  docs/123-some-doc/Автор"
-            echo "  refactor/123-some-refactor/Автор"
-            echo "  content/123-some-content/Автор"
-            echo "  balance/123-some-change/Автор"
-            echo "  ci/123-some-ci-change/Автор"
             exit 1
           fi
 
-      - name: Checkout
+      - name: Checkout PR head
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Check last commit message
         run: |
