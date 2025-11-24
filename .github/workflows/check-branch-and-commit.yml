@@ -32,15 +32,10 @@ jobs:
           LAST_MSG="$(git log -1 --pretty=%s)"
           echo "Last commit: $LAST_MSG"
 
-          # Минимальное правило: не короче 10 символов
-          if echo "$LAST_MSG" | grep -Eq '^.{10,}'; then
-            if echo "$LAST_MSG" | grep -Eq '#[0-9]+'; then
-              echo "✅ Commit создан правильно"
-            else
-              echo "❌ В коммите нет номера задачи (#123)."
-              exit 1
-            fi
-          else
-            echo "❌ Слишком короткое сообщение коммита."
-            exit 1
-          fi
+          if echo "$LAST_MSG" | grep -Eq '#[0-9]+'; then
+                echo "✅ Commit message OK"
+              else
+                echo "❌ В коммите нет номера задачи (#123)."
+                echo "Пример: Updated the rules #15"
+                exit 1
+              fi
