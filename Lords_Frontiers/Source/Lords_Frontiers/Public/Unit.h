@@ -23,7 +23,7 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 public:
 	AUnit();
 
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 	/** (Gregory-hub)
 	 * Attack someone or something

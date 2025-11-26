@@ -11,9 +11,9 @@ AUnit::AUnit()
 }
 
 // Called to bind functionality to input
-void AUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AUnit::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	Super::SetupPlayerInputComponent(playerInputComponent);
 }
 
 bool AUnit::Attack(TScriptInterface<IAttackable> target)
