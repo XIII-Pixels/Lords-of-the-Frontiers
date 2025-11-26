@@ -16,15 +16,14 @@ void AUnit::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-bool AUnit::Attack(TScriptInterface<IEntity> target)
+bool AUnit::Attack(TScriptInterface<IAttackable> target)
 {
 	// Probably should be done with some attack component, because some buildings can attack as well
 	// Probably should use some attack manager, because it would be easier to fetch attack info
 	return false;
 }
 
-// Called when the game starts or when spawned
-void AUnit::BeginPlay()
+bool AUnit::TakeDamage(float damage)
 {
-	Super::BeginPlay();
+	return false;
 }

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 
-#include "Entity.h"
+#include "Attackable.h"
 
 #include "GameFramework/Pawn.h"
 
@@ -16,7 +16,7 @@
  * Can move and attack
  * Should be controlled by AI controller */
 UCLASS(Abstract, Blueprintable)
-class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity
+class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 {
 	GENERATED_BODY()
 
@@ -26,12 +26,12 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	/** (Gregory-hub)
-	 * Attack some entity
-	 * @param target entity attacked
+	 * Attack someone or something
+	 * Calls IAttackable::TakeDamage on target
 	 * @return true if an attack was performed, otherwise false */
 	UFUNCTION(BlueprintCallable)
-	virtual bool Attack(TScriptInterface<IEntity> target);
+	virtual bool Attack(TScriptInterface<IAttackable> target);
 
-protected:
-	virtual void BeginPlay() override;
+	/** (Gregory-hub) */
+	virtual bool TakeDamage(float damage) override;
 };

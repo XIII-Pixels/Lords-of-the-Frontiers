@@ -1,3 +1,3 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Lords_Frontiers/Public/Entity.h"
+#include "Lords_Frontiers/Public/Attackable.h"
