@@ -1,0 +1,40 @@
+name: Check branch & commit
+
+on:
+  pull_request:
+
+jobs:
+  check-names:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Detect branch name
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          echo "Branch: $BRANCH"
+
+          if echo "$BRANCH" | grep -Eq '^(feature|bugfix|docs|refactor|content|balance|ci)/[0-9]+-[A-Za-z0-9-]+(/[A-Za-z0-9_-]+)?$'; then
+            echo "✅ Название ветки в порядке"
+          else
+            echo "::error::Неверное имя ветки."
+            exit 1
+          fi
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Check last commit message
+        run: |
+          LAST_COMMIT_MSG="$(git log -1 --pretty=%B | head -n1)"
+          echo "Last commit message: $LAST_COMMIT_MSG"
+
+          if echo "$LAST_COMMIT_MSG" | grep -Eq '#[0-9]+'; then
+            echo "✅ В сообщении коммита есть номер задачи вида '#123'."
+          else
+            echo "::error::В сообщении коммита нет номера задачи вида '#123'."
+            exit 1
+          fi
