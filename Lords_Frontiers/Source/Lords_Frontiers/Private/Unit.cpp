@@ -16,14 +16,12 @@ void AUnit::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 	Super::SetupPlayerInputComponent(playerInputComponent);
 }
 
-bool AUnit::Attack(TScriptInterface<IAttackable> target)
+void AUnit::Attack(TScriptInterface<IAttackable> target)
 {
 	// Probably should be done with some attack component, because some buildings can attack as well
 	// Probably should use some attack manager, because it would be easier to fetch attack info
-	return false;
 }
 
-bool AUnit::TakeDamage(float damage)
+void AUnit::TakeDamage(float damage)
 {
-	return false;
 }

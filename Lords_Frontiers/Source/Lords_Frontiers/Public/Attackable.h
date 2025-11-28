@@ -20,7 +20,6 @@ class LORDS_FRONTIERS_API IAttackable
 
 public:
 	/** (Gregory-hub)
-	 * Attackers call this on attacked object to deal damage
-	 * @return true if damage successfully processed */
-	virtual bool TakeDamage(float damage) = 0;
+	 * Attackers call this on attacked object to deal damage */
+	virtual void TakeDamage(float damage) = 0;
 };
