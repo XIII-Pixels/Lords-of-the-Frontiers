@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "ResourceTypes.generated.h"
 
-// Enum types of resources available in the game
+//Enum types of resources available in the game
 UENUM(BlueprintType)
 enum class EResourceType : uint8
 {
@@ -13,7 +13,7 @@ enum class EResourceType : uint8
 	Mana UMETA(DisplayName = "Mana")
 };
 
-// A structure representing the storage unit of a resource (type + quantity)
+//A structure representing the storage unit of a resource (type + quantity)
 USTRUCT(BlueprintType)
 struct FResource
 {
@@ -26,21 +26,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource", meta = (ClampMin = "0"))
 	int32 Quantity;
 
-	// Default c-tor
+	//Default c-tor
 	FResource()
 		: Type(EResourceType::None)
 		, Quantity(0)
 	{
 	}
 
-	// C-tor with params
+	//C-tor with params
 	FResource(EResourceType InType, int32 InQuantity)
 		: Type(InType)
 		, Quantity(InQuantity)
 	{
 	}
 
-	// Comparison operator for convenience of checks
+	//Comparison operator for convenience of checks
 	bool operator==(const FResource& Other) const
 	{
 		return Type == Other.Type && Quantity == Other.Quantity;
