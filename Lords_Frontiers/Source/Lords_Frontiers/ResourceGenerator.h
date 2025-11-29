@@ -16,17 +16,9 @@ class LORDS_FRONTIERS_API UResourceGenerator : public UObject
 public:
 	UResourceGenerator();
 
-	// Explicit initialization to link with manager and world (Dependency Injection)
+	// Explicit initialization to link with manager (Dependency Injection)
 	UFUNCTION(BlueprintCallable, Category = "Initialization")
-	void Initialize(UResourceManager* manager, UObject* worldContext);
-
-	// Starts the generation timer (if needed)
-	UFUNCTION(BlueprintCallable, Category = "Generation")
-	void StartGeneration();
-
-	// Stops the generation timer
-	UFUNCTION(BlueprintCallable, Category = "Generation")
-	void StopGeneration();
+	void Initialize(UResourceManager* manager);
 
 	// Manual generation call (e.g., for "After Wave" logic)
 	UFUNCTION(BlueprintCallable, Category = "Generation")
@@ -37,29 +29,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	EResourceType ResourceType_;
 
-	// Number of resources per tick/action
+	// Number of resources per action
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", meta = (ClampMin = "1"))
 	int32 GenerationQuantity_;
 
-	// Generation interval in seconds
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", meta = (ClampMin = "0.1"))
-	float GenerationInterval_;
-
 private:
+	// Internal generation logic
 	void ProcessGeneration();
 
-	// Helper to safely get world from context
-	UWorld* GetWorldContext() const;
-
 private:
-	FTimerHandle GenerationTimerHandle_;
-
 	// ensuring GC handles references.
 	UPROPERTY()
 	UResourceManager* ResourceManager_;
-
-	// Context to access TimerManager
-	TWeakObjectPtr<UObject> WorldContext_;
-
-	static constexpr float cDefaultInterval = 1.0f;
 };
