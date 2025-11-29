@@ -1,86 +1,66 @@
 #include "ResourceGenerator.h"
 #include "ResourceManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
-AResourceGenerator::AResourceGenerator()
+UResourceGenerator::UResourceGenerator()
 {
-	PrimaryActorTick.bCanEverTick = false;
-
 	ResourceType_ = EResourceType::Gold;
 	GenerationQuantity_ = 10;
 	GenerationInterval_ = cDefaultInterval;
 	ResourceManager_ = nullptr;
 }
 
-void AResourceGenerator::BeginPlay()
+void UResourceGenerator::Initialize(UResourceManager* manager, UObject* worldContext)
 {
-	Super::BeginPlay();
-
-	FindResourceManager_();
-	StartGeneration();
+	ResourceManager_ = manager;
+	WorldContext_ = worldContext;
 }
 
-void AResourceGenerator::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UResourceGenerator::StartGeneration()
 {
-	StopGeneration();
-	Super::EndPlay(EndPlayReason);
-}
+	UWorld* World = GetWorldContext();
 
-void AResourceGenerator::StartGeneration()
-{
-	UWorld* World = GetWorld();
-	if ( IsValid(World) && (GenerationInterval_ > 0.0f) )
+	// Logic check: if interval is valid and world exists
+	if ( IsValid( World ) && ( GenerationInterval_ > 0.0f ) )
 	{
 		World->GetTimerManager().SetTimer(
 			GenerationTimerHandle_,
 			this,
-			&AResourceGenerator::Generate_,
+			&UResourceGenerator::ProcessGeneration,
 			GenerationInterval_,
 			true
 		);
 	}
 }
 
-void AResourceGenerator::StopGeneration()
+void UResourceGenerator::StopGeneration()
 {
-	UWorld* World = GetWorld();
-	if ( IsValid(World) )
+	UWorld* World = GetWorldContext();
+	if ( IsValid( World ) )
 	{
 		World->GetTimerManager().ClearTimer(GenerationTimerHandle_);
 	}
 }
 
-void AResourceGenerator::Generate_()
+void UResourceGenerator::GenerateNow()
 {
-	if ( !IsValid(ResourceManager_) )
-	{
-		// Repeat the search if the link is lost or was not found at the start.
-		FindResourceManager_();
-	}
+	ProcessGeneration();
+}
 
-	if ( IsValid(ResourceManager_) )
+void UResourceGenerator::ProcessGeneration()
+{
+	if ( IsValid( ResourceManager_ ) )
 	{
 		ResourceManager_->AddResource(ResourceType_, GenerationQuantity_);
 	}
 }
 
-void AResourceGenerator::FindResourceManager_()
+UWorld* UResourceGenerator::GetWorldContext() const
 {
-	// We are looking for a component from the first player's PlayerPawn or PlayerController
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-
-	if ( IsValid(PlayerPawn) )
+	if ( WorldContext_.IsValid() )
 	{
-		ResourceManager_ = PlayerPawn->FindComponentByClass<UResourceManager>();
+		return WorldContext_->GetWorld();
 	}
-
-	if ( !IsValid(ResourceManager_) )
-	{
-		// Search in the controller if there is no pawn
-		APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
-		if ( IsValid(PC) )
-		{
-			ResourceManager_ = PC->FindComponentByClass<UResourceManager>();
-		}
-	}
+	return nullptr;
 }

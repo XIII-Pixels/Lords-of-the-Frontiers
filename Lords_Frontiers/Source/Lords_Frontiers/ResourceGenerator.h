@@ -1,40 +1,43 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "ResourceTypes.h"
+#include "UObject/NoExportTypes.h"
+#include "GameResource.h"
 #include "ResourceGenerator.generated.h"
 
 class UResourceManager;
 
-// Actor that generates resources at a certain time interval
-UCLASS()
-class LORDS_FRONTIERS_API AResourceGenerator : public AActor
+// Can be stored within GameState, PlayerController, or ResourceManager itself.
+UCLASS(BlueprintType, Blueprintable)
+class LORDS_FRONTIERS_API UResourceGenerator : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	AResourceGenerator();
+	UResourceGenerator();
 
-protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	// Explicit initialization to link with manager and world (Dependency Injection)
+	UFUNCTION(BlueprintCallable, Category = "Initialization")
+	void Initialize(UResourceManager* manager, UObject* worldContext);
 
-public:
-	// Starts the generation process
+	// Starts the generation timer (if needed)
 	UFUNCTION(BlueprintCallable, Category = "Generation")
 	void StartGeneration();
 
-	// Stops the generation process
+	// Stops the generation timer
 	UFUNCTION(BlueprintCallable, Category = "Generation")
 	void StopGeneration();
 
+	// Manual generation call (e.g., for "After Wave" logic)
+	UFUNCTION(BlueprintCallable, Category = "Generation")
+	void GenerateNow();
+
 protected:
-	// type of resource being generated
+	// Type of resource being generated
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	EResourceType ResourceType_;
 
-	// Number of resources per tick
+	// Number of resources per tick/action
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", meta = (ClampMin = "1"))
 	int32 GenerationQuantity_;
 
@@ -43,20 +46,20 @@ protected:
 	float GenerationInterval_;
 
 private:
-	// basic logic of generation
-	void Generate_();
+	void ProcessGeneration();
 
-	// Search for a resource manager 
-	// for example, from PlayerController or GameState
-	void FindResourceManager_();
+	// Helper to safely get world from context
+	UWorld* GetWorldContext() const;
 
 private:
 	FTimerHandle GenerationTimerHandle_;
 
-	// Cached link to the resource manager. WeakPtr for security
+	// ensuring GC handles references.
 	UPROPERTY()
 	UResourceManager* ResourceManager_;
 
-	// Default constant for the interval
+	// Context to access TimerManager
+	TWeakObjectPtr<UObject> WorldContext_;
+
 	static constexpr float cDefaultInterval = 1.0f;
 };
