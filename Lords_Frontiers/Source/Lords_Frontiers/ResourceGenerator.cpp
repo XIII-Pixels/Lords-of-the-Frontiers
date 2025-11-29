@@ -39,7 +39,7 @@ void UResourceGenerator::StopGeneration()
 	UWorld* World = GetWorldContext();
 	if ( IsValid( World ) )
 	{
-		World->GetTimerManager().ClearTimer(GenerationTimerHandle_);
+		World->GetTimerManager().ClearTimer( GenerationTimerHandle_ );
 	}
 }
 
@@ -52,7 +52,7 @@ void UResourceGenerator::ProcessGeneration()
 {
 	if ( IsValid( ResourceManager_ ) )
 	{
-		ResourceManager_->AddResource(ResourceType_, GenerationQuantity_);
+		ResourceManager_->AddResource( ResourceType_, GenerationQuantity_ );
 	}
 }
 

@@ -14,12 +14,12 @@ void UResourceManager::BeginPlay()
 
 void UResourceManager::AddResource(EResourceType type, int32 quantity)
 {
-	if ((type == EResourceType::None) || (quantity <= 0))
+	if ( ( type == EResourceType::None ) || ( quantity <= 0 ) )
 	{
 		return;
 	}
 
-	int32& CurrentAmount = Resources_.FindOrAdd(type);
+	int32& CurrentAmount = Resources_.FindOrAdd( type );
 	CurrentAmount += quantity;
 
 	// OnResourceChanged.Broadcast(type, CurrentAmount);
@@ -27,19 +27,19 @@ void UResourceManager::AddResource(EResourceType type, int32 quantity)
 
 bool UResourceManager::TrySpendResource(EResourceType type, int32 quantity)
 {
-	if ((type == EResourceType::None) || (quantity <= 0))
+	if ( ( type == EResourceType::None ) || ( quantity <= 0 ) )
 	{
 		return false;
 	}
 
-	if (!Resources_.Contains(type))
+	if ( !Resources_.Contains( type ) )
 	{
 		return false;
 	}
 
-	int32& CurrentAmount = Resources_.FindOrAdd(type);
+	int32& CurrentAmount = Resources_.FindOrAdd( type );
 
-	if (CurrentAmount >= quantity)
+	if ( CurrentAmount >= quantity )
 	{
 		CurrentAmount -= quantity;
 		return true;
@@ -50,7 +50,7 @@ bool UResourceManager::TrySpendResource(EResourceType type, int32 quantity)
 
 int32 UResourceManager::GetResourceAmount(EResourceType type) const
 {
-	if (Resources_.Contains(type))
+	if ( Resources_.Contains( type ) )
 	{
 		return Resources_[type];
 	}
@@ -60,5 +60,5 @@ int32 UResourceManager::GetResourceAmount(EResourceType type) const
 
 bool UResourceManager::HasEnoughResource(EResourceType type, int32 quantity) const
 {
-	return GetResourceAmount(type) >= quantity;
+	return GetResourceAmount( type ) >= quantity;
 }
