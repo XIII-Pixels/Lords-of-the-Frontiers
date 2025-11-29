@@ -3,64 +3,62 @@
 UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	// Map initialization is handled by default constructor or inline initialization in .h
 }
 
 void UResourceManager::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Initialize resources with zeros, if necessary, or leave the map empty before adding
 }
 
-void UResourceManager::AddResource(EResourceType Type, int32 Quantity)
+void UResourceManager::AddResource(EResourceType type, int32 quantity)
 {
-	if ((Type == EResourceType::None) || (Quantity <= 0))
+	if ((type == EResourceType::None) || (quantity <= 0))
 	{
 		return;
 	}
 
-	int32& CurrentAmount = Resources_.FindOrAdd(Type);
-	CurrentAmount += Quantity;
+	int32& CurrentAmount = Resources_.FindOrAdd(type);
+	CurrentAmount += quantity;
 
-	// Here you can add a delegate/event to update the UI
-	// OnResourceChanged.Broadcast(Type, CurrentAmount);
+	// OnResourceChanged.Broadcast(type, CurrentAmount);
 }
 
-bool UResourceManager::TrySpendResource(EResourceType Type, int32 Quantity)
+bool UResourceManager::TrySpendResource(EResourceType type, int32 quantity)
 {
-	if ((Type == EResourceType::None) || (Quantity <= 0))
+	if ((type == EResourceType::None) || (quantity <= 0))
 	{
 		return false;
 	}
 
-	if (!Resources_.Contains(Type))
+	if (!Resources_.Contains(type))
 	{
 		return false;
 	}
 
-	int32& CurrentAmount = Resources_.FindOrAdd(Type);
+	int32& CurrentAmount = Resources_.FindOrAdd(type);
 
-	if (CurrentAmount >= Quantity)
+	if (CurrentAmount >= quantity)
 	{
-		CurrentAmount -= Quantity;
-		// Here you can add a delegate/event to update the UI
+		CurrentAmount -= quantity;
 		return true;
 	}
 
 	return false;
 }
 
-int32 UResourceManager::GetResourceAmount(EResourceType Type) const
+int32 UResourceManager::GetResourceAmount(EResourceType type) const
 {
-	if (Resources_.Contains(Type))
+	if (Resources_.Contains(type))
 	{
-		return Resources_[Type];
+		return Resources_[type];
 	}
 
 	return 0;
 }
 
-bool UResourceManager::HasEnoughResource(EResourceType Type, int32 Quantity) const
+bool UResourceManager::HasEnoughResource(EResourceType type, int32 quantity) const
 {
-	return GetResourceAmount(Type) >= Quantity;
+	return GetResourceAmount(type) >= quantity;
 }

@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "ResourceTypes.h"
+#include "GameResource.h"
 #include "ResourceManager.generated.h"
 
 // Component responsible for storing and managing the resources of the owner (Player)
@@ -20,19 +20,19 @@ protected:
 public:
 	// Adds the specified amount of resource
 	UFUNCTION(BlueprintCallable, Category = "Resource Management")
-	void AddResource(EResourceType Type, int32 Quantity);
+	void AddResource(EResourceType type, int32 quantity);
 
 	// Trying to spend a resource. Returns true if there are enough resources and the debit was successful.
 	UFUNCTION(BlueprintCallable, Category = "Resource Management")
-	bool TrySpendResource(EResourceType Type, int32 Quantity);
+	bool TrySpendResource(EResourceType type, int32 quantity);
 
 	// Returns the current amount of the resource
 	UFUNCTION(BlueprintPure, Category = "Resource Management")
-	int32 GetResourceAmount(EResourceType Type) const;
+	int32 GetResourceAmount(EResourceType type) const;
 
 	// Checks if the resource is sufficient without debiting it.
 	UFUNCTION(BlueprintPure, Category = "Resource Management")
-	bool HasEnoughResource(EResourceType Type, int32 Quantity) const;
+	bool HasEnoughResource(EResourceType type, int32 quantity) const;
 
 private:
 	// Resource Storage: Key - Type, Value - Quantity
