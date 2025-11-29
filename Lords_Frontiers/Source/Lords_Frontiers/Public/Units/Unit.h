@@ -7,6 +7,8 @@
 #include "GameFramework/Pawn.h"
 #include "Unit.generated.h"
 
+class UBehaviorTree;
+
 
 /** (Gregory-hub)
  * Base class for all units in a game
@@ -18,16 +20,14 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 	GENERATED_BODY()
 
 public:
-	AUnit();
-
-	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
-
-	/** (Gregory-hub)
-	 * Attack someone or something
-	 * Calls IAttackable::TakeDamage on target */
 	UFUNCTION(BlueprintCallable)
 	virtual void Attack(TScriptInterface<IAttackable> target);
 
-	/** (Gregory-hub) */
 	virtual void TakeDamage(float damage) override;
+
+	const TObjectPtr<UBehaviorTree>& BehaviorTree() const;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "AI", meta = (DisplayPriority = 0))
+	TObjectPtr<UBehaviorTree> BehaviorTree_;
 };

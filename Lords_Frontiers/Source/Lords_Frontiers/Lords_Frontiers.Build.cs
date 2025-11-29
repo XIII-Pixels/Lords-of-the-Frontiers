@@ -16,7 +16,9 @@ public class Lords_Frontiers : ModuleRules
 			"InputCore",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"AIModule",
+			"NavigationSystem",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
