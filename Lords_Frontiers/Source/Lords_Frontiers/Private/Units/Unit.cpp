@@ -1,8 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Lords_Frontiers/Public/Units/Unit.h"
-
 
 /** (Gregory-hub)
  * Attack someone or something
@@ -23,4 +21,9 @@ void AUnit::TakeDamage(float damage)
 const TObjectPtr<UBehaviorTree>& AUnit::BehaviorTree() const
 {
 	return BehaviorTree_;
+}
+
+const TObjectPtr<AActor>& AUnit::Target() const
+{
+	return Target_;
 }

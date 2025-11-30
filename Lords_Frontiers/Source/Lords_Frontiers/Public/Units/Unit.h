@@ -20,14 +20,22 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 	GENERATED_BODY()
 
 public:
+	// Attack and damage
 	UFUNCTION(BlueprintCallable)
 	virtual void Attack(TScriptInterface<IAttackable> target);
 
-	virtual void TakeDamage(float damage) override;
+	void TakeDamage(float damage) override;
 
+	// Getters
 	const TObjectPtr<UBehaviorTree>& BehaviorTree() const;
 
+	const TObjectPtr<AActor>& Target() const;
+
 protected:
+	// Components
 	UPROPERTY(EditDefaultsOnly, Category = "AI", meta = (DisplayPriority = 0))
 	TObjectPtr<UBehaviorTree> BehaviorTree_;
+	
+	UPROPERTY(EditAnywhere, Category = "AI", meta = (DisplayPriority = 0))
+	TObjectPtr<AActor> Target_;
 };

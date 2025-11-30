@@ -4,19 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
-#include "FindRandomLocation.generated.h"
+#include "FindRandomLocationTask.generated.h"
 
 /** (Gregory-hub)
  * Debug task. Is used to find random location for a pawn to move to */
 UCLASS()
-class LORDS_FRONTIERS_API UFindRandomLocation : public UBTTask_BlackboardBase
+class LORDS_FRONTIERS_API UFindRandomLocationTask : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
 
 public:
-	explicit UFindRandomLocation();
+	explicit UFindRandomLocationTask();
 
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
+	EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
 
 private:
 	float SearchRadius_ = 15000.0f;
