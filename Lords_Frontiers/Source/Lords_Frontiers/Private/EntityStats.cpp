@@ -10,12 +10,12 @@ FEntityStats::FEntityStats()
 {
 }
 
-FEntityStats::FEntityStats(int InMaxHealth, int InAttackDamage, float InAttackRange, float InMoveSpeed)
-	: MaxHealth(FMath::Max(1, InMaxHealth))
+FEntityStats::FEntityStats(int inMaxHealth, int inAttackDamage, float inAttackRange, float inMoveSpeed)
+	: MaxHealth(FMath::Max(1, inMaxHealth))
 	, Health(MaxHealth)
-	, AttackDamage(InAttackDamage)
-	, AttackRange(InAttackRange)
-	, MoveSpeed(InMoveSpeed)
+	, AttackDamage(inAttackDamage)
+	, AttackRange(inAttackRange)
+	, MoveSpeed(inMoveSpeed)
 {
 }
 
@@ -50,62 +50,62 @@ float FEntityStats::GetMoveSpeed() const
 // setters
 // (Artyom)
 // entity keep hp percentage at the same lvl;  before (50/100hp); SetMaxHealth(150); after (75/150hp)
-void FEntityStats::SetMaxHealth(int InMaxHealth)
+void FEntityStats::SetMaxHealth(int inMaxHealth)
 {
-	const int NewMax = FMath::Max(1, InMaxHealth);
+	const int newMax = FMath::Max(1, inMaxHealth);
 
 	const float Ratio = (MaxHealth > 0) ? (static_cast<float>(Health) / static_cast<float>(MaxHealth)) : 1.0f; //percentage
-	MaxHealth = NewMax;
+	MaxHealth = newMax;
 
-	const int NewHealth = FMath::Clamp(FMath::RoundToInt(Ratio * static_cast<float>(MaxHealth)), 0, MaxHealth);
-	Health = NewHealth;
+	const int newHealth = FMath::Clamp(FMath::RoundToInt(Ratio * static_cast<float>(MaxHealth)), 0, MaxHealth);
+	Health = newHealth;
 }
 
-void FEntityStats::SetHealth(int InHealth)
+void FEntityStats::SetHealth(int inHealth)
 {
-	Health = FMath::Clamp(InHealth, 0, MaxHealth); //Clamp(X, Min, Max) if X < Min, ret Min; if X > Max, ret Max; 
+	Health = FMath::Clamp(inHealth, 0, MaxHealth); //Clamp(X, Min, Max) if X < Min, ret Min; if X > Max, ret Max; 
 }
 
-void FEntityStats::SetAttackDamage(int InAttackDamage)
+void FEntityStats::SetAttackDamage(int inAttackDamage)
 {
-	AttackDamage = InAttackDamage;
+	AttackDamage = inAttackDamage;
 }
 
-void FEntityStats::SetAttackRange(float InAttackRange)
+void FEntityStats::SetAttackRange(float inAttackRange)
 {
-	AttackRange = InAttackRange;
+	AttackRange = inAttackRange;
 }
 
-void FEntityStats::SetMoveSpeed(float InMoveSpeed)
+void FEntityStats::SetMoveSpeed(float inMoveSpeed)
 {
-	MoveSpeed = InMoveSpeed;
+	MoveSpeed = inMoveSpeed;
 }
 
 
-int FEntityStats::ApplyDamage(int Damage)
+int FEntityStats::ApplyDamage(int damage)
 {
-	if (Damage <= 0 || Health <= 0)
+	if (damage <= 0 || Health <= 0)
 	{
 		return 0;
 	}
 
-	const int PrevHealth = Health;
-	Health = FMath::Clamp(Health - Damage, 0, MaxHealth);
-	return PrevHealth - Health;
+	const int prevHealth = Health;
+	Health = FMath::Clamp(Health - damage, 0, MaxHealth);
+	return prevHealth - Health;
 }
 
-void FEntityStats::Heal(int Amount)
+void FEntityStats::Heal(int amount)
 {
-	if (Amount <= 0 || Health >= MaxHealth)
+	if (amount <= 0 || Health >= MaxHealth)
 	{
 		return;
 	}
-	Health = FMath::Clamp(Health + Amount, 0, MaxHealth);
+	Health = FMath::Clamp(Health + amount, 0, MaxHealth);
 }
 
-void FEntityStats::ModifyAttackDamage(int Delta)
+void FEntityStats::ModifyAttackDamage(int delta)
 {
-	AttackDamage += Delta;
+	AttackDamage += delta;
 }
 
 

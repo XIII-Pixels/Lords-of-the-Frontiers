@@ -28,7 +28,7 @@ public:
 
 public:
 	FEntityStats();
-	explicit FEntityStats(int InMaxHealth, int InAttackDamage, float InAttackRange, float InMoveSpeed);
+	explicit FEntityStats(int inMaxHealth, int inAttackDamage, float inAttackRange, float inMoveSpeed);
 
 	// getters
 	int GetMaxHealth() const;
@@ -38,22 +38,22 @@ public:
 	float GetMoveSpeed() const;
 
 	// setters
-	void SetMaxHealth(int InMaxHealth); // min = 1
+	void SetMaxHealth(int inMaxHealth); // min = 1
 
-	void SetHealth(int InHealth);
+	void SetHealth(int inHealth);
 
-	void SetAttackDamage(int InAttackDamage);
-	void SetAttackRange(float InAttackRange);
-	void SetMoveSpeed(float InMoveSpeed);
+	void SetAttackDamage(int inAttackDamage);
+	void SetAttackRange(float inAttackRange);
+	void SetMoveSpeed(float inMoveSpeed);
 
 	// functionality
 	// return applied damage
-	int ApplyDamage(int Damage);
+	int ApplyDamage(int damage);
 
-	void Heal(int Amount);
+	void Heal(int amount);
 
 	// Изменить (прибавить) значение урона (полезно для баффов/дебаффов)
-	void ModifyAttackDamage(int Delta);
+	void ModifyAttackDamage(int delta);
 
 	// --- Состояния/утилиты ---
 	bool IsAlive() const;
