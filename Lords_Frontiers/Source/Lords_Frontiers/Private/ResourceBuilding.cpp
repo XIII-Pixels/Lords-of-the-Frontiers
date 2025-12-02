@@ -2,5 +2,5 @@
 
 AResourceBuilding::AResourceBuilding()
 {
-	// Constructor logic specifically for resource buildings
+	// Initialization for resource buildings
 }

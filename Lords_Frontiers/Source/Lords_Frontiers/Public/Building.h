@@ -19,8 +19,8 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	// Override standard UE damage handling to pass it to EntityStats
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	// Override standard UE damage handling to pass it to EntityStats.
+	virtual float TakeDamage(float damageAmount, struct FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser) override;
 
 	// Returns current stats (const version)
 	UFUNCTION(BlueprintPure, Category = "Stats")

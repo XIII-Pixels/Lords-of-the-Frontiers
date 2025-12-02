@@ -14,9 +14,9 @@ void AMainBase::BeginPlay()
 	// Logic for registering the base in GameManager can be added here
 }
 
-void AMainBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void AMainBase::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
-	Super::EndPlay(EndPlayReason);
+	Super::EndPlay( endPlayReason );
 
 	// Logic for Game Over if destroyed (EndPlayReason == Destroyed)
 }

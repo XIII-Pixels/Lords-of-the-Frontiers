@@ -8,8 +8,9 @@ ABuilding::ABuilding()
 	BuildingMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "BuildingMesh" ) );
 	RootComponent = BuildingMesh_;
 
-	// Default initialization of stats (can be overwritten in Blueprints)
-	Stats_ = FEntityStats( 100, 0, 0.0f, 0.0f ); // 100 HP, 0 DMG (Buildings usually don't move or attack by default)
+	// Default initialization of stats via Constructor of struct
+	// (MaxHealth, AttackDamage, AttackRange, MoveSpeed)
+	Stats_ = FEntityStats( 100, 0, 0.0f, 0.0f );
 }
 
 void ABuilding::BeginPlay()
@@ -17,18 +18,20 @@ void ABuilding::BeginPlay()
 	Super::BeginPlay();
 }
 
-float ABuilding::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+float ABuilding::TakeDamage(float damageAmount, FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser)
 {
 	// Call super to handle generic logic
-	const float ActualDamage = Super::TakeDamage( DamageAmount, DamageEvent, EventInstigator, DamageCauser );
+	const float ActualDamage = Super::TakeDamage( damageAmount, damageEvent, eventInstigator, damageCauser );
 
-	if ( ActualDamage > 0.0f )
+	// Standard: spaces around conditions
+	if (ActualDamage > 0.0f)
 	{
-		// Convert float damage to int for system
+		// Convert float damage to int for your system
 		const int32 IntDamage = FMath::RoundToInt( ActualDamage );
+
 		Stats_.ApplyDamage( IntDamage );
 
-		if ( !Stats_.IsAlive() )
+		if  (!Stats_.IsAlive() )
 		{
 			// Logic for destruction (effects, removal, etc.)
 			Destroy();

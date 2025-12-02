@@ -15,7 +15,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
 private:
 	// Example constant for base health
