@@ -17,8 +17,4 @@ public:
 	UGetUnitTargetTask();
 
 	EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
-
-protected:
-	UPROPERTY(EditAnywhere)
-	float AcceptableDistanceAroundTarget = 100.0f;
 };

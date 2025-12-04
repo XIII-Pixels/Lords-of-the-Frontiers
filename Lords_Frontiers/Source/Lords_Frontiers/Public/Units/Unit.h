@@ -3,25 +3,30 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "Attackable.h"
+
 #include "GameFramework/Pawn.h"
 #include "Unit.generated.h"
 
+class UCapsuleComponent;
 class UBehaviorTree;
-
+class UUnitMovementComponent;
 
 /** (Gregory-hub)
  * Base class for all units in a game
  * Can move and attack
  * Should be controlled by AI controller */
-UCLASS(Abstract, Blueprintable)
+UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 {
 	GENERATED_BODY()
 
 public:
+	AUnit();
+
 	// Attack and damage
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION( BlueprintCallable )
 	virtual void Attack(TScriptInterface<IAttackable> target);
 
 	void TakeDamage(float damage) override;
@@ -33,9 +38,18 @@ public:
 
 protected:
 	// Components
-	UPROPERTY(EditDefaultsOnly, Category = "AI", meta = (DisplayPriority = 0))
+	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
+	USceneComponent* PivotPoint_;
+
+	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
+	TObjectPtr<UCapsuleComponent> CollisionComponent_;
+
+	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
+	TObjectPtr<UUnitMovementComponent> MovementComponent_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "AI", meta = (DisplayPriority = 0) )
 	TObjectPtr<UBehaviorTree> BehaviorTree_;
-	
-	UPROPERTY(EditAnywhere, Category = "AI", meta = (DisplayPriority = 0))
+
+	UPROPERTY( EditAnywhere, Category = "AI", meta = (DisplayPriority = 0) )
 	TObjectPtr<AActor> Target_;
 };

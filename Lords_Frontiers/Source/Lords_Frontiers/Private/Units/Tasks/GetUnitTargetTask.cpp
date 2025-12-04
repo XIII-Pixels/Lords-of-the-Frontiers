@@ -18,17 +18,9 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 	Super::ExecuteTask( ownerComp, nodeMemory );
 
 	AAIController* controller = ownerComp.GetAIOwner();
-
 	if ( !controller )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "Task GetUnitTarget failed to get AIController" ) );
-		return EBTNodeResult::Failed;
-	}
-
-	auto unit = Cast<AUnit>( controller->GetPawn() );
-	if ( !unit )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "Task GetUnitTarget failed to get AUnit" ) );
 		return EBTNodeResult::Failed;
 	}
 
@@ -38,25 +30,18 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 		UE_LOG( LogTemp, Warning, TEXT("Task GetUnitTarget failed to get BlackboardComponent" ) );
 		return EBTNodeResult::Failed;
 	}
+	
+	auto unit = Cast<AUnit>( controller->GetPawn() );
+	if ( !unit )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Task GetUnitTarget failed to get AUnit" ) );
+		return EBTNodeResult::Failed;
+	}
 
 	if ( TObjectPtr<AActor> targetActor = unit->Target() )
 	{
-		FVector targetLocation = targetActor->GetActorLocation();
-		if ( blackboard->GetValueAsVector( GetSelectedBlackboardKey() ) == targetLocation )
-		{
-			return EBTNodeResult::InProgress;
-		}
-
-		if ( UNavigationSystemV1* navSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>( GetWorld() ) )
-		{
-			FNavLocation result;
-			float& d = AcceptableDistanceAroundTarget;
-			if ( navSys->ProjectPointToNavigation( targetLocation, result, FVector( d, d, d ) ) )
-			{
-				blackboard->SetValueAsVector( GetSelectedBlackboardKey(), result.Location );
-				return EBTNodeResult::InProgress;
-			}
-		}
+		blackboard->SetValueAsObject(GetSelectedBlackboardKey(), targetActor);
+		return EBTNodeResult::Succeeded;
 	}
 
 	return EBTNodeResult::Failed;

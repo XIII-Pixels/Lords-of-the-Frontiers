@@ -2,6 +2,25 @@
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
+#include "Units/UnitMovementComponent.h"
+
+#include "Components/CapsuleComponent.h"
+
+AUnit::AUnit()
+{
+	PivotPoint_ = CreateDefaultSubobject<USceneComponent>( TEXT( "PivotPoint" ) );
+	SetRootComponent( PivotPoint_ );
+
+	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
+	CollisionComponent_->SetupAttachment( PivotPoint_ );
+
+	float halfHeight = CollisionComponent_->GetUnscaledCapsuleHalfHeight();
+	CollisionComponent_->SetRelativeLocation( FVector( 0, 0, halfHeight ) );
+
+	MovementComponent_ = CreateDefaultSubobject<UUnitMovementComponent>( TEXT( "UnitMovementComponent" ) );
+	MovementComponent_->UpdatedComponent = RootComponent;
+}
+
 /** (Gregory-hub)
  * Attack someone or something
  * Calls IAttackable::TakeDamage on target */
