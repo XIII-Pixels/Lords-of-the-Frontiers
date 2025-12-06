@@ -30,7 +30,7 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 		UE_LOG( LogTemp, Warning, TEXT("Task GetUnitTarget failed to get BlackboardComponent" ) );
 		return EBTNodeResult::Failed;
 	}
-	
+
 	auto unit = Cast<AUnit>( controller->GetPawn() );
 	if ( !unit )
 	{
@@ -40,9 +40,8 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 
 	if ( TObjectPtr<AActor> targetActor = unit->Target() )
 	{
-		blackboard->SetValueAsObject(GetSelectedBlackboardKey(), targetActor);
+		blackboard->SetValueAsObject( GetSelectedBlackboardKey(), targetActor );
 		return EBTNodeResult::Succeeded;
 	}
-
 	return EBTNodeResult::Failed;
 }

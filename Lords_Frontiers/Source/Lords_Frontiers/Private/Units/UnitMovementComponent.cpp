@@ -6,6 +6,11 @@
 #include "Components/CapsuleComponent.h"
 #include "Units/Unit.h"
 
+UUnitMovementComponent::UUnitMovementComponent()
+{
+	MaxSpeed = 300.0f;
+}
+
 void UUnitMovementComponent::TickComponent(float deltaTime,
 	ELevelTick tickType,
 	FActorComponentTickFunction* thisTickFunction)
@@ -36,19 +41,17 @@ void UUnitMovementComponent::BeginPlay()
 
 void UUnitMovementComponent::SnapToNavMeshGround()
 {
-	if ( !PawnOwner )
+	if ( !PawnOwner || !CapsuleComponent_ )
 	{
 		return;
 	}
 
-	UNavigationSystemV1* navSys = UNavigationSystemV1::GetCurrent( GetWorld() );
-	if ( !navSys )
-	{
-		return;
-	}
+	float halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
+	FVector location = PawnOwner->GetActorLocation();
+	location.Z -= halfHeight;
 
-	FVector start = GetActorLocation() + FVector( 0, 0, SnapToGroundDistance );
-	FVector end = GetActorLocation() - FVector( 0, 0, SnapToGroundDistance );
+	FVector start = location + FVector( 0, 0, SnapToGroundDistance );
+	FVector end = location - FVector( 0, 0, SnapToGroundDistance );
 
 	FHitResult hit;
 	FCollisionQueryParams params;
@@ -57,8 +60,7 @@ void UUnitMovementComponent::SnapToNavMeshGround()
 	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Visibility, params ) )
 	{
 		FVector groundLocation = hit.ImpactPoint;
-		FVector newLocation = GetActorLocation();
-		newLocation.Z = groundLocation.Z;
-		PawnOwner->SetActorLocation( newLocation );
+		location.Z = groundLocation.Z + halfHeight;
+		PawnOwner->SetActorLocation( location );
 	}
 }

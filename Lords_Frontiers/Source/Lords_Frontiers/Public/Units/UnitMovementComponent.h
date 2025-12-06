@@ -12,14 +12,16 @@ class LORDS_FRONTIERS_API UUnitMovementComponent : public UFloatingPawnMovement
 	GENERATED_BODY()
 
 public:
+	UUnitMovementComponent();
+
 	void TickComponent(float deltaTime,
 		ELevelTick tickType,
 		FActorComponentTickFunction* thisTickFunction) override;
 
 	void BeginPlay() override;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Movement" )
-	float SnapToGroundDistance = 500.0f;
+	UPROPERTY( EditAnywhere, Category = "Movement" )
+	float SnapToGroundDistance = 100.0f;
 
 protected:
 	void SnapToNavMeshGround();

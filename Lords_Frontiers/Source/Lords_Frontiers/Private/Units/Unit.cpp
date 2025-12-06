@@ -8,17 +8,17 @@
 
 AUnit::AUnit()
 {
-	PivotPoint_ = CreateDefaultSubobject<USceneComponent>( TEXT( "PivotPoint" ) );
-	SetRootComponent( PivotPoint_ );
+	// PivotPoint_ = CreateDefaultSubobject<USceneComponent>( TEXT( "PivotPoint" ) );
+	// SetRootComponent( PivotPoint_ );
 
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
-	CollisionComponent_->SetupAttachment( PivotPoint_ );
+	SetRootComponent( CollisionComponent_ );
 
-	float halfHeight = CollisionComponent_->GetUnscaledCapsuleHalfHeight();
-	CollisionComponent_->SetRelativeLocation( FVector( 0, 0, halfHeight ) );
+	// float halfHeight = CollisionComponent_->GetUnscaledCapsuleHalfHeight();
+	// CollisionComponent_->SetRelativeLocation( FVector( 0, 0, halfHeight ) );
 
 	MovementComponent_ = CreateDefaultSubobject<UUnitMovementComponent>( TEXT( "UnitMovementComponent" ) );
-	MovementComponent_->UpdatedComponent = RootComponent;
+	MovementComponent_->UpdatedComponent = CollisionComponent_;
 }
 
 /** (Gregory-hub)

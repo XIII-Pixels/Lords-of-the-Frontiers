@@ -38,9 +38,9 @@ public:
 
 protected:
 	// Components
-	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
-	USceneComponent* PivotPoint_;
-
+	// UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
+	// USceneComponent* PivotPoint_;
+	//
 	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
