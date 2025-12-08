@@ -37,10 +37,6 @@ public:
 	const TObjectPtr<AActor>& Target() const;
 
 protected:
-	// Components
-	// UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
-	// USceneComponent* PivotPoint_;
-	//
 	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 

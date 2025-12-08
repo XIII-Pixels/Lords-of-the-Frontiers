@@ -6,14 +6,16 @@
 #include "Runtime/AIModule/Classes/AIController.h"
 #include "UnitAIController.generated.h"
 
-
 /** (Gregory-hub)
  * AIController for controlling a single unit */
-UCLASS(Blueprintable)
+UCLASS( Blueprintable )
 class LORDS_FRONTIERS_API AUnitAIController : public AAIController
 {
 	GENERATED_BODY()
 
+public:
+	void Tick(float DeltaSeconds) override;
+
 protected:
-	virtual void OnPossess(APawn* pawn) override;
+	void OnPossess(APawn* pawn) override;
 };

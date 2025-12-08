@@ -6,6 +6,8 @@
 #include "GameFramework/FloatingPawnMovement.h"
 #include "UnitMovementComponent.generated.h"
 
+/** (Gregory-hub)
+* Class responsible for unit movement */
 UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
 class LORDS_FRONTIERS_API UUnitMovementComponent : public UFloatingPawnMovement
 {
