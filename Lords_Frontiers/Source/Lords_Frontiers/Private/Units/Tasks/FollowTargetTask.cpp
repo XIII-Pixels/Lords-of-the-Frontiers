@@ -38,14 +38,6 @@ EBTNodeResult::Type UFollowTargetTask::ExecuteTask(UBehaviorTreeComponent& owner
 
 	FVector target = blackboard->GetValueAsVector( GetSelectedBlackboardKey() );
 
-	// if ( bPrevTargetSaved_ && FVector::Dist( target, PrevTargetLocation_ ) < ObservedTargetMovementTolerance )
-	// {
-	// 	return EBTNodeResult::Aborted;
-	// }
-	//
-	// bPrevTargetSaved_ = true;
-	// PrevTargetLocation_ = target;
-
 	FAIMoveRequest request;
 	request.SetGoalLocation( target );
 	request.SetAcceptanceRadius( 0.0f );

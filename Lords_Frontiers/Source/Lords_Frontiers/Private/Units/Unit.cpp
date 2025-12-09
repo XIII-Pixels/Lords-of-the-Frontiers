@@ -5,20 +5,27 @@
 #include "Units/UnitMovementComponent.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Units/UnitAIController.h"
 
 AUnit::AUnit()
 {
-	// PivotPoint_ = CreateDefaultSubobject<USceneComponent>( TEXT( "PivotPoint" ) );
-	// SetRootComponent( PivotPoint_ );
-
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
-	// float halfHeight = CollisionComponent_->GetUnscaledCapsuleHalfHeight();
-	// CollisionComponent_->SetRelativeLocation( FVector( 0, 0, halfHeight ) );
+	CollisionComponent_->SetCollisionProfileName( TEXT( "Pawn" ) );
 
 	MovementComponent_ = CreateDefaultSubobject<UUnitMovementComponent>( TEXT( "UnitMovementComponent" ) );
 	MovementComponent_->UpdatedComponent = CollisionComponent_;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	UnitAIControllerClass = AUnitAIController::StaticClass();
+	AIControllerClass = UnitAIControllerClass;
+}
+
+void AUnit::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction( Transform );
+	AIControllerClass = UnitAIControllerClass;
 }
 
 /** (Gregory-hub)
@@ -39,10 +46,10 @@ void AUnit::TakeDamage(float damage)
 
 const TObjectPtr<UBehaviorTree>& AUnit::BehaviorTree() const
 {
-	return BehaviorTree_;
+	return UnitBehaviorTree;
 }
 
 const TObjectPtr<AActor>& AUnit::Target() const
 {
-	return Target_;
+	return FollowedTarget;
 }

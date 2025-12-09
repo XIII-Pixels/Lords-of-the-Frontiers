@@ -6,9 +6,8 @@
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
 #include "FollowTargetTask.generated.h"
 
-/**
- * 
- */
+/** (Gregory-hub)
+ * Task for following target */
 UCLASS()
 class LORDS_FRONTIERS_API UFollowTargetTask : public UBTTask_BlackboardBase
 {
@@ -19,13 +18,6 @@ public:
 
 	EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings" )
+	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	bool bUsePathfinding = true;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings" )
-	float ObservedTargetMovementTolerance = 10.0f;
-
-	// private:
-	// 	bool bPrevTargetSaved_ = false;
-	// 	FVector PrevTargetLocation_;
 };

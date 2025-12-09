@@ -19,5 +19,6 @@ public:
 	EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
 
 private:
+	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	float SearchRadius_ = 15000.0f;
 };

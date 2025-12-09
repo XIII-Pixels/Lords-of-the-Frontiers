@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AIController.h"
 
 #include "Attackable.h"
 
@@ -26,7 +27,6 @@ public:
 	AUnit();
 
 	// Attack and damage
-	UFUNCTION( BlueprintCallable )
 	virtual void Attack(TScriptInterface<IAttackable> target);
 
 	void TakeDamage(float damage) override;
@@ -36,16 +36,21 @@ public:
 
 	const TObjectPtr<AActor>& Target() const;
 
+	void OnConstruction(const FTransform& Transform) override;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
+	TSubclassOf<AAIController> UnitAIControllerClass;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
+	TObjectPtr<UBehaviorTree> UnitBehaviorTree;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|AI" )
+	TObjectPtr<AActor> FollowedTarget;
+
 protected:
-	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
+	UPROPERTY( VisibleDefaultsOnly )
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
-	UPROPERTY( VisibleDefaultsOnly, BlueprintReadOnly )
+	UPROPERTY( VisibleDefaultsOnly )
 	TObjectPtr<UUnitMovementComponent> MovementComponent_;
-
-	UPROPERTY( EditDefaultsOnly, Category = "AI", meta = (DisplayPriority = 0) )
-	TObjectPtr<UBehaviorTree> BehaviorTree_;
-
-	UPROPERTY( EditAnywhere, Category = "AI", meta = (DisplayPriority = 0) )
-	TObjectPtr<AActor> Target_;
 };

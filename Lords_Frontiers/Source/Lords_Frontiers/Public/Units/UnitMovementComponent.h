@@ -8,7 +8,7 @@
 
 /** (Gregory-hub)
 * Class responsible for unit movement */
-UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
+UCLASS( meta=(BlueprintSpawnableComponent) )
 class LORDS_FRONTIERS_API UUnitMovementComponent : public UFloatingPawnMovement
 {
 	GENERATED_BODY()
@@ -22,11 +22,19 @@ public:
 
 	void BeginPlay() override;
 
-	UPROPERTY( EditAnywhere, Category = "Movement" )
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
+	float MovementSpeed = 800.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
+	float RotationSpeed = 500.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float SnapToGroundDistance = 100.0f;
 
 protected:
 	void SnapToNavMeshGround();
+
+	void RotateForward(float deltaTime);
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CapsuleComponent_;

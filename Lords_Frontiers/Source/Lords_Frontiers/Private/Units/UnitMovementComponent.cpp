@@ -8,7 +8,6 @@
 
 UUnitMovementComponent::UUnitMovementComponent()
 {
-	MaxSpeed = 300.0f;
 }
 
 void UUnitMovementComponent::TickComponent(float deltaTime,
@@ -22,6 +21,8 @@ void UUnitMovementComponent::TickComponent(float deltaTime,
 		return;
 	}
 
+	RotateForward( deltaTime );
+
 	// Only snap if the pawn is moving
 	if ( !Velocity.IsNearlyZero() )
 	{
@@ -32,6 +33,8 @@ void UUnitMovementComponent::TickComponent(float deltaTime,
 void UUnitMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	MaxSpeed = MovementSpeed;
 
 	if ( PawnOwner )
 	{
@@ -63,4 +66,14 @@ void UUnitMovementComponent::SnapToNavMeshGround()
 		location.Z = groundLocation.Z + halfHeight;
 		PawnOwner->SetActorLocation( location );
 	}
+}
+
+void UUnitMovementComponent::RotateForward(float deltaTime)
+{
+	FRotator targetRotation = Velocity.Rotation();
+	FRotator currentRotation = PawnOwner->GetActorRotation();
+
+	FRotator newRotation = FMath::RInterpConstantTo( currentRotation, targetRotation, deltaTime, RotationSpeed );
+
+	PawnOwner->SetActorRotation( newRotation );
 }

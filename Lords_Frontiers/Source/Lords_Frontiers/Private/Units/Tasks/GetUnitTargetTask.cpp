@@ -40,17 +40,7 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 
 	if ( TObjectPtr<AActor> targetActor = unit->Target() )
 	{
-		// if ( AActor* prev = Cast<AActor>( blackboard->GetValueAsObject( GetSelectedBlackboardKey() ) ) )
-		// {
-		// 	if ( targetActor->GetActorLocation() == prev->GetActorLocation() )
-		// 	{
-		// 		return EBTNodeResult::Aborted;
-		// 	}
-		// }
-		// blackboard->SetValueAsObject( GetSelectedBlackboardKey(), targetActor );
-
 		blackboard->SetValueAsVector( GetSelectedBlackboardKey(), targetActor->GetActorLocation() );
-
 		return EBTNodeResult::Succeeded;
 	}
 	return EBTNodeResult::Failed;
