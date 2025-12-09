@@ -7,7 +7,7 @@
 
 class UResourceManager;
 
-// Can be stored within GameState, PlayerController, or ResourceManager itself.
+//Can be stored within GameState, PlayerController, or ResourceManager itself.
 UCLASS(BlueprintType, Blueprintable)
 class LORDS_FRONTIERS_API UResourceGenerator : public UObject
 {
