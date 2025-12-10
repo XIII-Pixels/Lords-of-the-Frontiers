@@ -1,15 +1,15 @@
-#include "Lords_Frontiers/Public/Building/Building.h"
+#include "Building/Building.h"
 
 ABuilding::ABuilding()
 {
+
 	PrimaryActorTick.bCanEverTick = false;
 
-	// Create and set root component
 	BuildingMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "BuildingMesh" ) );
 	RootComponent = BuildingMesh_;
 
-	// Default initialization of stats via Constructor of struct
-	// (MaxHealth, AttackDamage, AttackRange, MoveSpeed)
+	BuildingMesh_->SetCollisionResponseToChannel( ECollisionChannel::ECC_GameTraceChannel1, ECR_Ignore );
+
 	Stats_ = FEntityStats( 100, 0, 0.0f, 0.0f );
 }
 
@@ -18,7 +18,9 @@ void ABuilding::BeginPlay()
 	Super::BeginPlay();
 }
 
-float ABuilding::TakeDamage( float damageAmount, FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser )
+float ABuilding::TakeDamage(
+    float damageAmount, FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser
+)
 {
 	// Call super to handle generic logic
 	const float ActualDamage = Super::TakeDamage( damageAmount, damageEvent, eventInstigator, damageCauser );
@@ -31,7 +33,7 @@ float ABuilding::TakeDamage( float damageAmount, FDamageEvent const& damageEvent
 
 		Stats_.ApplyDamage( IntDamage );
 
-		if  ( !Stats_.IsAlive() )
+		if ( !Stats_.IsAlive() )
 		{
 			// Logic for destruction (effects, removal, etc.)
 			Destroy();
@@ -49,4 +51,54 @@ const FEntityStats& ABuilding::GetStats() const
 bool ABuilding::IsDestroyed() const
 {
 	return !Stats_.IsAlive();
+}
+
+FString ABuilding::GetNameBuild()
+{
+	return TEXT( "Build" );
+}
+
+void ABuilding::OnSelected_Implementation()
+{
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
+		);
+	}
+
+	if ( BuildingMesh_ )
+	{
+		BuildingMesh_->SetRenderCustomDepth( true );
+	}
+}
+
+void ABuilding::OnDeselected_Implementation()
+{
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
+		);
+	}
+
+	if ( BuildingMesh_ )
+	{
+		BuildingMesh_->SetRenderCustomDepth( false );
+	}
+}
+
+bool ABuilding::CanBeSelected_Implementation() const
+{
+	return Stats_.IsAlive();
+}
+
+FVector ABuilding::GetSelectionLocation_Implementation() const
+{
+	if ( BuildingMesh_ )
+	{
+		return BuildingMesh_->Bounds.Origin;
+	}
+
+	return GetActorLocation();
 }

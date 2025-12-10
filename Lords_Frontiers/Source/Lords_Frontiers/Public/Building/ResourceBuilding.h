@@ -1,30 +1,31 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Building.h"
+#include "CoreMinimal.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceGenerator.h"
+
 #include "ResourceBuilding.generated.h"
 
 class UResourceManager;
 
 // Abstract base class for buildings that generate resources.
-UCLASS(Abstract)
+UCLASS( Abstract )
 class LORDS_FRONTIERS_API AResourceBuilding : public ABuilding
 {
 	GENERATED_BODY()
 
-public:
+  public:
 	AResourceBuilding();
 
-protected:
+  protected:
 	virtual void BeginPlay() override;
 
-protected:
+  protected:
 	// The component responsible for the core resource generation logic (type, quantity, interval).
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Resource Generation")
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Resource Generation" )
 	UResourceGenerator* ResourceGenerator_;
 
-private:
+  private:
 	// Find the Resource Manager
 	UResourceManager* FindResourceManager_() const;
 };
