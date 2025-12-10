@@ -250,3 +250,22 @@ private:
 ```
 
 - Сначала то, что важно пользователю класса, затем всё остальное.
+
+## 8. Блупринты
+- Все настраиваемые параметры должны быть в категории Settings:
+```cpp
+UPROPERTY( EditAnywhere, Category = "Settings" )
+float SearchRadius_ = 15000.0f;
+```
+- Можно использовать подкатегории:
+```cpp
+UPROPERTY( EditAnywhere, Category = "Settings|AI" )
+TObjectPtr<AActor> Target_;
+```
+- Параметры в компонентах обязательно помещать в подкатегорию с соответствующим названием:
+  - В классе UUnitMovementComponent:
+```cpp
+UPROPERTY(EditAnywhere, Category = "Settings|Movement")
+float SnapToGroundDistance = 100.0f;
+```
+- Это необходимо, потому что параметры компонента появляются в классе, в котором находится этот компонент.
