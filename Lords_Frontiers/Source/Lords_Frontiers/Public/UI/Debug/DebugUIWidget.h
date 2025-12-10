@@ -1,35 +1,53 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// DebugUIWidget.h
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
+#include "CoreMinimal.h"
+
 #include "DebugUIWidget.generated.h"
 
+class UButton;
+class AGridVisualizer;
+class ABuildManager;
+class ABuilding;
+class USelectionManagerComponent;
+class ADebugPlayerController;
 
-/** (Gregory-hub)
- * UI class for debugging
- * Do not use this for creating actual game UI */
-UCLASS(Abstract, Blueprintable)
+// * Simple debug UI. Не игровое, только для тестов. */
+UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
+  public:
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button1;
 
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button2;
 
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button3;
 
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button4;
 
-protected:
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> Button7 = nullptr;
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
+	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
+
+  protected:
+	UPROPERTY()
+	TObjectPtr<ABuildManager> BuildManager = nullptr;
+
+	// Кешированный указатель на менеджер выделения
+	UPROPERTY()
+	TObjectPtr<USelectionManagerComponent> SelectionManager = nullptr;
+
 	UFUNCTION()
 	void OnButton1Clicked();
 
@@ -42,5 +60,34 @@ protected:
 	UFUNCTION()
 	void OnButton4Clicked();
 
+	UFUNCTION()
+	void OnButton7Clicked();
+
 	virtual bool Initialize() override;
+
+  private:
+	UPROPERTY()
+	TObjectPtr<AGridVisualizer> GridVisualizer = nullptr;
+
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadOnly, Category = "Settings|Buildings", meta = ( AllowPrivateAccess = "true" )
+	)
+	TSubclassOf<ABuilding> Button2BuildingClass;
+
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadOnly, Category = "Settings|Buildings", meta = ( AllowPrivateAccess = "true" )
+	)
+	TSubclassOf<ABuilding> Button3BuildingClass;
+
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadOnly, Category = "Settings|Buildings", meta = ( AllowPrivateAccess = "true" )
+	)
+	TSubclassOf<ABuilding> Button4BuildingClass;
+
+	bool bExtraButtonsVisible = false;
+
+	void UpdateExtraButtonsVisibility();
+
+	UFUNCTION()
+	void HandleSelectionChanged();
 };
