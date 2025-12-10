@@ -1,19 +1,26 @@
-#include "Lords_Frontiers/Public/Building/DefensiveBuilding.h"
+// DefensiveBuilding.cpp
 
-//Const for default defensive building
+#include "Building/DefensiveBuilding.h"
+
 namespace
 {
 	constexpr int32 cDefaultDefenseDamage = 15;
 	constexpr float cDefaultAttackRange = 500.0f;
-}
+} // namespace
 
 ADefensiveBuilding::ADefensiveBuilding()
 {
-	// Initialization for defensive structures
+	PrimaryActorTick.bCanEverTick = false;
 
-	// Default stats: 100 Health, 0 Damage (override by DefenseDamage_)
-
-	// Specific defensive properties
 	DefenseDamage_ = cDefaultDefenseDamage;
 	AttackRange_ = cDefaultAttackRange;
+}
+
+void ADefensiveBuilding::BeginPlay()
+{
+	Super::BeginPlay();
+}
+FString ADefensiveBuilding::GetNameBuild()
+{
+	return TEXT( "DefensiveBuild" );
 }

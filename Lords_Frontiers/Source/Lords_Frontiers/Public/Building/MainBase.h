@@ -1,7 +1,8 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Building.h"
+#include "CoreMinimal.h"
+
 #include "MainBase.generated.h"
 
 // The main building of the player. Loss of this building leads to defeat.
@@ -10,14 +11,14 @@ class LORDS_FRONTIERS_API AMainBase : public ABuilding
 {
 	GENERATED_BODY()
 
-public:
+  public:
 	AMainBase();
 
-protected:
+  protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
-private:
+  private:
 	// Example constant for base health
 	static constexpr int32 cBaseMaxHealth = 1000;
 };

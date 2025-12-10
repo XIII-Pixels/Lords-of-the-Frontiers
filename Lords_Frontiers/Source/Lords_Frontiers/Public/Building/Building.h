@@ -1,41 +1,46 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "EntityStats.h"
+#include "GameFramework/Actor.h"
+#include "Selectable.h"
+
 #include "Building.generated.h"
 
-// Abstract base class for all buildings.
-// Contains visual representation and entity stats.
-UCLASS(Abstract)
-class LORDS_FRONTIERS_API ABuilding : public AActor
+UCLASS( Abstract )
+class LORDS_FRONTIERS_API ABuilding : public AActor, public ISelectable
 {
 	GENERATED_BODY()
 
-public:
+  public:
 	ABuilding();
 
-public:
-	// Override standard UE damage handling to pass it to EntityStats.
-	virtual float TakeDamage( float damageAmount, struct FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser ) override;
+	virtual float TakeDamage(
+	    float damageAmount, struct FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser
+	) override;
 
-	// Returns current stats (const version)
-	UFUNCTION(BlueprintPure, Category = "Stats")
+	UFUNCTION( BlueprintPure, Category = "Settings|Stats" )
 	const FEntityStats& GetStats() const;
 
-	// Check if building is destroyed
-	UFUNCTION(BlueprintPure, Category = "Stats")
+	UFUNCTION( BlueprintPure, Category = "Settings|Stats" )
 	bool IsDestroyed() const;
 
-protected:
+	virtual FString GetNameBuild();
+
+	virtual void OnSelected_Implementation() override;
+
+	virtual void OnDeselected_Implementation() override;
+
+	virtual bool CanBeSelected_Implementation() const override;
+
+	virtual FVector GetSelectionLocation_Implementation() const override;
+
+  protected:
 	virtual void BeginPlay() override;
 
-protected:
-	// Visual representation of the building
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Setting|Components" )
 	UStaticMeshComponent* BuildingMesh_;
 
-	// Stats struct (Health, etc.)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Setting|Stats" )
 	FEntityStats Stats_;
 };
