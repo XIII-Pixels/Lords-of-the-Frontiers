@@ -15,8 +15,8 @@ public class Lords_Frontiers : ModuleRules
 			"Engine",
 			"InputCore",
 			"UMG",
-      "AIModule",
-      "NavigationSystem",
+			"AIModule",
+			"NavigationSystem",
 			"Slate",
 			"SlateCore"
 		});
