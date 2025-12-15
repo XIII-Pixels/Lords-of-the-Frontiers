@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/Tasks/FollowTargetTask.h"
+#include "Units/BehaviorTreeNodes/Tasks/FollowTargetTask.h"
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -49,7 +49,7 @@ EBTNodeResult::Type UFollowTargetTask::ExecuteTask(UBehaviorTreeComponent& owner
 	if ( result == EPathFollowingRequestResult::RequestSuccessful )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "MoveToTarget: MoveTo() returned RequestSuccessful" ) );
-		return EBTNodeResult::Succeeded;
+		return EBTNodeResult::InProgress;
 	}
 	if ( result == EPathFollowingRequestResult::AlreadyAtGoal )
 	{

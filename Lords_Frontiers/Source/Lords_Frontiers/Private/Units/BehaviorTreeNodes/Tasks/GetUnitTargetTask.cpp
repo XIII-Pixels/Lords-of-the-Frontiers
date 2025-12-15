@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/Tasks/GetUnitTargetTask.h"
+#include "Units/BehaviorTreeNodes/Tasks/GetUnitTargetTask.h"
 
 #include "Units/Unit.h"
 
@@ -40,8 +40,15 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 
 	if ( TObjectPtr<AActor> targetActor = unit->Target() )
 	{
-		blackboard->SetValueAsVector( GetSelectedBlackboardKey(), targetActor->GetActorLocation() );
-		return EBTNodeResult::Succeeded;
+		if ( targetActor->GetActorLocation() != blackboard->GetValueAsVector( GetSelectedBlackboardKey() ) )
+		{
+			blackboard->SetValueAsVector( GetSelectedBlackboardKey(), targetActor->GetActorLocation() );
+			return EBTNodeResult::Succeeded;
+		}
+		else
+		{
+			return EBTNodeResult::Failed;
+		}
 	}
 	return EBTNodeResult::Failed;
 }
