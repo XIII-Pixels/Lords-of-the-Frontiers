@@ -6,6 +6,7 @@
 #include "AIController.h"
 
 #include "Attackable.h"
+#include "EntityStats.h"
 
 #include "GameFramework/Pawn.h"
 #include "Unit.generated.h"
@@ -26,17 +27,21 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 public:
 	AUnit();
 
-	// Attack and damage
-	virtual void Attack(TScriptInterface<IAttackable> target);
+	void OnConstruction(const FTransform& transform) override;
+
+	virtual void Tick(float deltaSeconds) override;
+
+	// Attacks the closest attackable target in front of unit
+	void AttackForward();
+
+	// Calls IAttackable::TakeDamage on target
+	void DealDamage(TScriptInterface<IAttackable> target);
 
 	void TakeDamage(float damage) override;
 
-	// Getters
 	const TObjectPtr<UBehaviorTree>& BehaviorTree() const;
 
 	const TObjectPtr<AActor>& Target() const;
-
-	void OnConstruction(const FTransform& Transform) override;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass;
@@ -46,6 +51,9 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|AI" )
 	TObjectPtr<AActor> FollowedTarget;
+
+	UPROPERTY( EditAnywhere, Category = "Settings")
+	FEntityStats Stats;
 
 protected:
 	UPROPERTY( VisibleDefaultsOnly )
