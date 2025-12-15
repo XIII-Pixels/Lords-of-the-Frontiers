@@ -41,12 +41,6 @@ float FEntityStats::GetAttackRange () const
 	return AttackRange;
 }
 
-float FEntityStats::GetMoveSpeed () const
-{
-	return MoveSpeed;
-}
-
-
 // setters
 // (Artyom)
 // entity keep hp percentage at the same lvl;  before (50/100hp); SetMaxHealth(150); after (75/150hp)
@@ -75,12 +69,6 @@ void FEntityStats::SetAttackRange ( float inAttackRange )
 {
 	AttackRange = inAttackRange;
 }
-
-void FEntityStats::SetMoveSpeed ( float inMoveSpeed )
-{
-	MoveSpeed = inMoveSpeed;
-}
-
 
 int FEntityStats::ApplyDamage ( int damage )
 {
