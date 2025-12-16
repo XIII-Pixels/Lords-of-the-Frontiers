@@ -33,18 +33,18 @@ void AUnit::Tick(float deltaSeconds)
 {
 	Super::Tick( deltaSeconds );
 
-	static float time = 0.0f;
-	if ((time += deltaSeconds) > 1.0f)
-	{
-		AttackForward();
-		time = 0.0f;
-	}
+	AttackForward();
 }
 
 void AUnit::AttackForward()
 {
+	if ( Stats.OnCooldown() )
+	{
+		return;
+	}
+	
 	FVector start = GetActorLocation();
-	FVector end   = start + GetActorForwardVector() * Stats.AttackRange;
+	FVector end = start + GetActorForwardVector() * Stats.GetAttackRange();
 
 	FHitResult hit;
 	FCollisionQueryParams params;
@@ -57,6 +57,7 @@ void AUnit::AttackForward()
 		if ( hitActor->GetClass()->ImplementsInterface( UAttackable::StaticClass() ) )
 		{
 			DealDamage( hitActor );
+			Stats.StartCooldown();
 		}
 	}
 }
@@ -65,13 +66,14 @@ void AUnit::DealDamage(TScriptInterface<IAttackable> target)
 {
 	// Probably should be done with some attack component, because some buildings can attack as well
 	// Probably should use some attack manager, because it would be easier to fetch attack info
-	target->TakeDamage( Stats.AttackDamage );
-	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Damage" );
+	target->TakeDamage( Stats.GetAttackDamage() );
+	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Emerald, "Damage applied" );
 }
 
 void AUnit::TakeDamage(float damage)
 {
-	// Stats.HP -= damage
+	Stats.ApplyDamage( damage );
+	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Damage taken" );
 }
 
 const TObjectPtr<UBehaviorTree>& AUnit::BehaviorTree() const

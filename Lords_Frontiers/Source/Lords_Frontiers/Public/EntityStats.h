@@ -11,19 +11,6 @@ struct FEntityStats
 	GENERATED_BODY()
 
 public:
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	int MaxHealth = 100;
-
-	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, Category = "Stats" )
-	int Health = MaxHealth;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	int AttackDamage = 10;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	float AttackRange = 200.0f;
-
-public:
 	FEntityStats() = default;
 
 	explicit FEntityStats(int maxHealth, int attackDamage, float attackRange, float moveSpeed);
@@ -33,24 +20,33 @@ public:
 
 	int GetHealth() const;
 
+	float GetAttackRange() const;
+
 	int GetAttackDamage() const;
 
-	float GetAttackRange() const;
+	float GetAttackCooldown() const;
 
 	// setters
 	void SetMaxHealth(int maxHealth); // min = 1
 
 	void SetHealth(int health);
 
-	void SetAttackDamage(int attackDamage);
-
 	void SetAttackRange(float attackRange);
 
+	void SetAttackDamage(int attackDamage);
+	
+	void SetAttackCooldown(float attackCooldown);
+
 	// functionality
-	// return applied damage
+	
+	// returns applied damage
 	int ApplyDamage(int damage);
 
 	void Heal(int amount);
+
+	bool OnCooldown() const;
+
+	void StartCooldown();
 
 	// damage modificator (if needed)
 	void ModifyAttackDamage(int delta);
@@ -59,4 +55,22 @@ public:
 	bool IsAlive() const;
 
 	bool IsAtFullHealth() const;
+
+private:
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	int MaxHealth_ = 100;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Stats" )
+	int Health_ = MaxHealth_;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	float AttackRange_ = 200.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	int AttackDamage_ = 10;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	float AttackCooldown_ = 1.0f;
+
+	FDateTime LastAttackTime_;
 };
