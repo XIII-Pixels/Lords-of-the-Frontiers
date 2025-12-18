@@ -16,8 +16,8 @@ class UBehaviorTree;
 class UUnitMovementComponent;
 
 /** (Gregory-hub)
- * Base class for all units in a game
- * Can move and attack
+ * Base class for all units in a game (implement units in blueprints)
+ * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
@@ -29,36 +29,50 @@ public:
 
 	void OnConstruction(const FTransform& transform) override;
 
+	virtual void BeginPlay() override;
+
 	virtual void Tick(float deltaSeconds) override;
 
-	// Attacks the closest attackable target in front of unit
-	void AttackForward();
-
 	// Calls IAttackable::TakeDamage on target
-	void DealDamage(TScriptInterface<IAttackable> target);
+	void Attack(TObjectPtr<AActor> hitActor);
 
+	// HP reduction
 	void TakeDamage(float damage) override;
+
+	TObjectPtr<AActor> EnemyInSight() const;
 
 	const TObjectPtr<UBehaviorTree>& BehaviorTree() const;
 
 	const TObjectPtr<AActor>& Target() const;
 
+protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
-	TSubclassOf<AAIController> UnitAIControllerClass;
+	TSubclassOf<AAIController> UnitAIControllerClass_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
-	TObjectPtr<UBehaviorTree> UnitBehaviorTree;
+	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|AI" )
-	TObjectPtr<AActor> FollowedTarget;
+	TObjectPtr<AActor> FollowedTarget_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings")
-	FEntityStats Stats;
+	FEntityStats Stats_;
 
-protected:
+	UPROPERTY( EditAnywhere, Category = "Settings")
+	float SightRaycastInterval_ = 0.2f;
+
 	UPROPERTY( VisibleDefaultsOnly )
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
 	UPROPERTY( VisibleDefaultsOnly )
 	TObjectPtr<UUnitMovementComponent> MovementComponent_;
+	
+	// Look forward at given time intervals
+	void SightTick();
+
+	void LookForward();
+	
+	TObjectPtr<AActor> EnemyInSight_;
+
+	FTimerHandle SightTimerHandle_;
 };
