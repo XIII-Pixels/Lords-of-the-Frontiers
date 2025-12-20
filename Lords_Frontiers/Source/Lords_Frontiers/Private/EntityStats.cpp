@@ -11,24 +11,34 @@ FEntityStats::FEntityStats ( int maxHealth, int attackDamage, float attackRange,
 
 // getters
 
-int FEntityStats::GetMaxHealth () const
+int FEntityStats::MaxHealth () const
 {
 	return MaxHealth_;
 }
 
-int FEntityStats::GetHealth () const
+int FEntityStats::Health () const
 {
 	return Health_;
 }
 
-int FEntityStats::GetAttackDamage () const
+int FEntityStats::AttackDamage () const
 {
 	return AttackDamage_;
 }
 
-float FEntityStats::GetAttackCooldown() const
+float FEntityStats::AttackCooldown() const
 {
 	return AttackCooldown_;
+}
+
+ETeam FEntityStats::Team() const
+{
+	return Team_;
+}
+
+void FEntityStats::SetTeam(ETeam team)
+{
+	Team_ = team;
 }
 
 void FEntityStats::SetAttackCooldown(float attackCooldown)
@@ -36,7 +46,7 @@ void FEntityStats::SetAttackCooldown(float attackCooldown)
 	AttackCooldown_ = attackCooldown;
 }
 
-float FEntityStats::GetAttackRange () const
+float FEntityStats::AttackRange () const
 {
 	return AttackRange_;
 }

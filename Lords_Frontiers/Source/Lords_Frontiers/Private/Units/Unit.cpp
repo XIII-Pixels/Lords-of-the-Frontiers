@@ -56,14 +56,14 @@ void AUnit::Attack(TObjectPtr<AActor> hitActor)
 	{
 		return;
 	}
-	
-	auto attacked = Cast<IAttackable>(hitActor);
+
+	auto attacked = Cast<IAttackable>( hitActor );
 	if ( !attacked )
 	{
 		return;
 	}
 
-	attacked->TakeDamage( Stats_.GetAttackDamage() );
+	attacked->TakeDamage( Stats_.AttackDamage() );
 	Stats_.StartCooldown();
 
 	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Emerald, "Damage applied" );
@@ -73,6 +73,11 @@ void AUnit::TakeDamage(float damage)
 {
 	Stats_.ApplyDamage( damage );
 	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Damage taken" );
+}
+
+ETeam AUnit::Team()
+{
+	return Stats_.Team();
 }
 
 TObjectPtr<AActor> AUnit::EnemyInSight() const
@@ -105,7 +110,7 @@ void AUnit::SightTick()
 void AUnit::LookForward()
 {
 	FVector start = GetActorLocation();
-	FVector end = start + GetActorForwardVector() * Stats_.GetAttackRange();
+	FVector end = start + GetActorForwardVector() * Stats_.AttackRange();
 
 	FHitResult hit;
 	FCollisionQueryParams params;
@@ -114,13 +119,16 @@ void AUnit::LookForward()
 	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Pawn, params ) )
 	{
 		AActor* hitActor = hit.GetActor();
-		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Blue, "Actor seen" );
-		if ( hitActor->GetClass()->ImplementsInterface( UAttackable::StaticClass() ) )
+		if ( auto hitEntity = Cast<IAttackable>( hitActor ) )
 		{
-			GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Enemy seen" );
-			EnemyInSight_ = hitActor;
-			return;
+			if ( Stats_.Team() != hitEntity->Team() )
+			{
+				GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Enemy seen" );
+				EnemyInSight_ = hitActor;
+				return;
+			}
 		}
+		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Blue, "Actor seen" );
 	}
 
 	EnemyInSight_ = nullptr;

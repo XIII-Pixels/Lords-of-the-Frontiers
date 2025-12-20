@@ -3,6 +3,15 @@
 #include "CoreMinimal.h"
 #include "EntityStats.generated.h"
 
+
+UENUM( BlueprintType )
+enum class ETeam : uint8
+{
+	Dog,
+	Cat
+};
+
+
 // (Artyom)
 // entity stats struct (health, damage, damage radius, speed)
 USTRUCT( BlueprintType )
@@ -16,15 +25,17 @@ public:
 	explicit FEntityStats(int maxHealth, int attackDamage, float attackRange, float moveSpeed);
 
 	// getters
-	int GetMaxHealth() const;
+	int MaxHealth() const;
 
-	int GetHealth() const;
+	int Health() const;
 
-	float GetAttackRange() const;
+	float AttackRange() const;
 
-	int GetAttackDamage() const;
+	int AttackDamage() const;
 
-	float GetAttackCooldown() const;
+	float AttackCooldown() const;
+
+	ETeam Team() const;
 
 	// setters
 	void SetMaxHealth(int maxHealth); // min = 1
@@ -36,6 +47,8 @@ public:
 	void SetAttackDamage(int attackDamage);
 	
 	void SetAttackCooldown(float attackCooldown);
+	
+	void SetTeam(ETeam team);
 
 	// functionality
 	
@@ -71,6 +84,9 @@ private:
 
 	UPROPERTY( EditAnywhere, Category = "Stats" )
 	float AttackCooldown_ = 1.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	ETeam Team_;
 
 	FDateTime LastAttackTime_;
 };

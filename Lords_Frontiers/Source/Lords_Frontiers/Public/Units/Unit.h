@@ -37,6 +37,8 @@ public:
 
 	// HP reduction
 	void TakeDamage(float damage) override;
+	
+	ETeam Team() override;
 
 	TObjectPtr<AActor> EnemyInSight() const;
 
