@@ -4,17 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTDecorator.h"
-#include "DoesSeeAttackable.generated.h"
+#include "DoesSeeEnemyDecorator.generated.h"
 
 /** (Gregory-hub)
  * Check if unit sees something it can attack */
 UCLASS()
-class LORDS_FRONTIERS_API UDoesSeeAttackable : public UBTDecorator
+class LORDS_FRONTIERS_API UDoesSeeEnemyDecorator : public UBTDecorator
 {
 	GENERATED_BODY()
 
 public:
-	UDoesSeeAttackable();
+	UDoesSeeEnemyDecorator();
 
-	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) const override;
 };

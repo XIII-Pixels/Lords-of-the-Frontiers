@@ -6,9 +6,7 @@
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
 #include "ForceSuccessTask.generated.h"
 
-/** (Gregory-hub)
- * 
- */
+/** (Gregory-hub) */
 UCLASS()
 class LORDS_FRONTIERS_API UForceSuccessTask : public UBTTask_BlackboardBase
 {

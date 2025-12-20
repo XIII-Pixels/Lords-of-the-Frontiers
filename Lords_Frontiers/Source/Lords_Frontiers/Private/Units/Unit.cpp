@@ -63,16 +63,26 @@ void AUnit::Attack(TObjectPtr<AActor> hitActor)
 		return;
 	}
 
-	attacked->TakeDamage( Stats_.AttackDamage() );
-	Stats_.StartCooldown();
+	if ( Stats_.Team() == attacked->Team() )
+	{
+		return;
+	}
 
 	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Emerald, "Damage applied" );
+
+	attacked->TakeDamage( Stats_.AttackDamage() );
+	Stats_.StartCooldown();
 }
 
 void AUnit::TakeDamage(float damage)
 {
 	Stats_.ApplyDamage( damage );
-	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Damage taken" );
+	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Emerald, "Damage taken" );
+
+	if ( !Stats_.IsAlive() )
+	{
+		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Emerald, "DEAD!" );
+	}
 }
 
 ETeam AUnit::Team()
@@ -123,12 +133,14 @@ void AUnit::LookForward()
 		{
 			if ( Stats_.Team() != hitEntity->Team() )
 			{
-				GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Enemy seen" );
 				EnemyInSight_ = hitActor;
+				GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Enemy seen" );
 				return;
 			}
+			GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Blue, "Ally seen" );
+			return;
 		}
-		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Blue, "Actor seen" );
+		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Green, "Actor seen" );
 	}
 
 	EnemyInSight_ = nullptr;
