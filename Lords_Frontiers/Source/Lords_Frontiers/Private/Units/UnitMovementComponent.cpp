@@ -70,6 +70,10 @@ void UUnitMovementComponent::SnapToNavMeshGround()
 
 void UUnitMovementComponent::RotateForward(float deltaTime)
 {
+	if (Velocity.IsNearlyZero())
+	{
+		return;
+	}
 	FRotator targetRotation = Velocity.Rotation();
 	FRotator currentRotation = PawnOwner->GetActorRotation();
 

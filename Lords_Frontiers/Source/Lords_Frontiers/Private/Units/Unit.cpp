@@ -38,7 +38,7 @@ void AUnit::BeginPlay()
 		SightTimerHandle_,
 		this,
 		&AUnit::SightTick,
-		SightRaycastInterval_,
+		LookForwardTimeInterval_,
 		true );
 }
 
@@ -98,7 +98,7 @@ void AUnit::SightTick()
 		SightTimerHandle_,
 		this,
 		&AUnit::SightTick,
-		SightRaycastInterval_,
+		LookForwardTimeInterval_,
 		true );
 }
 

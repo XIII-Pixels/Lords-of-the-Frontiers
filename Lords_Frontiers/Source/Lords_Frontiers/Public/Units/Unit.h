@@ -33,7 +33,6 @@ public:
 
 	virtual void Tick(float deltaSeconds) override;
 
-	// Calls IAttackable::TakeDamage on target
 	void Attack(TObjectPtr<AActor> hitActor);
 
 	// HP reduction
@@ -58,21 +57,25 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings")
 	FEntityStats Stats_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings")
-	float SightRaycastInterval_ = 0.2f;
-
-	UPROPERTY( VisibleDefaultsOnly )
+	UPROPERTY( VisibleDefaultsOnly, Category = "Settings" )
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
-	UPROPERTY( VisibleDefaultsOnly )
+	UPROPERTY( VisibleDefaultsOnly, Category = "Settings" )
 	TObjectPtr<UUnitMovementComponent> MovementComponent_;
+
+	// [Should be in Attack Component]
+	// -----------------------------------------------------
+	UPROPERTY( EditAnywhere, Category = "Settings")
+	float LookForwardTimeInterval_ = 0.2f;
 	
+	UPROPERTY( VisibleAnywhere, Category = "Settings" )
+	TObjectPtr<AActor> EnemyInSight_;
+
 	// Look forward at given time intervals
 	void SightTick();
 
 	void LookForward();
-	
-	TObjectPtr<AActor> EnemyInSight_;
 
 	FTimerHandle SightTimerHandle_;
+	// -----------------------------------------------------
 };
