@@ -17,6 +17,10 @@ class LORDS_FRONTIERS_API AResourceBuilding : public ABuilding
   public:
 	AResourceBuilding();
 
+	// Accessor for the economy scanner
+	UFUNCTION(BlueprintPure, Category = "Resource Generation")
+	UResourceGenerator* GetResourceGenerator() const { return ResourceGenerator_; }
+
   protected:
 	virtual void BeginPlay() override;
 

@@ -24,6 +24,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Generation")
 	void GenerateNow();
 
+	// Getters for the scanner
+	UFUNCTION(BlueprintPure, Category = "Settings")
+	EResourceType GetResourceType() const { return ResourceType_; }
+
+	UFUNCTION(BlueprintPure, Category = "Settings")
+	int32 GetGenerationQuantity() const { return GenerationQuantity_; }
+
 protected:
 	// Type of resource being generated
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
