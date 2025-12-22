@@ -5,6 +5,9 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
 #include "CoreMinimal.h"
+#include "Components/HorizontalBox.h"
+
+#include "Lords_Frontiers/Public/ResourceManager/ResourceItemWidget.h"
 
 #include "DebugUIWidget.generated.h"
 
@@ -34,11 +37,16 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button4;
 
+	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	TObjectPtr<UButton> Button9;
+
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> Button7 = nullptr;
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
+
+	void CreateResourceWidgets();
 
   protected:
 	UPROPERTY()
@@ -61,9 +69,22 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	void OnButton4Clicked();
 
 	UFUNCTION()
+	void OnButton9Clicked();
+
+	UFUNCTION()
 	void OnButton7Clicked();
 
 	virtual bool Initialize() override;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UHorizontalBox> ResourceContainer;
+
+	UPROPERTY(EditAnywhere, Category = "Settings|UI")
+	TSubclassOf<UResourceItemWidget> ResourceItemClass;
+
+	UPROPERTY(EditAnywhere, Category = "Settings|UI")
+	TMap<EResourceType, UTexture2D*> ResourceIcons;
+
 
   private:
 	UPROPERTY()
@@ -90,4 +111,10 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 
 	UFUNCTION()
 	void HandleSelectionChanged();
+
+	 UPROPERTY()
+    TMap<EResourceType, UResourceItemWidget*> ResourceWidgetsMap;
+
+    UFUNCTION()
+    void OnResourceChangedHandler(EResourceType Type, int32 NewAmount);
 };
