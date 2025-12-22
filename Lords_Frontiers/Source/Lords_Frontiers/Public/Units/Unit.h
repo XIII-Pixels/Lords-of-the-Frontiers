@@ -13,7 +13,7 @@
 
 class UCapsuleComponent;
 class UBehaviorTree;
-class UUnitMovementComponent;
+class UFollowComponent;
 
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
@@ -32,6 +32,10 @@ public:
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float deltaSeconds) override;
+	
+	void StartFollowing();
+	
+	void StopFollowing();
 
 	void Attack(TObjectPtr<AActor> hitActor);
 
@@ -53,17 +57,14 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|AI" )
-	TObjectPtr<AActor> FollowedTarget_;
-
 	UPROPERTY( EditAnywhere, Category = "Settings")
 	FEntityStats Stats_;
 
 	UPROPERTY( VisibleDefaultsOnly, Category = "Settings" )
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
-	UPROPERTY( VisibleDefaultsOnly, Category = "Settings" )
-	TObjectPtr<UUnitMovementComponent> MovementComponent_;
+	UPROPERTY( Instanced, VisibleAnywhere )
+	TObjectPtr<UFollowComponent> FollowComponent_;
 
 	// [Should be in Attack Component]
 	// -----------------------------------------------------

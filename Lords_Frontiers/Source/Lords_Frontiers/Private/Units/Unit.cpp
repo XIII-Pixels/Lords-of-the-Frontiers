@@ -2,7 +2,7 @@
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
-#include "Units/UnitMovementComponent.h"
+#include "Units/FollowComponent.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,8 +16,8 @@ AUnit::AUnit()
 
 	CollisionComponent_->SetCollisionProfileName( TEXT( "Pawn" ) );
 
-	MovementComponent_ = CreateDefaultSubobject<UUnitMovementComponent>( TEXT( "UnitMovementComponent" ) );
-	MovementComponent_->UpdatedComponent = CollisionComponent_;
+	FollowComponent_ = CreateDefaultSubobject<UFollowComponent>( TEXT( "UnitMovementComponent" ) );
+	FollowComponent_->UpdatedComponent = CollisionComponent_;
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AUnitAIController::StaticClass();
@@ -45,6 +45,16 @@ void AUnit::BeginPlay()
 void AUnit::Tick(float deltaSeconds)
 {
 	Super::Tick( deltaSeconds );
+}
+
+void AUnit::StartFollowing()
+{
+	FollowComponent_->StartFollowing();
+}
+
+void AUnit::StopFollowing()
+{
+	FollowComponent_->StopFollowing();
 }
 
 void AUnit::Attack(TObjectPtr<AActor> hitActor)
@@ -102,7 +112,7 @@ const TObjectPtr<UBehaviorTree>& AUnit::BehaviorTree() const
 
 const TObjectPtr<AActor>& AUnit::Target() const
 {
-	return FollowedTarget_;
+	return FollowComponent_->Target();
 }
 
 void AUnit::SightTick()

@@ -1,16 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/UnitMovementComponent.h"
+#include "Units/FollowComponent.h"
 
 #include "NavigationSystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Units/Unit.h"
 
-UUnitMovementComponent::UUnitMovementComponent()
+UFollowComponent::UFollowComponent()
 {
 }
 
-void UUnitMovementComponent::TickComponent(float deltaTime,
+void UFollowComponent::TickComponent(float deltaTime,
 	ELevelTick tickType,
 	FActorComponentTickFunction* thisTickFunction)
 {
@@ -21,20 +21,23 @@ void UUnitMovementComponent::TickComponent(float deltaTime,
 		return;
 	}
 
-	RotateForward( deltaTime );
+	if ( bFollowTarget )
+	{
+		MoveTowardsTarget( deltaTime );
+	}
 
-	// Only snap if the pawn is moving
 	if ( !Velocity.IsNearlyZero() )
 	{
+		RotateForward( deltaTime );
 		SnapToNavMeshGround();
 	}
 }
 
-void UUnitMovementComponent::BeginPlay()
+void UFollowComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	MaxSpeed = MovementSpeed;
+	MaxSpeed = MaxSpeed_;
 
 	if ( PawnOwner )
 	{
@@ -42,7 +45,35 @@ void UUnitMovementComponent::BeginPlay()
 	}
 }
 
-void UUnitMovementComponent::SnapToNavMeshGround()
+const TObjectPtr<AActor>& UFollowComponent::Target() const
+{
+	return FollowedTarget_;
+}
+
+void UFollowComponent::StartFollowing()
+{
+	if ( FollowedTarget_ )
+	{
+		bFollowTarget = true;
+	}
+}
+
+void UFollowComponent::StopFollowing()
+{
+	bFollowTarget = false;
+}
+
+void UFollowComponent::MoveTowardsTarget(float deltaTime)
+{
+	FVector targetLocation = FollowedTarget_->GetActorLocation();
+	FVector actorLocation = GetActorLocation();
+	FVector direction = (targetLocation - actorLocation).GetSafeNormal();
+	direction.Z = 0.0f;
+
+	AddInputVector( direction );
+}
+
+void UFollowComponent::SnapToNavMeshGround()
 {
 	if ( !PawnOwner || !CapsuleComponent_ )
 	{
@@ -53,8 +84,8 @@ void UUnitMovementComponent::SnapToNavMeshGround()
 	FVector location = PawnOwner->GetActorLocation();
 	location.Z -= halfHeight;
 
-	FVector start = location + FVector( 0, 0, SnapToGroundDistance );
-	FVector end = location - FVector( 0, 0, SnapToGroundDistance );
+	FVector start = location + FVector( 0, 0, SnapToGroundDistance_ );
+	FVector end = location - FVector( 0, 0, SnapToGroundDistance_ );
 
 	FHitResult hit;
 	FCollisionQueryParams params;
@@ -68,16 +99,13 @@ void UUnitMovementComponent::SnapToNavMeshGround()
 	}
 }
 
-void UUnitMovementComponent::RotateForward(float deltaTime)
+void UFollowComponent::RotateForward(float deltaTime)
 {
-	if (Velocity.IsNearlyZero())
-	{
-		return;
-	}
 	FRotator targetRotation = Velocity.Rotation();
 	FRotator currentRotation = PawnOwner->GetActorRotation();
 
-	FRotator newRotation = FMath::RInterpConstantTo( currentRotation, targetRotation, deltaTime, RotationSpeed );
+	FRotator newRotation = FMath::RInterpConstantTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
+	newRotation.Pitch = 0.0f;
 
 	PawnOwner->SetActorRotation( newRotation );
 }
