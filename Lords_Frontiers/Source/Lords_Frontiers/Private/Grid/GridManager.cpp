@@ -58,6 +58,31 @@ void AGridManager::SetGridVisible( const bool bVisible )
 	// This is a temporary solution for tests.
 	FlushPersistentDebugLines( world );
 }
+ 
+bool AGridManager::ClearOccupant( ABuilding* building )
+{
+	if ( !building )
+	{
+		return false;
+	}
+	const int32 width = GetGridWidth();
+	const int32 height = GetGridHeight();
+
+	for ( int32 y = 0; y < height; ++y )
+	{
+		for ( int32 x = 0; x < width; ++x )
+		{
+			FGridCell* cell = GetCell( x, y );
+			if ( cell && cell->Occupant == building )
+			{
+				cell->Occupant = nullptr;
+				cell->bIsOccupied = false;
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 // Checks whether the given coordinates are within the grid bounds.
 bool AGridManager::IsValidCoords( const int32 x, const int32 y ) const

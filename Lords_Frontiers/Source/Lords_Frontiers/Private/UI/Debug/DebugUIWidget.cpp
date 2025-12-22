@@ -18,7 +18,6 @@ void UDebugUIWidget::OnButton1Clicked()
 		GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Yellow, TEXT( "Button 1 Clicked" ) );
 	}
 
-	// Если ещё не знаем визуализатор — попробуем найти его сейчас.
 	if ( !GridVisualizer )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -47,11 +46,9 @@ void UDebugUIWidget::OnButton1Clicked()
 		Button1->SetBackgroundColor( FLinearColor::Red );
 	}
 
-	// Переключаем видимость доп. кнопок.
 	bExtraButtonsVisible = !bExtraButtonsVisible;
 	UpdateExtraButtonsVisibility();
 
-	// Переключаем видимость сетки.
 	if ( GridVisualizer->IsGridVisible() )
 	{
 		GridVisualizer->HideGrid();
@@ -170,7 +167,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Yellow, TEXT( "Button 7 Clicked (Relocate Building)" ) );
 	}
 
-	// 1) Убедимся, что у нас есть BuildManager
 	if ( !BuildManager )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -202,7 +198,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		return;
 	}
 
-	// 3) Берём выделенное здание
 	ABuilding* selectedBuilding = SelectionManager->GetPrimarySelectedBuilding();
 	if ( !selectedBuilding )
 	{
@@ -213,8 +208,29 @@ void UDebugUIWidget::OnButton7Clicked()
 		return;
 	}
 
-	// 4) Запускаем перенос через BuildManager
 	BuildManager->StartRelocatingBuilding( selectedBuilding );
+}
+
+void UDebugUIWidget::OnButton8Clicked()
+{
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT( "Button 8 Clicked (Relocate Building)" ) );
+	}
+
+	ABuilding* selectedBuilding = SelectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding )
+	{
+		if ( GEngine )
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT( "OnButton8Clicked: no building selected" ) );
+		}
+		return;
+	}
+	BuildManager->DemolitionsPlacing( selectedBuilding );
+	SelectionManager->ClearSelection();
+	HandleSelectionChanged();
+	UpdateExtraButtonsVisibility();
 }
 
 bool UDebugUIWidget::Initialize()
@@ -227,7 +243,6 @@ bool UDebugUIWidget::Initialize()
 		return false;
 	}
 
-	// Привязка коллбеков кнопок.
 	if ( Button1 )
 	{
 		Button1->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton1Clicked );
@@ -250,7 +265,12 @@ bool UDebugUIWidget::Initialize()
 	if ( Button7 )
 	{
 		Button7->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton7Clicked );
-		Button7->SetVisibility( ESlateVisibility::Visible ); // по умолчанию скрыта
+		Button7->SetVisibility( ESlateVisibility::Visible );
+	}
+	if ( Button8 )
+	{
+		Button8->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton8Clicked );
+		Button8->SetVisibility( ESlateVisibility::Visible );
 	}
 	if ( UWorld* world = GetWorld() )
 	{
@@ -279,7 +299,7 @@ bool UDebugUIWidget::Initialize()
 
 void UDebugUIWidget::HandleSelectionChanged()
 {
-	if ( !Button7 || !SelectionManager )
+	if ( !Button7 || !Button8 || !SelectionManager )
 	{
 		return;
 	}
@@ -290,6 +310,7 @@ void UDebugUIWidget::HandleSelectionChanged()
 	const ESlateVisibility newVis = bHasSelectedBuilding ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
 	Button7->SetVisibility( newVis );
+	Button8->SetVisibility( newVis );
 }
 
 void UDebugUIWidget::UpdateExtraButtonsVisibility()
