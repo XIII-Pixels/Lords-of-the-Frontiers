@@ -6,6 +6,7 @@
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "UpgradeSystem/CardManager.h"
 
 ADebugPlayerController::ADebugPlayerController()
 {
@@ -38,6 +39,23 @@ void ADebugPlayerController::SetupInputComponent()
 	InputComponent->BindKey( EKeys::RightMouseButton, IE_Pressed, this, &ADebugPlayerController::HandleRightClick );
 
 	InputComponent->BindKey( EKeys::Escape, IE_Pressed, this, &ADebugPlayerController::HandleEscape );
+
+	InputComponent->BindAction("TestCards", IE_Pressed, this, &ADebugPlayerController::TestShowCards);
+}
+
+void ADebugPlayerController::TestShowCards()
+{
+	UE_LOG(LogTemp, Warning, TEXT("TestShowCards called!"));
+
+	if (UCardManager* CardManager = GetWorld()->GetSubsystem<UCardManager>())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CardManager found, showing cards..."));
+		CardManager->ShowCardSelection(3);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("CardManager NOT found!"));
+	}
 }
 
 void ADebugPlayerController::EnsureBuildManager()

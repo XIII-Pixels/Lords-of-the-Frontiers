@@ -37,6 +37,6 @@ class LORDS_FRONTIERS_API ADebugPlayerController : public APlayerController
 	void HandleLeftClick();
 	void HandleRightClick();
 	void HandleEscape();
-
+	void TestShowCards();
 	void EnsureBuildManager();
 };
