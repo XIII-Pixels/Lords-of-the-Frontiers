@@ -49,6 +49,8 @@ class LORDS_FRONTIERS_API AGridManager : public AActor
 		return CellSize_;
 	}
 
+	bool ClearOccupant( ABuilding* building );
+	
 	/// @brief Check whether the given cell coordinates are within the current grid bounds.
 	/// @param[in] x X coordinate (column index).
 	/// @param[in] y Y coordinate (row index).

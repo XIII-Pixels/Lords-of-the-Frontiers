@@ -26,7 +26,6 @@ void ABuildManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Если ссылки не заданы в редакторе — найдём акторы по классу.
 	if ( !GridVisualizer_ )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -55,7 +54,6 @@ void ABuildManager::Tick( const float deltaSeconds )
 		return;
 	}
 
-	// 1) Обновляем клетку под курсором и превью.
 	UpdateHoveredCell();
 }
 
@@ -90,7 +88,6 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
-	// Спавн превью, если ещё не создано.
 	if ( !PreviewActor_ )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -98,7 +95,6 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 			FActorSpawnParameters spawnParams;
 			spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-			// Берём класс из свойства PreviewActorClass_ или дефолтный.
 			UClass* previewClass = PreviewActorClass_ ? *PreviewActorClass_ : ABuildPreviewActor::StaticClass();
 
 			PreviewActor_ = world->SpawnActor<ABuildPreviewActor>(
@@ -112,14 +108,12 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		}
 	}
 
-	// Настроим меш превью под выбранное здание.
 	if ( PreviewActor_ )
 	{
 		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
 
 		if ( buildingCDO )
 		{
-			// Берём первый StaticMeshComponent у здания (в т.ч. BP-потомков).
 			const UStaticMeshComponent* buildingMeshComp = buildingCDO->FindComponentByClass<UStaticMeshComponent>();
 
 			if ( buildingMeshComp )
@@ -143,14 +137,11 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 
 void ABuildManager::CancelPlacing()
 {
-	// --- Если шёл перенос здания, просто возвращаем его видимость/коллизию ---
 	if ( bIsRelocating_ && RelocatedBuilding_ )
 	{
-		// Вернуть рендер и коллизию.
 		RelocatedBuilding_->SetActorHiddenInGame( false );
 		RelocatedBuilding_->SetActorEnableCollision( true );
 
-		// На всякий случай вернуть в центр исходной клетки (если вдруг куда-то сдвинули).
 		if ( GridVisualizer_ )
 		{
 			FVector originalLocation;
@@ -161,7 +152,6 @@ void ABuildManager::CancelPlacing()
 		}
 	}
 
-	// --- Общий сброс режима строительства (и для переноса, и для обычного билда) ---
 	bIsPlacing_ = false;
 	bHasValidCell_ = false;
 	bCanBuildHere_ = false;
@@ -173,7 +163,6 @@ void ABuildManager::CancelPlacing()
 		PreviewActor_->SetActorHiddenInGame( true );
 	}
 
-	// Сбрасываем состояние переноса.
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
@@ -184,9 +173,16 @@ void ABuildManager::CancelPlacing()
 	}
 }
 
+void ABuildManager::DemolitionsPlacing( ABuilding* building )
+{
+	GridManager_->ClearOccupant( building );
+
+	building->Destroy();
+}
+
 void ABuildManager::ConfirmPlacing()
 {
-	// Если режим строительства не активен — ничего не делаем
+
 	if ( !bIsPlacing_ )
 	{
 		return;
@@ -207,14 +203,13 @@ void ABuildManager::ConfirmPlacing()
 			return;
 		}
 	}
-	// 2) Находим мировую позицию центра клетки
+
 	FVector cellWorldLocation;
 	if ( !GridVisualizer_->GetCellWorldCenter( CurrentCellCoords_, cellWorldLocation ) )
 	{
 		return;
 	}
 
-	// 3) Если НЕ перенос — ведём себя как раньше: спавним новое здание
 	if ( !bIsRelocating_ || !RelocatedBuilding_ )
 	{
 		UWorld* world = GetWorld();
@@ -241,13 +236,9 @@ void ABuildManager::ConfirmPlacing()
 			GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building placed" ) );
 		}
 
-		// В обычном режиме остаёмся в билде, чтобы можно было ставить несколько зданий подряд.
 		return;
 	}
 
-	// 4) РЕЖИМ ПЕРЕНОСА: двигаем уже существующее здание
-
-	// Ячейки старого и нового места
 	FGridCell* oldCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y );
 	FGridCell* newCell = GridManager_->GetCell( CurrentCellCoords_.X, CurrentCellCoords_.Y );
 
@@ -255,20 +246,17 @@ void ABuildManager::ConfirmPlacing()
 	{
 		return;
 	}
-
-	// Перемещаем актор
+	
 	RelocatedBuilding_->SetActorLocation( cellWorldLocation );
 	RelocatedBuilding_->SetActorHiddenInGame( false );
 	RelocatedBuilding_->SetActorEnableCollision( true );
 
-	// Обновляем новую клетку
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
-	// Очищаем старую клетку, если она отличается от новой
 	if ( oldCell && ( CurrentCellCoords_ != OriginalCellCoords_ ) )
 	{
-		// На всякий случай проверяем, что там всё ещё наше же здание
+
 		if ( oldCell->Occupant.Get() == RelocatedBuilding_ )
 		{
 			oldCell->bIsOccupied = false;
@@ -281,7 +269,6 @@ void ABuildManager::ConfirmPlacing()
 		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building relocated" ) );
 	}
 
-	// 5) Выключаем режим строительства и переноса, прячем превью
 
 	bIsPlacing_ = false;
 	bHasValidCell_ = false;
@@ -351,7 +338,7 @@ void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const boo
 
 	PreviewActor_->SetActorHiddenInGame( false );
 	PreviewActor_->SetActorLocation( worldLocation );
-	PreviewActor_->SetCanBuild( bCanBuild ); // метод внутри ABuildPreviewActor (зелёный/красный и т.п.)
+	PreviewActor_->SetCanBuild( bCanBuild );
 }
 
 static const FIntPoint Offsets4[] = {
@@ -418,7 +405,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		CancelPlacing();
 	}
 
-	// 2) Находим клетку, в которой сейчас стоит это здание.
 	FIntPoint foundCoords( -1, -1 );
 	bool bFound = false;
 
@@ -435,7 +421,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 				continue;
 			}
 
-			// В этой клетке стоит наш buildingToMove?
 			if ( cell->Occupant.Get() == buildingToMove )
 			{
 				foundCoords = FIntPoint( x, y );
@@ -456,7 +441,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		return;
 	}
 
-	// 3) Сохраняем состояние переноса.
 	RelocatedBuilding_ = buildingToMove;
 	OriginalCellCoords_ = foundCoords;
 	bIsRelocating_ = true;
@@ -471,7 +455,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
-	// 5) Спавним/показываем превью как при обычном строительстве.
 	if ( !PreviewActor_ )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -496,9 +479,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( false );
-		// Если у PreviewActor есть метод вроде SetSourceClass / SetPreviewMeshFromClass,
-		// можно здесь передать CurrentBuildingClass_, чтобы превью подстроилось под здание.
-		// PreviewActor_->InitFromBuildingClass( CurrentBuildingClass_ );
+
 	}
 
 	if ( GEngine )
