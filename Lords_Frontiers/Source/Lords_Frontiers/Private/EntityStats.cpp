@@ -1,11 +1,11 @@
 #include "Lords_Frontiers/Public/EntityStats.h"
 #include "Math/UnrealMathUtility.h" // FMath
 
-FEntityStats::FEntityStats ( int maxHealth, int attackDamage, float attackRange, float moveSpeed )
+FEntityStats::FEntityStats ( int maxHealth, int attackDamage, float attackRange )
 	: MaxHealth_ ( FMath::Max ( 1, maxHealth ) )
 	, Health_ ( MaxHealth_ )
-	, AttackDamage_ ( attackDamage )
 	, AttackRange_ ( attackRange )
+	, AttackDamage_ ( attackDamage )
 {
 }
 

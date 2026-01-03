@@ -22,7 +22,7 @@ struct FEntityStats
 public:
 	FEntityStats() = default;
 
-	explicit FEntityStats(int maxHealth, int attackDamage, float attackRange, float moveSpeed);
+	explicit FEntityStats(int maxHealth, int attackDamage, float attackRange);
 
 	// getters
 	int MaxHealth() const;
