@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "AttackComponentBase.generated.h"
 
 /** (Gregory-hub)
 * Base class for attack components */
 UCLASS( Abstract )
-class LORDS_FRONTIERS_API UAttackComponentBase : public UActorComponent
+class LORDS_FRONTIERS_API UAttackComponentBase : public USceneComponent
 {
 	GENERATED_BODY()
 

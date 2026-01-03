@@ -14,7 +14,8 @@ AUnit::AUnit()
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
-	CollisionComponent_->SetCollisionProfileName( TEXT( "Pawn" ) );
+	// CollisionComponent_->SetCollisionProfileName( TEXT( "Pawn" ) );
+	CollisionComponent_->SetCollisionObjectType( ECC_Pawn );
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AUnitAIController::StaticClass();
@@ -71,10 +72,10 @@ void AUnit::Attack(TObjectPtr<AActor> hitActor)
 
 void AUnit::TakeDamage(float damage)
 {
-	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "Take damage" );
+	// UE_LOG( LogTemp, Display, TEXT( "Take damage" ) );
 	if ( !Stats_.IsAlive() )
 	{
-		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Red, "DEAD!" );
+		// UE_LOG( LogTemp, Display, TEXT( "Dead!" ) );
 		return;
 	}
 	

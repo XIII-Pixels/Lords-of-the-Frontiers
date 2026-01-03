@@ -6,35 +6,41 @@
 #include "Units/Unit.h"
 
 #include "CoreMinimal.h"
-#include "AttackMeleeComponent.generated.h"
+#include "Components/SphereComponent.h"
+#include "AttackRangedComponent.generated.h"
 
 /** (Gregory-hub)
 * Makes actor attack enemy actors in sight */
 UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
-class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponentBase
+class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	UAttackMeleeComponent();
+	UAttackRangedComponent();
 
 	virtual void Attack(TObjectPtr<AActor> hitActor) override;
 
 	virtual TObjectPtr<AActor> EnemyInSight() const override;
 
 protected:
+	virtual void OnRegister() override;
+	
 	virtual void BeginPlay() override;
 
-	// Look forward at given time intervals
+	// Look forward around at given time intervals
 	void SightTick();
 
-	void LookForward();
+	void Look();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
 
 	UPROPERTY( VisibleAnywhere, Category = "Settings|Attack" )
 	TObjectPtr<AActor> EnemyInSight_;
+
+	UPROPERTY()
+	TObjectPtr<USphereComponent> SightSphere_;
 
 	UPROPERTY()
 	TObjectPtr<AUnit> Unit_;

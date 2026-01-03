@@ -55,23 +55,16 @@ void UAttackMeleeComponent::LookForward()
 			if ( Unit_->Team() != hitEntity->Team() )
 			{
 				EnemyInSight_ = hitActor;
-				GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Green, "Enemy seen" );
+				// UE_LOG( LogTemp, Display, TEXT( "Enemy seen" ) );
 				return;
 			}
-			GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Blue, "Ally seen" );
+			// UE_LOG( LogTemp, Display, TEXT( "Ally seen" ) );
 			return;
 		}
-		GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Cyan, "Actor seen" );
+		// UE_LOG( LogTemp, Display, TEXT( "Actor seen" ) );
 	}
 
 	EnemyInSight_ = nullptr;
-}
-
-void UAttackMeleeComponent::TickComponent(float deltaTime,
-	ELevelTick tickType,
-	FActorComponentTickFunction* thisTickFunction)
-{
-	Super::TickComponent( deltaTime, tickType, thisTickFunction );
 }
 
 void UAttackMeleeComponent::Attack(TObjectPtr<AActor> hitActor)
@@ -99,7 +92,7 @@ void UAttackMeleeComponent::Attack(TObjectPtr<AActor> hitActor)
 		return;
 	}
 
-	GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Purple, "Damage applied" );
+	// UE_LOG( LogTemp, Display, TEXT( "Damage applied" ) );
 
 	attacked->TakeDamage( Unit_->Stats().AttackDamage() );
 	Unit_->Stats().StartCooldown();
