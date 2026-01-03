@@ -21,7 +21,7 @@ void UFollowComponent::TickComponent(float deltaTime,
 		return;
 	}
 
-	if ( bFollowTarget )
+	if ( bFollowTarget_ )
 	{
 		MoveTowardsTarget( deltaTime );
 	}
@@ -37,6 +37,8 @@ void UFollowComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	Unit_ = Cast<AUnit>( GetOwner() );
+
 	MaxSpeed = MaxSpeed_;
 
 	if ( PawnOwner )
@@ -45,29 +47,29 @@ void UFollowComponent::BeginPlay()
 	}
 }
 
-const TObjectPtr<AActor>& UFollowComponent::Target() const
-{
-	return FollowedTarget_;
-}
-
 void UFollowComponent::StartFollowing()
 {
-	if ( FollowedTarget_ )
+	if ( Unit_ && Unit_->FollowedTarget() )
 	{
-		bFollowTarget = true;
+		bFollowTarget_ = true;
 	}
 }
 
 void UFollowComponent::StopFollowing()
 {
-	bFollowTarget = false;
+	bFollowTarget_ = false;
 }
 
 void UFollowComponent::MoveTowardsTarget(float deltaTime)
 {
-	FVector targetLocation = FollowedTarget_->GetActorLocation();
+	if ( !Unit_ )
+	{
+		return;
+	}
+	
+	FVector targetLocation = Unit_->FollowedTarget()->GetActorLocation();
 	FVector actorLocation = GetActorLocation();
-	FVector direction = (targetLocation - actorLocation).GetSafeNormal();
+	FVector direction = ( targetLocation - actorLocation ).GetSafeNormal();
 	direction.Z = 0.0f;
 
 	AddInputVector( direction );

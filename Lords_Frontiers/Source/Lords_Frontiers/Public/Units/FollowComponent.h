@@ -3,20 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Unit.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "FollowComponent.generated.h"
 
 /** (Gregory-hub)
-* Makes actor chase target actor */
-UCLASS( ClassGroup=(Movement), meta=(BlueprintSpawnableComponent) )
+* Makes actor chase target */
+UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
 class LORDS_FRONTIERS_API UFollowComponent : public UFloatingPawnMovement
 {
 	GENERATED_BODY()
 
 public:
 	UFollowComponent();
-
-	const TObjectPtr<AActor>& Target() const;
 
 	void StartFollowing();
 	
@@ -35,9 +34,6 @@ protected:
 	
 	void SnapToNavMeshGround();
 
-	UPROPERTY()
-	TObjectPtr<UCapsuleComponent> CapsuleComponent_;
-
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float MaxSpeed_ = 300.0f;
 
@@ -47,8 +43,11 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float SnapToGroundDistance_ = 500.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
-	TObjectPtr<AActor> FollowedTarget_;
+	UPROPERTY()
+	TObjectPtr<UCapsuleComponent> CapsuleComponent_;
 
-	bool bFollowTarget = false;
+	UPROPERTY()
+	TObjectPtr<AUnit> Unit_;
+
+	bool bFollowTarget_ = false;
 };

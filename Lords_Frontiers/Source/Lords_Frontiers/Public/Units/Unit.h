@@ -6,6 +6,7 @@
 #include "AIController.h"
 
 #include "Attackable.h"
+#include "Units/Attack/AttackComponentBase.h"
 #include "EntityStats.h"
 
 #include "GameFramework/Pawn.h"
@@ -27,28 +28,31 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 public:
 	AUnit();
 
-	void OnConstruction(const FTransform& transform) override;
+	virtual void OnConstruction(const FTransform& transform) override;
 
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float deltaSeconds) override;
-	
+
 	void StartFollowing();
-	
+
 	void StopFollowing();
 
 	void Attack(TObjectPtr<AActor> hitActor);
 
-	// HP reduction
-	void TakeDamage(float damage) override;
-	
-	ETeam Team() override;
+	virtual void TakeDamage(float damage) override;
+
+	// Getters and setters
+
+	FEntityStats& Stats();
+
+	virtual ETeam Team() override;
 
 	TObjectPtr<AActor> EnemyInSight() const;
 
-	const TObjectPtr<UBehaviorTree>& BehaviorTree() const;
+	TObjectPtr<UBehaviorTree> BehaviorTree() const;
 
-	const TObjectPtr<AActor>& Target() const;
+	TObjectPtr<AActor> FollowedTarget() const;
 
 protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
@@ -57,28 +61,18 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings")
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
 
-	UPROPERTY( VisibleDefaultsOnly, Category = "Settings" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
+	TObjectPtr<AActor> FollowedTarget_;
+
+	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
-	UPROPERTY( Instanced, VisibleAnywhere )
+	UPROPERTY()
 	TObjectPtr<UFollowComponent> FollowComponent_;
 
-	// [Should be in Attack Component]
-	// -----------------------------------------------------
-	UPROPERTY( EditAnywhere, Category = "Settings")
-	float LookForwardTimeInterval_ = 0.2f;
-	
-	UPROPERTY( VisibleAnywhere, Category = "Settings" )
-	TObjectPtr<AActor> EnemyInSight_;
-
-	// Look forward at given time intervals
-	void SightTick();
-
-	void LookForward();
-
-	FTimerHandle SightTimerHandle_;
-	// -----------------------------------------------------
+	UPROPERTY()
+	TObjectPtr<UAttackComponentBase> AttackComponent_;
 };

@@ -38,7 +38,7 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 		return EBTNodeResult::Failed;
 	}
 
-	if ( TObjectPtr<AActor> targetActor = unit->Target() )
+	if ( TObjectPtr<AActor> targetActor = unit->FollowedTarget() )
 	{
 		if ( targetActor->GetActorLocation() != blackboard->GetValueAsVector( GetSelectedBlackboardKey() ) )
 		{
