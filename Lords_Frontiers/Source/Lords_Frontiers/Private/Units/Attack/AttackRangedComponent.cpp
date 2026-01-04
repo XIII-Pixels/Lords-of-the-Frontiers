@@ -2,15 +2,17 @@
 
 #include "Units/Attack/AttackRangedComponent.h"
 
+#include "Utilities/TraceChannelMappings.h"
+
 UAttackRangedComponent::UAttackRangedComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
 	SightSphere_ = CreateDefaultSubobject<USphereComponent>( "Sphere Component" );
 	SightSphere_->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-	SightSphere_->SetCollisionObjectType( ECC_EngineTraceChannel2 );
+	SightSphere_->SetCollisionObjectType( ECC_InvisibleVolume );
 	SightSphere_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	SightSphere_->SetCollisionResponseToChannel( ECC_Pawn, ECR_Overlap );
+	SightSphere_->SetCollisionResponseToChannel( ECC_Entity, ECR_Overlap );
 	SightSphere_->SetGenerateOverlapEvents( true );
 }
 

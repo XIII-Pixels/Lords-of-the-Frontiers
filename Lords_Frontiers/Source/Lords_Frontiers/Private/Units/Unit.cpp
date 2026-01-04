@@ -8,14 +8,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Units/UnitAIController.h"
+#include "Utilities/TraceChannelMappings.h"
 
 AUnit::AUnit()
 {
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
-	// CollisionComponent_->SetCollisionProfileName( TEXT( "Pawn" ) );
-	CollisionComponent_->SetCollisionObjectType( ECC_Pawn );
+	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AUnitAIController::StaticClass();
