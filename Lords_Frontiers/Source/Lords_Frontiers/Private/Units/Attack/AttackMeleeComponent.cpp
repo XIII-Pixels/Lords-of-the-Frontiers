@@ -2,6 +2,8 @@
 
 #include "Units/Attack/AttackMeleeComponent.h"
 
+#include "Utilities/TraceChannelMappings.h"
+
 UAttackMeleeComponent::UAttackMeleeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -47,7 +49,7 @@ void UAttackMeleeComponent::LookForward()
 	FCollisionQueryParams params;
 	params.AddIgnoredActor( Unit_ );
 
-	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Pawn, params ) )
+	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Entity, params ) )
 	{
 		AActor* hitActor = hit.GetActor();
 		if ( auto hitEntity = Cast<IAttackable>( hitActor ) )
