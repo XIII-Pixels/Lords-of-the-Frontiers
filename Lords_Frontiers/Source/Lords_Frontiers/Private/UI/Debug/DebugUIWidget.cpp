@@ -8,10 +8,10 @@
 #include "Core/Debug/DebugPlayerController.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 #include "Grid/GridVisualizer.h"
 #include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
-#include "GameFramework/PlayerController.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
 
 void UDebugUIWidget::OnButton1Clicked()
@@ -165,33 +165,34 @@ void UDebugUIWidget::OnButton4Clicked()
 
 void UDebugUIWidget::OnButton9Clicked()
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-	if (!PC) return;
+	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
+	if ( !PC )
+		return;
 
 	UResourceManager* ResManager = PC->FindComponentByClass<UResourceManager>();
-	if (!ResManager)
+	if ( !ResManager )
 	{
-		ResManager = NewObject<UResourceManager>(PC, TEXT("DynamicResourceManager"));
+		ResManager = NewObject<UResourceManager>( PC, TEXT( "DynamicResourceManager" ) );
 		ResManager->RegisterComponent();
 	}
 
-	CreateResourceWidgets(ResManager);
+	CreateResourceWidgets( ResManager );
 
 	UEconomyComponent* EconomyComp = PC->FindComponentByClass<UEconomyComponent>();
-	if (!EconomyComp)
+	if ( !EconomyComp )
 	{
-		EconomyComp = NewObject<UEconomyComponent>(PC, TEXT("DynamicEconomyComponent"));
+		EconomyComp = NewObject<UEconomyComponent>( PC, TEXT( "DynamicEconomyComponent" ) );
 		EconomyComp->RegisterComponent();
 	}
 
-	if (EconomyComp && ResManager)
+	if ( EconomyComp && ResManager )
 	{
-		EconomyComp->SetResourceManager(ResManager);
+		EconomyComp->SetResourceManager( ResManager );
 
-		UE_LOG(LogTemp, Warning, TEXT("UI Link: ResManager(%p) <-> Economy(%p)"), ResManager, EconomyComp);
+		UE_LOG( LogTemp, Warning, TEXT( "UI Link: ResManager(%p) <-> Economy(%p)" ), ResManager, EconomyComp );
 	}
 
-	if (EconomyComp)
+	if ( EconomyComp )
 	{
 		EconomyComp->CollectGlobalResources();
 	}
@@ -280,7 +281,7 @@ bool UDebugUIWidget::Initialize()
 	if ( Button9 )
 	{
 		Button9->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton9Clicked );
-		Button9->SetVisibility(ESlateVisibility::Visible);
+		Button9->SetVisibility( ESlateVisibility::Visible );
 	}
 
 	if ( Button7 )
@@ -364,49 +365,52 @@ void UDebugUIWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 
 UResourceManager* UDebugUIWidget::GetResourceManager() const
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
 	return PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
 }
 
-void UDebugUIWidget::OnResourceChangedHandler(EResourceType Type, int32 NewAmount)
+void UDebugUIWidget::OnResourceChangedHandler( EResourceType Type, int32 NewAmount )
 {
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Magenta,
-		FString::Printf(TEXT("UI RECEIVED: Type %d, Amount %d"), (uint8)Type, NewAmount));
+	if ( GEngine )
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 5.f, FColor::Magenta,
+		    FString::Printf( TEXT( "UI RECEIVED: Type %d, Amount %d" ), (uint8) Type, NewAmount )
+		);
 
-	if (ResourceWidgetsMap.Contains(Type))
+	if ( ResourceWidgetsMap.Contains( Type ) )
 	{
 		UResourceManager* ResManager = GetResourceManager();
-		int32 MaxValue = ResManager ? ResManager->GetMaxResourceAmount(Type) : 100;
+		int32 MaxValue = ResManager ? ResManager->GetMaxResourceAmount( Type ) : 100;
 
-		ResourceWidgetsMap[Type]->UpdateAmount(NewAmount, MaxValue);
+		ResourceWidgetsMap[Type]->UpdateAmount( NewAmount, MaxValue );
 	}
 }
 
-
-void UDebugUIWidget::CreateResourceWidgets(UResourceManager* ResManager)
+void UDebugUIWidget::CreateResourceWidgets( UResourceManager* ResManager )
 {
 
-	if (ResourceWidgetsMap.Num() > 0) return;
+	if ( ResourceWidgetsMap.Num() > 0 )
+		return;
 
-	if (!ResManager || !ResourceContainer || !ResourceItemClass) return;
+	if ( !ResManager || !ResourceContainer || !ResourceItemClass )
+		return;
 
-	ResManager->OnResourceChanged.AddDynamic(this, &UDebugUIWidget::OnResourceChangedHandler);
+	ResManager->OnResourceChanged.AddDynamic( this, &UDebugUIWidget::OnResourceChangedHandler );
 
-	for (uint8 i = 1; i < (uint8)EResourceType::MAX; ++i)
+	for ( uint8 i = 1; i < (uint8) EResourceType::MAX; ++i )
 	{
-		EResourceType CurrentType = static_cast<EResourceType>(i);
-		UResourceItemWidget* NewItem = CreateWidget<UResourceItemWidget>(this, ResourceItemClass);
-		if (NewItem)
+		EResourceType CurrentType = static_cast<EResourceType>( i );
+		UResourceItemWidget* NewItem = CreateWidget<UResourceItemWidget>( this, ResourceItemClass );
+		if ( NewItem )
 		{
-			TObjectPtr<UTexture2D> Icon = ResourceIcons.Contains(CurrentType) ? ResourceIcons[CurrentType] : nullptr;
-			int32 StartValue = ResManager->GetResourceAmount(CurrentType);
-			int32 MaxValue = ResManager->GetMaxResourceAmount(CurrentType);
+			TObjectPtr<UTexture2D> Icon = ResourceIcons.Contains( CurrentType ) ? ResourceIcons[CurrentType] : nullptr;
+			int32 StartValue = ResManager->GetResourceAmount( CurrentType );
+			int32 MaxValue = ResManager->GetMaxResourceAmount( CurrentType );
 
-			NewItem->SetupItem(Icon, StartValue, MaxValue);
+			NewItem->SetupItem( Icon, StartValue, MaxValue );
 
-			ResourceContainer->AddChild(NewItem);
-			ResourceWidgetsMap.Add(CurrentType, NewItem);
+			ResourceContainer->AddChild( NewItem );
+			ResourceWidgetsMap.Add( CurrentType, NewItem );
 		}
 	}
 }
-

@@ -4,9 +4,8 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
-#include "CoreMinimal.h"
 #include "Components/HorizontalBox.h"
-
+#include "CoreMinimal.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceItemWidget.h"
 
 #include "DebugUIWidget.generated.h"
@@ -37,7 +36,7 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button4;
 
-	UPROPERTY(EditAnywhere, meta = (BindWidget))
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button9;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
@@ -46,7 +45,7 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
-	void CreateResourceWidgets(UResourceManager* Manager);
+	void CreateResourceWidgets( UResourceManager* Manager );
 
   protected:
 	UPROPERTY()
@@ -75,20 +74,19 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 
 	virtual bool Initialize() override;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UHorizontalBox> ResourceContainer;
 
-	UPROPERTY(EditAnywhere, Category = "Settings|UI")
+	UPROPERTY( EditAnywhere, Category = "Settings|UI" )
 	TSubclassOf<UResourceItemWidget> ResourceItemClass;
 
-	UPROPERTY(EditAnywhere, Category = "Settings|UI")
+	UPROPERTY( EditAnywhere, Category = "Settings|UI" )
 	TMap<EResourceType, TObjectPtr<UTexture2D>> ResourceIcons;
 
 	UPROPERTY()
 	TMap<EResourceType, TObjectPtr<UResourceItemWidget>> ResourceWidgetsMap;
 
 	UResourceManager* GetResourceManager() const;
-
 
   private:
 	UPROPERTY()
@@ -116,6 +114,6 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UFUNCTION()
 	void HandleSelectionChanged();
 
-    UFUNCTION()
-    void OnResourceChangedHandler(EResourceType Type, int32 NewAmount);
+	UFUNCTION()
+	void OnResourceChangedHandler( EResourceType Type, int32 NewAmount );
 };

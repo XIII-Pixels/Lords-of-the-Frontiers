@@ -1,36 +1,40 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "CoreMinimal.h"
+
 #include "EconomyComponent.generated.h"
 
 class AGridManager;
 class UResourceManager;
 
-UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:
+  public:
 	UEconomyComponent();
 
-protected:
+  protected:
 	virtual void BeginPlay() override;
 
-public:
-	//scan grid and accrual resource
-	//button in UI
-	UFUNCTION(BlueprintCallable, Category = "Economy")
+  public:
+	// scan grid and accrual resource
+	// button in UI
+	UFUNCTION( BlueprintCallable, Category = "Economy" )
 	void CollectGlobalResources();
 
-	void RegisterBuilding(class AResourceBuilding* Building);
-	void UnregisterBuilding(class AResourceBuilding* Building);
+	void RegisterBuilding( class AResourceBuilding* Building );
+	void UnregisterBuilding( class AResourceBuilding* Building );
 
-	void SetResourceManager(UResourceManager* InManager) { ResourceManager_ = InManager; }
+	void SetResourceManager( UResourceManager* InManager )
+	{
+		ResourceManager_ = InManager;
+	}
 
-private:
-	//url system
+  private:
+	// url system
 	UPROPERTY()
 	AGridManager* GridManager_;
 
@@ -40,6 +44,6 @@ private:
 	UPROPERTY()
 	TArray<TWeakObjectPtr<class AResourceBuilding>> RegisteredBuildings_;
 
-	//dependency search
+	// dependency search
 	void FindSystems();
 };
