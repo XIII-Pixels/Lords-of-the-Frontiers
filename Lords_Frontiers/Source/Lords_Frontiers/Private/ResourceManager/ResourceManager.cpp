@@ -17,11 +17,9 @@ void UResourceManager::AddResource(EResourceType type, int32 quantity)
 	if (type == EResourceType::None || quantity <= 0) return;
 
 	int32& CurrentAmount = Resources_.FindOrAdd(type);
-
-	int32 MaxAmount = MaxResources_.Contains(type) ? MaxResources_[type] : 100;
+	const int32 MaxAmount = GetMaxResourceAmount(type);
 
 	CurrentAmount = FMath::Min(CurrentAmount + quantity, MaxAmount);
-
 	OnResourceChanged.Broadcast(type, CurrentAmount);
 }
 
@@ -66,5 +64,5 @@ bool UResourceManager::HasEnoughResource(EResourceType type, int32 quantity) con
 
 int32 UResourceManager::GetMaxResourceAmount(EResourceType type) const
 {
-	return MaxResources_.Contains(type) ? MaxResources_[type] : 100;
+	return MaxResources_.Contains(type) ? MaxResources_[type] : cDefaultMaxResource;
 }
