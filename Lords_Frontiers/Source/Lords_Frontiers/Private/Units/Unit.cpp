@@ -12,101 +12,114 @@
 
 AUnit::AUnit()
 {
-	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
-	SetRootComponent( CollisionComponent_ );
+    CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
+    SetRootComponent( CollisionComponent_ );
 
-	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
+    CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	UnitAIControllerClass_ = AUnitAIController::StaticClass();
-	AIControllerClass = UnitAIControllerClass_;
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+    UnitAIControllerClass_ = AUnitAIController::StaticClass();
+    AIControllerClass = UnitAIControllerClass_;
 }
 
 void AUnit::OnConstruction(const FTransform& transform)
 {
-	Super::OnConstruction( transform );
-	AIControllerClass = UnitAIControllerClass_;
+    Super::OnConstruction( transform );
+    AIControllerClass = UnitAIControllerClass_;
 }
 
 void AUnit::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	FollowComponent_ = FindComponentByClass<UFollowComponent>();
-	if ( FollowComponent_ )
-	{
-		FollowComponent_->UpdatedComponent = CollisionComponent_;
-	}
+    Super::BeginPlay();
 
-	AttackComponent_ = FindComponentByClass<UAttackComponentBase>();
+    FollowComponent_ = FindComponentByClass<UFollowComponent>();
+    if ( FollowComponent_ )
+    {
+        FollowComponent_->UpdatedComponent = CollisionComponent_;
+    }
+
+    TArray<UAttackComponentBase*> attackComponents;
+    GetComponents( attackComponents );
+
+    if ( attackComponents.Num() == 1 )
+    {
+        AttackComponent_ = attackComponents[0];
+    }
+    else
+    {
+        UE_LOG( LogTemp,
+                Error,
+                TEXT( "Number of unit attack component is not equal to 1 (number: %d)" ),
+                attackComponents.Num() );
+    }
 }
 
 void AUnit::Tick(float deltaSeconds)
 {
-	Super::Tick( deltaSeconds );
+    Super::Tick( deltaSeconds );
 }
 
 void AUnit::StartFollowing()
 {
-	if ( FollowComponent_ )
-	{
-		FollowComponent_->StartFollowing();
-	}
+    if ( FollowComponent_ )
+    {
+        FollowComponent_->StartFollowing();
+    }
 }
 
 void AUnit::StopFollowing()
 {
-	if ( FollowComponent_ )
-	{
-		FollowComponent_->StopFollowing();
-	}
+    if ( FollowComponent_ )
+    {
+        FollowComponent_->StopFollowing();
+    }
 }
 
 void AUnit::Attack(TObjectPtr<AActor> hitActor)
 {
-	if ( AttackComponent_ )
-	{
-		AttackComponent_->Attack( hitActor );
-	}
+    if ( AttackComponent_ )
+    {
+        AttackComponent_->Attack( hitActor );
+    }
 }
 
 void AUnit::TakeDamage(float damage)
 {
-	// UE_LOG( LogTemp, Display, TEXT( "Take damage" ) );
-	if ( !Stats_.IsAlive() )
-	{
-		// UE_LOG( LogTemp, Display, TEXT( "Dead!" ) );
-		return;
-	}
-	
-	Stats_.ApplyDamage( damage );
+    // UE_LOG( LogTemp, Display, TEXT( "Take damage" ) );
+    if ( !Stats_.IsAlive() )
+    {
+        // UE_LOG( LogTemp, Display, TEXT( "Dead!" ) );
+        return;
+    }
+
+    Stats_.ApplyDamage( damage );
 }
 
 FEntityStats& AUnit::Stats()
 {
-	return Stats_;
+    return Stats_;
 }
 
 ETeam AUnit::Team()
 {
-	return Stats_.Team();
+    return Stats_.Team();
 }
 
 TObjectPtr<AActor> AUnit::EnemyInSight() const
 {
-	if ( AttackComponent_ )
-	{
-		return AttackComponent_->EnemyInSight();
-	}
-	return nullptr;
+    if ( AttackComponent_ )
+    {
+        return AttackComponent_->EnemyInSight();
+    }
+    return nullptr;
 }
 
 TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
 {
-	return UnitBehaviorTree_;
+    return UnitBehaviorTree_;
 }
 
 TObjectPtr<AActor> AUnit::FollowedTarget() const
 {
-	return FollowedTarget_;
+    return FollowedTarget_;
 }

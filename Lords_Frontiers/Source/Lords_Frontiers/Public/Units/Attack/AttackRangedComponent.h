@@ -7,6 +7,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/SphereComponent.h"
+#include "Projectiles/Projectile.h"
 #include "AttackRangedComponent.generated.h"
 
 /** (Gregory-hub)
@@ -44,6 +45,12 @@ protected:
 
     UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
     bool bCanAttackBackward_ = true;
+
+    UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+    TSubclassOf<AProjectile> ProjectileClass_;
+
+    UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+    float ProjectileSpeed_ = 500.0f;
 
     UPROPERTY()
     TObjectPtr<USphereComponent> SightSphere_;

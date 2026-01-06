@@ -2,6 +2,8 @@
 
 #include "Units/Attack/AttackRangedComponent.h"
 
+#include "Kismet/GameplayStatics.h"
+#include "Projectiles/Projectile.h"
 #include "Utilities/TraceChannelMappings.h"
 
 UAttackRangedComponent::UAttackRangedComponent()
@@ -43,7 +45,33 @@ void UAttackRangedComponent::BeginPlay()
 
 void UAttackRangedComponent::Attack(TObjectPtr<AActor> hitActor)
 {
-    Super::Attack( hitActor );
+    if ( !Unit_ )
+    {
+        return;
+    }
+
+    if ( Unit_->Stats().OnCooldown() )
+    {
+        return;
+    }
+
+    UWorld* world = Unit_->GetWorld();
+    if ( !world )
+    {
+        return;
+    }
+
+    FTransform spawnTransform = Unit_->GetTransform();
+    spawnTransform.AddToTranslation( FVector( 0.0f, 0.0f, Unit_->GetDefaultHalfHeight() ) );
+
+    if ( EnemyInSight_ && ProjectileClass_ )
+    {
+        const FActorSpawnParameters spawnParams;
+        auto projectile = world->SpawnActor<AProjectile>( ProjectileClass_, spawnTransform, spawnParams );
+        projectile->Initialize( EnemyInSight(), Unit_->Stats().AttackDamage(), ProjectileSpeed_ );
+        projectile->Launch();
+        Unit_->Stats().StartCooldown();
+    }
 }
 
 TObjectPtr<AActor> UAttackRangedComponent::EnemyInSight() const
@@ -82,7 +110,7 @@ void UAttackRangedComponent::Look()
         {
             continue;
         }
-        if ( CanSeeEnemy( actor ))
+        if ( CanSeeEnemy( actor ) )
         {
             float distance = FVector::Distance( Unit_->GetActorLocation(), actor->GetActorLocation() );
             if ( !EnemyInSight_ || distance < minDistance )
@@ -98,11 +126,12 @@ void UAttackRangedComponent::Look()
 
 bool UAttackRangedComponent::CanSeeEnemy(TObjectPtr<AActor> actor) const
 {
-    // it is assumed actor is inside sight sphere
+    // it is assumed the actor is inside the sight sphere
+
     auto enemy = Cast<IAttackable>( actor );
     if ( enemy && enemy->Team() != Unit_->Team() )
     {
-        if ( !bCanAttackBackward_ )         // look in half-circle in front of unit
+        if ( !bCanAttackBackward_ ) // look in half-circle in front of unit
         {
             const float dot = FVector::DotProduct(
                 actor->GetActorLocation() - GetOwner()->GetActorLocation(),
@@ -112,7 +141,7 @@ bool UAttackRangedComponent::CanSeeEnemy(TObjectPtr<AActor> actor) const
                 return true;
             }
         }
-        else        // look around unit
+        else // look around unit
         {
             return true;
         }
