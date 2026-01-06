@@ -23,4 +23,6 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ResourceAmountText;
+private:
+	int32 CurrentValue_ = 0;
 };
