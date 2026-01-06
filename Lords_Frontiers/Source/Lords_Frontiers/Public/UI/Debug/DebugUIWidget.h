@@ -11,6 +11,7 @@
 
 #include "DebugUIWidget.generated.h"
 
+class UResourceManager;
 class UButton;
 class AGridVisualizer;
 class ABuildManager;
@@ -18,7 +19,6 @@ class ABuilding;
 class USelectionManagerComponent;
 class ADebugPlayerController;
 
-// * Simple debug UI. Не игровое, только для тестов. */
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 {
@@ -46,13 +46,12 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
-	void CreateResourceWidgets();
+	void CreateResourceWidgets(UResourceManager* Manager);
 
   protected:
 	UPROPERTY()
 	TObjectPtr<ABuildManager> BuildManager = nullptr;
 
-	// Кешированный указатель на менеджер выделения
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager = nullptr;
 
@@ -83,7 +82,12 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	TSubclassOf<UResourceItemWidget> ResourceItemClass;
 
 	UPROPERTY(EditAnywhere, Category = "Settings|UI")
-	TMap<EResourceType, UTexture2D*> ResourceIcons;
+	TMap<EResourceType, TObjectPtr<UTexture2D>> ResourceIcons;
+
+	UPROPERTY()
+	TMap<EResourceType, TObjectPtr<UResourceItemWidget>> ResourceWidgetsMap;
+
+	UResourceManager* GetResourceManager() const;
 
 
   private:
@@ -111,9 +115,6 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 
 	UFUNCTION()
 	void HandleSelectionChanged();
-
-	 UPROPERTY()
-    TMap<EResourceType, UResourceItemWidget*> ResourceWidgetsMap;
 
     UFUNCTION()
     void OnResourceChangedHandler(EResourceType Type, int32 NewAmount);

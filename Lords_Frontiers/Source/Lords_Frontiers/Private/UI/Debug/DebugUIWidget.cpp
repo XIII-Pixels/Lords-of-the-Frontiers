@@ -21,7 +21,6 @@ void UDebugUIWidget::OnButton1Clicked()
 		GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Yellow, TEXT( "Button 1 Clicked" ) );
 	}
 
-	// Если ещё не знаем визуализатор — попробуем найти его сейчас.
 	if ( !GridVisualizer )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -50,11 +49,9 @@ void UDebugUIWidget::OnButton1Clicked()
 		Button1->SetBackgroundColor( FLinearColor::Red );
 	}
 
-	// Переключаем видимость доп. кнопок.
 	bExtraButtonsVisible = !bExtraButtonsVisible;
 	UpdateExtraButtonsVisibility();
 
-	// Переключаем видимость сетки.
 	if ( GridVisualizer->IsGridVisible() )
 	{
 		GridVisualizer->HideGrid();
@@ -168,67 +165,35 @@ void UDebugUIWidget::OnButton4Clicked()
 
 void UDebugUIWidget::OnButton9Clicked()
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, TEXT("Button 9 Clicked (Collect Resources)"));
-	}
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PC) return;
 
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	//get PlayerController
-	APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
-	if (!PC)
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("PlayerController not found"));
-		return;
-	}
-
-	//warranty ResourceManager
-	//EconomyComponent requires that the owner be ResourceManager
 	UResourceManager* ResManager = PC->FindComponentByClass<UResourceManager>();
 	if (!ResManager)
 	{
-		//if wallet not found - create him and attach to controller
 		ResManager = NewObject<UResourceManager>(PC, TEXT("DynamicResourceManager"));
-		if (ResManager)
-		{
-			ResManager->RegisterComponent(); //register component
-			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Created Dynamic ResourceManager"));
-		}
+		ResManager->RegisterComponent();
 	}
 
-	CreateResourceWidgets();
+	CreateResourceWidgets(ResManager);
 
-	//warranty EconomyComponent
 	UEconomyComponent* EconomyComp = PC->FindComponentByClass<UEconomyComponent>();
 	if (!EconomyComp)
 	{
-		//if importer not found - create him
 		EconomyComp = NewObject<UEconomyComponent>(PC, TEXT("DynamicEconomyComponent"));
-		if (EconomyComp)
-		{
-			EconomyComp->RegisterComponent();
-			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Created Dynamic EconomyComponent"));
-		}
+		EconomyComp->RegisterComponent();
 	}
 
-	//collection
+	if (EconomyComp && ResManager)
+	{
+		EconomyComp->SetResourceManager(ResManager);
+
+		UE_LOG(LogTemp, Warning, TEXT("UI Link: ResManager(%p) <-> Economy(%p)"), ResManager, EconomyComp);
+	}
+
 	if (EconomyComp)
 	{
 		EconomyComp->CollectGlobalResources();
-
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("CollectGlobalResources Called!"));
-		}
-	}
-	else
-	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Failed to create EconomyComponent!"));
 	}
 }
 
@@ -239,7 +204,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Yellow, TEXT( "Button 7 Clicked (Relocate Building)" ) );
 	}
 
-	// 1) Убедимся, что у нас есть BuildManager
 	if ( !BuildManager )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -271,7 +235,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		return;
 	}
 
-	// 3) Берём выделенное здание
 	ABuilding* selectedBuilding = SelectionManager->GetPrimarySelectedBuilding();
 	if ( !selectedBuilding )
 	{
@@ -282,7 +245,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		return;
 	}
 
-	// 4) Запускаем перенос через BuildManager
 	BuildManager->StartRelocatingBuilding( selectedBuilding );
 }
 
@@ -296,7 +258,6 @@ bool UDebugUIWidget::Initialize()
 		return false;
 	}
 
-	// Привязка коллбеков кнопок.
 	if ( Button1 )
 	{
 		Button1->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton1Clicked );
@@ -325,7 +286,7 @@ bool UDebugUIWidget::Initialize()
 	if ( Button7 )
 	{
 		Button7->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton7Clicked );
-		Button7->SetVisibility( ESlateVisibility::Visible ); // по умолчанию скрыта
+		Button7->SetVisibility( ESlateVisibility::Visible );
 	}
 	if ( UWorld* world = GetWorld() )
 	{
@@ -401,52 +362,51 @@ void UDebugUIWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 	HandleSelectionChanged();
 }
 
+UResourceManager* UDebugUIWidget::GetResourceManager() const
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	return PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
+}
+
 void UDebugUIWidget::OnResourceChangedHandler(EResourceType Type, int32 NewAmount)
 {
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Magenta,
+		FString::Printf(TEXT("UI RECEIVED: Type %d, Amount %d"), (uint8)Type, NewAmount));
+
 	if (ResourceWidgetsMap.Contains(Type))
 	{
-		UResourceManager* ResManager = UGameplayStatics::GetPlayerController(GetWorld(), 0)->FindComponentByClass<UResourceManager>();
+		UResourceManager* ResManager = GetResourceManager();
 		int32 MaxValue = ResManager ? ResManager->GetMaxResourceAmount(Type) : 100;
 
 		ResourceWidgetsMap[Type]->UpdateAmount(NewAmount, MaxValue);
 	}
 }
 
-void UDebugUIWidget::CreateResourceWidgets()
+
+void UDebugUIWidget::CreateResourceWidgets(UResourceManager* ResManager)
 {
 
 	if (ResourceWidgetsMap.Num() > 0) return;
 
-	UWorld* World = GetWorld();
-	APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
-	if (!PC) return;
+	if (!ResManager || !ResourceContainer || !ResourceItemClass) return;
 
-	UResourceManager* ResManager = PC->FindComponentByClass<UResourceManager>();
+	ResManager->OnResourceChanged.AddDynamic(this, &UDebugUIWidget::OnResourceChangedHandler);
 
-
-	if (ResManager && ResourceContainer && ResourceItemClass)
+	for (uint8 i = 1; i < (uint8)EResourceType::MAX; ++i)
 	{
-		ResManager->OnResourceChanged.AddDynamic(this, &UDebugUIWidget::OnResourceChangedHandler);
-
-		for (uint8 i = 1; i <= (uint8)EResourceType::Progress; ++i)
+		EResourceType CurrentType = static_cast<EResourceType>(i);
+		UResourceItemWidget* NewItem = CreateWidget<UResourceItemWidget>(this, ResourceItemClass);
+		if (NewItem)
 		{
-			EResourceType CurrentType = static_cast<EResourceType>(i);
+			TObjectPtr<UTexture2D> Icon = ResourceIcons.Contains(CurrentType) ? ResourceIcons[CurrentType] : nullptr;
+			int32 StartValue = ResManager->GetResourceAmount(CurrentType);
+			int32 MaxValue = ResManager->GetMaxResourceAmount(CurrentType);
 
-			UResourceItemWidget* NewItem = CreateWidget<UResourceItemWidget>(this, ResourceItemClass);
-			if (NewItem)
-			{
+			NewItem->SetupItem(Icon, StartValue, MaxValue);
 
-				UTexture2D* Icon = ResourceIcons.Contains(CurrentType) ? ResourceIcons[CurrentType] : nullptr;
-
-				int32 StartValue = ResManager->GetResourceAmount(CurrentType);
-				int32 MaxValue = ResManager->GetMaxResourceAmount(CurrentType);
-
-				NewItem->SetupItem(Icon, StartValue, MaxValue);
-				NewItem->UpdateAmount(StartValue, MaxValue);
-
-				ResourceContainer->AddChild(NewItem);
-				ResourceWidgetsMap.Add(CurrentType, NewItem);
-			}
+			ResourceContainer->AddChild(NewItem);
+			ResourceWidgetsMap.Add(CurrentType, NewItem);
 		}
 	}
 }
+
