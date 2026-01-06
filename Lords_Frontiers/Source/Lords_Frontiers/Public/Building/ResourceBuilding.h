@@ -24,6 +24,8 @@ class LORDS_FRONTIERS_API AResourceBuilding : public ABuilding
   protected:
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
   protected:
 	// The component responsible for the core resource generation logic (type, quantity, interval).
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Resource Generation" )

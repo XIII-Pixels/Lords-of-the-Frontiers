@@ -1,4 +1,5 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
+#include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
@@ -18,6 +19,13 @@ AResourceBuilding::AResourceBuilding()
 void AResourceBuilding::BeginPlay()
 {
 	Super::BeginPlay();
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+	{
+		if (UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>())
+		{
+			Eco->RegisterBuilding(this);
+		}
+	}
 
 	// Initialization and start of generation
 	UResourceManager* ResourceManager = FindResourceManager_();
@@ -46,4 +54,16 @@ UResourceManager* AResourceBuilding::FindResourceManager_() const
 	}
 
 	return nullptr;
+}
+
+void AResourceBuilding::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+	{
+		if (UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>())
+		{
+			Eco->UnregisterBuilding(this);
+		}
+	}
+	Super::EndPlay(EndPlayReason);
 }
