@@ -14,36 +14,42 @@
 UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
 class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponentBase
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	UAttackRangedComponent();
+    UAttackRangedComponent();
 
-	virtual void Attack(TObjectPtr<AActor> hitActor) override;
+    // Launch projectile
+    virtual void Attack(TObjectPtr<AActor> hitActor) override;
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+    virtual TObjectPtr<AActor> EnemyInSight() const override;
 
 protected:
-	virtual void OnRegister() override;
-	
-	virtual void BeginPlay() override;
+    virtual void OnRegister() override;
 
-	// Look forward around at given time intervals
-	void SightTick();
+    virtual void BeginPlay() override;
 
-	void Look();
+    // Look forward around at given time intervals
+    void SightTick();
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	float LookForwardTimeInterval_ = 0.2f;
+    void Look();
 
-	UPROPERTY( VisibleAnywhere, Category = "Settings|Attack" )
-	TObjectPtr<AActor> EnemyInSight_;
+    bool CanSeeEnemy(TObjectPtr<AActor> actor) const;
 
-	UPROPERTY()
-	TObjectPtr<USphereComponent> SightSphere_;
+    UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+    float LookForwardTimeInterval_ = 0.2f;
 
-	UPROPERTY()
-	TObjectPtr<AUnit> Unit_;
+    UPROPERTY( VisibleAnywhere, Category = "Settings|Attack" )
+    TObjectPtr<AActor> EnemyInSight_;
 
-	FTimerHandle SightTimerHandle_;
+    UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+    bool bCanAttackBackward_ = true;
+
+    UPROPERTY()
+    TObjectPtr<USphereComponent> SightSphere_;
+
+    UPROPERTY()
+    TObjectPtr<AUnit> Unit_;
+
+    FTimerHandle SightTimerHandle_;
 };

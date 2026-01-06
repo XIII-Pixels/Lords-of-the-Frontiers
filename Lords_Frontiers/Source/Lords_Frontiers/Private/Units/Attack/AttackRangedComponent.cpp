@@ -75,7 +75,6 @@ void UAttackRangedComponent::Look()
     TArray<AActor*> overlappingActors;
     SightSphere_->GetOverlappingActors( overlappingActors, AActor::StaticClass() );
 
-    TObjectPtr<AActor> target;
     float minDistance = -1.0f;
     for ( auto actor : overlappingActors )
     {
@@ -83,39 +82,40 @@ void UAttackRangedComponent::Look()
         {
             continue;
         }
-
-        auto enemy = Cast<IAttackable>( actor );
-        if ( enemy && enemy->Team() != Unit_->Team() )
+        if ( CanSeeEnemy( actor ))
         {
-            float dot = FVector::DotProduct(
-                actor->GetActorLocation() - GetOwner()->GetActorLocation(),
-                GetOwner()->GetActorForwardVector() );
-
-            if ( dot > 0 && !target )
+            float distance = FVector::Distance( Unit_->GetActorLocation(), actor->GetActorLocation() );
+            if ( !EnemyInSight_ || distance < minDistance )
             {
-                target = actor;
-                minDistance = FVector::Distance( target->GetActorLocation(), actor->GetActorLocation() );
-                continue;
-            }
-
-            if ( dot > 0 && target )
-            {
-                // UE_LOG( LogTemp, Log, TEXT( "Actor in sight: %s, (dot: %f)" ), *GetNameSafe( actor ), dot );
-                float distance = FVector::Distance( target->GetActorLocation(), actor->GetActorLocation() );
-                if ( distance < minDistance )
-                {
-                    target = actor;
-                    minDistance = distance;
-                }
+                EnemyInSight_ = actor;
+                minDistance = distance;
             }
         }
     }
 
-    EnemyInSight_ = target;
-    GEngine->AddOnScreenDebugMessage(
-        -1,
-        1.0f,
-        FColor::Magenta,
-        FString::Printf( TEXT( "Enemy in sight: %s" ), *GetNameSafe( EnemyInSight_ ) )
-    );
+    UE_LOG( LogTemp, Log, TEXT( "Enemy in sight: %s" ), *GetNameSafe( EnemyInSight_ ) );
+}
+
+bool UAttackRangedComponent::CanSeeEnemy(TObjectPtr<AActor> actor) const
+{
+    // it is assumed actor is inside sight sphere
+    auto enemy = Cast<IAttackable>( actor );
+    if ( enemy && enemy->Team() != Unit_->Team() )
+    {
+        if ( !bCanAttackBackward_ )         // look in half-circle in front of unit
+        {
+            const float dot = FVector::DotProduct(
+                actor->GetActorLocation() - GetOwner()->GetActorLocation(),
+                GetOwner()->GetActorForwardVector() );
+            if ( dot > 0 )
+            {
+                return true;
+            }
+        }
+        else        // look around unit
+        {
+            return true;
+        }
+    }
+    return false;
 }
