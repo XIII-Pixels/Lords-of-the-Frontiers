@@ -24,6 +24,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Economy")
 	void CollectGlobalResources();
 
+	void RegisterBuilding(class AResourceBuilding* Building);
+	void UnregisterBuilding(class AResourceBuilding* Building);
+
+	void SetResourceManager(UResourceManager* InManager) { ResourceManager_ = InManager; }
+
 private:
 	//url system
 	UPROPERTY()
@@ -31,6 +36,9 @@ private:
 
 	UPROPERTY()
 	UResourceManager* ResourceManager_;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<class AResourceBuilding>> RegisteredBuildings_;
 
 	//dependency search
 	void FindSystems();

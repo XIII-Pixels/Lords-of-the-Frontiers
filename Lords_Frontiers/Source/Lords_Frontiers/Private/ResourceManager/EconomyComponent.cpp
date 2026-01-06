@@ -35,65 +35,78 @@ void UEconomyComponent::FindSystems()
 	if ( !ResourceManager_ ) UE_LOG( LogTemp, Warning, TEXT( "EconomyComponent: ResourceManager not found on owner!" ) );
 }
 
+void UEconomyComponent::RegisterBuilding(AResourceBuilding* Building)
+{
+    if (Building) RegisteredBuildings_.AddUnique(Building);
+}
+
+void UEconomyComponent::UnregisterBuilding(AResourceBuilding* Building)
+{
+    RegisteredBuildings_.Remove(Building);
+}
+
 void UEconomyComponent::CollectGlobalResources()
 {
-    if (!GridManager_ || !ResourceManager_)
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Economy: Collecting..."));
+
+    if (!ResourceManager_)
     {
         FindSystems();
-        if (!GridManager_ || !ResourceManager_) {
+        if (!ResourceManager_) {
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Error: ResourceManager is NULL"));
             return;
         }
     }
 
-    TMap<EResourceType, int32> CollectedTotals;
-    const int32 Width = GridManager_->GetGridWidth();
-    const int32 Height = GridManager_->GetGridHeight();
-
-    for (int32 y = 0; y < Height; ++y)
+    if (RegisteredBuildings_.Num() == 0)
     {
-        for (int32 x = 0; x < Width; ++x)
+        TArray<AActor*> FoundActors;
+        UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), FoundActors);
+
+        int32 BuildingsFound = 0;
+        for (AActor* Actor : FoundActors)
         {
-            FGridCell* Cell = GridManager_->GetCell(x, y);
-            if (Cell && Cell->bIsOccupied)
+            if (AResourceBuilding* RB = Cast<AResourceBuilding>(Actor))
             {
-                if (!Cell->Occupant.IsValid())
-                {
-                    UE_LOG(LogTemp, Warning, TEXT("Cell [%d,%d] is occupied but Occupant is NULL"), x, y);
-                    continue;
-                }
-
-                AActor* Actor = Cell->Occupant.Get();
-
-                AResourceBuilding* ResBuilding = Cast<AResourceBuilding>(Actor);
-                if (!ResBuilding)
-                {
-                    UE_LOG(LogTemp, Error, TEXT("Actor %s is NOT a ResourceBuilding! (Cast Failed)"), *Actor->GetName());
-                    continue;
-                }
-
-                UResourceGenerator* Gen = ResBuilding->GetResourceGenerator();
-                if (!Gen)
-                {
-                    UE_LOG(LogTemp, Error, TEXT("Building %s has NO ResourceGenerator component!"), *Actor->GetName());
-                    continue;
-                }
-
-                EResourceType Type = Gen->GetResourceType();
-                int32 Qty = Gen->GetGenerationQuantity();
-
-                CollectedTotals.FindOrAdd(Type) += Qty;
-                UE_LOG(LogTemp, Log, TEXT("Found %d of type %d in building %s"), Qty, (uint8)Type, *Actor->GetName());
+                RegisterBuilding(RB);
+                BuildingsFound++;
             }
         }
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("Lazy Discovery: Found %d ResourceBuildings"), BuildingsFound));
     }
+
+    if (RegisteredBuildings_.Num() == 0)
+    {
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Error: No buildings registered even after discovery!"));
+        return;
+    }
+
+    TMap<EResourceType, int32> CollectedTotals;
+    int32 SuccessfullyProcessed = 0;
+
+    for (auto It = RegisteredBuildings_.CreateIterator(); It; ++It)
+    {
+        if (AResourceBuilding* ResBuilding = It->Get())
+        {
+            UResourceGenerator* Gen = ResBuilding->GetResourceGenerator();
+            if (Gen)
+            {
+                CollectedTotals.FindOrAdd(Gen->GetResourceType()) += Gen->GetGenerationQuantity();
+                SuccessfullyProcessed++;
+            }
+            else
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Economy: Building %s has no Generator!"), *ResBuilding->GetName());
+            }
+        }
+        else { It.RemoveCurrent(); }
+    }
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, FString::Printf(TEXT("Processed: %d buildings"), SuccessfullyProcessed));
 
     for (const auto& Elem : CollectedTotals)
     {
         ResourceManager_->AddResource(Elem.Key, Elem.Value);
-        if (GEngine)
-        {
-            FString Msg = FString::Printf(TEXT("SUCCESS! Added %d resources"), Elem.Value);
-            GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Green, Msg);
-        }
+        if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Added %d of type %d"), Elem.Value, (uint8)Elem.Key));
     }
 }
