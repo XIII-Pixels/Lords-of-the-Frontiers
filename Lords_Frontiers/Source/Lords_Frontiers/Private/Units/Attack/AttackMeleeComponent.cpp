@@ -2,6 +2,7 @@
 
 #include "Units/Attack/AttackMeleeComponent.h"
 
+#include "Units/Unit.h"
 #include "Utilities/TraceChannelMappings.h"
 
 UAttackMeleeComponent::UAttackMeleeComponent()

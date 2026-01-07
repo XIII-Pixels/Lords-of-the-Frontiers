@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+#include "CoreMinimal.h"
+
 #include "AttackEnemyTask.generated.h"
 
 /** (Gregory-hub)
@@ -15,6 +16,6 @@ class LORDS_FRONTIERS_API UAttackEnemyTask : public UBTTask_BlackboardBase
 
 public:
 	UAttackEnemyTask();
-	
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
+
+	virtual EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
 };

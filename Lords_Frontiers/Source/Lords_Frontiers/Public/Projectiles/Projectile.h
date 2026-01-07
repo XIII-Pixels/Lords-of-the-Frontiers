@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "Projectile.generated.h"
 
 class USphereComponent;
@@ -12,43 +13,37 @@ class USphereComponent;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API AProjectile : public AActor
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    AProjectile();
+	AProjectile();
 
-    void Initialize(TObjectPtr<AActor> target, float damage, float speed, bool splash = false);
+	void Initialize( TObjectPtr<AActor> target, float damage, float speed, bool splash = false );
 
-    void Launch();
+	void Launch();
 
-    virtual void Tick(float deltaTime) override;
+	virtual void Tick( float deltaTime ) override;
 
 protected:
-    void DealDamage(TObjectPtr<AActor> target) const;
+	void DealDamage( TObjectPtr<AActor> target ) const;
 
-    UFUNCTION()
-    void OnCollisionStart(UPrimitiveComponent* overlappedComp,
-        AActor* otherActor,
-        UPrimitiveComponent* otherComp,
-        int32 otherBodyIndex,
-        bool bFromSweep,
-        const FHitResult& sweepResult);
+	UFUNCTION()
+	void OnCollisionStart(
+	    UPrimitiveComponent* overlappedComp, AActor* otherActor, UPrimitiveComponent* otherComp, int32 otherBodyIndex,
+	    bool bFromSweep, const FHitResult& sweepResult
+	);
 
-    // UFUNCTION()
-    // void OnCollisionEnd(UPrimitiveComponent* overlappedComp, AActor* otherActor, 
-    //                                 UPrimitiveComponent* otherComp, int32 otherBodyIndex);
+	UPROPERTY()
+	TObjectPtr<USphereComponent> CollisionComponent_;
 
-    UPROPERTY()
-    TObjectPtr<USphereComponent> CollisionComponent_;
+	UPROPERTY()
+	TObjectPtr<AActor> Target_;
 
-    UPROPERTY()
-    TObjectPtr<AActor> Target_;
+	float Damage_ = 0.0f;
 
-    float Damage_ = 0.0f;
+	float Speed_ = 0.0f;
 
-    float Speed_ = 0.0f;
+	bool bSplash_ = false;
 
-    bool bSplash_ = false;
-
-    bool bIsFollowing_ = false;
+	bool bIsFollowing_ = false;
 };

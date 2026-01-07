@@ -3,14 +3,15 @@
 #pragma once
 
 #include "AttackComponentBase.h"
-#include "Units/Unit.h"
-
 #include "CoreMinimal.h"
+
 #include "AttackMeleeComponent.generated.h"
 
+class AUnit;
+
 /** (Gregory-hub)
-* Makes actor attack enemy actors in sight */
-UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
+ * Makes actor attack enemy actors in sight */
+UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponentBase
 {
 	GENERATED_BODY()
@@ -18,7 +19,7 @@ class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponentBase
 public:
 	UAttackMeleeComponent();
 
-	virtual void Attack(TObjectPtr<AActor> hitActor) override;
+	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual TObjectPtr<AActor> EnemyInSight() const override;
 

@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "BehaviorTree/BTDecorator.h"
+#include "CoreMinimal.h"
+
 #include "DoesSeeEnemyDecorator.generated.h"
 
 /** (Gregory-hub)
@@ -16,5 +17,5 @@ class LORDS_FRONTIERS_API UDoesSeeEnemyDecorator : public UBTDecorator
 public:
 	UDoesSeeEnemyDecorator();
 
-	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) const override;
+	virtual bool CalculateRawConditionValue( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) const override;
 };

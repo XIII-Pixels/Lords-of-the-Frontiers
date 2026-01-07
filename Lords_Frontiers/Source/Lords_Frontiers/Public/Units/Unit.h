@@ -2,14 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "AIController.h"
-
 #include "Attackable.h"
-#include "Units/Attack/AttackComponentBase.h"
+#include "CoreMinimal.h"
 #include "EntityStats.h"
-
 #include "GameFramework/Pawn.h"
+#include "Units/Attack/AttackComponentBase.h"
+
 #include "Unit.generated.h"
 
 class UCapsuleComponent;
@@ -28,19 +27,19 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 public:
 	AUnit();
 
-	virtual void OnConstruction(const FTransform& transform) override;
+	virtual void OnConstruction( const FTransform& transform ) override;
 
 	virtual void BeginPlay() override;
 
-	virtual void Tick(float deltaSeconds) override;
+	virtual void Tick( float deltaSeconds ) override;
 
 	void StartFollowing();
 
 	void StopFollowing();
 
-	void Attack(TObjectPtr<AActor> hitActor);
+	void Attack( TObjectPtr<AActor> hitActor );
 
-	virtual void TakeDamage(float damage) override;
+	virtual void TakeDamage( float damage ) override;
 
 	// Getters and setters
 

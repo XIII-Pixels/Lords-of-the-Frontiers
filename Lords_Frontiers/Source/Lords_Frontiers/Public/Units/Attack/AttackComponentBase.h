@@ -3,20 +3,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/SceneComponent.h"
+
 #include "AttackComponentBase.generated.h"
 
+class USceneComponent;
+
 /** (Gregory-hub)
-* Base class for attack components */
+ * Base class for attack components */
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UAttackComponentBase : public USceneComponent
 {
 	GENERATED_BODY()
 
 public:
-	virtual void Attack(TObjectPtr<AActor> hitActor) PURE_VIRTUAL();
+	virtual void Attack( TObjectPtr<AActor> hitActor ) PURE_VIRTUAL();
 
-	virtual TObjectPtr<AActor> EnemyInSight() const PURE_VIRTUAL(
-		UAttackComponentBase::EnemyInSight,
-		{ return nullptr; } );
+	virtual TObjectPtr<AActor> EnemyInSight() const
+	    PURE_VIRTUAL( UAttackComponentBase::EnemyInSight, { return nullptr; } );
 };

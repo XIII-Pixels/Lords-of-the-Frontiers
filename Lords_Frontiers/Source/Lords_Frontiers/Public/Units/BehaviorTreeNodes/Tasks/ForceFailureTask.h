@@ -2,13 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+#include "CoreMinimal.h"
+
 #include "ForceFailureTask.generated.h"
 
-/** (Gregory-hub)
- * 
- */
+/** (Gregory-hub) */
 UCLASS()
 class LORDS_FRONTIERS_API UForceFailureTask : public UBTTask_BlackboardBase
 {
@@ -16,6 +15,6 @@ class LORDS_FRONTIERS_API UForceFailureTask : public UBTTask_BlackboardBase
 
 public:
 	UForceFailureTask();
-	
-	EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) override;
+
+	EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
 };

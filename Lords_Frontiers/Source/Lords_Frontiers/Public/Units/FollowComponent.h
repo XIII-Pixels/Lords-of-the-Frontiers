@@ -3,13 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Unit.h"
 #include "GameFramework/FloatingPawnMovement.h"
+#include "Unit.h"
+
 #include "FollowComponent.generated.h"
 
 /** (Gregory-hub)
-* Makes actor chase target */
-UCLASS( ClassGroup=(Unit), meta=(BlueprintSpawnableComponent) )
+ * Makes actor chase target */
+UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UFollowComponent : public UFloatingPawnMovement
 {
 	GENERATED_BODY()
@@ -18,20 +19,19 @@ public:
 	UFollowComponent();
 
 	void StartFollowing();
-	
+
 	void StopFollowing();
 
 protected:
 	virtual void BeginPlay() override;
-	
-	virtual void TickComponent(float deltaTime,
-		ELevelTick tickType,
-		FActorComponentTickFunction* thisTickFunction) override;
 
-	void MoveTowardsTarget(float deltaTime);
+	virtual void
+	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
-	void RotateForward(float deltaTime);
-	
+	void MoveTowardsTarget( float deltaTime );
+
+	void RotateForward( float deltaTime );
+
 	void SnapToNavMeshGround();
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
