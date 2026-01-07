@@ -2,17 +2,17 @@
 
 #include "Units/FollowComponent.h"
 
-#include "NavigationSystem.h"
 #include "Components/CapsuleComponent.h"
+#include "NavigationSystem.h"
 #include "Units/Unit.h"
 
 UFollowComponent::UFollowComponent()
 {
 }
 
-void UFollowComponent::TickComponent(float deltaTime,
-	ELevelTick tickType,
-	FActorComponentTickFunction* thisTickFunction)
+void UFollowComponent::TickComponent(
+    float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
+)
 {
 	Super::TickComponent( deltaTime, tickType, thisTickFunction );
 
@@ -39,8 +39,6 @@ void UFollowComponent::BeginPlay()
 
 	Unit_ = Cast<AUnit>( GetOwner() );
 
-	MaxSpeed = MaxSpeed_;
-
 	if ( PawnOwner )
 	{
 		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
@@ -60,13 +58,18 @@ void UFollowComponent::StopFollowing()
 	bFollowTarget_ = false;
 }
 
-void UFollowComponent::MoveTowardsTarget(float deltaTime)
+void UFollowComponent::SetMaxSpeed( float maxSpeed )
+{
+	MaxSpeed = maxSpeed;
+}
+
+void UFollowComponent::MoveTowardsTarget( float deltaTime )
 {
 	if ( !Unit_ )
 	{
 		return;
 	}
-	
+
 	FVector targetLocation = Unit_->FollowedTarget()->GetActorLocation();
 	FVector actorLocation = GetActorLocation();
 	FVector direction = ( targetLocation - actorLocation ).GetSafeNormal();
@@ -101,7 +104,7 @@ void UFollowComponent::SnapToNavMeshGround()
 	}
 }
 
-void UFollowComponent::RotateForward(float deltaTime)
+void UFollowComponent::RotateForward( float deltaTime )
 {
 	FRotator targetRotation = Velocity.Rotation();
 	FRotator currentRotation = PawnOwner->GetActorRotation();

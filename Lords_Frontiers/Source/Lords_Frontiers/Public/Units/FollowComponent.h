@@ -22,6 +22,8 @@ public:
 
 	void StopFollowing();
 
+	void SetMaxSpeed( float maxSpeed );
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -33,9 +35,6 @@ protected:
 	void RotateForward( float deltaTime );
 
 	void SnapToNavMeshGround();
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
-	float MaxSpeed_ = 300.0f;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float RotationSpeed_ = 300.0f;

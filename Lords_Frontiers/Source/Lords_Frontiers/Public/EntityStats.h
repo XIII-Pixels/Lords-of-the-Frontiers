@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EntityStats.generated.h"
 
+#include "EntityStats.generated.h"
 
 UENUM( BlueprintType )
 enum class ETeam : uint8
@@ -10,7 +10,6 @@ enum class ETeam : uint8
 	Dog,
 	Cat
 };
-
 
 // (Artyom)
 // entity stats struct (health, damage, damage radius, speed)
@@ -22,7 +21,7 @@ struct FEntityStats
 public:
 	FEntityStats() = default;
 
-	explicit FEntityStats(int maxHealth, int attackDamage, float attackRange);
+	explicit FEntityStats( int maxHealth, int attackDamage, float attackRange );
 
 	// getters
 	int MaxHealth() const;
@@ -35,34 +34,38 @@ public:
 
 	float AttackCooldown() const;
 
+	float MaxSpeed() const;
+
 	ETeam Team() const;
 
 	// setters
-	void SetMaxHealth(int maxHealth); // min = 1
+	void SetMaxHealth( int maxHealth ); // min = 1
 
-	void SetHealth(int health);
+	void SetHealth( int health );
 
-	void SetAttackRange(float attackRange);
+	void SetAttackRange( float attackRange );
 
-	void SetAttackDamage(int attackDamage);
-	
-	void SetAttackCooldown(float attackCooldown);
-	
-	void SetTeam(ETeam team);
+	void SetAttackDamage( int attackDamage );
+
+	void SetAttackCooldown( float attackCooldown );
+
+	void SetMaxSpeed( float maxSpeed );
+
+	void SetTeam( ETeam team );
 
 	// functionality
-	
-	// returns applied damage
-	int ApplyDamage(int damage);
 
-	void Heal(int amount);
+	// returns applied damage
+	int ApplyDamage( int damage );
+
+	void Heal( int amount );
 
 	bool OnCooldown() const;
 
 	void StartCooldown();
 
 	// damage modificator (if needed)
-	void ModifyAttackDamage(int delta);
+	void ModifyAttackDamage( int delta );
 
 	// utils
 	bool IsAlive() const;
@@ -84,6 +87,9 @@ private:
 
 	UPROPERTY( EditAnywhere, Category = "Stats" )
 	float AttackCooldown_ = 1.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	float MaxSpeed_ = 300.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Stats" )
 	ETeam Team_;
