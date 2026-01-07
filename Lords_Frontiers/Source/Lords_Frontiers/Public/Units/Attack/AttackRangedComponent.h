@@ -51,7 +51,7 @@ protected:
 	TSubclassOf<AProjectile> ProjectileClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	float ProjectileSpeed_ = 500.0f;
+	float ProjectileSpeed_ = 1500.0f;
 
 	UPROPERTY()
 	TObjectPtr<USphereComponent> SightSphere_;
