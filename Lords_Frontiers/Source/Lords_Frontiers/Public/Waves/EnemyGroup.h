@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Lords_Frontiers/Public/Unit.h"
+#include "Lords_Frontiers/Public/Units/Unit.h"
 #include "EnemyGroup.generated.h"
 
 /*

@@ -7,94 +7,92 @@
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 
-ASimpleEnemy::ASimpleEnemy()
+// this wont be included in actual build
+
+ASimpleEnemy::ASimpleEnemy () 
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
-	CapsuleComponent->InitCapsuleSize(34.f, 88.f); // пример размеров
-	CapsuleComponent->SetCollisionProfileName(TEXT("Pawn"));
-	SetRootComponent(CapsuleComponent);
+	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent> ( TEXT ( "Capsule" ) );
+	CapsuleComponent->InitCapsuleSize ( DefaultCapsuleRadius, DefaultCapsuleHalfHeight ); // debug size
+	CapsuleComponent->SetCollisionProfileName ( TEXT ( "Pawn" ) );
+	SetRootComponent ( CapsuleComponent );
 
 	// Create mesh component and set it as root so spawned enemy is visible
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	MeshComponent->SetupAttachment(CapsuleComponent);
-	MeshComponent->SetRelativeLocation(FVector(0.f, 0.f, -88.f)); // подогнать, если нужно
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	MeshComponent->SetCollisionProfileName(TEXT("Pawn"));
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent> ( TEXT ( "MeshComponent" ) );
+	MeshComponent->SetupAttachment ( CapsuleComponent );
+	MeshComponent->SetRelativeLocation ( DefaultMeshRelativeLocation );
+	MeshComponent->SetCollisionEnabled ( ECollisionEnabled::QueryAndPhysics );
+	MeshComponent->SetCollisionProfileName ( TEXT ( "Pawn" ) );
 
 	// sensible defaults
 	MaxHealth = 100;
 	Health = MaxHealth;
 	AttackDamage = 10;
 
-	// Let engine spawn a default AI controller (can be overridden in Blueprint)
-	AIControllerClass = AAIController::StaticClass();
+	// Let engine spawn a default AI controller ( can be overridden in Blueprint ) 
+	AIControllerClass = AAIController::StaticClass ();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 }
 
-void ASimpleEnemy::BeginPlay()
+void ASimpleEnemy::BeginPlay () 
 {
-	Super::BeginPlay();
+	Super::BeginPlay ();
 
-	// Ensure health consistent with MaxHealth
-	Health = FMath::Clamp(Health, 0, MaxHealth);
 
 #if WITH_EDITOR
 	// Draw a small debug sphere so you can see the spawn in editor/game for a second
-	if (GetWorld())
+	if ( GetWorld () ) 
 	{
-		DrawDebugSphere(GetWorld(), GetActorLocation(), 24.0f, 8, FColor::Red, false, 2.0f);
+		DrawDebugSphere ( GetWorld () , GetActorLocation () , 24.0f, 8, FColor::Red, false, 2.0f );
 	}
 #endif
 }
 
-void ASimpleEnemy::TakeDamage(float DamageAmount)
+void ASimpleEnemy::TakeDamage ( float DamageAmount ) 
 {
 	// Basic guard
-	if (DamageAmount <= 0.0f || Health <= 0)
+	if ( DamageAmount <= 0.0f || Health <= 0 ) 
 	{
 		return;
 	}
 
-	// convert to int damage (round) and apply
-	const int32 IntDamage = FMath::Max(0, FMath::RoundToInt(DamageAmount));
-	Health = FMath::Clamp(Health - IntDamage, 0, MaxHealth);
+	Health = FMath::Clamp ( Health - DamageAmount, 0.0f, MaxHealth );
 
 	// Debug log
-	if (GEngine)
+	if ( GEngine ) 
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow,
-			FString::Printf(TEXT("%s took %d damage, HP=%d/%d"), *GetName(), IntDamage, Health, MaxHealth));
+		GEngine->AddOnScreenDebugMessage ( -1, 2.0f, FColor::Yellow,
+			FString::Printf ( TEXT ( "%s took %.1f damage, HP=%.1f/%.1f" ) , *GetName () , DamageAmount, Health, MaxHealth ) );
 	}
 
 	// If died -> handle death
-	if (Health <= 0)
+	if ( Health <= 0.0f ) 
 	{
-		HandleDeath();
+		HandleDeath ();
 	}
 }
 
-void ASimpleEnemy::HandleDeath()
+void ASimpleEnemy::HandleDeath () 
 {
 	// Debug
-	UE_LOG(LogTemp, Log, TEXT("%s died."), *GetName());
+	UE_LOG ( LogTemp, Log, TEXT ( "%s died." ) , *GetName () );
 
 	// Optional: spawn VFX or sound here
 
 	// Delay destroy slightly to allow any effects / bindings to execute
-	if (GetWorld())
+	if ( GetWorld () ) 
 	{
 		FTimerHandle Th;
-		GetWorld()->GetTimerManager().SetTimer(Th, [this]()
+		GetWorld () ->GetTimerManager () .SetTimer ( Th, [this] () 
 			{
-				Destroy();
-			}, 0.1f, false);
+				Destroy ();
+			}, 0.1f, false );
 	}
 	else
 	{
-		Destroy();
+		Destroy ();
 	}
 }
 

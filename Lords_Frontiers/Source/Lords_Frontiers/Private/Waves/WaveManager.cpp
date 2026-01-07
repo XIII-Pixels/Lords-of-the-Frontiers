@@ -4,6 +4,7 @@
 #include "NavigationSystem.h"      
 #include "DrawDebugHelpers.h"
 #include "Components/CapsuleComponent.h"
+#include "UObject/ScriptDelegates.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Math/UnrealMathUtility.h"
@@ -250,7 +251,7 @@ void AWaveManager::OnWaveEndTimerElapsed ( int32 waveIndex )
 
 	if ( waveIndex >= Waves.Num ()  - 1 ) 
 	{
-		OnAllWavesCompleted.Broadcast ();
+		BroadcastAllWavesCompleted ();
 		if ( bLogSpawning ) 
 		{
 			UE_LOG ( LogTemp, Log, TEXT ( "WaveManager: All waves completed." ) );
@@ -263,7 +264,7 @@ bool AWaveManager::MoveToNextWaveAndStart ()
 	const int32 nextIndex = CurrentWaveIndex + 1;
 	if ( !Waves.IsValidIndex ( nextIndex ) ) 
 	{
-		OnAllWavesCompleted.Broadcast ();
+		BroadcastAllWavesCompleted ();
 		if ( bLogSpawning ) 
 		{
 			UE_LOG ( LogTemp, Log, TEXT ( "WaveManager: No more waves to start." ) );
@@ -285,7 +286,7 @@ void AWaveManager::AdvanceToNextWave ()
 	const int32 nextIndex = CurrentWaveIndex + 1;
 	if ( !Waves.IsValidIndex ( nextIndex ) ) 
 	{
-		OnAllWavesCompleted.Broadcast ();
+		BroadcastAllWavesCompleted ();
 		if ( bLogSpawning ) 
 		{
 			UE_LOG ( LogTemp, Log, TEXT ( "WaveManager: AdvanceToNextWave called but no more waves." ) );
@@ -299,11 +300,6 @@ void AWaveManager::AdvanceToNextWave ()
 void AWaveManager::CancelCurrentWave () 
 {
 	ClearActiveTimers ();
-
-	if ( GetWorld () ) 
-	{
-		GetWorld () ->GetTimerManager () .ClearTimer ( WaveEndTimerHandle );
-	}
 
 	bIsWaveActive = false;
 
@@ -429,3 +425,66 @@ FTransform AWaveManager::FindNonOverlappingSpawnTransform ( const FTransform& de
 	return desiredTransform;
 }
 
+bool AWaveManager::SubscribeToAllWavesCompleted(UObject* Listener, FName FunctionName)
+{
+	if (!Listener || FunctionName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WaveManager: SubscribeToAllWavesCompleted invalid args"));
+		return false;
+	}
+
+	// Avoid duplicate subscription from same object
+	if (AllWavesCompletedSubscribers.Contains(Listener))
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("WaveManager: SubscribeToAllWavesCompleted - already subscribed: %s"), *GetNameSafe(Listener));
+		return false;
+	}
+
+	// Bind script delegate to listener's function and add to multicast
+	FScriptDelegate ScriptDel;
+	ScriptDel.BindUFunction(Listener, FunctionName);
+	OnAllWavesCompleted.Add(ScriptDel);
+
+	AllWavesCompletedSubscribers.Add(Listener);
+
+	UE_LOG(LogTemp, Log, TEXT("WaveManager: SubscribeToAllWavesCompleted - subscribed %s.%s"), *GetNameSafe(Listener), *FunctionName.ToString());
+	return true;
+}
+
+bool AWaveManager::UnsubscribeFromAllWavesCompleted(UObject* Listener, FName FunctionName)
+{
+	if (!Listener || FunctionName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WaveManager: UnsubscribeFromAllWavesCompleted invalid args"));
+		return false;
+	}
+
+	FScriptDelegate ScriptDel;
+	ScriptDel.BindUFunction(Listener, FunctionName);
+	OnAllWavesCompleted.Remove(ScriptDel);
+
+	AllWavesCompletedSubscribers.Remove(Listener);
+
+	UE_LOG(LogTemp, Log, TEXT("WaveManager: UnsubscribeFromAllWavesCompleted - unsubscribed %s.%s"), *GetNameSafe(Listener), *FunctionName.ToString());
+	return true;
+}
+
+void AWaveManager::BroadcastAllWavesCompleted()
+{
+	// Make sure we only broadcast once per run (until RestartWaves is called)
+	if (bHasBroadcastedAllWavesCompleted)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("WaveManager: BroadcastAllWavesCompleted - already broadcasted, skipping."));
+		return;
+	}
+
+	bHasBroadcastedAllWavesCompleted = true;
+
+	// Actual broadcast
+	OnAllWavesCompleted.Broadcast();
+
+	if (bLogSpawning)
+	{
+		UE_LOG(LogTemp, Log, TEXT("WaveManager: All waves completed (BroadcastAllWavesCompleted)"));
+	}
+}

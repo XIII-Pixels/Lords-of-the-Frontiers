@@ -13,8 +13,7 @@ class AEnemyGroupSpawnPoint;
  Supports SpawnPoint's as pointers (Soft Object Ptr) or by id (FName)
 
  inner logic ( when GetSpawnTransformForGroup called ):
- - at first try SpawnPointReferences[GroupIndex] (if given and valid),
- - second SpawnPointIds[GroupIndex] (if given),
+ - try SpawnPointIds[GroupIndex] (if given),
  - else return Identity (calling object must choose default spawn place or spawn in other place)
  */
 USTRUCT ( BlueprintType )
@@ -22,7 +21,7 @@ struct FWave
 {
 	GENERATED_BODY()
 
-public:
+public: // UPROPERTIES
 	// enemy groups in wave
 	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
 	TArray <FEnemyGroup> EnemyGroups;
@@ -45,9 +44,9 @@ public:
 	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Wave", meta = ( ClampMin = "0.0" ) )
 	float GroupSpawnDelay = 0.0f;
 
-public:
+public:  //CPP FUNCTIONS
 	FWave ();
-	FWave( const TArray <FEnemyGroup>& inGroups,
+	FWave ( const TArray <FEnemyGroup>& inGroups,
 		const TArray <TSoftObjectPtr <AEnemyGroupSpawnPoint> >& inRefs = TArray <TSoftObjectPtr <AEnemyGroupSpawnPoint> > (),
 		const TArray <FName>& inIds = TArray <FName> (), float inStartDelay = 0.0f, float inGroupSpawnDelay = 0.0f );
 
@@ -62,7 +61,6 @@ public:
 
 	// total amount of valid groups
 	int32 GetTotalValidGroups () const;
-
 
 	// get start time of group from wave start (StartDelay + index * GroupSpawnDelay)
 	float GetGroupStartTime ( int32 groupIndex ) const;

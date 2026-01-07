@@ -5,7 +5,7 @@
 #include "Wave.h"
 #include "EnemyGroup.h"
 #include "EnemyGroupSpawnPoint.h"
-#include "Lords_Frontiers/Public/Unit.h"
+#include "Lords_Frontiers/Public/Units/Unit.h"
 #include "WaveManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWaveStartedSignature, int32, WaveIndex); //needed to call from BP
@@ -79,6 +79,16 @@ public:
 	UPROPERTY ( BlueprintAssignable, Category = "Wave|Events" )
 	FOnAllWavesCompletedSignature OnAllWavesCompleted;
 
+	UFUNCTION(BlueprintCallable, Category = "Wave|Events")
+	bool SubscribeToAllWavesCompleted(UObject* Listener, FName FunctionName);
+
+	// Unsubscribe previously subscribed listener.
+	UFUNCTION(BlueprintCallable, Category = "Wave|Events")
+	bool UnsubscribeFromAllWavesCompleted(UObject* Listener, FName FunctionName);
+
+	// Broadcast "All waves completed" to all listeners (broadcast happens only once).
+	UFUNCTION(BlueprintCallable, Category = "Wave|Events")
+	void BroadcastAllWavesCompleted();
 protected:
 	virtual void BeginPlay () override;
 
@@ -103,7 +113,6 @@ protected:
 	FTransform FindNonOverlappingSpawnTransform ( const FTransform& DesiredTransform, float CapsuleRadius, float CapsuleHalfHeight, float MaxSearchRadius = 600.f,
 		int32 MaxAttempts = 32, bool bProjectToNavMesh = false ) const;
 
-protected:
 	// Active timer handles (for enemy spawns) so we can clear them if needed
 	UPROPERTY ( Transient )
 	TArray <FTimerHandle> ActiveSpawnTimers;
@@ -119,6 +128,13 @@ protected:
 	UPROPERTY(Transient)
 	bool bHasRequestedFirstWave = false;
 
-	// Utility: returns wave index clamped into array bounds (or INDEX_NONE if no waves)
+	//returns wave index clamped into array bounds (or INDEX_NONE if no waves)
 	int32 ClampWaveIndex ( int32 waveIndex ) const;
+
+	UPROPERTY(Transient)
+	TSet<TWeakObjectPtr<UObject>> AllWavesCompletedSubscribers;
+
+	//broadcast OnAllWavesCompleted only once (until waves are restarted).
+	UPROPERTY(Transient)
+	bool bHasBroadcastedAllWavesCompleted = false;
 };

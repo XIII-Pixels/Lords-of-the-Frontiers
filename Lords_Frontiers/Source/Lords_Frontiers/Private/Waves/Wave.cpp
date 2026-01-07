@@ -27,7 +27,7 @@ FWave::FWave (
 {
 }
 
-bool FWave::IsValid ()  const
+bool FWave::IsValid () const
 {
 	for  ( const FEnemyGroup& enemyGroup : EnemyGroups ) 
 	{
@@ -39,7 +39,7 @@ bool FWave::IsValid ()  const
 	return false;
 }
 
-int32 FWave::GetTotalEnemyCount ()  const
+int32 FWave::GetTotalEnemyCount () const
 {
 	int32 total = 0;
 	for  ( const FEnemyGroup& enemyGroup : EnemyGroups ) 
@@ -49,7 +49,7 @@ int32 FWave::GetTotalEnemyCount ()  const
 	return total;
 }
 
-int32 FWave::GetTotalValidGroups ()  const
+int32 FWave::GetTotalValidGroups () const
 {
 	int32 countValid = 0;
 	for  ( const FEnemyGroup& enemyGroup : EnemyGroups ) 
@@ -62,13 +62,13 @@ int32 FWave::GetTotalValidGroups ()  const
 	return countValid;
 }
 
-float FWave::GetGroupStartTime ( int32 groupIndex )  const
+float FWave::GetGroupStartTime ( int32 groupIndex ) const
 {
 	const int32 clamped = FMath::Max ( 0, groupIndex );
-	return StartDelay + static_cast <float>   ( clamped )  * GroupSpawnDelay;
+	return StartDelay + static_cast <float>   ( clamped ) * GroupSpawnDelay;
 }
 
-float FWave::GetGroupTotalDuration ( int32 groupIndex )  const
+float FWave::GetGroupTotalDuration ( int32 groupIndex ) const
 {
 	if  ( groupIndex  < 0 || groupIndex >= EnemyGroups.Num () ) 
 	{
@@ -77,7 +77,7 @@ float FWave::GetGroupTotalDuration ( int32 groupIndex )  const
 	return EnemyGroups[groupIndex].GetTotalSpawnDuration ();
 }
 
-float FWave::GetTotalWaveDuration ()  const
+float FWave::GetTotalWaveDuration () const
 {
 	float endTime = StartDelay;
 	const int32 numGroups = EnemyGroups.Num ();
@@ -97,7 +97,7 @@ float FWave::GetTotalWaveDuration ()  const
 	return endTime;
 }
 
-float FWave::GetTimeToSpawnEnemy ( int32 groupIndex, int32 enemyIndex )  const
+float FWave::GetTimeToSpawnEnemy ( int32 groupIndex, int32 enemyIndex ) const
 {
 	if  ( groupIndex  < 0 || groupIndex >= EnemyGroups.Num () ) 
 	{
@@ -110,7 +110,7 @@ float FWave::GetTimeToSpawnEnemy ( int32 groupIndex, int32 enemyIndex )  const
 	return groupStart + enemyGroup.GetSpawnDelayForIndex ( enemyIndex );
 }
 
-FName FWave::GetSpawnPointIdForGroup ( int32 groupIndex )  const
+FName FWave::GetSpawnPointIdForGroup ( int32 groupIndex ) const
 {
 	if  ( SpawnPointIds.IsValidIndex ( groupIndex ) ) 
 	{
@@ -119,7 +119,7 @@ FName FWave::GetSpawnPointIdForGroup ( int32 groupIndex )  const
 	return NAME_None;
 }
 
-TSoftObjectPtr <AEnemyGroupSpawnPoint>  FWave::GetSpawnPointRefForGroup ( int32 groupIndex )  const
+TSoftObjectPtr <AEnemyGroupSpawnPoint> FWave::GetSpawnPointRefForGroup ( int32 groupIndex ) const
 {
 	if  ( SpawnPointReferences.IsValidIndex ( groupIndex ) ) 
 	{
@@ -128,7 +128,7 @@ TSoftObjectPtr <AEnemyGroupSpawnPoint>  FWave::GetSpawnPointRefForGroup ( int32 
 	return TSoftObjectPtr <AEnemyGroupSpawnPoint>  ();
 }
 
-FTransform FWave::GetSpawnTransformForGroup ( UObject* worldContextObject, int32 groupIndex )  const
+FTransform FWave::GetSpawnTransformForGroup ( UObject* worldContextObject, int32 groupIndex ) const
 {
 	if  ( !worldContextObject ) 
 	{

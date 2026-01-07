@@ -74,27 +74,14 @@ AEnemyGroupSpawnPoint* AEnemyGroupSpawnPoint::FindSpawnPointById ( UObject* worl
 	TArray <AActor*> foundActors;
 	UGameplayStatics::GetAllActorsOfClass ( world, AEnemyGroupSpawnPoint::StaticClass (), foundActors );
 
-	for (AActor* actor : foundActors)
+	for ( AActor* actor : foundActors )
 	{
 		AEnemyGroupSpawnPoint* candidate = Cast <AEnemyGroupSpawnPoint> ( actor );
 		if ( !candidate ) continue;
 
-		// 1) direct id match
-		if ( !id.IsNone() && candidate -> SpawnPointId == id )
+		if ( candidate -> MatchesId ( id ) )
 		{
 			return candidate;
-		}
-
-		// 2) optional: match by actor tags if enabled
-		if ( candidate -> bUseActorTagMatching )
-		{
-			for ( const FName& tag : candidate->Tags )
-			{
-				if ( tag == id )
-				{
-					return candidate;
-				}
-			}
 		}
 	}
 
