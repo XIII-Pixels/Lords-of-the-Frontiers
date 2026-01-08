@@ -37,6 +37,9 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> Button7 = nullptr;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button8 = nullptr;
+
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
@@ -44,7 +47,6 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UPROPERTY()
 	TObjectPtr<ABuildManager> BuildManager = nullptr;
 
-	// Кешированный указатель на менеджер выделения
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager = nullptr;
 
@@ -62,6 +64,9 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 
 	UFUNCTION()
 	void OnButton7Clicked();
+
+	UFUNCTION()
+	void OnButton8Clicked();
 
 	virtual bool Initialize() override;
 

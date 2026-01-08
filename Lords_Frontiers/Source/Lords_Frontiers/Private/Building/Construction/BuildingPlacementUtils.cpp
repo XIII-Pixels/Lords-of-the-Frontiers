@@ -27,7 +27,6 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 1) Позиция мыши на экране.
 	float screenX = 0.0f;
 	float screenY = 0.0f;
 	if ( !playerController->GetMousePosition( screenX, screenY ) )
@@ -35,7 +34,6 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 2) Девпроекция в луч в мире.
 	FVector worldOrigin;
 	FVector worldDirection;
 	if ( !playerController->DeprojectScreenPositionToWorld( screenX, screenY, worldOrigin, worldDirection ) )
@@ -49,27 +47,23 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 3) Плоскость сетки: Z = GridOrigin.Z (сетка горизонтальная).
 	const FVector gridOrigin = gridManager->GetActorLocation();
 	const float planeZ = gridOrigin.Z;
 
 	const float dirZ = worldDirection.Z;
 	if ( FMath::IsNearlyZero( dirZ ) )
 	{
-		// Луч почти параллелен плоскости.
 		return result;
 	}
 
 	const float t = ( planeZ - worldOrigin.Z ) / dirZ;
 	if ( t <= 0.0f )
 	{
-		// Пересечение позади камеры.
 		return result;
 	}
 
 	const FVector hitPoint = worldOrigin + worldDirection * t;
 
-	// 4) Переводим точку в координаты сетки.
 	const float cellSize = gridManager->GetCellSize();
 	if ( cellSize <= KINDA_SMALL_NUMBER )
 	{
@@ -90,7 +84,6 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 
 	const FIntPoint cellCoords( gridX, gridY );
 
-	// 5) Центр клетки берём из визуализатора, чтобы совпадать с нарисованной сеткой.
 	FVector cellWorldLocation;
 	if ( !gridVisualizer->GetCellWorldCenter( cellCoords, cellWorldLocation ) )
 	{
@@ -117,7 +110,6 @@ bool BuildingPlacementUtils::CanBuildAtCell( const AGridManager* gridManager, co
 		return false;
 	}
 
-	// Нельзя строить на небилдабельной или уже занятой клетке.
 	if ( !cell->bIsBuildable || cell->bIsOccupied )
 	{
 		return false;
@@ -153,10 +145,8 @@ ABuilding* BuildingPlacementUtils::PlaceBuilding(
 		return nullptr;
 	}
 
-	// Для отладки — рисуем небольшой бокс в центре клетки.
 	DrawDebugBox( world, worldLocation, FVector( 15.0f, 15.0f, 15.0f ), FColor::Cyan, false, 2.0f );
 
-	// Помечаем клетку занятой.
 	FGridCell* cell = gridManager->GetCell( cellCoords.X, cellCoords.Y );
 	if ( cell )
 	{

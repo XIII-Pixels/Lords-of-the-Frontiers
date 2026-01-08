@@ -10,7 +10,6 @@ ABuildPreviewActor::ABuildPreviewActor()
 	MeshComponent_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "PreviewMesh" ) );
 	SetRootComponent( MeshComponent_ );
 
-	// Превью не участвует в коллизиях и не отбрасывает тень.
 	MeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	MeshComponent_->SetCastShadow( false );
 	MeshComponent_->SetGenerateOverlapEvents( false );
@@ -42,7 +41,6 @@ void ABuildPreviewActor::SetCanBuild( const bool bCanBuild )
 
 void ABuildPreviewActor::SetPreviewMesh( UStaticMesh* mesh )
 {
-	// Просто подменяем StaticMesh у компонента превью.
 	if ( !MeshComponent_ )
 	{
 		return;
