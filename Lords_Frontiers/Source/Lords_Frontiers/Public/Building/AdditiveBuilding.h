@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Building.h"
+
 #include "CoreMinimal.h"
 
 #include "AdditiveBuilding.generated.h"
@@ -11,10 +12,10 @@ class LORDS_FRONTIERS_API AAdditiveBuilding : public ABuilding
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	AAdditiveBuilding();
 
-  protected:
+protected:
 	// Example of a bonus applied by the building
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Utility" )
 	float UtilityBonusValue_;

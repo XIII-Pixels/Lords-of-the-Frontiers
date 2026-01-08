@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Units/BehaviorTreeNodes/Tasks/StopFollowingTask.h"
+
 #include "Units/Unit.h"
 
 UStopFollowingTask::UStopFollowingTask()
@@ -8,7 +9,7 @@ UStopFollowingTask::UStopFollowingTask()
 	NodeName = "Stop Following Target";
 }
 
-EBTNodeResult::Type UStopFollowingTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UStopFollowingTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	Super::ExecuteTask( ownerComp, nodeMemory );
 

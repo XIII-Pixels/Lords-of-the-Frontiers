@@ -1,18 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UI/Debug/DebugUIWidget.h"
-#include "Lords_Frontiers/Public/Waves/WaveManager.h"
+
 #include "Building/Building.h"
 #include "Building/Construction/BuildManager.h"
-#include "Components/Button.h"
 #include "Core/Debug/DebugPlayerController.h"
 #include "Core/Selection/SelectionManagerComponent.h"
-#include "Engine/Engine.h"
-#include "GameFramework/PlayerController.h"
 #include "Grid/GridVisualizer.h"
-#include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
+#include "Lords_Frontiers/Public/Waves/WaveManager.h"
+
+#include "Components/Button.h"
+#include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 void UDebugUIWidget::OnButton1Clicked()
 {
@@ -167,7 +169,9 @@ void UDebugUIWidget::OnButton9Clicked()
 {
 	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
 	if ( !PC )
+	{
 		return;
+	}
 
 	UResourceManager* ResManager = PC->FindComponentByClass<UResourceManager>();
 	if ( !ResManager )
@@ -209,7 +213,8 @@ void UDebugUIWidget::OnButton7Clicked()
 	{
 		if ( UWorld* world = GetWorld() )
 		{
-			BuildManager = Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( world, ABuildManager::StaticClass() ) );
+			BuildManager =
+			    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( world, ABuildManager::StaticClass() ) );
 		}
 	}
 
@@ -217,7 +222,8 @@ void UDebugUIWidget::OnButton7Clicked()
 	{
 		if ( GEngine )
 		{
-			GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "OnButton7Clicked: BuildManager not found" )
+			GEngine->AddOnScreenDebugMessage(
+			    -1, 2.0f, FColor::Red, TEXT( "OnButton7Clicked: BuildManager not found" )
 			);
 		}
 		return;
@@ -245,61 +251,65 @@ void UDebugUIWidget::OnButton7Clicked()
 	}
 
 	// 4) ��������� ������� ����� BuildManager
-	BuildManager->StartRelocatingBuilding ( selectedBuilding );
+	BuildManager->StartRelocatingBuilding( selectedBuilding );
 }
 
-void UDebugUIWidget::StartOrAdvanceWave(AWaveManager* WaveManager)
+void UDebugUIWidget::StartOrAdvanceWave( AWaveManager* WaveManager )
 {
-	if (!WaveManager)
+	if ( !WaveManager )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DebugUI: StartOrAdvanceWave called with null WaveManager"));
+		UE_LOG( LogTemp, Warning, TEXT( "DebugUI: StartOrAdvanceWave called with null WaveManager" ) );
 		return;
 	}
 
 	// If the first wave wasn't requested yet -> start the first wave.
-	if (WaveManager->IsFirstWaveRequested() == false)
+	if ( WaveManager->IsFirstWaveRequested() == false )
 	{
-		WaveManager->StartWaveAtIndex(0);
-		UE_LOG(LogTemp, Log, TEXT("DebugUI: StartOrAdvanceWave -> StartWaveAtIndex(0)"));
+		WaveManager->StartWaveAtIndex( 0 );
+		UE_LOG( LogTemp, Log, TEXT( "DebugUI: StartOrAdvanceWave -> StartWaveAtIndex(0)" ) );
 	}
 	else
 	{
 		WaveManager->AdvanceToNextWave();
-		UE_LOG(LogTemp, Log, TEXT("DebugUI: StartOrAdvanceWave -> AdvanceToNextWave()"));
+		UE_LOG( LogTemp, Log, TEXT( "DebugUI: StartOrAdvanceWave -> AdvanceToNextWave()" ) );
 	}
 }
 
 void UDebugUIWidget::OnButtonEnemyWaveClicked()
 {
 	// Debug notify
-	if (GEngine)
+	if ( GEngine )
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ButtonEnemyWave clicked - spawn/wave trigger DEBUG"));
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 3.0f, FColor::Red, TEXT( "ButtonEnemyWave clicked - spawn/wave trigger DEBUG" )
+		);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("DebugUI: OnButtonEnemyWaveClicked - WaveManagerPtr.IsValid() = %d"),
-		WaveManagerPtr.IsValid() ? 1 : 0);
+	UE_LOG(
+	    LogTemp, Log, TEXT( "DebugUI: OnButtonEnemyWaveClicked - WaveManagerPtr.IsValid() = %d" ),
+	    WaveManagerPtr.IsValid() ? 1 : 0
+	);
 
 	// Ensure we have a cached WaveManager (try to find if not cached)
-	if (!WaveManagerPtr.IsValid())
+	if ( !WaveManagerPtr.IsValid() )
 	{
 		FindAndCacheWaveManager();
 	}
 
-	if (WaveManagerPtr.IsValid())
+	if ( WaveManagerPtr.IsValid() )
 	{
 		AWaveManager* waveManager = WaveManagerPtr.Get();
-		UE_LOG(LogTemp, Log, TEXT("DebugUI: WaveManagerPtr.Get() -> %p"), waveManager);
-		StartOrAdvanceWave(waveManager);
+		UE_LOG( LogTemp, Log, TEXT( "DebugUI: WaveManagerPtr.Get() -> %p" ), waveManager );
+		StartOrAdvanceWave( waveManager );
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("DebugUI: OnButtonEnemyWaveClicked - WaveManager not found"));
+	UE_LOG( LogTemp, Warning, TEXT( "DebugUI: OnButtonEnemyWaveClicked - WaveManager not found" ) );
 }
-AEnemyGroupSpawnPoint* UDebugUIWidget::SpawnDebugSpawnPoint(const FTransform& transform)
+AEnemyGroupSpawnPoint* UDebugUIWidget::SpawnDebugSpawnPoint( const FTransform& transform )
 {
 	UWorld* world = GetWorld();
-	if (!world)
+	if ( !world )
 	{
 		return nullptr;
 	}
@@ -307,92 +317,103 @@ AEnemyGroupSpawnPoint* UDebugUIWidget::SpawnDebugSpawnPoint(const FTransform& tr
 	FActorSpawnParameters spawnParams;
 	spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AEnemyGroupSpawnPoint* spawnPoint = world->SpawnActor<AEnemyGroupSpawnPoint>(AEnemyGroupSpawnPoint::StaticClass(), transform, spawnParams);
+	AEnemyGroupSpawnPoint* spawnPoint =
+	    world->SpawnActor<AEnemyGroupSpawnPoint>( AEnemyGroupSpawnPoint::StaticClass(), transform, spawnParams );
 
-	if (!spawnPoint)
+	if ( !spawnPoint )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UDebugUIWidget::SpawnDebugSpawnPoint failed"));
+		UE_LOG( LogTemp, Warning, TEXT( "UDebugUIWidget::SpawnDebugSpawnPoint failed" ) );
 		return nullptr;
 	}
 
 	return spawnPoint;
 }
 
-void UDebugUIWidget::SpawnEnemyInternal(TWeakObjectPtr<AEnemyGroupSpawnPoint> weakSpawnPoint,
-	TSubclassOf<AUnit> enemyClass,
-	int32 enemyIndex,
-	FTransform fallbackTransform)
+void UDebugUIWidget::SpawnEnemyInternal(
+    TWeakObjectPtr<AEnemyGroupSpawnPoint> weakSpawnPoint, TSubclassOf<AUnit> enemyClass, int32 enemyIndex,
+    FTransform fallbackTransform
+)
 {
-	if (!enemyClass)
+	if ( !enemyClass )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SpawnEnemyInternal: EnemyClass is null"));
+		UE_LOG( LogTemp, Warning, TEXT( "SpawnEnemyInternal: EnemyClass is null" ) );
 		return;
 	}
 
 	UWorld* world = GetWorld();
-	if (!world)
+	if ( !world )
 	{
 		return;
 	}
 
 	// Resolve final transform at spawn time: try spawnpoint first, else fallback
 	FTransform finalTransform = fallbackTransform;
-	if (weakSpawnPoint.IsValid())
+	if ( weakSpawnPoint.IsValid() )
 	{
 		AEnemyGroupSpawnPoint* spawnPoint = weakSpawnPoint.Get();
-		if (spawnPoint)
+		if ( spawnPoint )
 		{
 			finalTransform = spawnPoint->GetActorTransform();
 		}
 	}
 
-	// Add offset per index to avoid exact overlap ( spacing along spawn forward ) 
+	// Add offset per index to avoid exact overlap ( spacing along spawn forward )
 	const float spacing = 120.0f;
-	const FVector localOffset = FVector(spacing * static_cast<float>  (enemyIndex), 0.0f, 0.0f);
-	const FVector worldOffset = finalTransform.GetRotation().RotateVector(localOffset);
+	const FVector localOffset = FVector( spacing * static_cast<float>( enemyIndex ), 0.0f, 0.0f );
+	const FVector worldOffset = finalTransform.GetRotation().RotateVector( localOffset );
 
-	finalTransform.AddToTranslation(worldOffset);
+	finalTransform.AddToTranslation( worldOffset );
 
 	// Spawn actor
 	FActorSpawnParameters spawnParams;
 	spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	AUnit* spawned = world->SpawnActor<AUnit>(enemyClass, finalTransform, spawnParams);
+	AUnit* spawned = world->SpawnActor<AUnit>( enemyClass, finalTransform, spawnParams );
 
-	const FString className = enemyClass ? enemyClass->GetName() : FString(TEXT("None"));
+	const FString className = enemyClass ? enemyClass->GetName() : FString( TEXT( "None" ) );
 
-	if (spawned)
+	if ( spawned )
 	{
-		if (GEngine)
+		if ( GEngine )
 		{
-			GEngine->AddOnScreenDebugMessage( -1, 3.0f, FColor::Yellow, FString::Printf( TEXT("Spawned: %s  ( class %s )  at %s"), *spawned->GetName(), *className,
-				*spawned->GetActorLocation().ToString()));
+			GEngine->AddOnScreenDebugMessage(
+			    -1, 3.0f, FColor::Yellow,
+			    FString::Printf(
+			        TEXT( "Spawned: %s  ( class %s )  at %s" ), *spawned->GetName(), *className,
+			        *spawned->GetActorLocation().ToString()
+			    )
+			);
 		}
 
 #if WITH_EDITOR
-		DrawDebugSphere(world, spawned->GetActorLocation(), 32.0f, 8, FColor::Green, false, 6.0f);
+		DrawDebugSphere( world, spawned->GetActorLocation(), 32.0f, 8, FColor::Green, false, 6.0f );
 #endif
 	}
 	else
 	{
-		UE_LOG( LogTemp, Warning, TEXT("UDebugUIWidget::SpawnEnemyInternal failed to spawn actor  ( class=%s ) "), *className);
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "UDebugUIWidget::SpawnEnemyInternal failed to spawn actor  ( "
+		          "class=%s ) " ),
+		    *className
+		);
 	}
 }
 
 void UDebugUIWidget::ClearActiveTimers()
 {
 	UWorld* world = GetWorld();
-	if (!world)
+	if ( !world )
 	{
 		return;
 	}
 
 	FTimerManager& timerManager = world->GetTimerManager();
-	for (FTimerHandle& timerHandle : ActiveSpawnTimers)
+	for ( FTimerHandle& timerHandle : ActiveSpawnTimers )
 	{
-		if (timerHandle.IsValid())
+		if ( timerHandle.IsValid() )
 		{
-			timerManager.ClearTimer(timerHandle);
+			timerManager.ClearTimer( timerHandle );
 		}
 	}
 
@@ -404,27 +425,49 @@ void UDebugUIWidget::NativeDestruct()
 	ClearActiveTimers();
 
 	// unbind selection manager delegate
-	if (SelectionManager)
+	if ( SelectionManager )
 	{
-		SelectionManager->OnSelectionChanged.RemoveDynamic(this, &UDebugUIWidget::HandleSelectionChanged);
+		SelectionManager->OnSelectionChanged.RemoveDynamic( this, &UDebugUIWidget::HandleSelectionChanged );
 		SelectionManager = nullptr;
 	}
 
 	// unbind buttons safely
-	if (Button1) Button1->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButton1Clicked);
-	if (Button2) Button2->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButton2Clicked);
-	if (Button3) Button3->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButton3Clicked);
-	if (Button4) Button4->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButton4Clicked);
-	if (Button7) Button7->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButton7Clicked);
-	if (ButtonEnemyWave) ButtonEnemyWave->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButtonEnemyWaveClicked);
+	if ( Button1 )
+	{
+		Button1->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButton1Clicked );
+	}
+	if ( Button2 )
+	{
+		Button2->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButton2Clicked );
+	}
+	if ( Button3 )
+	{
+		Button3->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButton3Clicked );
+	}
+	if ( Button4 )
+	{
+		Button4->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButton4Clicked );
+	}
+	if ( Button7 )
+	{
+		Button7->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButton7Clicked );
+	}
+	if ( ButtonEnemyWave )
+	{
+		ButtonEnemyWave->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButtonEnemyWaveClicked );
+	}
 
 	// unsubscribe from WaveManager if we subscribed
-	if (WaveManagerPtr.IsValid() && bIsSubscribedToWaveManager)
+	if ( WaveManagerPtr.IsValid() && bIsSubscribedToWaveManager )
 	{
-		if (AWaveManager* wm = WaveManagerPtr.Get())
+		if ( AWaveManager* wm = WaveManagerPtr.Get() )
 		{
-			wm->OnAllWavesCompleted.RemoveDynamic(this, &UDebugUIWidget::HandleAllWavesCompleted);
-			UE_LOG(LogTemp, Log, TEXT("DebugUI: Unsubscribed from WaveManager::OnAllWavesCompleted in NativeDestruct"));
+			wm->OnAllWavesCompleted.RemoveDynamic( this, &UDebugUIWidget::HandleAllWavesCompleted );
+			UE_LOG(
+			    LogTemp, Log,
+			    TEXT( "DebugUI: Unsubscribed from WaveManager::OnAllWavesCompleted "
+			          "in NativeDestruct" )
+			);
 		}
 		bIsSubscribedToWaveManager = false;
 	}
@@ -438,15 +481,15 @@ void UDebugUIWidget::NativeDestruct()
 void UDebugUIWidget::FindAndCacheWaveManager()
 {
 	UWorld* world = GetWorld();
-	if (!world)
+	if ( !world )
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DebugUI: FindAndCacheWaveManager - no World"));
+		UE_LOG( LogTemp, Warning, TEXT( "DebugUI: FindAndCacheWaveManager - no World" ) );
 		// If we previously had a cached manager, clear subscription
-		if (WaveManagerPtr.IsValid() && bIsSubscribedToWaveManager)
+		if ( WaveManagerPtr.IsValid() && bIsSubscribedToWaveManager )
 		{
-			if (AWaveManager* Old = WaveManagerPtr.Get())
+			if ( AWaveManager* Old = WaveManagerPtr.Get() )
 			{
-				Old->OnAllWavesCompleted.RemoveDynamic(this, &UDebugUIWidget::HandleAllWavesCompleted);
+				Old->OnAllWavesCompleted.RemoveDynamic( this, &UDebugUIWidget::HandleAllWavesCompleted );
 			}
 			bIsSubscribedToWaveManager = false;
 		}
@@ -454,22 +497,24 @@ void UDebugUIWidget::FindAndCacheWaveManager()
 		return;
 	}
 
-	AActor* foundActor = UGameplayStatics::GetActorOfClass(world, AWaveManager::StaticClass());
-	AWaveManager* foundWaveManager = Cast<AWaveManager>(foundActor);
+	AActor* foundActor = UGameplayStatics::GetActorOfClass( world, AWaveManager::StaticClass() );
+	AWaveManager* foundWaveManager = Cast<AWaveManager>( foundActor );
 
-	if (foundWaveManager)
+	if ( foundWaveManager )
 	{
-		UE_LOG(LogTemp, Log, TEXT("DebugUI: Found WaveManager '%s' (Actor: %s)"),
-			*foundWaveManager->GetName(), *foundWaveManager->GetPathName());
+		UE_LOG(
+		    LogTemp, Log, TEXT( "DebugUI: Found WaveManager '%s' (Actor: %s)" ), *foundWaveManager->GetName(),
+		    *foundWaveManager->GetPathName()
+		);
 
 		// If we switched to a different manager, unsubscribe old one first
-		if (WaveManagerPtr.IsValid() && WaveManagerPtr.Get() != foundWaveManager)
+		if ( WaveManagerPtr.IsValid() && WaveManagerPtr.Get() != foundWaveManager )
 		{
-			if (AWaveManager* Old = WaveManagerPtr.Get())
+			if ( AWaveManager* Old = WaveManagerPtr.Get() )
 			{
-				if (bIsSubscribedToWaveManager)
+				if ( bIsSubscribedToWaveManager )
 				{
-					Old->OnAllWavesCompleted.RemoveDynamic(this, &UDebugUIWidget::HandleAllWavesCompleted);
+					Old->OnAllWavesCompleted.RemoveDynamic( this, &UDebugUIWidget::HandleAllWavesCompleted );
 					bIsSubscribedToWaveManager = false;
 				}
 			}
@@ -478,26 +523,26 @@ void UDebugUIWidget::FindAndCacheWaveManager()
 		WaveManagerPtr = foundWaveManager;
 
 		// Subscribe if not yet subscribed
-		if (!bIsSubscribedToWaveManager)
+		if ( !bIsSubscribedToWaveManager )
 		{
-			foundWaveManager->OnAllWavesCompleted.AddDynamic(this, &UDebugUIWidget::HandleAllWavesCompleted);
+			foundWaveManager->OnAllWavesCompleted.AddDynamic( this, &UDebugUIWidget::HandleAllWavesCompleted );
 			bIsSubscribedToWaveManager = true;
-			UE_LOG(LogTemp, Log, TEXT("DebugUI: Subscribed to WaveManager::OnAllWavesCompleted"));
+			UE_LOG( LogTemp, Log, TEXT( "DebugUI: Subscribed to WaveManager::OnAllWavesCompleted" ) );
 		}
 	}
 	else
 	{
 		// no manager found -> clear cached pointer and subscription flag
-		if (WaveManagerPtr.IsValid() && bIsSubscribedToWaveManager)
+		if ( WaveManagerPtr.IsValid() && bIsSubscribedToWaveManager )
 		{
-			if (AWaveManager* Old = WaveManagerPtr.Get())
+			if ( AWaveManager* Old = WaveManagerPtr.Get() )
 			{
-				Old->OnAllWavesCompleted.RemoveDynamic(this, &UDebugUIWidget::HandleAllWavesCompleted);
+				Old->OnAllWavesCompleted.RemoveDynamic( this, &UDebugUIWidget::HandleAllWavesCompleted );
 			}
 		}
 		WaveManagerPtr.Reset();
 		bIsSubscribedToWaveManager = false;
-		UE_LOG(LogTemp, Warning, TEXT("DebugUI: WaveManager not found in world"));
+		UE_LOG( LogTemp, Warning, TEXT( "DebugUI: WaveManager not found in world" ) );
 	}
 }
 
@@ -541,21 +586,22 @@ bool UDebugUIWidget::Initialize()
 		Button7->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton7Clicked );
 		Button7->SetVisibility( ESlateVisibility::Visible );
 	}
-	if (ButtonEnemyWave)
+	if ( ButtonEnemyWave )
 	{
-		ButtonEnemyWave->OnClicked.RemoveDynamic(this, &UDebugUIWidget::OnButtonEnemyWaveClicked);
+		ButtonEnemyWave->OnClicked.RemoveDynamic( this, &UDebugUIWidget::OnButtonEnemyWaveClicked );
 		ButtonEnemyWave->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButtonEnemyWaveClicked );
 	}
 	if ( UWorld* world = GetWorld() )
 	{
-		if ( ADebugPlayerController* debugPC = Cast <ADebugPlayerController> ( UGameplayStatics::GetPlayerController( world, 0 ) ) )
+		if ( ADebugPlayerController* debugPC =
+		         Cast<ADebugPlayerController>( UGameplayStatics::GetPlayerController( world, 0 ) ) )
 		{
 			SelectionManager = debugPC->GetSelectionManager();
 
 			if ( SelectionManager )
 			{
-				SelectionManager->OnSelectionChanged.RemoveDynamic(this, &UDebugUIWidget::HandleSelectionChanged);
-				SelectionManager->OnSelectionChanged.AddDynamic ( this, &UDebugUIWidget::HandleSelectionChanged );
+				SelectionManager->OnSelectionChanged.RemoveDynamic( this, &UDebugUIWidget::HandleSelectionChanged );
+				SelectionManager->OnSelectionChanged.AddDynamic( this, &UDebugUIWidget::HandleSelectionChanged );
 				HandleSelectionChanged();
 			}
 		}
@@ -608,7 +654,9 @@ void UDebugUIWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-			    -1, 2.0f, FColor::Red, TEXT( "UDebugUIWidget::InitSelectionManager: InSelectionManager is null" )
+			    -1, 2.0f, FColor::Red,
+			    TEXT( "UDebugUIWidget::InitSelectionManager: InSelectionManager is "
+			          "null" )
 			);
 		}
 		return;
@@ -621,13 +669,12 @@ void UDebugUIWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 
 void UDebugUIWidget::HandleAllWavesCompleted()
 {
-	UE_LOG(LogTemp, Log, TEXT("UDebugUIWidget::HandleAllWavesCompleted called"));
+	UE_LOG( LogTemp, Log, TEXT( "UDebugUIWidget::HandleAllWavesCompleted called" ) );
 
-	if (GEngine)
+	if ( GEngine )
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Green, TEXT("All waves completed"));
+		GEngine->AddOnScreenDebugMessage( -1, 4.0f, FColor::Green, TEXT( "All waves completed" ) );
 	}
-
 }
 
 UResourceManager* UDebugUIWidget::GetResourceManager() const
@@ -639,10 +686,12 @@ UResourceManager* UDebugUIWidget::GetResourceManager() const
 void UDebugUIWidget::OnResourceChangedHandler( EResourceType Type, int32 NewAmount )
 {
 	if ( GEngine )
+	{
 		GEngine->AddOnScreenDebugMessage(
 		    -1, 5.f, FColor::Magenta,
 		    FString::Printf( TEXT( "UI RECEIVED: Type %d, Amount %d" ), (uint8) Type, NewAmount )
 		);
+	}
 
 	if ( ResourceWidgetsMap.Contains( Type ) )
 	{
@@ -657,10 +706,14 @@ void UDebugUIWidget::CreateResourceWidgets( UResourceManager* ResManager )
 {
 
 	if ( ResourceWidgetsMap.Num() > 0 )
+	{
 		return;
+	}
 
 	if ( !ResManager || !ResourceContainer || !ResourceItemClass )
+	{
 		return;
+	}
 
 	ResManager->OnResourceChanged.AddDynamic( this, &UDebugUIWidget::OnResourceChangedHandler );
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Building.h"
+
 #include "CoreMinimal.h"
 
 #include "MainBase.generated.h"
@@ -11,14 +12,14 @@ class LORDS_FRONTIERS_API AMainBase : public ABuilding
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	AMainBase();
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
-  private:
+private:
 	// Example constant for base health
 	static constexpr int32 cBaseMaxHealth = 1000;
 };

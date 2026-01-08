@@ -10,7 +10,7 @@ UAttackEnemyTask::UAttackEnemyTask()
 	NodeName = "Attack Enemy";
 }
 
-EBTNodeResult::Type UAttackEnemyTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UAttackEnemyTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	Super::ExecuteTask( ownerComp, nodeMemory );
 
@@ -24,7 +24,7 @@ EBTNodeResult::Type UAttackEnemyTask::ExecuteTask(UBehaviorTreeComponent& ownerC
 	UBlackboardComponent* blackboard = controller->GetBlackboardComponent();
 	if ( !blackboard )
 	{
-		UE_LOG( LogTemp, Warning, TEXT("Task UAttackEnemyTask failed to get BlackboardComponent" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Task UAttackEnemyTask failed to get BlackboardComponent" ) );
 		return EBTNodeResult::Failed;
 	}
 
@@ -37,6 +37,6 @@ EBTNodeResult::Type UAttackEnemyTask::ExecuteTask(UBehaviorTreeComponent& ownerC
 
 	TObjectPtr<AActor> enemy = Cast<AActor>( blackboard->GetValueAsObject( GetSelectedBlackboardKey() ) );
 	unit->Attack( enemy );
-	
+
 	return EBTNodeResult::Succeeded;
 }

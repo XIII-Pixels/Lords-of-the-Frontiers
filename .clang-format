@@ -1,0 +1,56 @@
+BasedOnStyle: LLVM
+Language: Cpp
+
+# 1. Отступы и длина строки
+UseTab: ForIndentation   # Отступы табами
+IndentWidth: 4
+TabWidth: 4
+AccessModifierOffset: -4
+ColumnLimit: 120         # Лимит строки 120 символов
+
+# 2. Скобки и однострочные конструкции
+BreakBeforeBraces: Allman          # Открывающая скобка на новой строке
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+
+# 3. Инклюды
+SortIncludes: true
+IncludeBlocks: Regroup
+
+IncludeCategories:
+  - Regex:    '".*\.generated\.h"'
+    Priority: 100
+
+  # 2. Unreal Engine
+  - Regex:    '^"(Components|Kismet|Math|Engine|GameFramework|CoreMinimal|UObject|Containers|Templates|HAL|Misc|Logging|Sound|Animation|Materials|Particles|PhysicsEngine|AIModule|NavigationSystem|Blueprint|Slate|Widgets|InputCore|Net|Online|AssetRegistry|Developer|Internationalization|Serialization|GenericPlatform|Camera|GameplayTasks|GameplayTags|EnhancedInput|NiagaraCore|Chaos|StructUtils|PropertyPath|FieldNotification|MovieScene|Curves|ClothingSystemRuntimeInterface|AudioMixer|SignalProcessing).*"'
+    Priority: 50
+
+  - Regex:    '^"'
+    Priority: 1
+
+  - Regex:    '^<'
+    Priority: 75
+
+# 4. Пробелы
+SpaceBeforeParens: ControlStatements  # if ( ... ), while ( ... ), но MyFunc(...)
+SpacesInParentheses: true             # if ( bOk && ( A < B ) ), Foo( x, y )
+SpaceInEmptyParentheses: false
+SpacesInSquareBrackets: false
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeAssignmentOperators: true
+SpaceAfterCStyleCast: true
+
+# 5. Указатели / ссылки
+PointerAlignment: Left    # int32* Ptr;
+
+# 6. Выравнивание и прочее
+AlignAfterOpenBracket: BlockIndent
+AlignOperands: true
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+# 7. Прочее
+NamespaceIndentation: All
+DerivePointerAlignment: false
+Standard: Latest

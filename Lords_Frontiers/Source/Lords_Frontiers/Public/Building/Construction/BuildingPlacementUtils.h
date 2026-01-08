@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Grid/GridCell.h"
+
+#include "CoreMinimal.h"
 
 class AGridManager;
 class AGridVisualizer;

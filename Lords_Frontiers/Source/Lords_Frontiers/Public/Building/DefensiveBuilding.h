@@ -4,6 +4,7 @@
 
 #include "Building/Building.h"
 #include "Building/WallTypes.h"
+
 #include "CoreMinimal.h"
 
 #include "DefensiveBuilding.generated.h"
@@ -16,7 +17,7 @@ class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ADefensiveBuilding();
 	virtual FString GetNameBuild() override;
 	UFUNCTION( BlueprintCallable, BlueprintPure, Category = "Wall" )
@@ -25,7 +26,7 @@ class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding
 		return WallMeshSet_;
 	}
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wall" )

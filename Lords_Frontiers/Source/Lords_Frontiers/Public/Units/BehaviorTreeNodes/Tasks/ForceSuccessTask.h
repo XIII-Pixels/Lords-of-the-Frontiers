@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+
 #include "CoreMinimal.h"
 
 #include "ForceSuccessTask.generated.h"
@@ -16,5 +17,5 @@ class LORDS_FRONTIERS_API UForceSuccessTask : public UBTTask_BlackboardBase
 public:
 	UForceSuccessTask();
 
-	EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
+	virtual EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
 };

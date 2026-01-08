@@ -1,8 +1,9 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
+
+#include "Kismet/GameplayStatics.h"
 
 static constexpr int32 cDefaultResourceHealth = 200;
 static constexpr int32 cDefaultResourceDamage = 0;
@@ -32,13 +33,18 @@ void AResourceBuilding::BeginPlay()
 
 	if ( IsValid( ResourceGenerator_ ) && IsValid( ResourceManager ) )
 	{
-		// Passing the link to the ResourceManager and World Context to the generator
+		// Passing the link to the ResourceManager and World Context to the
+		// generator
 		ResourceGenerator_->Initialize( ResourceManager );
 	}
 	else
 	{
 		// Log Warning if resources cannot be managed
-		UE_LOG( LogTemp, Warning, TEXT( "AResourceBuilding failed to initialize generator or find ResourceManager!" ) );
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "AResourceBuilding failed to initialize generator or find "
+		          "ResourceManager!" )
+		);
 	}
 }
 
@@ -49,7 +55,8 @@ UResourceManager* AResourceBuilding::FindResourceManager_() const
 
 	if ( IsValid( PlayerController ) )
 	{
-		// need to change if the ResourceManager is located in GameState or PlayerState
+		// need to change if the ResourceManager is located in GameState or
+		// PlayerState
 		return PlayerController->FindComponentByClass<UResourceManager>();
 	}
 

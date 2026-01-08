@@ -4,11 +4,12 @@
 
 #include "Building/Building.h"
 #include "DrawDebugHelpers.h"
+#include "Grid/GridManager.h"
+#include "Grid/GridVisualizer.h"
+
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
-#include "Grid/GridManager.h"
-#include "Grid/GridVisualizer.h"
 
 FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
     APlayerController* playerController, const AGridManager* gridManager, const AGridVisualizer* gridVisualizer
@@ -27,7 +28,7 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 1) Позиция мыши на экране.
+	// 1) пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	float screenX = 0.0f;
 	float screenY = 0.0f;
 	if ( !playerController->GetMousePosition( screenX, screenY ) )
@@ -35,7 +36,7 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 2) Девпроекция в луч в мире.
+	// 2) пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ.
 	FVector worldOrigin;
 	FVector worldDirection;
 	if ( !playerController->DeprojectScreenPositionToWorld( screenX, screenY, worldOrigin, worldDirection ) )
@@ -49,27 +50,27 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 3) Плоскость сетки: Z = GridOrigin.Z (сетка горизонтальная).
+	// 3) пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ: Z = GridOrigin.Z (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ).
 	const FVector gridOrigin = gridManager->GetActorLocation();
 	const float planeZ = gridOrigin.Z;
 
 	const float dirZ = worldDirection.Z;
 	if ( FMath::IsNearlyZero( dirZ ) )
 	{
-		// Луч почти параллелен плоскости.
+		// пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 		return result;
 	}
 
 	const float t = ( planeZ - worldOrigin.Z ) / dirZ;
 	if ( t <= 0.0f )
 	{
-		// Пересечение позади камеры.
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 		return result;
 	}
 
 	const FVector hitPoint = worldOrigin + worldDirection * t;
 
-	// 4) Переводим точку в координаты сетки.
+	// 4) пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
 	const float cellSize = gridManager->GetCellSize();
 	if ( cellSize <= KINDA_SMALL_NUMBER )
 	{
@@ -90,7 +91,8 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 
 	const FIntPoint cellCoords( gridX, gridY );
 
-	// 5) Центр клетки берём из визуализатора, чтобы совпадать с нарисованной сеткой.
+	// 5) пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+	// пїЅпїЅпїЅпїЅпїЅпїЅ.
 	FVector cellWorldLocation;
 	if ( !gridVisualizer->GetCellWorldCenter( cellCoords, cellWorldLocation ) )
 	{
@@ -117,7 +119,7 @@ bool BuildingPlacementUtils::CanBuildAtCell( const AGridManager* gridManager, co
 		return false;
 	}
 
-	// Нельзя строить на небилдабельной или уже занятой клетке.
+	// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	if ( !cell->bIsBuildable || cell->bIsOccupied )
 	{
 		return false;
@@ -153,10 +155,10 @@ ABuilding* BuildingPlacementUtils::PlaceBuilding(
 		return nullptr;
 	}
 
-	// Для отладки — рисуем небольшой бокс в центре клетки.
+	// пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	DrawDebugBox( world, worldLocation, FVector( 15.0f, 15.0f, 15.0f ), FColor::Cyan, false, 2.0f );
 
-	// Помечаем клетку занятой.
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	FGridCell* cell = gridManager->GetCell( cellCoords.X, cellCoords.Y );
 	if ( cell )
 	{

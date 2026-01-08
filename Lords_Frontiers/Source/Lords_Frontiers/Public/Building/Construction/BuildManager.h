@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Building/Construction/BuildingPlacementUtils.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
@@ -13,117 +14,118 @@ class AGridVisualizer;
 class ABuildPreviewActor;
 class ABuilding;
 
-/// Менеджер строительства: выбор клетки, превью и спавн здания.
+/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 UCLASS()
 class LORDS_FRONTIERS_API ABuildManager : public AActor
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ABuildManager();
 
 	virtual void Tick( float deltaSeconds ) override;
 
-	/// @brief Начать перенос уже существующего здания.
+	/// @brief пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	UFUNCTION( BlueprintCallable, Category = "Building" )
 	void StartRelocatingBuilding( ABuilding* buildingToMove );
 
-	/// @brief Сейчас идёт перенос здания (а не обычное строительство)?
+	/// @brief пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (пїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)?
 	UFUNCTION( BlueprintPure, Category = "Building" )
 	bool IsRelocating() const
 	{
 		return bIsRelocating_;
 	}
 
-	/// Начать режим строительства указанного класса здания.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	UFUNCTION( BlueprintCallable, Category = "Building" )
 	void StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	/// <summary>
 	/// </summary>
 	/// <param name="cellCoords"></param>
-	/// <returns>Вверх справа низу слева</returns>
+	/// <returns>пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ</returns>
 	TArray<TWeakObjectPtr<ABuilding>> GetBuildingsNearby( FIntPoint cellCoords );
 
 	UFUNCTION( BlueprintCallable, Category = "Building" )
 	void CancelPlacing();
 
-	/// Подтвердить строительство (если возможно) и заспавнить здание.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ) пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	UFUNCTION( BlueprintCallable, Category = "Building" )
 	void ConfirmPlacing();
 
-	/// Активен ли сейчас режим строительства.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	UFUNCTION( BlueprintPure, Category = "Building" )
 	bool IsPlacing() const
 	{
 		return bIsPlacing_;
 	}
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
-	/// Логический менеджер сетки.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	TObjectPtr<AGridManager> GridManager_ = nullptr;
 
-	/// Визуализатор сетки.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	TObjectPtr<AGridVisualizer> GridVisualizer_ = nullptr;
 
-	/// Класс превью-актора (можно переопределить в BP).
+	/// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ BP).
 	UPROPERTY( EditAnywhere, Category = "Settings|Preview", meta = ( AllowPrivateAccess = "true" ) )
 	TSubclassOf<ABuildPreviewActor> PreviewActorClass_;
 
-	/// Класс превью-актора для стены (можно переопределить в BP).
+	/// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ BP).
 	UPROPERTY( EditAnywhere, Category = "Settings|Preview", meta = ( AllowPrivateAccess = "true" ) )
 	TSubclassOf<ABuildPreviewActor> PreviewActorWall_;
 
-  private:
-	/// Текущий превью-актор (призрак здания).
+private:
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ).
 	UPROPERTY()
 	TObjectPtr<ABuildPreviewActor> PreviewActor_ = nullptr;
 
-	/// Класс здания, выбранный для строительства.
+	/// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY()
 	TSubclassOf<ABuilding> CurrentBuildingClass_;
 
-	// Актора-превью для сегментов стен (максимум 4 - по сторонам света).
+	// пїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 4 - пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ).
 	UPROPERTY()
 	TArray<TObjectPtr<ABuildPreviewActor>> WallSegmentPreviewActors_;
 
 	UPROPERTY()
 	TObjectPtr<ABuilding> RelocatedBuilding_ = nullptr;
 
-	/// @brief Координаты клетки, где здание стояло до начала переноса.
+	/// @brief пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	FIntPoint OriginalCellCoords_ = FIntPoint( -1, -1 );
 
-	/// @brief Флаг режима переноса (true — перенос существующего здания).
+	/// @brief пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (true пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ).
 	bool bIsRelocating_ = false;
 
-	// Обновить превью стен вокруг текущей клетки.
-	// void UpdateWallPreviews( const FIntPoint& cellCoords, const FVector& cellWorldLocation );
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
+	// void UpdateWallPreviews( const FIntPoint& cellCoords, const FVector&
+	// cellWorldLocation );
 
-	// Скрыть все превью сегментов стены.
+	// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
 	void HideAllWallPreviews();
-	/// Активен ли режим строительства.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY()
 	bool bIsPlacing_ = false;
 
-	/// Есть ли валидная клетка под курсором.
+	/// пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY()
 	bool bHasValidCell_ = false;
 
-	/// Можно ли строить на текущей клетке.
+	/// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY()
 	bool bCanBuildHere_ = false;
 
-	/// Текущие координаты клетки под курсором.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	UPROPERTY()
 	FIntPoint CurrentCellCoords_ = FIntPoint::ZeroValue;
 
-	/// Обновить клетку под курсором и превью.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	void UpdateHoveredCell();
 
-	/// Обновить позицию и цвет превью.
+	/// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ.
 	void UpdatePreviewVisual( const FVector& worldLocation, bool bCanBuild );
 };

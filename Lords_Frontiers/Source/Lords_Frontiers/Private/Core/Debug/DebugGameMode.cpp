@@ -2,16 +2,18 @@
 
 #include "Core/Debug/DebugGameMode.h"
 
-#include "Blueprint/UserWidget.h"
-#include "Camera/CameraActor.h"
 #include "Core/Debug/DebugPlayerController.h"
 #include "Grid/GridManager.h"
-#include "Kismet/GameplayStatics.h"
 #include "UI/Debug/DebugUIWidget.h"
+
+#include "Blueprint/UserWidget.h"
+#include "Camera/CameraActor.h"
+#include "Kismet/GameplayStatics.h"
 
 ADebugGameMode::ADebugGameMode()
 {
-	// Указываем, что для этого GameMode должен использоваться наш кастомный контроллер.
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ GameMode пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
 	PlayerControllerClass = ADebugPlayerController::StaticClass();
 }
 
@@ -36,8 +38,8 @@ void ADebugGameMode::BeginPlay()
 
 void ADebugGameMode::SetupStaticCamera() const
 {
-	// (Автор)
-	// Настраиваем статичную камеру над центром грида.
+	// (пїЅпїЅпїЅпїЅпїЅ)
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
 	UWorld* world = GetWorld();
 	if ( !world )
 	{
@@ -52,7 +54,7 @@ void ADebugGameMode::SetupStaticCamera() const
 
 	ACameraActor* camera = nullptr;
 
-	// 1) Пытаемся найти уже существующую камеру в уровне
+	// 1) пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 	TArray<AActor*> foundCameras;
 	UGameplayStatics::GetAllActorsOfClass( world, ACameraActor::StaticClass(), foundCameras );
 
@@ -61,7 +63,7 @@ void ADebugGameMode::SetupStaticCamera() const
 		camera = Cast<ACameraActor>( foundCameras[0] );
 	}
 
-	// 2) Если камеры нет — создаём свою над центром грида
+	// 2) пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 	if ( !camera )
 	{
 		FVector gridOrigin = FVector::ZeroVector;
@@ -78,12 +80,12 @@ void ADebugGameMode::SetupStaticCamera() const
 			height = grid->GetGridHeight();
 		}
 
-		// Центр грида (по X/Y). Если менеджер не найден, всё останется по нулям.
+		// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ X/Y). пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ.
 		FVector gridCenter = gridOrigin;
 		gridCenter.X += static_cast<float>( width ) * cellSize * 0.5f;
 		gridCenter.Y += static_cast<float>( height ) * cellSize * 0.5f;
 
-		// Позиция камеры: немного "позади и сверху" от центра
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ" пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 		const float distanceXY = 1500.0f;
 		const float heightZ = 1500.0f;
 
@@ -96,9 +98,9 @@ void ADebugGameMode::SetupStaticCamera() const
 		camera = world->SpawnActor<ACameraActor>( cameraLocation, cameraRotation, spawnParams );
 	}
 
-	// 3) Переключаем вид на найденную/созданную камеру
+	// 3) пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ/пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 	if ( camera )
 	{
-		pc->SetViewTarget( camera ); // ACameraActor* неявно приводится к AActor*
+		pc->SetViewTarget( camera ); // ACameraActor* пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ AActor*
 	}
 }

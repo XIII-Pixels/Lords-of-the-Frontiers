@@ -128,8 +128,10 @@ void AGridManager::InitializeGrid()
 		if ( rowWidth != width )
 		{
 			UE_LOG(
-			    LogTemp, Warning, TEXT( "GridManager: row %d has different width (%d) than first row (%d)" ), y,
-			    rowWidth, width
+			    LogTemp, Warning,
+			    TEXT( "GridManager: row %d has different width (%d) than first row "
+			          "(%d)" ),
+			    y, rowWidth, width
 			);
 		}
 

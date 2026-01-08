@@ -3,10 +3,11 @@
 #include "Projectiles/Projectile.h"
 
 #include "Attackable.h"
+#include "Utilities/TraceChannelMappings.h"
+
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnitConversion.h"
-#include "Utilities/TraceChannelMappings.h"
 
 AProjectile::AProjectile()
 {

@@ -1,26 +1,27 @@
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
+
 #include "Components/ArrowComponent.h"
 #include "Components/BillboardComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetStringLibrary.h"
-#include "Engine/World.h"
 
 AEnemyGroupSpawnPoint::AEnemyGroupSpawnPoint()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
 	// Root - keep actor transform as spawn transform
-	SetRootComponent ( CreateDefaultSubobject <USceneComponent> ( TEXT ( "Root" ) ) );
+	SetRootComponent( CreateDefaultSubobject<USceneComponent>( TEXT( "Root" ) ) );
 
 	// Arrow to show forward direction in editor
-	ArrowComponent = CreateDefaultSubobject <UArrowComponent> ( TEXT ( "Arrow" ) );
-	ArrowComponent -> SetupAttachment ( RootComponent );
-	ArrowComponent -> ArrowSize = 1.0f;
-	ArrowComponent -> bIsScreenSizeScaled = true;
+	ArrowComponent = CreateDefaultSubobject<UArrowComponent>( TEXT( "Arrow" ) );
+	ArrowComponent->SetupAttachment( RootComponent );
+	ArrowComponent->ArrowSize = 1.0f;
+	ArrowComponent->bIsScreenSizeScaled = true;
 
 	// Small sprite so designer can see it in editor
-	SpriteComponent = CreateDefaultSubobject <UBillboardComponent> ( TEXT ( "Sprite" ) );
-	SpriteComponent -> SetupAttachment ( RootComponent ) ;
+	SpriteComponent = CreateDefaultSubobject<UBillboardComponent>( TEXT( "Sprite" ) );
+	SpriteComponent->SetupAttachment( RootComponent );
 
 	SpawnPointId = NAME_None;
 	bUseActorTagMatching = false;
@@ -28,9 +29,9 @@ AEnemyGroupSpawnPoint::AEnemyGroupSpawnPoint()
 	bIsEditorOnlyActor = false;
 }
 
-bool AEnemyGroupSpawnPoint::MatchesId ( const FName& id ) const
+bool AEnemyGroupSpawnPoint::MatchesId( const FName& id ) const
 {
-	if ( id.IsNone () )
+	if ( id.IsNone() )
 	{
 		return false;
 	}
@@ -57,29 +58,30 @@ bool AEnemyGroupSpawnPoint::MatchesId ( const FName& id ) const
 	return false;
 }
 
-AEnemyGroupSpawnPoint* AEnemyGroupSpawnPoint::FindSpawnPointById ( UObject* worldContextObject, const FName& id )
+AEnemyGroupSpawnPoint* AEnemyGroupSpawnPoint::FindSpawnPointById( UObject* worldContextObject, const FName& id )
 {
-	if (!worldContextObject)
+	if ( !worldContextObject )
 	{
 		return nullptr;
 	}
 
-	UWorld* world = worldContextObject->GetWorld ();
-	if (!world)
+	UWorld* world = worldContextObject->GetWorld();
+	if ( !world )
 	{
 		return nullptr;
 	}
 
 	// get all actors
-	TArray <AActor*> foundActors;
-	UGameplayStatics::GetAllActorsOfClass ( world, AEnemyGroupSpawnPoint::StaticClass (), foundActors );
+	TArray<AActor*> foundActors;
+	UGameplayStatics::GetAllActorsOfClass( world, AEnemyGroupSpawnPoint::StaticClass(), foundActors );
 
 	for ( AActor* actor : foundActors )
 	{
-		AEnemyGroupSpawnPoint* candidate = Cast <AEnemyGroupSpawnPoint> ( actor );
-		if ( !candidate ) continue;
+		AEnemyGroupSpawnPoint* candidate = Cast<AEnemyGroupSpawnPoint>( actor );
+		if ( !candidate )
+			continue;
 
-		if ( candidate -> MatchesId ( id ) )
+		if ( candidate->MatchesId( id ) )
 		{
 			return candidate;
 		}
@@ -88,31 +90,33 @@ AEnemyGroupSpawnPoint* AEnemyGroupSpawnPoint::FindSpawnPointById ( UObject* worl
 	return nullptr;
 }
 
-void AEnemyGroupSpawnPoint::FindAllSpawnPointsById ( UObject* worldContextObject, const FName& id, TArray <AEnemyGroupSpawnPoint*>& outFound )
+void AEnemyGroupSpawnPoint::FindAllSpawnPointsById(
+    UObject* worldContextObject, const FName& id, TArray<AEnemyGroupSpawnPoint*>& outFound
+)
 {
-	outFound.Reset ();
+	outFound.Reset();
 
-	if ( !worldContextObject || id.IsNone () )
+	if ( !worldContextObject || id.IsNone() )
 	{
 		return;
 	}
 
-	UWorld* world = GEngine ? GEngine -> GetWorldFromContextObjectChecked ( worldContextObject ) : nullptr;
+	UWorld* world = GEngine ? GEngine->GetWorldFromContextObjectChecked( worldContextObject ) : nullptr;
 	if ( !world )
 	{
 		return;
 	}
 
-	TArray <AActor*> foundActors;
-	UGameplayStatics::GetAllActorsOfClass ( world, AEnemyGroupSpawnPoint::StaticClass (), foundActors );
+	TArray<AActor*> foundActors;
+	UGameplayStatics::GetAllActorsOfClass( world, AEnemyGroupSpawnPoint::StaticClass(), foundActors );
 
 	for ( AActor* actor : foundActors )
 	{
-		if ( AEnemyGroupSpawnPoint* spawnPoint = Cast <AEnemyGroupSpawnPoint> ( actor ) )
+		if ( AEnemyGroupSpawnPoint* spawnPoint = Cast<AEnemyGroupSpawnPoint>( actor ) )
 		{
-			if ( spawnPoint -> MatchesId ( id ) )
+			if ( spawnPoint->MatchesId( id ) )
 			{
-				outFound.Add ( spawnPoint );
+				outFound.Add( spawnPoint );
 			}
 		}
 	}

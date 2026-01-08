@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Grid/GridCell.h"
+
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
-#include "Grid/GridCell.h"
 
 #include "BuildingConstructionComponent.generated.h"
 
@@ -19,7 +20,7 @@ class LORDS_FRONTIERS_API UBuildingConstructionComponent : public UActorComponen
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	UBuildingConstructionComponent();
 
 	void Initialize( AGridManager* inGridManager, AGridVisualizer* inGridVisualizer );
@@ -35,12 +36,13 @@ class LORDS_FRONTIERS_API UBuildingConstructionComponent : public UActorComponen
 		return bIsPlacing_;
 	}
 
-  protected:
-	void BeginPlay() override;
+protected:
+	virtual void BeginPlay() override;
 
-	void TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
+	virtual void
+	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
-  private:
+private:
 	UPROPERTY()
 	TObjectPtr<AGridManager> GridManager_ = nullptr;
 

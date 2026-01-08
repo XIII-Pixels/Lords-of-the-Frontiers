@@ -13,13 +13,13 @@ class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	UEconomyComponent();
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
-  public:
+public:
 	// scan grid and accrual resource
 	// button in UI
 	UFUNCTION( BlueprintCallable, Category = "Economy" )
@@ -33,7 +33,7 @@ class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
 		ResourceManager_ = InManager;
 	}
 
-  private:
+private:
 	// url system
 	UPROPERTY()
 	AGridManager* GridManager_;

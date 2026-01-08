@@ -3,11 +3,12 @@
 #include "Units/Attack/AttackRangedComponent.h"
 
 #include "Attackable.h"
-#include "Components/SphereComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Projectiles/Projectile.h"
 #include "Units/Unit.h"
 #include "Utilities/TraceChannelMappings.h"
+
+#include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 UAttackRangedComponent::UAttackRangedComponent()
 {

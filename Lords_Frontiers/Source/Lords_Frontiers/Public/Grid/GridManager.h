@@ -2,20 +2,22 @@
 
 #pragma once
 
+#include "GridCell.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GridCell.h"
 
 #include "GridManager.generated.h"
 
 /// @brief Single row of the 2D grid.
-/// GridRows[Y].Cells[X] is the cell with coordinates (X, Y), where Y is the row index.
+/// GridRows[Y].Cells[X] is the cell with coordinates (X, Y), where Y is the row
+/// index.
 USTRUCT( BlueprintType )
 struct FGridRow
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	// Cells of this row along the X axis.
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid" )
 	TArray<FGridCell> Cells;
@@ -29,7 +31,7 @@ class LORDS_FRONTIERS_API AGridManager : public AActor
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	AGridManager();
 
 	// === Public grid parameter getters ===
@@ -49,7 +51,8 @@ class LORDS_FRONTIERS_API AGridManager : public AActor
 		return CellSize_;
 	}
 
-	/// @brief Check whether the given cell coordinates are within the current grid bounds.
+	/// @brief Check whether the given cell coordinates are within the current
+	/// grid bounds.
 	/// @param[in] x X coordinate (column index).
 	/// @param[in] y Y coordinate (row index).
 	/// @return true if coordinates are valid, false otherwise.
@@ -77,12 +80,13 @@ class LORDS_FRONTIERS_API AGridManager : public AActor
 	/// @brief Get const cell by coordinates (X, Y).
 	/// @param[in] x X coordinate (column index).
 	/// @param[in] y Y coordinate (row index).
-	/// @return Const pointer to the cell or nullptr if coordinates are out of bounds.
+	/// @return Const pointer to the cell or nullptr if coordinates are out of
+	/// bounds.
 	const FGridCell* GetCell( const int32 x, const int32 y ) const;
 
-  protected:
+protected:
 	/// @brief Called when the game starts or when spawned.
-	void BeginPlay() override;
+	virtual void BeginPlay() override;
 
 	// === Grid settings ===
 
@@ -102,7 +106,7 @@ class LORDS_FRONTIERS_API AGridManager : public AActor
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	TArray<FGridRow> GridRows_;
 
-  private:
+private:
 	/// @brief Initialize the grid:
 	/// - sets GridCoords for each cell;
 	/// - resets runtime state of cells.

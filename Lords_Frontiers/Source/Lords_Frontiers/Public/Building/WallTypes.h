@@ -20,7 +20,7 @@ struct FWallMeshSet
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	TObjectPtr<UStaticMesh> VerticalMesh = nullptr;
 
@@ -33,6 +33,6 @@ struct FWallMeshSet
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	TObjectPtr<UStaticMesh> BrokenHorizontalMesh = nullptr;
 
-	// Вернуть меш для конкретного направления
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	UStaticMesh* GetMeshForDirection( EWallDirection direction ) const;
 };

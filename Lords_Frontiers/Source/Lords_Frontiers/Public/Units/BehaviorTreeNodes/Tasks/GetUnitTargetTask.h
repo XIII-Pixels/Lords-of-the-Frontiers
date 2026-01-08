@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+
 #include "CoreMinimal.h"
 
 #include "GetUnitTargetTask.generated.h"
@@ -17,5 +18,5 @@ class LORDS_FRONTIERS_API UGetUnitTargetTask : public UBTTask_BlackboardBase
 public:
 	UGetUnitTargetTask();
 
-	EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
+	virtual EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
 };

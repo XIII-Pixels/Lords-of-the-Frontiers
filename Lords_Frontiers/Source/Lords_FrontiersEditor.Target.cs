@@ -10,6 +10,6 @@ public class Lords_FrontiersEditorTarget : TargetRules
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 
-		ExtraModuleNames.AddRange( new string[] { "Lords_Frontiers" } );
+		ExtraModuleNames.AddRange(new string[] { "Lords_Frontiers" });
 	}
 }

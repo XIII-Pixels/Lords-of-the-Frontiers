@@ -18,19 +18,19 @@ class LORDS_FRONTIERS_API ADebugPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ADebugPlayerController();
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	USelectionManagerComponent* GetSelectionManager() const;
 
-  protected:
+protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent = nullptr;
 
 	virtual void SetupInputComponent() override;
 
-  private:
+private:
 	UPROPERTY()
 	TObjectPtr<ABuildManager> BuildManager_ = nullptr;
 

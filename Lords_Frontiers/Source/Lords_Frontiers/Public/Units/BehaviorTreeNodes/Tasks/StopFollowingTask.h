@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+
 #include "CoreMinimal.h"
 
 #include "StopFollowingTask.generated.h"

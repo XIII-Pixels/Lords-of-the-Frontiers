@@ -2,12 +2,13 @@
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
-#include "Components/CapsuleComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Units/FollowComponent.h"
 #include "Units/UnitAIController.h"
 #include "Utilities/TraceChannelMappings.h"
+
+#include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AUnit::AUnit()
 {

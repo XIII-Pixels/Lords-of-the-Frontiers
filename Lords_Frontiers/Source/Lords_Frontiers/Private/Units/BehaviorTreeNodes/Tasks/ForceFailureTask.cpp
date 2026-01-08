@@ -7,7 +7,7 @@ UForceFailureTask::UForceFailureTask()
 	NodeName = "Force Failure";
 }
 
-EBTNodeResult::Type UForceFailureTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UForceFailureTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	Super::ExecuteTask( ownerComp, nodeMemory );
 	return EBTNodeResult::Failed;

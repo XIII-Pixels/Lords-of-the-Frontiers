@@ -4,15 +4,16 @@
 #include "Building/Construction/BuildPreviewActor.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
-#include "Components/StaticMeshComponent.h" // <-- новое
 #include "DrawDebugHelpers.h"
+#include "Grid/GridManager.h"
+#include "Grid/GridVisualizer.h"
+
+#include "Components/StaticMeshComponent.h" // <-- новое
 #include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
-#include "Grid/GridManager.h"
-#include "Grid/GridVisualizer.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -150,7 +151,8 @@ void ABuildManager::CancelPlacing()
 		RelocatedBuilding_->SetActorHiddenInGame( false );
 		RelocatedBuilding_->SetActorEnableCollision( true );
 
-		// На всякий случай вернуть в центр исходной клетки (если вдруг куда-то сдвинули).
+		// На всякий случай вернуть в центр исходной клетки (если вдруг куда-то
+		// сдвинули).
 		if ( GridVisualizer_ )
 		{
 			FVector originalLocation;
@@ -161,7 +163,8 @@ void ABuildManager::CancelPlacing()
 		}
 	}
 
-	// --- Общий сброс режима строительства (и для переноса, и для обычного билда) ---
+	// --- Общий сброс режима строительства (и для переноса, и для обычного билда)
+	// ---
 	bIsPlacing_ = false;
 	bHasValidCell_ = false;
 	bCanBuildHere_ = false;
@@ -241,7 +244,8 @@ void ABuildManager::ConfirmPlacing()
 			GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building placed" ) );
 		}
 
-		// В обычном режиме остаёмся в билде, чтобы можно было ставить несколько зданий подряд.
+		// В обычном режиме остаёмся в билде, чтобы можно было ставить несколько
+		// зданий подряд.
 		return;
 	}
 
@@ -339,7 +343,8 @@ void ABuildManager::UpdateHoveredCell()
 
 	UpdatePreviewVisual( placementResult.CellWorldLocation, bCanBuildHere_ );
 
-	// UpdateWallPreviews( CurrentCellCoords_, placementResult.CellWorldLocation );
+	// UpdateWallPreviews( CurrentCellCoords_, placementResult.CellWorldLocation
+	// );
 }
 
 void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const bool bCanBuild )
@@ -407,7 +412,9 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-			    -1, 2.0f, FColor::Red, TEXT( "StartRelocatingBuilding: GridManager or GridVisualizer is null" )
+			    -1, 2.0f, FColor::Red,
+			    TEXT( "StartRelocatingBuilding: GridManager or GridVisualizer is "
+			          "null" )
 			);
 		}
 		return;
@@ -496,8 +503,9 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( false );
-		// Если у PreviewActor есть метод вроде SetSourceClass / SetPreviewMeshFromClass,
-		// можно здесь передать CurrentBuildingClass_, чтобы превью подстроилось под здание.
+		// Если у PreviewActor есть метод вроде SetSourceClass /
+		// SetPreviewMeshFromClass, можно здесь передать CurrentBuildingClass_,
+		// чтобы превью подстроилось под здание.
 		// PreviewActor_->InitFromBuildingClass( CurrentBuildingClass_ );
 	}
 

@@ -9,7 +9,7 @@ UDoesSeeEnemyDecorator::UDoesSeeEnemyDecorator()
 	NodeName = "Does See Enemy";
 }
 
-bool UDoesSeeEnemyDecorator::CalculateRawConditionValue(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) const
+bool UDoesSeeEnemyDecorator::CalculateRawConditionValue( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) const
 {
 	const AAIController* controller = ownerComp.GetAIOwner();
 	if ( !controller )

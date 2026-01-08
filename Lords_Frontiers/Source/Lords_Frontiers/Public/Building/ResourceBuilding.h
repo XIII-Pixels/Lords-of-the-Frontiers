@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Building.h"
-#include "CoreMinimal.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceGenerator.h"
+
+#include "CoreMinimal.h"
 
 #include "ResourceBuilding.generated.h"
 
@@ -14,7 +15,7 @@ class LORDS_FRONTIERS_API AResourceBuilding : public ABuilding
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	AResourceBuilding();
 
 	// Accessor for the economy scanner
@@ -24,17 +25,18 @@ class LORDS_FRONTIERS_API AResourceBuilding : public ABuilding
 		return ResourceGenerator_;
 	}
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
 	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
 
-  protected:
-	// The component responsible for the core resource generation logic (type, quantity, interval).
+protected:
+	// The component responsible for the core resource generation logic (type,
+	// quantity, interval).
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Resource Generation" )
 	UResourceGenerator* ResourceGenerator_;
 
-  private:
+private:
 	// Find the Resource Manager
 	UResourceManager* FindResourceManager_() const;
 };

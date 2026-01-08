@@ -1,4 +1,5 @@
 #include "Lords_Frontiers/Public/ResourceManager/ResourceGenerator.h"
+
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
 
 UResourceGenerator::UResourceGenerator()
@@ -8,7 +9,7 @@ UResourceGenerator::UResourceGenerator()
 	ResourceManager_ = nullptr;
 }
 
-void UResourceGenerator::Initialize(UResourceManager* manager)
+void UResourceGenerator::Initialize( UResourceManager* manager )
 {
 	ResourceManager_ = manager;
 }

@@ -1,7 +1,8 @@
 ﻿#include "Grid/GridVisualizer.h"
 
-#include "Components/InstancedStaticMeshComponent.h"
 #include "Grid/GridManager.h"
+
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AGridVisualizer::AGridVisualizer()

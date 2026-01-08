@@ -19,7 +19,7 @@ void ABuilding::BeginPlay()
 }
 
 float ABuilding::TakeDamage(
-    float damageAmount, FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser
+    float damageAmount, const FDamageEvent& damageEvent, AController* eventInstigator, AActor* damageCauser
 )
 {
 	// Call super to handle generic logic

@@ -4,7 +4,8 @@ UResourceManager::UResourceManager()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	// Map initialization is handled by default constructor or inline initialization in .h
+	// Map initialization is handled by default constructor or inline
+	// initialization in .h
 }
 
 void UResourceManager::BeginPlay()
@@ -15,7 +16,9 @@ void UResourceManager::BeginPlay()
 void UResourceManager::AddResource( EResourceType type, int32 quantity )
 {
 	if ( type == EResourceType::None || quantity <= 0 )
+	{
 		return;
+	}
 
 	int32& CurrentAmount = Resources_.FindOrAdd( type );
 	const int32 MaxAmount = GetMaxResourceAmount( type );
