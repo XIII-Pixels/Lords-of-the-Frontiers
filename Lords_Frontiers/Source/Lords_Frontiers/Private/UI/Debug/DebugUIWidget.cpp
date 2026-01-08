@@ -717,7 +717,7 @@ void UDebugUIWidget::CreateResourceWidgets( UResourceManager* ResManager )
 
 	ResManager->OnResourceChanged.AddDynamic( this, &UDebugUIWidget::OnResourceChangedHandler );
 
-	for ( uint8 i = 1; i < (uint8) EResourceType::MAX; ++i )
+	for ( uint8 i = 1; i < (uint8) EResourceType::Max; ++i )
 	{
 		EResourceType CurrentType = static_cast<EResourceType>( i );
 		UResourceItemWidget* NewItem = CreateWidget<UResourceItemWidget>( this, ResourceItemClass );

@@ -22,7 +22,7 @@ protected:
 public:
 	// scan grid and accrual resource
 	// button in UI
-	UFUNCTION( BlueprintCallable, Category = "Economy" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Economy" )
 	void CollectGlobalResources();
 
 	void RegisterBuilding( class AResourceBuilding* Building );

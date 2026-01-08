@@ -20,7 +20,6 @@ struct FWallMeshSet
 {
 	GENERATED_BODY()
 
-public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	TObjectPtr<UStaticMesh> VerticalMesh = nullptr;
 

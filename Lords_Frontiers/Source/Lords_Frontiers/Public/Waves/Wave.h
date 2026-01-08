@@ -24,31 +24,31 @@ struct FWave
 {
 	GENERATED_BODY()
 
-public: // UPROPERTIES
+	// UPROPERTIES
 	// enemy groups in wave
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	TArray<FEnemyGroup> EnemyGroups;
 
 	// (optional) refs on some actor-spawnpoints for groups
 	// if element is empty or not valid � SpawnPointIds will be called
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	TArray<TSoftObjectPtr<AEnemyGroupSpawnPoint>> SpawnPointReferences;
 
 	// (optional) identificators for spawnpoints (FName) for groups
 	// if SpawnPointReferences gives no result � search AEnemyGroupSpawnPoint by
 	// id
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	TArray<FName> SpawnPointIds;
 
 	// delay before wave start (seconds)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave", meta = ( ClampMin = "0.0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave", meta = ( ClampMin = "0.0" ) )
 	float StartDelay = 0.0f;
 
 	// delay between groups in wave (sec)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave", meta = ( ClampMin = "0.0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave", meta = ( ClampMin = "0.0" ) )
 	float GroupSpawnDelay = 0.0f;
 
-public: // CPP FUNCTIONS
+	// CPP FUNCTIONS
 	FWave();
 	FWave(
 	    const TArray<FEnemyGroup>& inGroups,

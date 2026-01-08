@@ -26,7 +26,7 @@ public:
 
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
-	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent = nullptr;
+	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;
 
 	virtual void SetupInputComponent() override;
 

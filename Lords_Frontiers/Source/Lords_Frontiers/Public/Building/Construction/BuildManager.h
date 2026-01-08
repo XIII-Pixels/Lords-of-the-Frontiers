@@ -26,18 +26,18 @@ public:
 	virtual void Tick( float deltaSeconds ) override;
 
 	/// @brief ������ ������� ��� ������������� ������.
-	UFUNCTION( BlueprintCallable, Category = "Building" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Building" )
 	void StartRelocatingBuilding( ABuilding* buildingToMove );
 
 	/// @brief ������ ��� ������� ������ (� �� ������� �������������)?
-	UFUNCTION( BlueprintPure, Category = "Building" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Building" )
 	bool IsRelocating() const
 	{
 		return bIsRelocating_;
 	}
 
 	/// ������ ����� ������������� ���������� ������ ������.
-	UFUNCTION( BlueprintCallable, Category = "Building" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Building" )
 	void StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	/// <summary>
@@ -46,15 +46,15 @@ public:
 	/// <returns>����� ������ ���� �����</returns>
 	TArray<TWeakObjectPtr<ABuilding>> GetBuildingsNearby( FIntPoint cellCoords );
 
-	UFUNCTION( BlueprintCallable, Category = "Building" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Building" )
 	void CancelPlacing();
 
 	/// ����������� ������������� (���� ��������) � ���������� ������.
-	UFUNCTION( BlueprintCallable, Category = "Building" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Building" )
 	void ConfirmPlacing();
 
 	/// ������� �� ������ ����� �������������.
-	UFUNCTION( BlueprintPure, Category = "Building" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Building" )
 	bool IsPlacing() const
 	{
 		return bIsPlacing_;

@@ -19,7 +19,7 @@ public:
 	AResourceBuilding();
 
 	// Accessor for the economy scanner
-	UFUNCTION( BlueprintPure, Category = "Resource Generation" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Resource Generation" )
 	UResourceGenerator* GetResourceGenerator() const
 	{
 		return ResourceGenerator_;
@@ -30,13 +30,12 @@ protected:
 
 	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
 
-protected:
 	// The component responsible for the core resource generation logic (type,
 	// quantity, interval).
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Resource Generation" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
 	UResourceGenerator* ResourceGenerator_;
 
 private:
 	// Find the Resource Manager
-	UResourceManager* FindResourceManager_() const;
+	UResourceManager* FindResourceManager() const;
 };

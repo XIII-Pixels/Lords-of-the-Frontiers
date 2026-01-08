@@ -13,7 +13,7 @@ enum class EResourceType : uint8
 	Food UMETA( DisplayName = "Food" ),
 	Population UMETA( DisplayName = "Population" ),
 	Progress UMETA( DisplayName = "Progress" ),
-	MAX UMETA( Hidden )
+	Max UMETA( Hidden )
 };
 
 // A structure representing the storage unit of a resource (type + quantity)
@@ -22,11 +22,10 @@ struct FGameResource
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Resource" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Resource" )
 	EResourceType Type;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Resource", meta = ( ClampMin = "0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Resource", meta = ( ClampMin = "0" ) )
 	int32 Quantity;
 
 	// Default c-tor

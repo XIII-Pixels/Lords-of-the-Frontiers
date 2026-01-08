@@ -1,7 +1,5 @@
 #pragma once
 
-#include "EnemyGroup.h"
-#include "EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Wave.h"
 
@@ -15,8 +13,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndedSignature, int32, WaveI
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnAllWavesCompletedSignature );
 
 /*
- WaveManager - actor placed on level to manage sequencing of waves
  (Artyom)
+ WaveManager - actor placed on level to manage sequencing of waves
  */
 UCLASS( Blueprintable )
 class LORDS_FRONTIERS_API AWaveManager : public AActor
@@ -28,78 +26,78 @@ public:
 
 	// Start playing waves from CurrentWaveIndex (or first wave if
 	// CurrentWaveIndex is invalid).
-	UFUNCTION( BlueprintCallable, Category = "Wave" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave" )
 	void StartWaves();
 
 	// Start wave by index (0-based).
-	UFUNCTION( BlueprintCallable, Category = "Wave" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave" )
 	void StartWaveAtIndex( int32 waveIndex );
 
 	// Advance to next wave manually (skips waiting). If there are no more waves,
 	// broadcasts completion
-	UFUNCTION( BlueprintCallable, Category = "Wave" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave" )
 	void AdvanceToNextWave();
 
 	// Stop/cancel current wave (clears timers). Useful for editor or reset
-	UFUNCTION( BlueprintCallable, Category = "Wave" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave" )
 	void CancelCurrentWave();
 
 	// Restart waves from the beginning (index 0)
-	UFUNCTION( BlueprintCallable, Category = "Wave" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave" )
 	void RestartWaves();
 
 	// Returns whether a wave is currently active (spawning)
-	UFUNCTION( BlueprintPure, Category = "Wave" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Wave" )
 	bool IsWaveActive() const
 	{
-		return bIsWaveActive;
+		return bIsWaveActive_;
 	}
 
-	UFUNCTION( BlueprintPure, Category = "Wave" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Wave" )
 	bool IsFirstWaveRequested() const
 	{
-		return bHasRequestedFirstWave;
+		return bHasRequestedFirstWave_;
 	}
 
 	// Current wave index (0-based)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	int32 CurrentWaveIndex = 0;
 
 	// List of waves. Index in array is the wave number
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	TArray<FWave> Waves;
 
 	// If true, WaveManager will auto-start the first wave on BeginPlay (if there
 	// are waves)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	bool bAutoStartOnBeginPlay = false;
 
 	// If true, logs debug messages about spawning
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Wave" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	bool bLogSpawning = true;
 
 	// Delegate: broadcast when a wave starts
-	UPROPERTY( BlueprintAssignable, Category = "Wave|Events" )
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnWaveStartedSignature OnWaveStarted;
 
 	// Delegate: broadcast when a wave ends (all groups finished)
-	UPROPERTY( BlueprintAssignable, Category = "Wave|Events" )
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnWaveEndedSignature OnWaveEnded;
 
 	// Delegate: broadcast when all waves in Waves[] have been completed
-	UPROPERTY( BlueprintAssignable, Category = "Wave|Events" )
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnAllWavesCompletedSignature OnAllWavesCompleted;
 
-	UFUNCTION( BlueprintCallable, Category = "Wave|Events" )
-	bool SubscribeToAllWavesCompleted( UObject* Listener, FName FunctionName );
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
+	bool SubscribeToAllWavesCompleted( UObject* listener, FName functionName );
 
 	// Unsubscribe previously subscribed listener.
-	UFUNCTION( BlueprintCallable, Category = "Wave|Events" )
-	bool UnsubscribeFromAllWavesCompleted( UObject* Listener, FName FunctionName );
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
+	bool UnsubscribeFromAllWavesCompleted( UObject* listener, FName functionName );
 
 	// Broadcast "All waves completed" to all listeners (broadcast happens only
 	// once).
-	UFUNCTION( BlueprintCallable, Category = "Wave|Events" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
 	void BroadcastAllWavesCompleted();
 
 protected:
@@ -125,32 +123,32 @@ protected:
 
 	// Find spawn point near Enemygroupspawnpoint in case unit is already in it
 	FTransform FindNonOverlappingSpawnTransform(
-	    const FTransform& DesiredTransform, float CapsuleRadius, float CapsuleHalfHeight, float MaxSearchRadius = 600.f,
-	    int32 MaxAttempts = 32, bool bProjectToNavMesh = false
+	    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius = 600.f,
+	    int32 maxAttempts = 32, bool bProjectToNavMesh = false
 	) const;
 
 	// Active timer handles (for enemy spawns) so we can clear them if needed
 	UPROPERTY( Transient )
-	TArray<FTimerHandle> ActiveSpawnTimers;
+	TArray<FTimerHandle> ActiveSpawnTimers_;
 
 	// Active timer handle for wave end
 	UPROPERTY( Transient )
-	FTimerHandle WaveEndTimerHandle;
+	FTimerHandle WaveEndTimerHandle_;
 
 	// True while a wave is active (spawning or waiting for last spawn to finish)
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Wave" )
-	bool bIsWaveActive = false;
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Wave" )
+	bool bIsWaveActive_ = false;
 
 	UPROPERTY( Transient )
-	bool bHasRequestedFirstWave = false;
+	bool bHasRequestedFirstWave_ = false;
 
 	// returns wave index clamped into array bounds (or INDEX_NONE if no waves)
 	int32 ClampWaveIndex( int32 waveIndex ) const;
 
 	UPROPERTY( Transient )
-	TSet<TWeakObjectPtr<UObject>> AllWavesCompletedSubscribers;
+	TSet<TWeakObjectPtr<UObject>> AllWavesCompletedSubscribers_;
 
 	// broadcast OnAllWavesCompleted only once (until waves are restarted).
 	UPROPERTY( Transient )
-	bool bHasBroadcastedAllWavesCompleted = false;
+	bool bHasBroadcastedAllWavesCompleted_ = false;
 };

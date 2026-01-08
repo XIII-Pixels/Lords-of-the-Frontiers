@@ -16,7 +16,6 @@ struct FGridCell
 {
 	GENERATED_BODY()
 
-public:
 	FGridCell()
 	    : GridCoords( FIntPoint::ZeroValue ), bIsOccupied( false ), bIsBuildable( true ), PathCost( 1.0f ),
 	      BuildBonus( 0.0f ), Occupant( nullptr )

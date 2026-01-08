@@ -13,11 +13,10 @@ class LORDS_FRONTIERS_API UResourceItemWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void SetupItem( UTexture2D* IconTexture, int32 InitialValue, int32 MaxValue );
+	void SetupItem( UTexture2D* iconTexture, int32 initialValue, int32 maxValue );
 
-	void UpdateAmount( int32 NewAmount, int32 MaxAmount );
+	void UpdateAmount( int32 newAmount, int32 maxAmount );
 
-protected:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UImage> ResourceIcon;
 

@@ -17,7 +17,7 @@ AWaveManager::AWaveManager()
 	CurrentWaveIndex = 0;
 	bAutoStartOnBeginPlay = false;
 	bLogSpawning = true;
-	bIsWaveActive = false;
+	bIsWaveActive_ = false;
 }
 
 void AWaveManager::BeginPlay()
@@ -49,14 +49,14 @@ void AWaveManager::StartWaves()
 	}
 
 	StartWaveAtIndex( startIndex );
-	bHasRequestedFirstWave = true;
+	bHasRequestedFirstWave_ = true;
 }
 
 void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 {
 	int32 clampedIndex = ClampWaveIndex( waveIndex );
 
-	bHasRequestedFirstWave = true;
+	bHasRequestedFirstWave_ = true;
 
 	if ( clampedIndex == INDEX_NONE )
 	{
@@ -65,7 +65,7 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	}
 
 	// If a wave is active, cancel it first (  safe behavior )
-	if ( bIsWaveActive )
+	if ( bIsWaveActive_ )
 	{
 		CancelCurrentWave();
 	}
@@ -88,7 +88,7 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	}
 
 	// Broadcast start
-	bIsWaveActive = true;
+	bIsWaveActive_ = true;
 	OnWaveStarted.Broadcast( CurrentWaveIndex );
 
 	if ( bLogSpawning )
@@ -108,12 +108,12 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 
 	if ( GetWorld() )
 	{
-		GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle );
+		GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
 
 		FTimerDelegate endDelegate;
 		endDelegate.BindUFunction( this, FName( "OnWaveEndTimerElapsed" ), CurrentWaveIndex );
 
-		GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle, endDelegate, endDelay, false );
+		GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle_, endDelegate, endDelay, false );
 	}
 }
 
@@ -151,7 +151,7 @@ void AWaveManager::ScheduleWaveSpawns( const FWave& wave, int32 waveIndex )
 			FTimerHandle timerHandle;
 			GetWorld()->GetTimerManager().SetTimer( timerHandle, spawnDelegate, timeFromWaveStart, false );
 
-			ActiveSpawnTimers.Add( timerHandle );
+			ActiveSpawnTimers_.Add( timerHandle );
 
 			if ( bLogSpawning )
 			{
@@ -265,7 +265,7 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 		return;
 	}
 
-	bIsWaveActive = false;
+	bIsWaveActive_ = false;
 	ClearActiveTimers();
 
 	OnWaveEnded.Broadcast( waveIndex );
@@ -304,7 +304,7 @@ bool AWaveManager::MoveToNextWaveAndStart()
 
 void AWaveManager::AdvanceToNextWave()
 {
-	if ( bIsWaveActive )
+	if ( bIsWaveActive_ )
 	{
 		CancelCurrentWave();
 	}
@@ -327,7 +327,7 @@ void AWaveManager::CancelCurrentWave()
 {
 	ClearActiveTimers();
 
-	bIsWaveActive = false;
+	bIsWaveActive_ = false;
 
 	if ( bLogSpawning )
 	{
@@ -346,12 +346,12 @@ void AWaveManager::ClearActiveTimers()
 {
 	if ( !GetWorld() )
 	{
-		ActiveSpawnTimers.Reset();
+		ActiveSpawnTimers_.Reset();
 		return;
 	}
 
 	FTimerManager& timerManager = GetWorld()->GetTimerManager();
-	for ( FTimerHandle& timerHandle : ActiveSpawnTimers )
+	for ( FTimerHandle& timerHandle : ActiveSpawnTimers_ )
 	{
 		if ( timerHandle.IsValid() )
 		{
@@ -359,12 +359,12 @@ void AWaveManager::ClearActiveTimers()
 		}
 	}
 
-	ActiveSpawnTimers.Reset();
+	ActiveSpawnTimers_.Reset();
 
-	if ( WaveEndTimerHandle.IsValid() )
+	if ( WaveEndTimerHandle_.IsValid() )
 	{
-		timerManager.ClearTimer( WaveEndTimerHandle );
-		WaveEndTimerHandle.Invalidate();
+		timerManager.ClearTimer( WaveEndTimerHandle_ );
+		WaveEndTimerHandle_.Invalidate();
 	}
 }
 
@@ -454,57 +454,57 @@ FTransform AWaveManager::FindNonOverlappingSpawnTransform(
 	return desiredTransform;
 }
 
-bool AWaveManager::SubscribeToAllWavesCompleted( UObject* Listener, FName FunctionName )
+bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functionName )
 {
-	if ( !Listener || FunctionName.IsNone() )
+	if ( !listener || functionName.IsNone() )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: SubscribeToAllWavesCompleted invalid args" ) );
 		return false;
 	}
 
 	// Avoid duplicate subscription from same object
-	if ( AllWavesCompletedSubscribers.Contains( Listener ) )
+	if ( AllWavesCompletedSubscribers_.Contains( listener ) )
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
 		    TEXT( "WaveManager: SubscribeToAllWavesCompleted - already "
 		          "subscribed: %s" ),
-		    *GetNameSafe( Listener )
+		    *GetNameSafe( listener )
 		);
 		return false;
 	}
 
 	// Bind script delegate to listener's function and add to multicast
 	FScriptDelegate ScriptDel;
-	ScriptDel.BindUFunction( Listener, FunctionName );
+	ScriptDel.BindUFunction( listener, functionName );
 	OnAllWavesCompleted.Add( ScriptDel );
 
-	AllWavesCompletedSubscribers.Add( Listener );
+	AllWavesCompletedSubscribers_.Add( listener );
 
 	UE_LOG(
-	    LogTemp, Log, TEXT( "WaveManager: SubscribeToAllWavesCompleted - subscribed %s.%s" ), *GetNameSafe( Listener ),
-	    *FunctionName.ToString()
+	    LogTemp, Log, TEXT( "WaveManager: SubscribeToAllWavesCompleted - subscribed %s.%s" ), *GetNameSafe( listener ),
+	    *functionName.ToString()
 	);
 	return true;
 }
 
-bool AWaveManager::UnsubscribeFromAllWavesCompleted( UObject* Listener, FName FunctionName )
+bool AWaveManager::UnsubscribeFromAllWavesCompleted( UObject* listener, FName functionName )
 {
-	if ( !Listener || FunctionName.IsNone() )
+	if ( !listener || functionName.IsNone() )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: UnsubscribeFromAllWavesCompleted invalid args" ) );
 		return false;
 	}
 
 	FScriptDelegate ScriptDel;
-	ScriptDel.BindUFunction( Listener, FunctionName );
+	ScriptDel.BindUFunction( listener, functionName );
 	OnAllWavesCompleted.Remove( ScriptDel );
 
-	AllWavesCompletedSubscribers.Remove( Listener );
+	AllWavesCompletedSubscribers_.Remove( listener );
 
 	UE_LOG(
 	    LogTemp, Log, TEXT( "WaveManager: UnsubscribeFromAllWavesCompleted - unsubscribed %s.%s" ),
-	    *GetNameSafe( Listener ), *FunctionName.ToString()
+	    *GetNameSafe( listener ), *functionName.ToString()
 	);
 	return true;
 }
@@ -512,7 +512,7 @@ bool AWaveManager::UnsubscribeFromAllWavesCompleted( UObject* Listener, FName Fu
 void AWaveManager::BroadcastAllWavesCompleted()
 {
 	// Make sure we only broadcast once per run (until RestartWaves is called)
-	if ( bHasBroadcastedAllWavesCompleted )
+	if ( bHasBroadcastedAllWavesCompleted_ )
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
@@ -522,7 +522,7 @@ void AWaveManager::BroadcastAllWavesCompleted()
 		return;
 	}
 
-	bHasBroadcastedAllWavesCompleted = true;
+	bHasBroadcastedAllWavesCompleted_ = true;
 
 	// Actual broadcast
 	OnAllWavesCompleted.Broadcast();

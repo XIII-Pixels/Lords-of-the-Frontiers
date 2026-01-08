@@ -17,7 +17,6 @@ struct FGridRow
 {
 	GENERATED_BODY()
 
-public:
 	// Cells of this row along the X axis.
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid" )
 	TArray<FGridCell> Cells;

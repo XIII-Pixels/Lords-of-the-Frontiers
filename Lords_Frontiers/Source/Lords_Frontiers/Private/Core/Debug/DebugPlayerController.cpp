@@ -14,12 +14,12 @@ ADebugPlayerController::ADebugPlayerController()
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
 
-	SelectionManagerComponent = CreateDefaultSubobject<USelectionManagerComponent>( TEXT( "SelectionManager" ) );
+	SelectionManagerComponent_ = CreateDefaultSubobject<USelectionManagerComponent>( TEXT( "SelectionManager" ) );
 }
 
 USelectionManagerComponent* ADebugPlayerController::GetSelectionManager() const
 {
-	return SelectionManagerComponent;
+	return SelectionManagerComponent_;
 }
 
 void ADebugPlayerController::SetupInputComponent()

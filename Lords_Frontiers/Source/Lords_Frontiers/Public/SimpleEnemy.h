@@ -26,32 +26,32 @@ public:
 
 	/** Visual mesh so the enemy is visible when spawned. Set a mesh in the
 	 * Blueprint child. */
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Components" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
 
 	/** Maximum health (editable in Blueprint) */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = ( ClampMin = "1" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Combat", meta = ( ClampMin = "1" ) )
 	float MaxHealth;
 
 	/** Current health (replication omitted here; add Replication if needed) */
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Combat" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Combat" )
 	float Health;
 
 	/** Optional: simple attack damage value (not used automatically) */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Combat" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Combat" )
 	int32 AttackDamage = 10;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Components" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UCapsuleComponent> CapsuleComponent;
 
 	// Editable defaults so designer can tweak per BP
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Collision" )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Settings|Collision" )
 	float DefaultCapsuleRadius = 34.f;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Collision" )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Settings|Collision" )
 	float DefaultCapsuleHalfHeight = 88.f;
 
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Visual" )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Settings|Visual" )
 	FVector DefaultMeshRelativeLocation = FVector( 0.f, 0.f, -88.f );
 
 protected:

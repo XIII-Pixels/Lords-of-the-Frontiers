@@ -29,7 +29,7 @@ void AResourceBuilding::BeginPlay()
 	}
 
 	// Initialization and start of generation
-	UResourceManager* ResourceManager = FindResourceManager_();
+	UResourceManager* ResourceManager = FindResourceManager();
 
 	if ( IsValid( ResourceGenerator_ ) && IsValid( ResourceManager ) )
 	{
@@ -48,7 +48,7 @@ void AResourceBuilding::BeginPlay()
 	}
 }
 
-UResourceManager* AResourceBuilding::FindResourceManager_() const
+UResourceManager* AResourceBuilding::FindResourceManager() const
 {
 	// Assume the ResourceManager is located on the Player Controller
 	AController* PlayerController = UGameplayStatics::GetPlayerController( GetWorld(), 0 );

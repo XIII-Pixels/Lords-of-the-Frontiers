@@ -19,11 +19,11 @@ public:
 	UResourceGenerator();
 
 	// Explicit initialization to link with manager (Dependency Injection)
-	UFUNCTION( BlueprintCallable, Category = "Initialization" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Initialization" )
 	void Initialize( UResourceManager* manager );
 
 	// Manual generation call (e.g., for "After Wave" logic)
-	UFUNCTION( BlueprintCallable, Category = "Generation" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Generation" )
 	void GenerateNow();
 
 	// Getters for the scanner
@@ -52,7 +52,6 @@ private:
 	// Internal generation logic
 	void ProcessGeneration();
 
-private:
 	// ensuring GC handles references.
 	UPROPERTY()
 	UResourceManager* ResourceManager_;

@@ -56,20 +56,20 @@ public:
 
 	/** Unit class to spawn when debug button pressed. Set this in BP or defaults.
 	 */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Debug|Spawn" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug|Spawn" )
 	TSubclassOf<AUnit> EnemyClassToSpawn;
 
 	/** Number of units to spawn */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Debug|Spawn", meta = ( ClampMin = "0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug|Spawn", meta = ( ClampMin = "0" ) )
 	int32 SpawnCount = 5;
 
 	/** Interval between individual spawns (seconds). If <= 0 -> instant spawn */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Debug|Spawn", meta = ( ClampMin = "0.0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug|Spawn", meta = ( ClampMin = "0.0" ) )
 	float SpawnInterval = 0.5f;
 
 	/** Distance in front of the camera where the debug spawn point will be placed
 	 */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Debug|Spawn" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug|Spawn" )
 	float SpawnPointDistance = 600.0f;
 
 protected:

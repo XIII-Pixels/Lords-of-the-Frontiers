@@ -20,23 +20,21 @@ struct FEnemyGroup
 {
 	GENERATED_BODY()
 
-public:
 	// Enemy type to spawn (class derived from AUnit)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Spawn" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Spawn" )
 	TSubclassOf<AUnit> EnemyClass = nullptr;
 
 	// Number of units that should be spawned
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Spawn", meta = ( ClampMin = "0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Spawn", meta = ( ClampMin = "0" ) )
 	int32 Count = 0;
 
 	/**
 	 * Interval between spawning individual units in this group (seconds).
 	 * If <= 0 � all units spawn instantly.
 	 */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Spawn" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Spawn" )
 	float SpawnInterval = 0.0f;
 
-public:
 	FEnemyGroup();
 	FEnemyGroup( TSubclassOf<AUnit> inClass, int32 inCount, float inSpawnInterval = 0.0f );
 

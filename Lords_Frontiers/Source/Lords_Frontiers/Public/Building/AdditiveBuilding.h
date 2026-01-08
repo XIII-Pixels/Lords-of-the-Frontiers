@@ -17,6 +17,6 @@ public:
 
 protected:
 	// Example of a bonus applied by the building
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Utility" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Utility" )
 	float UtilityBonusValue_;
 };
