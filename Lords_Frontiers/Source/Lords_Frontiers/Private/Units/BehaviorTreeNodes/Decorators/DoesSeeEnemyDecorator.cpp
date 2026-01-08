@@ -11,9 +11,17 @@ UDoesSeeEnemyDecorator::UDoesSeeEnemyDecorator()
 
 bool UDoesSeeEnemyDecorator::CalculateRawConditionValue(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory) const
 {
-	auto unit = Cast<AUnit>( Cast<AController>( ownerComp.GetOwner() )->GetPawn() );
+	const AAIController* controller = ownerComp.GetAIOwner();
+	if ( !controller )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "UDoesSeeEnemyDecorator failed to get AIController" ) );
+		return false;
+	}
+
+	const auto unit = Cast<AUnit>( controller->GetPawn() );
 	if ( !unit )
 	{
+		UE_LOG( LogTemp, Warning, TEXT( "UDoesSeeEnemyDecorator failed to get AUnit" ) );
 		return false;
 	}
 

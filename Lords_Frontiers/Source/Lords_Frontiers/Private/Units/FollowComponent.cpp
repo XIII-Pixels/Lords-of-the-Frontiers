@@ -23,7 +23,7 @@ void UFollowComponent::TickComponent(
 
 	if ( bFollowTarget_ )
 	{
-		MoveTowardsTarget( deltaTime );
+		MoveTowardsTarget();
 	}
 
 	if ( !Velocity.IsNearlyZero() )
@@ -63,9 +63,9 @@ void UFollowComponent::SetMaxSpeed( float maxSpeed )
 	MaxSpeed = maxSpeed;
 }
 
-void UFollowComponent::MoveTowardsTarget( float deltaTime )
+void UFollowComponent::MoveTowardsTarget()
 {
-	if ( !Unit_ )
+	if ( !Unit_ || !IsValid( Unit_->FollowedTarget() ) )
 	{
 		return;
 	}

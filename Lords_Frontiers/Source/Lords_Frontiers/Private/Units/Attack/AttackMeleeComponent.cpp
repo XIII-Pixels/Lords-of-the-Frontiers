@@ -14,14 +14,9 @@ void UAttackMeleeComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Unit_ = Cast<AUnit>(GetOwner());
+	Unit_ = Cast<AUnit>( GetOwner() );
 
-	GetWorld()->GetTimerManager().SetTimer(
-		SightTimerHandle_,
-		this,
-		&UAttackMeleeComponent::Look,
-		LookForwardTimeInterval_,
-		true );
+	ActivateSight();
 }
 
 void UAttackMeleeComponent::Look()
@@ -30,7 +25,7 @@ void UAttackMeleeComponent::Look()
 	{
 		return;
 	}
-	
+
 	FVector start = Unit_->GetActorLocation();
 	FVector end = start + Unit_->GetActorForwardVector() * Unit_->Stats().AttackRange();
 
@@ -55,10 +50,10 @@ void UAttackMeleeComponent::Look()
 	EnemyInSight_ = nullptr;
 }
 
-void UAttackMeleeComponent::Attack(TObjectPtr<AActor> hitActor)
+void UAttackMeleeComponent::Attack( TObjectPtr<AActor> hitActor )
 {
 	// Probably should use some attack manager, because it would be easier to fetch attack info
-	
+
 	if ( !Unit_ )
 	{
 		return;
@@ -87,4 +82,17 @@ void UAttackMeleeComponent::Attack(TObjectPtr<AActor> hitActor)
 TObjectPtr<AActor> UAttackMeleeComponent::EnemyInSight() const
 {
 	return EnemyInSight_;
+}
+
+void UAttackMeleeComponent::ActivateSight()
+{
+	GetWorld()->GetTimerManager().SetTimer(
+	    SightTimerHandle_, this, &UAttackMeleeComponent::Look, LookForwardTimeInterval_, true
+	);
+}
+
+void UAttackMeleeComponent::DeactivateSight()
+{
+	GetWorld()->GetTimerManager().ClearTimer( SightTimerHandle_ );
+	EnemyInSight_ = nullptr;
 }

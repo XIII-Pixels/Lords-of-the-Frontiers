@@ -18,7 +18,6 @@ AUnit::AUnit()
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AUnitAIController::StaticClass();
-	AIControllerClass = UnitAIControllerClass_;
 }
 
 void AUnit::OnConstruction( const FTransform& transform )
@@ -85,14 +84,16 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 
 void AUnit::TakeDamage( float damage )
 {
-	// UE_LOG( LogTemp, Display, TEXT( "Take damage" ) );
 	if ( !Stats_.IsAlive() )
 	{
-		// UE_LOG( LogTemp, Display, TEXT( "Dead!" ) );
 		return;
 	}
 
 	Stats_.ApplyDamage( damage );
+	if ( !Stats_.IsAlive() )
+	{
+		OnDeath();
+	}
 }
 
 FEntityStats& AUnit::Stats()
@@ -122,4 +123,21 @@ TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
 TObjectPtr<AActor> AUnit::FollowedTarget() const
 {
 	return FollowedTarget_;
+}
+
+void AUnit::OnDeath()
+{
+	// When HP becomes 0
+
+	if ( AttackComponent_ )
+	{
+		AttackComponent_->DeactivateSight();
+	}
+
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Deactivate();
+	}
+
+	Destroy();
 }

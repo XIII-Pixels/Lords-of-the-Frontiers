@@ -54,6 +54,8 @@ public:
 	TObjectPtr<AActor> FollowedTarget() const;
 
 protected:
+	void OnDeath();
+
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
 

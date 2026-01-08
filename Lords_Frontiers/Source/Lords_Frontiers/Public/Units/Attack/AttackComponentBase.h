@@ -20,4 +20,8 @@ public:
 
 	virtual TObjectPtr<AActor> EnemyInSight() const
 	    PURE_VIRTUAL( UAttackComponentBase::EnemyInSight, { return nullptr; } );
+
+	virtual void ActivateSight() PURE_VIRTUAL();
+
+	virtual void DeactivateSight() PURE_VIRTUAL();
 };

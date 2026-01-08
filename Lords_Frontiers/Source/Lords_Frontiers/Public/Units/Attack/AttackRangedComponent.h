@@ -26,6 +26,10 @@ public:
 
 	virtual TObjectPtr<AActor> EnemyInSight() const override;
 
+	virtual void ActivateSight() override;
+
+	virtual void DeactivateSight() override;
+
 protected:
 	virtual void OnRegister() override;
 

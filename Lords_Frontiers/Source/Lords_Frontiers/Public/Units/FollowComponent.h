@@ -4,9 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/FloatingPawnMovement.h"
-#include "Unit.h"
 
 #include "FollowComponent.generated.h"
+
+class AUnit;
 
 /** (Gregory-hub)
  * Makes actor chase target */
@@ -30,7 +31,7 @@ protected:
 	virtual void
 	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
-	void MoveTowardsTarget( float deltaTime );
+	void MoveTowardsTarget();
 
 	void RotateForward( float deltaTime );
 
