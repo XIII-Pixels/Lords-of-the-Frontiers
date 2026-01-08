@@ -7,8 +7,8 @@
 #include "Core/Debug/DebugPlayerController.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "Grid/GridVisualizer.h"
-#include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
-#include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "Components/Button.h"

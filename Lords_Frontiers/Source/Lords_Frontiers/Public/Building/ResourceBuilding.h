@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Building.h"
-#include "Lords_Frontiers/Public/ResourceManager/ResourceGenerator.h"
+#include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 
 #include "CoreMinimal.h"
 

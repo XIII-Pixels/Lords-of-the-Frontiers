@@ -1,7 +1,7 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 
-#include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
-#include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 
 #include "Kismet/GameplayStatics.h"
 

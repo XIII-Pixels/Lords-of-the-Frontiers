@@ -1,4 +1,4 @@
-#include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
+#include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 
 UResourceManager::UResourceManager()
 {
