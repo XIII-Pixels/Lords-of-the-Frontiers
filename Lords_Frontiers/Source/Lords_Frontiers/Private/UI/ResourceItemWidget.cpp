@@ -1,4 +1,4 @@
-#include "Lords_Frontiers/Public/Resources/ResourceItemWidget.h"
+#include "Lords_Frontiers/Public/UI/ResourceItemWidget.h"
 
 void UResourceItemWidget::SetupItem( UTexture2D* IconTexture, int32 InitialValue, int32 MaxValue )
 {

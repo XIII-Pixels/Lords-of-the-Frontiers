@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Lords_Frontiers/Public/Resources/ResourceItemWidget.h"
+#include "Lords_Frontiers/Public/UI/ResourceItemWidget.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
