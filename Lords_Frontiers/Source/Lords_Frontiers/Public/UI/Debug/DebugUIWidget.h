@@ -4,7 +4,6 @@
 
 #include "Lords_Frontiers/Public/ResourceManager/ResourceItemWidget.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
-#include "Lords_Frontiers/Public/Waves/EnemyGroup.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 

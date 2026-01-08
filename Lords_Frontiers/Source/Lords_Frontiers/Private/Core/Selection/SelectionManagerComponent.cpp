@@ -5,7 +5,6 @@
 #include "Building/Building.h"
 #include "Selectable.h"
 
-#include "GameFramework/PlayerController.h"
 // Sets default values for this component's properties
 USelectionManagerComponent::USelectionManagerComponent()
 {

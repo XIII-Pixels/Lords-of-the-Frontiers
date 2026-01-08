@@ -1,7 +1,6 @@
 #include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
 
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
-#include "Lords_Frontiers/Public/Grid/GridCell.h"
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceGenerator.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"

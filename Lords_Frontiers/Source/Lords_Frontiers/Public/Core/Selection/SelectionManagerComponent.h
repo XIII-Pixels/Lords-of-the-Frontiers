@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Selectable.h"
-
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
 

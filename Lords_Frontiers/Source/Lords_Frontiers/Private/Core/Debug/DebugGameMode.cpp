@@ -4,7 +4,6 @@
 
 #include "Core/Debug/DebugPlayerController.h"
 #include "Grid/GridManager.h"
-#include "UI/Debug/DebugUIWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraActor.h"

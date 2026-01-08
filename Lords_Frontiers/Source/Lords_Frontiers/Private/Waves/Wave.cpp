@@ -2,7 +2,6 @@
 
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 
-#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
 

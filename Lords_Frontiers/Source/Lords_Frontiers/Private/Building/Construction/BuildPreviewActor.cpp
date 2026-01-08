@@ -1,7 +1,6 @@
 #include "Building/Construction/BuildPreviewActor.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "Engine/StaticMesh.h"
 
 ABuildPreviewActor::ABuildPreviewActor()
 {

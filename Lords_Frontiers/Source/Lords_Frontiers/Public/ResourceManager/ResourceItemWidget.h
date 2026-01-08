@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Lords_Frontiers/Public/ResourceManager/GameResource.h"
-
 #include "Blueprint/UserWidget.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
