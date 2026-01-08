@@ -27,9 +27,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	// Look forward at given time intervals
-	void SightTick();
-
-	void LookForward();
+	void Look();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;

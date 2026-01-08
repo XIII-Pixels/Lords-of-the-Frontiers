@@ -31,9 +31,7 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	// Look forward around at given time intervals
-	void SightTick();
-
+	// Look around at given time intervals
 	void Look();
 
 	bool CanSeeEnemy( TObjectPtr<AActor> actor ) const;

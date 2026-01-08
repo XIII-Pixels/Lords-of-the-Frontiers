@@ -39,7 +39,7 @@ void UAttackRangedComponent::BeginPlay()
 	Super::BeginPlay();
 
 	GetWorld()->GetTimerManager().SetTimer(
-	    SightTimerHandle_, this, &UAttackRangedComponent::SightTick, LookForwardTimeInterval_, true
+	    SightTimerHandle_, this, &UAttackRangedComponent::Look, LookForwardTimeInterval_, true
 	);
 }
 
@@ -77,15 +77,6 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 TObjectPtr<AActor> UAttackRangedComponent::EnemyInSight() const
 {
 	return EnemyInSight_;
-}
-
-void UAttackRangedComponent::SightTick()
-{
-	Look();
-
-	GetWorld()->GetTimerManager().SetTimer(
-	    SightTimerHandle_, this, &UAttackRangedComponent::SightTick, LookForwardTimeInterval_, true
-	);
 }
 
 void UAttackRangedComponent::Look()

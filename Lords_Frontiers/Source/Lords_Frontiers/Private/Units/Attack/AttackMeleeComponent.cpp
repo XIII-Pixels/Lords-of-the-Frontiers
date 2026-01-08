@@ -19,24 +19,12 @@ void UAttackMeleeComponent::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(
 		SightTimerHandle_,
 		this,
-		&UAttackMeleeComponent::SightTick,
+		&UAttackMeleeComponent::Look,
 		LookForwardTimeInterval_,
 		true );
 }
 
-void UAttackMeleeComponent::SightTick()
-{
-	LookForward();
-
-	GetWorld()->GetTimerManager().SetTimer(
-		SightTimerHandle_,
-		this,
-		&UAttackMeleeComponent::SightTick,
-		LookForwardTimeInterval_,
-		true );
-}
-
-void UAttackMeleeComponent::LookForward()
+void UAttackMeleeComponent::Look()
 {
 	if ( !Unit_ )
 	{
@@ -58,13 +46,10 @@ void UAttackMeleeComponent::LookForward()
 			if ( Unit_->Team() != hitEntity->Team() )
 			{
 				EnemyInSight_ = hitActor;
-				// UE_LOG( LogTemp, Display, TEXT( "Enemy seen" ) );
 				return;
 			}
-			// UE_LOG( LogTemp, Display, TEXT( "Ally seen" ) );
 			return;
 		}
-		// UE_LOG( LogTemp, Display, TEXT( "Actor seen" ) );
 	}
 
 	EnemyInSight_ = nullptr;
@@ -94,8 +79,6 @@ void UAttackMeleeComponent::Attack(TObjectPtr<AActor> hitActor)
 	{
 		return;
 	}
-
-	// UE_LOG( LogTemp, Display, TEXT( "Damage applied" ) );
 
 	attacked->TakeDamage( Unit_->Stats().AttackDamage() );
 	Unit_->Stats().StartCooldown();
