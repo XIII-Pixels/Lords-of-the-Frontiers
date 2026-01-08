@@ -9,8 +9,10 @@ enum class EResourceType : uint8
 {
 	None = 0 UMETA(DisplayName = "None"),
 	Gold UMETA(DisplayName = "Gold"),
-	Wood UMETA(DisplayName = "Wood"),
-	Mana UMETA(DisplayName = "Mana")
+	Food UMETA(DisplayName = "Food"),
+	Population UMETA(DisplayName = "Population"),
+	Progress UMETA(DisplayName = "Progress"),
+	MAX UMETA(Hidden)
 };
 
 // A structure representing the storage unit of a resource (type + quantity)

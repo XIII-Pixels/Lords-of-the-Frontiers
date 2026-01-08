@@ -4,10 +4,13 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
+#include "Components/HorizontalBox.h"
 #include "CoreMinimal.h"
+#include "Lords_Frontiers/Public/ResourceManager/ResourceItemWidget.h"
 
 #include "DebugUIWidget.generated.h"
 
+class UResourceManager;
 class UButton;
 class AGridVisualizer;
 class ABuildManager;
@@ -15,7 +18,6 @@ class ABuilding;
 class USelectionManagerComponent;
 class ADebugPlayerController;
 
-// * Simple debug UI. Не игровое, только для тестов. */
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 {
@@ -34,17 +36,21 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> Button4;
 
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> Button9;
+
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> Button7 = nullptr;
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
+	void CreateResourceWidgets( UResourceManager* Manager );
+
   protected:
 	UPROPERTY()
 	TObjectPtr<ABuildManager> BuildManager = nullptr;
 
-	// Кешированный указатель на менеджер выделения
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager = nullptr;
 
@@ -61,9 +67,26 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 	void OnButton4Clicked();
 
 	UFUNCTION()
+	void OnButton9Clicked();
+
+	UFUNCTION()
 	void OnButton7Clicked();
 
 	virtual bool Initialize() override;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UHorizontalBox> ResourceContainer;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI" )
+	TSubclassOf<UResourceItemWidget> ResourceItemClass;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI" )
+	TMap<EResourceType, TObjectPtr<UTexture2D>> ResourceIcons;
+
+	UPROPERTY()
+	TMap<EResourceType, TObjectPtr<UResourceItemWidget>> ResourceWidgetsMap;
+
+	UResourceManager* GetResourceManager() const;
 
   private:
 	UPROPERTY()
@@ -90,4 +113,7 @@ class LORDS_FRONTIERS_API UDebugUIWidget : public UUserWidget
 
 	UFUNCTION()
 	void HandleSelectionChanged();
+
+	UFUNCTION()
+	void OnResourceChangedHandler( EResourceType Type, int32 NewAmount );
 };
