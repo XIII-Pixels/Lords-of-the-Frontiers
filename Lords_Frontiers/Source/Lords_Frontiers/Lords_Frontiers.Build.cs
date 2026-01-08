@@ -18,8 +18,10 @@ public class Lords_Frontiers : ModuleRules
 			"AIModule",
 			"NavigationSystem",
 			"Slate",
-			"SlateCore"
-		});
+            "AIModule",
+            "SlateCore",
+            "NavigationSystem"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });	
 

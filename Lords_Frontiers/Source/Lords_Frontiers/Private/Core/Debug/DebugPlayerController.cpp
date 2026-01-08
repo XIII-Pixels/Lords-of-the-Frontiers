@@ -60,46 +60,62 @@ void ADebugPlayerController::EnsureBuildManager()
 
 void ADebugPlayerController::HandleLeftClick()
 {
-	EnsureBuildManager();
+    EnsureBuildManager();
 
-	if ( BuildManager_->IsPlacing() && BuildManager_ )
-	{
-		BuildManager_->ConfirmPlacing();
-		return;
-	}
+    // First check pointer validity, then call methods on it
+    if (BuildManager_ && BuildManager_->IsPlacing())
+    {
+        // Extra safety: ensure BuildManager_ still valid before call
+        if (IsValid(BuildManager_))
+        {
+            BuildManager_->ConfirmPlacing();
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("HandleLeftClick: BuildManager_ became invalid before ConfirmPlacing"));
+        }
+        return;
+    }
 
-	USelectionManagerComponent* selection = GetSelectionManager();
-	if ( !selection )
-	{
-		return;
-	}
+    USelectionManagerComponent* selection = GetSelectionManager();
+    if (!IsValid(selection))
+    {
+        UE_LOG(LogTemp, Verbose, TEXT("HandleLeftClick: SelectionManager is NULL or invalid"));
+        return;
+    }
 
-	// Трассировка под курсором по видимости
-	FHitResult hit;
-	const bool bHit = GetHitResultUnderCursorByChannel(
-	    UEngineTypes::ConvertToTraceType( ECollisionChannel::ECC_Visibility ), false, hit
-	);
+    // Trace under cursor
+    FHitResult hit;
+    const bool bHit = GetHitResultUnderCursorByChannel(
+        UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, hit
+    );
 
-	if ( !bHit )
-	{
-		// В пустоту кликнули – снимаем выделение
-		GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "ClearSelection VOID" ) );
-		selection->ClearSelection();
-		return;
-	}
+    if (!bHit)
+    {
+        if (GEngine)
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("ClearSelection VOID"));
+        }
+        selection->ClearSelection();
+        return;
+    }
 
-	AActor* hitActor = hit.GetActor();
-	if ( !IsValid( hitActor ) )
-	{
-		GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "Other actor" ) );
-		selection->ClearSelection();
-		return;
-	}
+    AActor* hitActor = hit.GetActor();
+    if (!IsValid(hitActor))
+    {
+        if (GEngine)
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Other actor"));
+        }
+        selection->ClearSelection();
+        return;
+    }
 
-	// Пока на этом шаге: просто запоминаем одного выбранного актора.
-	// Позже сюда добавим проверку ISelectable и вызов OnSelected/OnDeselected.
-	GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "SelectSingle" ) );
-	selection->SelectSingle( hitActor );
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("SelectSingle"));
+    }
+    selection->SelectSingle(hitActor);
 }
 
 void ADebugPlayerController::HandleRightClick()
