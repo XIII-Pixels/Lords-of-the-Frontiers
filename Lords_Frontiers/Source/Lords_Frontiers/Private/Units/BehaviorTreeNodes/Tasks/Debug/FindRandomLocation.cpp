@@ -3,7 +3,7 @@
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Units/Tasks/Debug/FindRandomLocationTask.h"
+#include "Units/BehaviorTreeNodes/Tasks/Debug/FindRandomLocationTask.h"
 
 UFindRandomLocationTask::UFindRandomLocationTask()
 {

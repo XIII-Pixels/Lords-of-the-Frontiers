@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+
 #include "Attackable.generated.h"
 
-UINTERFACE(Blueprintable)
+enum class ETeam : uint8;
+
+UINTERFACE( Blueprintable )
 class LORDS_FRONTIERS_API UAttackable : public UInterface
 {
 	GENERATED_BODY()
@@ -18,8 +21,9 @@ class LORDS_FRONTIERS_API IAttackable
 {
 	GENERATED_BODY()
 
-public:
-	/** (Gregory-hub)
-	 * Attackers call this on attacked object to deal damage */
-	virtual void TakeDamage(float damage) = 0;
+  public:
+	// Attackers call this on attacked object to deal damage
+	virtual void TakeDamage( float damage ) = 0;
+
+	virtual ETeam Team() = 0;
 };

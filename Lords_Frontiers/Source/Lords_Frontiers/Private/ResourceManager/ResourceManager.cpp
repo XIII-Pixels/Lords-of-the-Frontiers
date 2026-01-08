@@ -12,20 +12,19 @@ void UResourceManager::BeginPlay()
 	Super::BeginPlay();
 }
 
-void UResourceManager::AddResource(EResourceType type, int32 quantity)
+void UResourceManager::AddResource( EResourceType type, int32 quantity )
 {
-	if ( ( type == EResourceType::None ) || ( quantity <= 0 ) )
-	{
+	if ( type == EResourceType::None || quantity <= 0 )
 		return;
-	}
 
 	int32& CurrentAmount = Resources_.FindOrAdd( type );
-	CurrentAmount += quantity;
+	const int32 MaxAmount = GetMaxResourceAmount( type );
 
-	// OnResourceChanged.Broadcast(type, CurrentAmount);
+	CurrentAmount = FMath::Min( CurrentAmount + quantity, MaxAmount );
+	OnResourceChanged.Broadcast( type, CurrentAmount );
 }
 
-bool UResourceManager::TrySpendResource(EResourceType type, int32 quantity)
+bool UResourceManager::TrySpendResource( EResourceType type, int32 quantity )
 {
 	if ( ( type == EResourceType::None ) || ( quantity <= 0 ) )
 	{
@@ -42,13 +41,14 @@ bool UResourceManager::TrySpendResource(EResourceType type, int32 quantity)
 	if ( CurrentAmount >= quantity )
 	{
 		CurrentAmount -= quantity;
+		OnResourceChanged.Broadcast( type, CurrentAmount );
 		return true;
 	}
 
 	return false;
 }
 
-int32 UResourceManager::GetResourceAmount(EResourceType type) const
+int32 UResourceManager::GetResourceAmount( EResourceType type ) const
 {
 	if ( Resources_.Contains( type ) )
 	{
@@ -58,7 +58,12 @@ int32 UResourceManager::GetResourceAmount(EResourceType type) const
 	return 0;
 }
 
-bool UResourceManager::HasEnoughResource(EResourceType type, int32 quantity) const
+bool UResourceManager::HasEnoughResource( EResourceType type, int32 quantity ) const
 {
 	return GetResourceAmount( type ) >= quantity;
+}
+
+int32 UResourceManager::GetMaxResourceAmount( EResourceType type ) const
+{
+	return MaxResources_.Contains( type ) ? MaxResources_[type] : cDefaultMaxResource;
 }

@@ -1,6 +1,7 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
 
 static constexpr int32 cDefaultResourceHealth = 200;
@@ -9,7 +10,7 @@ static constexpr int32 cDefaultResourceDamage = 0;
 AResourceBuilding::AResourceBuilding()
 {
 	// Init Stats
-	Stats_ = FEntityStats( cDefaultResourceHealth, cDefaultResourceDamage, 0.0f, 0.0f );
+	Stats_ = FEntityStats( cDefaultResourceHealth, cDefaultResourceDamage, 0.0f );
 
 	// Creating a Generator Component
 	ResourceGenerator_ = CreateDefaultSubobject<UResourceGenerator>( TEXT( "ResourceGenerator" ) );
@@ -18,6 +19,13 @@ AResourceBuilding::AResourceBuilding()
 void AResourceBuilding::BeginPlay()
 {
 	Super::BeginPlay();
+	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
+		{
+			Eco->RegisterBuilding( this );
+		}
+	}
 
 	// Initialization and start of generation
 	UResourceManager* ResourceManager = FindResourceManager_();
@@ -46,4 +54,16 @@ UResourceManager* AResourceBuilding::FindResourceManager_() const
 	}
 
 	return nullptr;
+}
+
+void AResourceBuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
+		{
+			Eco->UnregisterBuilding( this );
+		}
+	}
+	Super::EndPlay( EndPlayReason );
 }

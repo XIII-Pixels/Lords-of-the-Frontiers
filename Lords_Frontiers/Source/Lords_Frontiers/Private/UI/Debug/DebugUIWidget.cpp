@@ -8,8 +8,11 @@
 #include "Core/Debug/DebugPlayerController.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 #include "Grid/GridVisualizer.h"
 #include "Kismet/GameplayStatics.h"
+#include "Lords_Frontiers/Public/ResourceManager/EconomyComponent.h"
+#include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
 
 void UDebugUIWidget::OnButton1Clicked()
 {
@@ -18,7 +21,6 @@ void UDebugUIWidget::OnButton1Clicked()
 		GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Yellow, TEXT( "Button 1 Clicked" ) );
 	}
 
-	// Если ещё не знаем визуализатор — попробуем найти его сейчас.
 	if ( !GridVisualizer )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -47,11 +49,9 @@ void UDebugUIWidget::OnButton1Clicked()
 		Button1->SetBackgroundColor( FLinearColor::Red );
 	}
 
-	// Переключаем видимость доп. кнопок.
 	bExtraButtonsVisible = !bExtraButtonsVisible;
 	UpdateExtraButtonsVisibility();
 
-	// Переключаем видимость сетки.
 	if ( GridVisualizer->IsGridVisible() )
 	{
 		GridVisualizer->HideGrid();
@@ -163,6 +163,41 @@ void UDebugUIWidget::OnButton4Clicked()
 	BuildManager->StartPlacingBuilding( Button4BuildingClass );
 }
 
+void UDebugUIWidget::OnButton9Clicked()
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
+	if ( !PC )
+		return;
+
+	UResourceManager* ResManager = PC->FindComponentByClass<UResourceManager>();
+	if ( !ResManager )
+	{
+		ResManager = NewObject<UResourceManager>( PC, TEXT( "DynamicResourceManager" ) );
+		ResManager->RegisterComponent();
+	}
+
+	CreateResourceWidgets( ResManager );
+
+	UEconomyComponent* EconomyComp = PC->FindComponentByClass<UEconomyComponent>();
+	if ( !EconomyComp )
+	{
+		EconomyComp = NewObject<UEconomyComponent>( PC, TEXT( "DynamicEconomyComponent" ) );
+		EconomyComp->RegisterComponent();
+	}
+
+	if ( EconomyComp && ResManager )
+	{
+		EconomyComp->SetResourceManager( ResManager );
+
+		UE_LOG( LogTemp, Warning, TEXT( "UI Link: ResManager(%p) <-> Economy(%p)" ), ResManager, EconomyComp );
+	}
+
+	if ( EconomyComp )
+	{
+		EconomyComp->CollectGlobalResources();
+	}
+}
+
 void UDebugUIWidget::OnButton7Clicked()
 {
 	if ( GEngine )
@@ -170,7 +205,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Yellow, TEXT( "Button 7 Clicked (Relocate Building)" ) );
 	}
 
-	// 1) Убедимся, что у нас есть BuildManager
 	if ( !BuildManager )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -200,7 +234,6 @@ void UDebugUIWidget::OnButton7Clicked()
 		return;
 	}
 
-	// 3) Берём выделенное здание
 	ABuilding* selectedBuilding = SelectionManager->GetPrimarySelectedBuilding();
 	if ( !selectedBuilding )
 	{
@@ -211,7 +244,7 @@ void UDebugUIWidget::OnButton7Clicked()
 		return;
 	}
 
-	// 4) Запускаем перенос через BuildManager
+	// 4) пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ BuildManager
 	BuildManager->StartRelocatingBuilding ( selectedBuilding );
 }
 
@@ -478,7 +511,6 @@ bool UDebugUIWidget::Initialize()
 		return false;
 	}
 
-	// Привязка коллбеков кнопок.
 	if ( Button1 )
 	{
 		Button1->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton1Clicked );
@@ -498,10 +530,16 @@ bool UDebugUIWidget::Initialize()
 		Button4->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton4Clicked );
 	}
 
+	if ( Button9 )
+	{
+		Button9->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton9Clicked );
+		Button9->SetVisibility( ESlateVisibility::Visible );
+	}
+
 	if ( Button7 )
 	{
 		Button7->OnClicked.AddDynamic( this, &UDebugUIWidget::OnButton7Clicked );
-		Button7->SetVisibility( ESlateVisibility::Visible ); // по умолчанию скрыта
+		Button7->SetVisibility( ESlateVisibility::Visible );
 	}
 	if (ButtonEnemyWave)
 	{
@@ -580,6 +618,7 @@ void UDebugUIWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 
 	HandleSelectionChanged();
 }
+
 void UDebugUIWidget::HandleAllWavesCompleted()
 {
 	UE_LOG(LogTemp, Log, TEXT("UDebugUIWidget::HandleAllWavesCompleted called"));
@@ -589,4 +628,56 @@ void UDebugUIWidget::HandleAllWavesCompleted()
 		GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Green, TEXT("All waves completed"));
 	}
 
+}
+
+UResourceManager* UDebugUIWidget::GetResourceManager() const
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
+	return PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
+}
+
+void UDebugUIWidget::OnResourceChangedHandler( EResourceType Type, int32 NewAmount )
+{
+	if ( GEngine )
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 5.f, FColor::Magenta,
+		    FString::Printf( TEXT( "UI RECEIVED: Type %d, Amount %d" ), (uint8) Type, NewAmount )
+		);
+
+	if ( ResourceWidgetsMap.Contains( Type ) )
+	{
+		UResourceManager* ResManager = GetResourceManager();
+		int32 MaxValue = ResManager ? ResManager->GetMaxResourceAmount( Type ) : 100;
+
+		ResourceWidgetsMap[Type]->UpdateAmount( NewAmount, MaxValue );
+	}
+}
+
+void UDebugUIWidget::CreateResourceWidgets( UResourceManager* ResManager )
+{
+
+	if ( ResourceWidgetsMap.Num() > 0 )
+		return;
+
+	if ( !ResManager || !ResourceContainer || !ResourceItemClass )
+		return;
+
+	ResManager->OnResourceChanged.AddDynamic( this, &UDebugUIWidget::OnResourceChangedHandler );
+
+	for ( uint8 i = 1; i < (uint8) EResourceType::MAX; ++i )
+	{
+		EResourceType CurrentType = static_cast<EResourceType>( i );
+		UResourceItemWidget* NewItem = CreateWidget<UResourceItemWidget>( this, ResourceItemClass );
+		if ( NewItem )
+		{
+			TObjectPtr<UTexture2D> Icon = ResourceIcons.Contains( CurrentType ) ? ResourceIcons[CurrentType] : nullptr;
+			int32 StartValue = ResManager->GetResourceAmount( CurrentType );
+			int32 MaxValue = ResManager->GetMaxResourceAmount( CurrentType );
+
+			NewItem->SetupItem( Icon, StartValue, MaxValue );
+
+			ResourceContainer->AddChild( NewItem );
+			ResourceWidgetsMap.Add( CurrentType, NewItem );
+		}
+	}
 }

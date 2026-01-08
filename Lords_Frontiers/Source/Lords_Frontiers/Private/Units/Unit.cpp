@@ -2,54 +2,142 @@
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
-#include "Units/UnitMovementComponent.h"
-
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Transform/TransformableHandleUtils.h"
+#include "Units/FollowComponent.h"
 #include "Units/UnitAIController.h"
+#include "Utilities/TraceChannelMappings.h"
 
 AUnit::AUnit()
 {
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
-	CollisionComponent_->SetCollisionProfileName( TEXT( "Pawn" ) );
-
-	MovementComponent_ = CreateDefaultSubobject<UUnitMovementComponent>( TEXT( "UnitMovementComponent" ) );
-	MovementComponent_->UpdatedComponent = CollisionComponent_;
+	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	UnitAIControllerClass = AUnitAIController::StaticClass();
-	AIControllerClass = UnitAIControllerClass;
+	UnitAIControllerClass_ = AUnitAIController::StaticClass();
 }
 
-void AUnit::OnConstruction(const FTransform& Transform)
+void AUnit::OnConstruction( const FTransform& transform )
 {
-	Super::OnConstruction( Transform );
-	AIControllerClass = UnitAIControllerClass;
+	Super::OnConstruction( transform );
+	AIControllerClass = UnitAIControllerClass_;
 }
 
-/** (Gregory-hub)
- * Attack someone or something
- * Calls IAttackable::TakeDamage on target */
-void AUnit::Attack(TScriptInterface<IAttackable> target)
+void AUnit::BeginPlay()
 {
-	// Probably should be done with some attack component, because some buildings can attack as well
-	// Probably should use some attack manager, because it would be easier to fetch attack info
+	Super::BeginPlay();
+
+	FollowComponent_ = FindComponentByClass<UFollowComponent>();
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
+		FollowComponent_->UpdatedComponent = CollisionComponent_;
+	}
+
+	TArray<UAttackComponentBase*> attackComponents;
+	GetComponents( attackComponents );
+
+	if ( attackComponents.Num() == 1 )
+	{
+		AttackComponent_ = attackComponents[0];
+	}
+	else
+	{
+		UE_LOG(
+		    LogTemp, Error, TEXT( "Number of unit attack component is not equal to 1 (number: %d)" ),
+		    attackComponents.Num()
+		);
+	}
 }
 
-/** (Gregory-hub)
- * Decrease HP */
-void AUnit::TakeDamage(float damage)
+void AUnit::Tick( float deltaSeconds )
 {
-	// Stats.HP -= damage
+	Super::Tick( deltaSeconds );
 }
 
-const TObjectPtr<UBehaviorTree>& AUnit::BehaviorTree() const
+void AUnit::StartFollowing()
 {
-	return UnitBehaviorTree;
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->StartFollowing();
+	}
 }
 
-const TObjectPtr<AActor>& AUnit::Target() const
+void AUnit::StopFollowing()
 {
-	return FollowedTarget;
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->StopFollowing();
+	}
+}
+
+void AUnit::Attack( TObjectPtr<AActor> hitActor )
+{
+	if ( AttackComponent_ )
+	{
+		AttackComponent_->Attack( hitActor );
+	}
+}
+
+void AUnit::TakeDamage( float damage )
+{
+	if ( !Stats_.IsAlive() )
+	{
+		return;
+	}
+
+	Stats_.ApplyDamage( damage );
+	if ( !Stats_.IsAlive() )
+	{
+		OnDeath();
+	}
+}
+
+FEntityStats& AUnit::Stats()
+{
+	return Stats_;
+}
+
+ETeam AUnit::Team()
+{
+	return Stats_.Team();
+}
+
+TObjectPtr<AActor> AUnit::EnemyInSight() const
+{
+	if ( AttackComponent_ )
+	{
+		return AttackComponent_->EnemyInSight();
+	}
+	return nullptr;
+}
+
+TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
+{
+	return UnitBehaviorTree_;
+}
+
+TObjectPtr<AActor> AUnit::FollowedTarget() const
+{
+	return FollowedTarget_;
+}
+
+void AUnit::OnDeath()
+{
+	// When HP becomes 0
+
+	if ( AttackComponent_ )
+	{
+		AttackComponent_->DeactivateSight();
+	}
+
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Deactivate();
+	}
+
+	Destroy();
 }

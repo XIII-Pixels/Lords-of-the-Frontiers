@@ -10,7 +10,7 @@ ABuilding::ABuilding()
 
 	BuildingMesh_->SetCollisionResponseToChannel( ECollisionChannel::ECC_GameTraceChannel1, ECR_Ignore );
 
-	Stats_ = FEntityStats( 100, 0, 0.0f, 0.0f );
+	Stats_ = FEntityStats( 100, 0, 0.0f );
 }
 
 void ABuilding::BeginPlay()
