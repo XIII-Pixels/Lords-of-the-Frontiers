@@ -79,7 +79,6 @@ void AProjectile::OnCollisionStart(
 		return;
 	}
 
-	GEngine->AddOnScreenDebugMessage( -1, 5.0f, FColor::Blue, "Projectile collision start" );
 	if ( otherActor == Target_ )
 	{
 		DealDamage( otherActor );
