@@ -1,61 +1,98 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
 #include "EntityStats.generated.h"
+
+UENUM( BlueprintType )
+enum class ETeam : uint8
+{
+	Dog,
+	Cat
+};
 
 // (Artyom)
 // entity stats struct (health, damage, damage radius, speed)
-USTRUCT ( BlueprintType )
+USTRUCT( BlueprintType )
 struct FEntityStats
 {
-	GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	int MaxHealth;
+	FEntityStats() = default;
 
-	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	int Health;
-
-	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	int AttackDamage;
-
-	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	float AttackRange;
-
-	UPROPERTY ( EditAnywhere, BlueprintReadWrite, Category = "Stats" )
-	float MoveSpeed;
-
-public:
-	FEntityStats ();
-	explicit FEntityStats ( int inMaxHealth, int inAttackDamage, float inAttackRange, float inMoveSpeed );
+	explicit FEntityStats( int maxHealth, int attackDamage, float attackRange );
 
 	// getters
-	int GetMaxHealth () const;
-	int GetHealth () const;
-	int GetAttackDamage () const;
-	float GetAttackRange () const;
-	float GetMoveSpeed () const;
+	int MaxHealth() const;
+
+	int Health() const;
+
+	float AttackRange() const;
+
+	int AttackDamage() const;
+
+	float AttackCooldown() const;
+
+	float MaxSpeed() const;
+
+	ETeam Team() const;
 
 	// setters
-	void SetMaxHealth ( int inMaxHealth ); // min = 1
+	void SetMaxHealth( int maxHealth ); // min = 1
 
-	void SetHealth ( int inHealth );
+	void SetHealth( int health );
 
-	void SetAttackDamage ( int inAttackDamage );
-	void SetAttackRange ( float inAttackRange );
-	void SetMoveSpeed ( float inMoveSpeed );
+	void SetAttackRange( float attackRange );
+
+	void SetAttackDamage( int attackDamage );
+
+	void SetAttackCooldown( float attackCooldown );
+
+	void SetMaxSpeed( float maxSpeed );
+
+	void SetTeam( ETeam team );
 
 	// functionality
-	// return applied damage
-	int ApplyDamage ( int damage );
 
-	void Heal ( int amount );
+	// returns applied damage
+	int ApplyDamage( int damage );
+
+	void Heal( int amount );
+
+	bool OnCooldown() const;
+
+	void StartCooldown();
 
 	// damage modificator (if needed)
-	void ModifyAttackDamage ( int delta );
+	void ModifyAttackDamage( int delta );
 
 	// utils
-	bool IsAlive () const;
-	bool IsAtFullHealth () const;
+	bool IsAlive() const;
+
+	bool IsAtFullHealth() const;
+
+private:
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	int MaxHealth_ = 100;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Stats" )
+	int Health_ = MaxHealth_;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	float AttackRange_ = 200.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	int AttackDamage_ = 10;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	float AttackCooldown_ = 1.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	float MaxSpeed_ = 300.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Stats" )
+	ETeam Team_;
+
+	FDateTime LastAttackTime_;
 };

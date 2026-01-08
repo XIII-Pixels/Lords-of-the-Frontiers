@@ -2,21 +2,22 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "AIController.h"
-
 #include "Attackable.h"
-
+#include "CoreMinimal.h"
+#include "EntityStats.h"
 #include "GameFramework/Pawn.h"
+#include "Units/Attack/AttackComponentBase.h"
+
 #include "Unit.generated.h"
 
 class UCapsuleComponent;
 class UBehaviorTree;
-class UUnitMovementComponent;
+class UFollowComponent;
 
 /** (Gregory-hub)
- * Base class for all units in a game
- * Can move and attack
+ * Base class for all units in a game (implement units in blueprints)
+ * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
@@ -26,31 +27,53 @@ class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
 public:
 	AUnit();
 
-	// Attack and damage
-	virtual void Attack(TScriptInterface<IAttackable> target);
+	virtual void OnConstruction( const FTransform& transform ) override;
 
-	void TakeDamage(float damage) override;
+	virtual void BeginPlay() override;
 
-	// Getters
-	const TObjectPtr<UBehaviorTree>& BehaviorTree() const;
+	virtual void Tick( float deltaSeconds ) override;
 
-	const TObjectPtr<AActor>& Target() const;
+	void StartFollowing();
 
-	void OnConstruction(const FTransform& Transform) override;
+	void StopFollowing();
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
-	TSubclassOf<AAIController> UnitAIControllerClass;
+	void Attack( TObjectPtr<AActor> hitActor );
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
-	TObjectPtr<UBehaviorTree> UnitBehaviorTree;
+	virtual void TakeDamage( float damage ) override;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|AI" )
-	TObjectPtr<AActor> FollowedTarget;
+	// Getters and setters
+
+	FEntityStats& Stats();
+
+	virtual ETeam Team() override;
+
+	TObjectPtr<AActor> EnemyInSight() const;
+
+	TObjectPtr<UBehaviorTree> BehaviorTree() const;
+
+	TObjectPtr<AActor> FollowedTarget() const;
 
 protected:
-	UPROPERTY( VisibleDefaultsOnly )
+	void OnDeath();
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
+	TSubclassOf<AAIController> UnitAIControllerClass_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
+	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings" )
+	FEntityStats Stats_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings" )
+	TObjectPtr<AActor> FollowedTarget_;
+
+	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
-	UPROPERTY( VisibleDefaultsOnly )
-	TObjectPtr<UUnitMovementComponent> MovementComponent_;
+	UPROPERTY()
+	TObjectPtr<UFollowComponent> FollowComponent_;
+
+	UPROPERTY()
+	TObjectPtr<UAttackComponentBase> AttackComponent_;
 };

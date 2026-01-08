@@ -9,7 +9,7 @@ static constexpr int32 cDefaultResourceDamage = 0;
 AResourceBuilding::AResourceBuilding()
 {
 	// Init Stats
-	Stats_ = FEntityStats( cDefaultResourceHealth, cDefaultResourceDamage, 0.0f, 0.0f );
+	Stats_ = FEntityStats( cDefaultResourceHealth, cDefaultResourceDamage, 0.0f );
 
 	// Creating a Generator Component
 	ResourceGenerator_ = CreateDefaultSubobject<UResourceGenerator>( TEXT( "ResourceGenerator" ) );
