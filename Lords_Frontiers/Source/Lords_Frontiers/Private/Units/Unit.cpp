@@ -31,6 +31,8 @@ void AUnit::BeginPlay()
 {
 	Super::BeginPlay();
 
+	Stats_.SetHealth( Stats_.MaxHealth() );
+
 	FollowComponent_ = FindComponentByClass<UFollowComponent>();
 	if ( FollowComponent_ )
 	{
