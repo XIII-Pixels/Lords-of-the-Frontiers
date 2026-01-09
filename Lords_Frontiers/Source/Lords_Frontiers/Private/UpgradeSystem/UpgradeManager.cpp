@@ -3,6 +3,9 @@
 
 #include "UpgradeSystem/UpgradeManager.h"
 #include "UpgradeSystem/UpgradePreset.h"
+#include "UpgradeSystem/CardManager.h"
+#include "UpgradeSystem/Card.h"
+#include "UpgradeSystem/CardSystemSettings.h"
 
 void UUpgradeManager::OnWorldBeginPlay(UWorld& InWorld)
 {
@@ -41,4 +44,21 @@ FCardModifiers UUpgradeManager::GetModifiersForCategory(EBuildingCategory catego
 		}
 	}
 	return statsCategoty;
+}
+
+void UUpgradeManager::SelectCard(UCard* Card)
+{
+	if (!Card)
+	{
+		return;
+	}
+
+	AddCard(Card);
+
+	OnUpgradeApplied.Broadcast();
+
+	if (UCardManager* CardManager = GetWorld()->GetSubsystem<UCardManager>())
+	{
+		CardManager->HideCardSelection();
+	}
 }

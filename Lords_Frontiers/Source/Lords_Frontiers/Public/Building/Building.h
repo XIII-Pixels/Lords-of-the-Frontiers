@@ -7,6 +7,9 @@
 
 #include "Building.generated.h"
 
+enum class EBuildingCategory : uint8;
+struct FCardModifiers;
+
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public AActor, public ISelectable
 {
@@ -35,12 +38,25 @@ class LORDS_FRONTIERS_API ABuilding : public AActor, public ISelectable
 
 	virtual FVector GetSelectionLocation_Implementation() const override;
 
+	virtual EBuildingCategory GetBuildingCategory() const;
+
+	UFUNCTION()
+	void ApplyUpgrades();
+
+	FCardModifiers GetModifiers() const;
   protected:
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Setting|Components" )
 	UStaticMeshComponent* BuildingMesh_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Setting|Stats" )
 	FEntityStats Stats_;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting|Stats")
+	FEntityStats BaseStats_;
+
+
 };

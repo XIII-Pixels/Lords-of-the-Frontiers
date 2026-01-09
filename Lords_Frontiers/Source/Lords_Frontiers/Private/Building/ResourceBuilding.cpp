@@ -1,4 +1,5 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
+#include "UpgradeSystem/Card.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/ResourceManager/ResourceManager.h"
@@ -46,4 +47,9 @@ UResourceManager* AResourceBuilding::FindResourceManager_() const
 	}
 
 	return nullptr;
+}
+
+EBuildingCategory AResourceBuilding::GetBuildingCategory() const
+{
+	return EBuildingCategory::Resource;
 }

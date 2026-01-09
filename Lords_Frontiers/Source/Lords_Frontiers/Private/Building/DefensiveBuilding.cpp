@@ -24,3 +24,8 @@ FString ADefensiveBuilding::GetNameBuild()
 {
 	return TEXT( "DefensiveBuild" );
 }
+
+EBuildingCategory ADefensiveBuilding::GetBuildingCategory() const
+{
+	return EBuildingCategory::Defensive;
+}

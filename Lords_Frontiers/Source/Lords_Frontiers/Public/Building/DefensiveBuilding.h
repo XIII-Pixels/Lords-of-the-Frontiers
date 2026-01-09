@@ -5,6 +5,7 @@
 #include "Building/Building.h"
 #include "Building/WallTypes.h"
 #include "CoreMinimal.h"
+#include "UpgradeSystem/Card.h"
 
 #include "DefensiveBuilding.generated.h"
 
@@ -24,6 +25,8 @@ class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding
 	{
 		return WallMeshSet_;
 	}
+
+	virtual EBuildingCategory GetBuildingCategory() const override;
 
   protected:
 	virtual void BeginPlay() override;

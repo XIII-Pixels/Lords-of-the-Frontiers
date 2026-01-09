@@ -1,4 +1,6 @@
 #include "Building/Building.h"
+#include "UpgradeSystem/UpgradeManager.h"
+#include "UpgradeSystem/Card.h"
 
 ABuilding::ABuilding()
 {
@@ -16,7 +18,27 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Stats_ = BaseStats_;
+
+	if (UUpgradeManager* Manager = GetWorld()->GetSubsystem<UUpgradeManager>())
+	{
+		Manager->OnUpgradeApplied.AddDynamic(this, &ABuilding::ApplyUpgrades);
+	}
+
+	ApplyUpgrades();
 }
+
+void ABuilding::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UUpgradeManager* Manager = GetWorld()->GetSubsystem<UUpgradeManager>())
+	{
+		Manager->OnUpgradeApplied.RemoveDynamic(this, &ABuilding::ApplyUpgrades);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 
 float ABuilding::TakeDamage(
     float damageAmount, FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser
@@ -101,4 +123,34 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 	}
 
 	return GetActorLocation();
+}
+
+void ABuilding::ApplyUpgrades()
+{
+	Stats_ = BaseStats_;
+
+	if (UUpgradeManager* Manager = GetWorld()->GetSubsystem<UUpgradeManager>())
+	{
+		FCardModifiers Mods = Manager->GetModifiersForCategory(GetBuildingCategory());
+
+		
+		Stats_.MaxHealth = FMath::RoundToInt(BaseStats_.MaxHealth * Mods.HPMultiplier);
+		Stats_.Health = Stats_.MaxHealth;  
+		Stats_.AttackDamage = FMath::RoundToInt(BaseStats_.AttackDamage * Mods.DamageMultiplier);
+		Stats_.AttackRange = BaseStats_.AttackRange * Mods.RangeMultiplier;
+	}
+}
+
+EBuildingCategory ABuilding::GetBuildingCategory() const
+{
+	return EBuildingCategory::All;
+}
+
+FCardModifiers ABuilding::GetModifiers() const
+{
+	if (UUpgradeManager* Manager = GetWorld()->GetSubsystem<UUpgradeManager>())
+	{
+		return Manager->GetModifiersForCategory(GetBuildingCategory());
+	}
+	return FCardModifiers();
 }

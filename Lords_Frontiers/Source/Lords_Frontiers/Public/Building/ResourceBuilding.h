@@ -17,6 +17,8 @@ class LORDS_FRONTIERS_API AResourceBuilding : public ABuilding
   public:
 	AResourceBuilding();
 
+	virtual EBuildingCategory GetBuildingCategory() const override;
+
   protected:
 	virtual void BeginPlay() override;
 

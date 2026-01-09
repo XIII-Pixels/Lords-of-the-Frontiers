@@ -1,15 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "UpgradeSystem/CardManager.h"
 #include "UpgradeSystem/Card.h"
 #include "UpgradeSystem/UpgradeManager.h"
-#include "UpgradeSystem/CardVisualizer.h"
 #include "UpgradeSystem/CardSystemSettings.h"
+#include "UpgradeSystem/CardSelectionWidget.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
-#include "Camera/PlayerCameraManager.h"
-
 
 void UCardManager::OnWorldBeginPlay(UWorld& InWorld)
 {
@@ -32,39 +28,40 @@ void UCardManager::LoadCardsFromFolder()
 {
     FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
-    TArray<FAssetData> assetList;
-    AssetRegistry.Get().GetAssetsByPath(TEXT("/Game/Cards"), assetList, true);
+    TArray<FAssetData> AssetList;
+    AssetRegistry.Get().GetAssetsByPath(TEXT("/Game/Cards/CardData"), AssetList, true);
 
-    for (const FAssetData& asset : assetList)
+    for (const FAssetData& Asset : AssetList)
     {
-        if (UCard* card = Cast<UCard>(asset.GetAsset()))
+        if (UCard* Card = Cast<UCard>(Asset.GetAsset()))
         {
-            AvailableCards.Add(card);
+            AvailableCards.Add(Card);
         }
     }
-    UE_LOG(LogTemp, Warning, TEXT("CardManager: Loaded %d cards"), AvailableCards.Num());
 
+    UE_LOG(LogTemp, Warning, TEXT("CardManager: Loaded %d cards"), AvailableCards.Num());
 }
-TArray<UCard*> UCardManager::GetRandomCards(int32 count)
+
+TArray<UCard*> UCardManager::GetRandomCards(int32 Count)
 {
-    TArray<UCard*> result;
+    TArray<UCard*> Result;
 
     if (AvailableCards.Num() == 0)
     {
-        return result;
+        return Result;
     }
 
-    TArray<UCard*> tempCards = AvailableCards;
+    TArray<UCard*> TempCards = AvailableCards;
 
-    for (int32 i = 0; i < count && tempCards.Num() > 0; i++)
+    for (int32 i = 0; i < Count && TempCards.Num() > 0; i++)
     {
-        int32 randomIndex = FMath::RandRange(0, tempCards.Num() - 1);
-        result.Add(tempCards[randomIndex]);
-        tempCards.RemoveAt(randomIndex);
+        int32 RandomIndex = FMath::RandRange(0, TempCards.Num() - 1);
+        Result.Add(TempCards[RandomIndex]);
+        TempCards.RemoveAt(RandomIndex);
     }
-    return result;
-}
 
+    return Result;
+}
 
 void UCardManager::ShowCardSelection(int32 Count)
 {
@@ -72,71 +69,40 @@ void UCardManager::ShowCardSelection(int32 Count)
 
     HideCardSelection();
 
-    if (!Settings)
+    if (!Settings || !Settings->CardSelectionWidgetClass)
     {
-        UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: Settings is null!"));
+        UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: No settings or widget class!"));
         return;
     }
 
-    if (!Settings->CardVisualizerClass)
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (!PC)
     {
-        UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: CardVisualizerClass is null!"));
+        UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: No PlayerController!"));
+        return;
+    }
+
+    CurrentSelectionWidget = CreateWidget<UCardSelectionWidget>(PC, Settings->CardSelectionWidgetClass);
+    if (!CurrentSelectionWidget)
+    {
+        UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: Failed to create widget!"));
         return;
     }
 
     TArray<UCard*> Cards = GetRandomCards(Count);
     UE_LOG(LogTemp, Warning, TEXT("ShowCardSelection: Got %d cards"), Cards.Num());
 
-    APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
-    if (!CameraManager)
-    {
-        UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: CameraManager is null!"));
-        return;
-    }
-
-    FVector CameraLocation = CameraManager->GetCameraLocation();
-    FRotator CameraRotation = CameraManager->GetCameraRotation();
-    FVector ForwardVector = CameraRotation.Vector();
-
-    UE_LOG(LogTemp, Warning, TEXT("ShowCardSelection: Camera at %s"), *CameraLocation.ToString());
-
-    for (int32 i = 0; i < Cards.Num(); i++)
-    {
-        float Offset = (i - (Cards.Num() - 1) / 2.0f) * Settings->SpacingBetweenCards;
-        FVector RightVector = FRotationMatrix(CameraRotation).GetUnitAxis(EAxis::Y);
-        FVector SpawnLocation = CameraLocation + ForwardVector * Settings->DistanceFromCamera + RightVector * Offset;
-
-        FRotator SpawnRotation = CameraRotation;
-
-        ACardVisualizer* Visualizer = GetWorld()->SpawnActor<ACardVisualizer>(
-            Settings->CardVisualizerClass,
-            SpawnLocation,
-            SpawnRotation
-        );
-
-        if (Visualizer)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("ShowCardSelection: Spawned card %d at %s"), i, *SpawnLocation.ToString());
-            Visualizer->SetCard(Cards[i]);
-            SpawnedCards.Add(Visualizer);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("ShowCardSelection: Failed to spawn card %d"), i);
-        }
-    }
+    CurrentSelectionWidget->AddToViewport();
+    CurrentSelectionWidget->ShowCards(Cards);
 }
 
 void UCardManager::HideCardSelection()
 {
-    for (ACardVisualizer* Visualizer : SpawnedCards)
+    if (CurrentSelectionWidget)
     {
-        if (Visualizer)
-        {
-            Visualizer->Destroy();
-        }
+        CurrentSelectionWidget->RemoveFromParent();
+        CurrentSelectionWidget = nullptr;
     }
-    SpawnedCards.Empty();
 }
 
 void UCardManager::SelectCard(UCard* Card)
@@ -146,6 +112,5 @@ void UCardManager::SelectCard(UCard* Card)
         UpgradeManager->AddCard(Card);
     }
 
-    // Скрыть карты после выбора
     HideCardSelection();
 }

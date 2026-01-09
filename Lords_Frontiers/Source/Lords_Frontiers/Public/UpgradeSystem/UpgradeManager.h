@@ -1,38 +1,36 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
-#include "Card.h"
 #include "CoreMinimal.h"
+
 #include "Subsystems/WorldSubsystem.h"
 #include "UpgradeManager.generated.h"
 
+enum class EBuildingCategory : uint8;
+struct FCardModifiers;
 class UUpgradePreset;
 class UCard;
-/**
- * 
- */
+class UCardSystemSettings;
+class UCardSelectionWidget;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUpgradeApplied);
+
 UCLASS()
 class LORDS_FRONTIERS_API UUpgradeManager : public UWorldSubsystem
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
 public:
+    virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+    void AddCard(UCard* Card);
+    void SelectCard(UCard* Card);
+    FCardModifiers GetModifiersForCategory(EBuildingCategory Category);
 
-	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
-
-	UFUNCTION()
-	void AddCard(UCard* card);
-
-	FCardModifiers GetModifiersForCategory(EBuildingCategory category);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting | Card | DebugPresetCard")
-	UUpgradePreset* DebugPresetCard;
-
-	UPROPERTY(EditFixedSize, BlueprintReadOnly, Category = "Setting | Card | ActiveCard")
-	TArray<UCard*> ActiveCards;
+    UPROPERTY(BlueprintAssignable)
+    FOnUpgradeApplied OnUpgradeApplied;
 
 private:
+    UPROPERTY()
+    TArray<UCard*> ActiveCards;
 
-
+    UPROPERTY()
+    UUpgradePreset* DebugPresetCard;
 };
