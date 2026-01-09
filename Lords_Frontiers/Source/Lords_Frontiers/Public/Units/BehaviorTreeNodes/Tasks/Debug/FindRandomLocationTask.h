@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BehaviorTree/Tasks/BTTask_BlackboardBase.h"
+
 #include "CoreMinimal.h"
 
 #include "FindRandomLocationTask.generated.h"
@@ -17,7 +18,7 @@ class LORDS_FRONTIERS_API UFindRandomLocationTask : public UBTTask_BlackboardBas
 public:
 	explicit UFindRandomLocationTask();
 
-	EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
+	virtual EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
 
 private:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )

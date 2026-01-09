@@ -1,16 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Units/BehaviorTreeNodes/Tasks/GetEnemyInSightTask.h"
-#include "Units/Unit.h"
 
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Units/Unit.h"
 
 UGetEnemyInSightTask::UGetEnemyInSightTask()
 {
 	NodeName = "Get Enemy in Sight";
 }
 
-EBTNodeResult::Type UGetEnemyInSightTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UGetEnemyInSightTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	Super::ExecuteTask( ownerComp, nodeMemory );
 
@@ -24,7 +24,7 @@ EBTNodeResult::Type UGetEnemyInSightTask::ExecuteTask(UBehaviorTreeComponent& ow
 	UBlackboardComponent* blackboard = controller->GetBlackboardComponent();
 	if ( !blackboard )
 	{
-		UE_LOG( LogTemp, Warning, TEXT("Task UGetEnemyInSightTask failed to get BlackboardComponent" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Task UGetEnemyInSightTask failed to get BlackboardComponent" ) );
 		return EBTNodeResult::Failed;
 	}
 

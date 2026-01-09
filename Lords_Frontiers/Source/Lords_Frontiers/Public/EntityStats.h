@@ -18,7 +18,6 @@ struct FEntityStats
 {
 	GENERATED_BODY()
 
-public:
 	FEntityStats() = default;
 
 	explicit FEntityStats( int maxHealth, int attackDamage, float attackRange );
@@ -73,25 +72,25 @@ public:
 	bool IsAtFullHealth() const;
 
 private:
-	UPROPERTY( EditAnywhere, Category = "Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	int MaxHealth_ = 100;
 
-	UPROPERTY( VisibleInstanceOnly, Category = "Stats" )
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings|Stats" )
 	int Health_ = MaxHealth_;
 
-	UPROPERTY( EditAnywhere, Category = "Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	float AttackRange_ = 200.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	int AttackDamage_ = 10;
 
-	UPROPERTY( EditAnywhere, Category = "Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	float AttackCooldown_ = 1.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	float MaxSpeed_ = 300.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	ETeam Team_;
 
 	FDateTime LastAttackTime_;

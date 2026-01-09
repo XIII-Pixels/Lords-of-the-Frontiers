@@ -2,9 +2,10 @@
 
 #include "Units/FollowComponent.h"
 
+#include "Units/Unit.h"
+
 #include "Components/CapsuleComponent.h"
 #include "NavigationSystem.h"
-#include "Units/Unit.h"
 
 UFollowComponent::UFollowComponent()
 {

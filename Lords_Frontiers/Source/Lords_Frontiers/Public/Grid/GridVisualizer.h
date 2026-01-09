@@ -16,7 +16,7 @@ class LORDS_FRONTIERS_API AGridVisualizer : public AActor
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	AGridVisualizer();
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Grid" )
@@ -37,8 +37,8 @@ class LORDS_FRONTIERS_API AGridVisualizer : public AActor
 	UFUNCTION( BlueprintCallable, Category = "Settings|Grid" )
 	bool GetCellWorldCenter( const FIntPoint& CellCoords, FVector& OutLocation ) const;
 
-  protected:
-	void BeginPlay() override;
+protected:
+	virtual void BeginPlay() override;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	TObjectPtr<AGridManager> GridManager_ = nullptr;
@@ -58,6 +58,6 @@ class LORDS_FRONTIERS_API AGridVisualizer : public AActor
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	float MeshScale_ = 0.48f;
 
-  private:
+private:
 	void RefreshGrid();
 };

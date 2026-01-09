@@ -3,6 +3,7 @@
 #pragma once
 
 #include "BehaviorTree/BTDecorator.h"
+
 #include "CoreMinimal.h"
 
 #include "DoesSeeEnemyDecorator.generated.h"

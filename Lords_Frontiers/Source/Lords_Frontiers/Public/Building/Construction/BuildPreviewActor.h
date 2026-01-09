@@ -19,7 +19,7 @@ class LORDS_FRONTIERS_API ABuildPreviewActor : public AActor
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ABuildPreviewActor();
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
@@ -28,7 +28,7 @@ class LORDS_FRONTIERS_API ABuildPreviewActor : public AActor
 	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
 	void SetPreviewMesh( UStaticMesh* mesh );
 
-  protected:
+protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UStaticMeshComponent> MeshComponent_ = nullptr;
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )

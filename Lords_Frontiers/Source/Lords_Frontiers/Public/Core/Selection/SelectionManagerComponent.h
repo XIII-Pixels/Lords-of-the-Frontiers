@@ -4,7 +4,6 @@
 
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
-#include "Selectable.h"
 
 #include "SelectionManagerComponent.generated.h"
 
@@ -16,7 +15,7 @@ class LORDS_FRONTIERS_API USelectionManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	USelectionManagerComponent();
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
@@ -34,10 +33,10 @@ class LORDS_FRONTIERS_API USelectionManagerComponent : public UActorComponent
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Selection" )
 	FOnSelectionChanged OnSelectionChanged;
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
-  private:
+private:
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AActor>> SelectedActors_;
 };

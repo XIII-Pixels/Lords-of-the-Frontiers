@@ -52,7 +52,8 @@ void UAttackMeleeComponent::Look()
 
 void UAttackMeleeComponent::Attack( TObjectPtr<AActor> hitActor )
 {
-	// Probably should use some attack manager, because it would be easier to fetch attack info
+	// Probably should use some attack manager, because it would be easier to
+	// fetch attack info
 
 	if ( !Unit_ )
 	{

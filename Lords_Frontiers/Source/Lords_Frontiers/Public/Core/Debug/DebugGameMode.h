@@ -14,13 +14,13 @@ class LORDS_FRONTIERS_API ADebugGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ADebugGameMode();
 
 	UPROPERTY( EditDefaultsOnly, Category = Debug )
 	TSubclassOf<UUserWidget> DebugHUDClass;
 
-  protected:
+protected:
 	UPROPERTY()
 	TObjectPtr<UUserWidget> DebugHUD_;
 

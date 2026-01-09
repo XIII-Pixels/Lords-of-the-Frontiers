@@ -2,18 +2,18 @@
 
 #include "Units/BehaviorTreeNodes/Tasks/GetUnitTargetTask.h"
 
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Units/Unit.h"
 
-#include "AIController.h"
 #include "NavigationSystem.h"
-#include "BehaviorTree/BlackboardComponent.h"
 
 UGetUnitTargetTask::UGetUnitTargetTask()
 {
 	NodeName = "Get Unit Target";
 }
 
-EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	Super::ExecuteTask( ownerComp, nodeMemory );
 
@@ -27,7 +27,7 @@ EBTNodeResult::Type UGetUnitTargetTask::ExecuteTask(UBehaviorTreeComponent& owne
 	UBlackboardComponent* blackboard = controller->GetBlackboardComponent();
 	if ( !blackboard )
 	{
-		UE_LOG( LogTemp, Warning, TEXT("Task GetUnitTarget failed to get BlackboardComponent" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Task GetUnitTarget failed to get BlackboardComponent" ) );
 		return EBTNodeResult::Failed;
 	}
 

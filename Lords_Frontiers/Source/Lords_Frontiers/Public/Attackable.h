@@ -21,7 +21,7 @@ class LORDS_FRONTIERS_API IAttackable
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	// Attackers call this on attacked object to deal damage
 	virtual void TakeDamage( float damage ) = 0;
 

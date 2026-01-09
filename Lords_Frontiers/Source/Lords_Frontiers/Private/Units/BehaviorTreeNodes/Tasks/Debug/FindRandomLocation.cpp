@@ -1,9 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "AIController.h"
-#include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Units/BehaviorTreeNodes/Tasks/Debug/FindRandomLocationTask.h"
+
+#include "NavigationSystem.h"
 
 UFindRandomLocationTask::UFindRandomLocationTask()
 {
@@ -12,7 +13,7 @@ UFindRandomLocationTask::UFindRandomLocationTask()
 
 /** (Gregory-hub)
  * Find random location and save to blackboard */
-EBTNodeResult::Type UFindRandomLocationTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UFindRandomLocationTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	AAIController* controller = ownerComp.GetAIOwner();
 	if ( !controller )

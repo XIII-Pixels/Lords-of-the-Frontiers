@@ -4,6 +4,7 @@
 
 #include "Building/Building.h"
 #include "Building/WallTypes.h"
+
 #include "CoreMinimal.h"
 
 #include "DefensiveBuilding.generated.h"
@@ -16,27 +17,27 @@ class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ADefensiveBuilding();
 	virtual FString GetNameBuild() override;
-	UFUNCTION( BlueprintCallable, BlueprintPure, Category = "Wall" )
+	UFUNCTION( BlueprintCallable, BlueprintPure, Category = "Settings|Wall" )
 	const FWallMeshSet& GetWallMeshes() const
 	{
 		return WallMeshSet_;
 	}
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wall" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	FWallMeshSet WallMeshSet_;
 
 	// Attack range (for the tower's component)
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Defense" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Defense" )
 	float AttackRange_;
 
 	// Attack damage (can be taken from FEntityStats, but often duplicated)
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Defense" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Defense" )
 	int32 DefenseDamage_;
 };
 // DefensiveBuilding.h

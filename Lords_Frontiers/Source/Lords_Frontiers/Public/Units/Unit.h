@@ -4,10 +4,11 @@
 
 #include "AIController.h"
 #include "Attackable.h"
-#include "CoreMinimal.h"
 #include "EntityStats.h"
-#include "GameFramework/Pawn.h"
 #include "Units/Attack/AttackComponentBase.h"
+
+#include "CoreMinimal.h"
+#include "GameFramework/Pawn.h"
 
 #include "Unit.generated.h"
 

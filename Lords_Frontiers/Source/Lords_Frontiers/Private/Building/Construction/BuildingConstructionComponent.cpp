@@ -2,11 +2,12 @@
 
 #include "Building/Building.h"
 #include "Building/Construction/BuildPreviewActor.h"
+#include "Grid/GridManager.h"
+#include "Grid/GridVisualizer.h"
+
 #include "Engine/EngineTypes.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
-#include "Grid/GridManager.h"
-#include "Grid/GridVisualizer.h"
 
 UBuildingConstructionComponent::UBuildingConstructionComponent()
 {
@@ -128,9 +129,8 @@ void UBuildingConstructionComponent::UpdateHoveredCell()
 	UpdatePreviewVisual( cellWorldLocation, bCanBuildHere_ );
 }
 
-bool UBuildingConstructionComponent::FindCellUnderCursor(
-    FIntPoint& outCellCoords, FVector& outCellWorldLocation
-) const
+bool UBuildingConstructionComponent::FindCellUnderCursor( FIntPoint& outCellCoords, FVector& outCellWorldLocation )
+    const
 {
 	if ( !GridManager_ || !GridVisualizer_ )
 	{
@@ -150,7 +150,8 @@ bool UBuildingConstructionComponent::FindCellUnderCursor(
 	}
 
 	FHitResult hit;
-	// Trace under cursor by Visibility channel (can be replaced with custom ground channel).
+	// Trace under cursor by Visibility channel (can be replaced with custom
+	// ground channel).
 	if ( !pc->GetHitResultUnderCursorByChannel(
 	         UEngineTypes::ConvertToTraceType( ECollisionChannel::ECC_Visibility ), false, hit
 	     ) )

@@ -48,7 +48,8 @@ float FEntityStats::AttackRange() const
 // setters
 
 // (Artyom)
-// entity keep hp percentage at the same lvl;  before (50/100hp); SetMaxHealth(150); after (75/150hp)
+// entity keep hp percentage at the same lvl;  before (50/100hp);
+// SetMaxHealth(150); after (75/150hp)
 void FEntityStats::SetMaxHealth( int maxHealth )
 {
 	const int newMax = FMath::Max( 1, maxHealth );
@@ -63,7 +64,8 @@ void FEntityStats::SetMaxHealth( int maxHealth )
 
 void FEntityStats::SetHealth( int health )
 {
-	Health_ = FMath::Clamp( health, 0, MaxHealth_ ); // Clamp(X, Min, Max) if X < Min, ret Min; if X > Max, ret Max;
+	Health_ = FMath::Clamp( health, 0, MaxHealth_ ); // Clamp(X, Min, Max) if X < Min, ret
+	                                                 // Min; if X > Max, ret Max;
 }
 
 void FEntityStats::SetAttackDamage( int attackDamage )

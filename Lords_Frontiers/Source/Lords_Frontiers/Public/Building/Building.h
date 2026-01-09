@@ -1,9 +1,10 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "EntityStats.h"
-#include "GameFramework/Actor.h"
 #include "Selectable.h"
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 
 #include "Building.generated.h"
 
@@ -12,11 +13,11 @@ class LORDS_FRONTIERS_API ABuilding : public AActor, public ISelectable
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	ABuilding();
 
 	virtual float TakeDamage(
-	    float damageAmount, struct FDamageEvent const& damageEvent, AController* eventInstigator, AActor* damageCauser
+	    float damageAmount, const struct FDamageEvent& damageEvent, AController* eventInstigator, AActor* damageCauser
 	) override;
 
 	UFUNCTION( BlueprintPure, Category = "Settings|Stats" )
@@ -35,7 +36,7 @@ class LORDS_FRONTIERS_API ABuilding : public AActor, public ISelectable
 
 	virtual FVector GetSelectionLocation_Implementation() const override;
 
-  protected:
+protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Setting|Components" )

@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Runtime/AIModule/Classes/AIController.h"
+
+#include "CoreMinimal.h"
 
 #include "UnitAIController.generated.h"
 
@@ -15,8 +16,8 @@ class LORDS_FRONTIERS_API AUnitAIController : public AAIController
 	GENERATED_BODY()
 
 public:
-	void Tick( float DeltaSeconds ) override;
+	virtual void Tick( float DeltaSeconds ) override;
 
 protected:
-	void OnPossess( APawn* pawn ) override;
+	virtual void OnPossess( APawn* pawn ) override;
 };

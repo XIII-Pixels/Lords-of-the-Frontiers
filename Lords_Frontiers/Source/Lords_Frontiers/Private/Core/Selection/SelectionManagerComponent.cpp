@@ -3,8 +3,8 @@
 #include "Core/Selection/SelectionManagerComponent.h"
 
 #include "Building/Building.h"
-#include "GameFramework/PlayerController.h"
 #include "Selectable.h"
+
 // Sets default values for this component's properties
 USelectionManagerComponent::USelectionManagerComponent()
 {
@@ -34,7 +34,7 @@ void USelectionManagerComponent::SelectSingle( AActor* actor )
 		return;
 	}
 
-	// Проверяем, можно ли его выделять
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	const bool bCanSelect = ISelectable::Execute_CanBeSelected( actor );
 	if ( !bCanSelect )
 	{
@@ -46,15 +46,16 @@ void USelectionManagerComponent::SelectSingle( AActor* actor )
 
 	SelectedActors_.Add( actor );
 
-	// Вызываем OnSelected
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ OnSelected
 	ISelectable::Execute_OnSelected( actor );
 
-	// Новое: сообщаем подписчикам, что выделение изменилось
+	// пїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	OnSelectionChanged.Broadcast();
 	// if ( GEngine )
 	//{
 	//	GEngine->AddOnScreenDebugMessage(
-	//	    -1, 1.5f, FColor::Green, FString::Printf( TEXT( "Selected: %s" ), *actor->GetName() )
+	//	    -1, 1.5f, FColor::Green, FString::Printf( TEXT( "Selected: %s" ),
+	//*actor->GetName() )
 	//	);
 	// }
 }
@@ -74,7 +75,7 @@ void USelectionManagerComponent::ClearSelection()
 		}
 	}
 
-	// Очищаем список
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 	SelectedActors_.Reset();
 
 	if ( bHadSelection )
@@ -90,7 +91,7 @@ AActor* USelectionManagerComponent::GetPrimarySelectedActor() const
 		return nullptr;
 	}
 
-	// Берём первый элемент массива (мы всё равно пока делаем одиночное выделение)
+	// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
 	return SelectedActors_[0].Get();
 }
 

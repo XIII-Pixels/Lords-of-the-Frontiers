@@ -7,7 +7,7 @@ UForceSuccessTask::UForceSuccessTask()
 	NodeName = "Force Success";
 }
 
-EBTNodeResult::Type UForceSuccessTask::ExecuteTask(UBehaviorTreeComponent& ownerComp, uint8* nodeMemory)
+EBTNodeResult::Type UForceSuccessTask::ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory )
 {
 	Super::ExecuteTask( ownerComp, nodeMemory );
 	return EBTNodeResult::Succeeded;

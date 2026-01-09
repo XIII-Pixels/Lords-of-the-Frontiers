@@ -20,7 +20,7 @@ class LORDS_FRONTIERS_API ISelectable
 {
 	GENERATED_BODY()
 
-  public:
+public:
 	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category = "Setting|Selection" )
 	void OnSelected();
 
