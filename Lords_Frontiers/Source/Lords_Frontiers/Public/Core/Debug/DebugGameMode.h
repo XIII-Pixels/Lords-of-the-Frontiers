@@ -9,7 +9,7 @@
 
 class UUserWidget;
 
-UCLASS( HideDropdown )
+UCLASS( Abstract )
 class LORDS_FRONTIERS_API ADebugGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
@@ -17,7 +17,7 @@ class LORDS_FRONTIERS_API ADebugGameMode : public AGameModeBase
 public:
 	ADebugGameMode();
 
-	UPROPERTY( EditDefaultsOnly, Category = Debug )
+	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	TSubclassOf<UUserWidget> DebugHUDClass;
 
 protected:
