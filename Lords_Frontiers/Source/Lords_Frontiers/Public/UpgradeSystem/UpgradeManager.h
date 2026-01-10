@@ -21,7 +21,6 @@ class LORDS_FRONTIERS_API UUpgradeManager : public UWorldSubsystem
 public:
     virtual void OnWorldBeginPlay(UWorld& InWorld) override;
     void AddCard(UCard* Card);
-    void SelectCard(UCard* Card);
     FCardModifiers GetModifiersForCategory(EBuildingCategory Category);
 
     UPROPERTY(BlueprintAssignable)

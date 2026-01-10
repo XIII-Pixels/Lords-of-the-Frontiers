@@ -112,5 +112,5 @@ void UCardManager::SelectCard(UCard* Card)
         UpgradeManager->AddCard(Card);
     }
 
-    HideCardSelection();
+    HideCardSelection(); 
 }

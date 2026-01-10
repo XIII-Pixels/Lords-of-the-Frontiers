@@ -20,12 +20,12 @@ void UUpgradeManager::OnWorldBeginPlay(UWorld& InWorld)
 	}
 }
 
-void UUpgradeManager::AddCard(UCard* card)
+void UUpgradeManager::AddCard(UCard* Card)
 {
-
-	if (card)
+	if (Card)
 	{
-		ActiveCards.Add(card);
+		ActiveCards.Add(Card);
+		OnUpgradeApplied.Broadcast(); 
 	}
 }
 
@@ -44,21 +44,4 @@ FCardModifiers UUpgradeManager::GetModifiersForCategory(EBuildingCategory catego
 		}
 	}
 	return statsCategoty;
-}
-
-void UUpgradeManager::SelectCard(UCard* Card)
-{
-	if (!Card)
-	{
-		return;
-	}
-
-	AddCard(Card);
-
-	OnUpgradeApplied.Broadcast();
-
-	if (UCardManager* CardManager = GetWorld()->GetSubsystem<UCardManager>())
-	{
-		CardManager->HideCardSelection();
-	}
 }
