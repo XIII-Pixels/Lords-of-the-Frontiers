@@ -8,7 +8,7 @@ void ULevelSubsystem::LoadMainMenu() const
 {
 	if ( Levels_ )
 	{
-		if ( UWorld* level = Levels_->MainMenuLevel.LoadSynchronous() )
+		if ( UWorld* level = Levels_->MainMenuLevel.LoadSynchronous() )	// loads UWorld object (no assets on level)
 		{
 			OpenLevel( level );
 		}
