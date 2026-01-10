@@ -20,5 +20,8 @@ public:
 
 protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSubclassOf<ULevelsDataAsset> Levels_;
+	TSoftObjectPtr<ULevelsDataAsset> Levels_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
+	bool bLoadMenuOnGameStart_ = false;
 };

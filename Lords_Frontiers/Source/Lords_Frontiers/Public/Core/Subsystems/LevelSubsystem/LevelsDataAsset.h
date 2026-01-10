@@ -9,7 +9,7 @@
 
 /** (Gregory-hub)
  * Contains all game levels */
-UCLASS( Abstract, Blueprintable )
+UCLASS()
 class LORDS_FRONTIERS_API ULevelsDataAsset : public UDataAsset
 {
 	GENERATED_BODY()

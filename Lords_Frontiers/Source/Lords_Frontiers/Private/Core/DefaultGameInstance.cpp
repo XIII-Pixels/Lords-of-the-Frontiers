@@ -7,5 +7,11 @@
 void UDefaultGameInstance::Init()
 {
 	Super::Init();
+
 	GetSubsystem<ULevelSubsystem>()->SetupLevels( Levels_ );
+
+	if ( bLoadMenuOnGameStart_ )
+	{
+		GetSubsystem<ULevelSubsystem>()->LoadMainMenu();
+	}
 }

@@ -6,20 +6,43 @@
 
 void ULevelSubsystem::LoadMainMenu() const
 {
-	OpenLevel( Levels_->MainMenuLevel );
+	if ( Levels_ )
+	{
+		if ( UWorld* level = Levels_->MainMenuLevel.LoadSynchronous() )
+		{
+			OpenLevel( level );
+		}
+		else
+		{
+			UE_LOG( LogTemp, Error, TEXT( "Failed to load main menu" ) );
+		}
+	}
 }
 
 void ULevelSubsystem::LoadRunLevel() const
 {
-	OpenLevel( Levels_->RunLevel );
+	if ( Levels_ )
+	{
+		if ( UWorld* level = Levels_->RunLevel.LoadSynchronous() )
+		{
+			OpenLevel( level );
+		}
+		else
+		{
+			UE_LOG( LogTemp, Error, TEXT( "Failed to load run level" ) );
+		}
+	}
 }
 
-void ULevelSubsystem::SetupLevels( TSubclassOf<ULevelsDataAsset> levelsClass )
+void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 {
-	Levels_ = NewObject<ULevelsDataAsset>( this, levelsClass );
+	Levels_ = levels;
 }
 
-void ULevelSubsystem::OpenLevel( TSoftObjectPtr<UWorld> level ) const
+void ULevelSubsystem::OpenLevel( UWorld* level ) const
 {
-	UGameplayStatics::OpenLevel( GetWorld(), FName( level->GetName() ) );
+	if ( level )
+	{
+		UGameplayStatics::OpenLevel( GetWorld(), FName( level->GetName() ) );
+	}
 }

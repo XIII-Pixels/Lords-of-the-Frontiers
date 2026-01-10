@@ -20,12 +20,11 @@ public:
 	void LoadMainMenu() const;
 	void LoadRunLevel() const;
 
-	void SetupLevels( TSubclassOf<ULevelsDataAsset> levelsClass );
+	void SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels );
 
 protected:
 	UPROPERTY()
-	TObjectPtr<ULevelsDataAsset> Levels_;
+	TSoftObjectPtr<ULevelsDataAsset> Levels_;
 
-private:
-	void OpenLevel(TSoftObjectPtr<UWorld> level) const;
+	void OpenLevel(UWorld* level) const;
 };
