@@ -2,7 +2,12 @@
 
 #include "UI/MainMenuUIManager.h"
 
+#include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
+#include "UI/Widgets/MainMenuWidget.h"
+
 #include "Blueprint/UserWidget.h"
+#include "Components/Button.h"
+#include "Kismet/GameplayStatics.h"
 
 void UMainMenuUIManager::OnStartPlay()
 {
@@ -16,7 +21,7 @@ void UMainMenuUIManager::OnStartPlay()
 	}
 }
 
-void UMainMenuUIManager::SetupMainMenuWidget( TSubclassOf<UUserWidget> mainMenuWidgetClass )
+void UMainMenuUIManager::SetupMainMenuWidget( TSubclassOf<UMainMenuWidget> mainMenuWidgetClass )
 {
 	if ( !mainMenuWidgetClass )
 	{
@@ -37,5 +42,15 @@ void UMainMenuUIManager::SetupMainMenuWidget( TSubclassOf<UUserWidget> mainMenuW
 		return;
 	}
 
-	MainMenuWidget_ = CreateWidget<UUserWidget>( controller, mainMenuWidgetClass );
+	MainMenuWidget_ = CreateWidget<UMainMenuWidget>( controller, mainMenuWidgetClass );
+
+	if ( MainMenuWidget_->NewGameButton )
+	{
+		MainMenuWidget_->NewGameButton->OnClicked.AddDynamic( this, &UMainMenuUIManager::OnNewGameButtonClicked );
+	}
+}
+
+void UMainMenuUIManager::OnNewGameButtonClicked()
+{
+	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadRunLevel();
 }

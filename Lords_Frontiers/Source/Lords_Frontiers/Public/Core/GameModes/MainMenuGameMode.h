@@ -7,6 +7,7 @@
 
 #include "MainMenuGameMode.generated.h"
 
+class UMainMenuWidget;
 class UMainMenuUIManager;
 
 /** (Gregory-hub)
@@ -26,5 +27,5 @@ protected:
 	TObjectPtr<UMainMenuUIManager> UIManager_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
-	TSubclassOf<UUserWidget> MainMenuWidgetClass_;
+	TSubclassOf<UMainMenuWidget> MainMenuWidgetClass_;
 };

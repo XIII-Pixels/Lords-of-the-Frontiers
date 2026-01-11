@@ -17,12 +17,6 @@ class LORDS_FRONTIERS_API UMainMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	virtual void NativeConstruct() override;
-
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> NewGameButton;
-
-protected:
-	UFUNCTION()
-	void OnNewGameButtonClicked();
 };

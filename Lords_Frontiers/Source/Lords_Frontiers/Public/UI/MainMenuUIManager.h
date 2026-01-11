@@ -7,6 +7,8 @@
 
 #include "MainMenuUIManager.generated.h"
 
+class UMainMenuWidget;
+
 /** (Gregory-hub)
  * Handles all UI/UX logic in main menu
  * Should be part of GameMode
@@ -19,9 +21,12 @@ class LORDS_FRONTIERS_API UMainMenuUIManager : public UObject
 public:
 	void OnStartPlay();
 
-	void SetupMainMenuWidget(TSubclassOf<UUserWidget> mainMenuWidgetClass);
+	void SetupMainMenuWidget(TSubclassOf<UMainMenuWidget> mainMenuWidgetClass);
 
 protected:
 	UPROPERTY()
-	TObjectPtr<UUserWidget> MainMenuWidget_;
+	TObjectPtr<UMainMenuWidget> MainMenuWidget_;
+
+	UFUNCTION()
+	void OnNewGameButtonClicked();
 };
