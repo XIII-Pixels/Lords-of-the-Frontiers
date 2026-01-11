@@ -20,11 +20,11 @@ public:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	TSubclassOf<UUserWidget> DebugHUDClass;
 
+	virtual void StartPlay() override;
+
 protected:
 	UPROPERTY()
 	TObjectPtr<UUserWidget> DebugHUD_;
-
-	virtual void BeginPlay() override;
 
 	void SetupStaticCamera() const;
 };
