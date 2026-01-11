@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 
-#include "AttackComponentBase.generated.h"
+#include "AttackComponent.generated.h"
 
 class USceneComponent;
 
 /** (Gregory-hub)
  * Base class for attack components */
 UCLASS( Abstract )
-class LORDS_FRONTIERS_API UAttackComponentBase : public USceneComponent
+class LORDS_FRONTIERS_API UAttackComponent : public USceneComponent
 {
 	GENERATED_BODY()
 

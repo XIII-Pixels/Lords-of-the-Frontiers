@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "AttackComponentBase.h"
+#include "AttackComponent.h"
 
 #include "CoreMinimal.h"
 
@@ -13,7 +13,7 @@ class AUnit;
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
-class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponentBase
+class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponent
 {
 	GENERATED_BODY()
 

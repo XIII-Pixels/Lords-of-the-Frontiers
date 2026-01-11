@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/FollowComponent.h"
+#include "Components/FollowComponent.h"
 
 #include "Units/Unit.h"
 

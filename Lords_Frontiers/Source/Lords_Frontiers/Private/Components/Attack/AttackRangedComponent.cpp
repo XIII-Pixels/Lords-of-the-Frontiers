@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/Attack/AttackRangedComponent.h"
+#include "Components/Attack/AttackRangedComponent.h"
 
 #include "Attackable.h"
 #include "Projectiles/Projectile.h"

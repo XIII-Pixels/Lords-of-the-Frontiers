@@ -5,7 +5,7 @@
 #include "AIController.h"
 #include "Attackable.h"
 #include "EntityStats.h"
-#include "Units/Attack/AttackComponentBase.h"
+#include "Components/Attack/AttackComponent.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
@@ -76,5 +76,5 @@ protected:
 	TObjectPtr<UFollowComponent> FollowComponent_;
 
 	UPROPERTY()
-	TObjectPtr<UAttackComponentBase> AttackComponent_;
+	TObjectPtr<UAttackComponent> AttackComponent_;
 };

@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/Attack/AttackMeleeComponent.h"
+#include "Components/Attack/AttackMeleeComponent.h"
 
 #include "Units/Unit.h"
 #include "Utilities/TraceChannelMappings.h"

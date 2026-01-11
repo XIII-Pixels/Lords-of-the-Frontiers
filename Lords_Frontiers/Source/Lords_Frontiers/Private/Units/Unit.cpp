@@ -3,7 +3,7 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "Transform/TransformableHandleUtils.h"
-#include "Units/FollowComponent.h"
+#include "Components/FollowComponent.h"
 #include "Units/UnitAIController.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -38,7 +38,7 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-	TArray<UAttackComponentBase*> attackComponents;
+	TArray<UAttackComponent*> attackComponents;
 	GetComponents( attackComponents );
 
 	if ( attackComponents.Num() == 1 )

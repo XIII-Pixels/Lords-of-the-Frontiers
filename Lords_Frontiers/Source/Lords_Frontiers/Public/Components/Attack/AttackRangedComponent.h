@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "AttackComponentBase.h"
+#include "AttackComponent.h"
 
 #include "CoreMinimal.h"
 
@@ -15,7 +15,7 @@ class AProjectile;
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
-class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponentBase
+class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponent
 {
 	GENERATED_BODY()
 
