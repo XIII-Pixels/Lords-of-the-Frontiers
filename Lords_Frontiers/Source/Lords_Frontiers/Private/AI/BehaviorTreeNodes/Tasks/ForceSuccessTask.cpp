@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/BehaviorTreeNodes/Tasks/ForceSuccessTask.h"
+#include "AI/BehaviorTreeNodes/Tasks/ForceSuccessTask.h"
 
 UForceSuccessTask::UForceSuccessTask()
 {

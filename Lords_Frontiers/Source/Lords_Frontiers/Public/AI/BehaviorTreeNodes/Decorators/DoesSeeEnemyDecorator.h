@@ -9,7 +9,7 @@
 #include "DoesSeeEnemyDecorator.generated.h"
 
 /** (Gregory-hub)
- * Check if unit sees something it can attack */
+ * Check if entity sees something it can attack */
 UCLASS()
 class LORDS_FRONTIERS_API UDoesSeeEnemyDecorator : public UBTDecorator
 {

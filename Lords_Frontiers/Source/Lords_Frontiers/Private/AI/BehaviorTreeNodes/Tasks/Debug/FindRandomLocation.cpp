@@ -2,7 +2,7 @@
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Units/BehaviorTreeNodes/Tasks/Debug/FindRandomLocationTask.h"
+#include "AI/BehaviorTreeNodes/Tasks/Debug/FindRandomLocationTask.h"
 
 #include "NavigationSystem.h"
 

@@ -6,17 +6,14 @@
 
 #include "CoreMinimal.h"
 
-#include "UnitAIController.generated.h"
+#include "EntityAIController.generated.h"
 
 /** (Gregory-hub)
  * AIController for controlling a single unit */
 UCLASS( Blueprintable )
-class LORDS_FRONTIERS_API AUnitAIController : public AAIController
+class LORDS_FRONTIERS_API AEntityAIController : public AAIController
 {
 	GENERATED_BODY()
-
-public:
-	virtual void Tick( float DeltaSeconds ) override;
 
 protected:
 	virtual void OnPossess( APawn* pawn ) override;

@@ -3,6 +3,8 @@
 #pragma once
 
 #include "AIController.h"
+#include "Attacker.h"
+#include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
 
@@ -21,7 +23,7 @@ class UFollowComponent;
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity
+class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity, public IAttacker, public IControlledByTree
 {
 	GENERATED_BODY()
 
@@ -38,7 +40,7 @@ public:
 
 	void StopFollowing();
 
-	void Attack( TObjectPtr<AActor> hitActor );
+	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual void TakeDamage( float damage ) override;
 
@@ -48,9 +50,9 @@ public:
 
 	virtual ETeam Team() override;
 
-	TObjectPtr<AActor> EnemyInSight() const;
+	virtual TObjectPtr<AActor> EnemyInSight() const override;
 
-	TObjectPtr<UBehaviorTree> BehaviorTree() const;
+	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
 	TObjectPtr<AActor> FollowedTarget() const;
 

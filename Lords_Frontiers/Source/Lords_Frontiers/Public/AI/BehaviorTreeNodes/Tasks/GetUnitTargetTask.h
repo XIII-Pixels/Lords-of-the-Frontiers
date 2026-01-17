@@ -6,17 +6,17 @@
 
 #include "CoreMinimal.h"
 
-#include "GetEnemyInSightTask.generated.h"
+#include "GetUnitTargetTask.generated.h"
 
 /** (Gregory-hub)
- * Saves unit's enemy in sight to blackboard */
+ * Task for getting target point to follow and saving it to blackboard */
 UCLASS()
-class LORDS_FRONTIERS_API UGetEnemyInSightTask : public UBTTask_BlackboardBase
+class LORDS_FRONTIERS_API UGetUnitTargetTask : public UBTTask_BlackboardBase
 {
 	GENERATED_BODY()
 
 public:
-	UGetEnemyInSightTask();
+	UGetUnitTargetTask();
 
 	virtual EBTNodeResult::Type ExecuteTask( UBehaviorTreeComponent& ownerComp, uint8* nodeMemory ) override;
 };

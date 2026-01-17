@@ -1,24 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/UnitAIController.h"
+#include "AI/EntityAIController.h"
 
 #include "BehaviorTree/BehaviorTree.h"
-#include "Units/Unit.h"
+#include "ControlledByTree.h"
 
-void AUnitAIController::Tick( float DeltaSeconds )
-{
-	Super::Tick( DeltaSeconds );
-}
-
-void AUnitAIController::OnPossess( APawn* pawn )
+void AEntityAIController::OnPossess( APawn* pawn )
 {
 	Super::OnPossess( pawn );
 
-	// (Gregory-hub)
 	// Start behavior tree
-	if ( auto unit = Cast<AUnit>( pawn ) )
+	if ( const auto actor = Cast<IControlledByTree>( pawn ) )
 	{
-		if ( auto behaviorTree = unit->BehaviorTree() )
+		if ( const auto behaviorTree = actor->BehaviorTree() )
 		{
 			UBlackboardComponent* blackboard;
 			UseBlackboard( behaviorTree->GetBlackboardAsset(), blackboard );

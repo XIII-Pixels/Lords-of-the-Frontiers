@@ -1,9 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/BehaviorTreeNodes/Tasks/AttackEnemyTask.h"
+#include "AI/BehaviorTreeNodes/Tasks/AttackEnemyTask.h"
 
+#include "AIController.h"
+#include "Attacker.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Units/Unit.h"
 
 UAttackEnemyTask::UAttackEnemyTask()
 {
@@ -21,22 +22,22 @@ EBTNodeResult::Type UAttackEnemyTask::ExecuteTask( UBehaviorTreeComponent& owner
 		return EBTNodeResult::Failed;
 	}
 
-	UBlackboardComponent* blackboard = controller->GetBlackboardComponent();
+	const UBlackboardComponent* blackboard = controller->GetBlackboardComponent();
 	if ( !blackboard )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "Task UAttackEnemyTask failed to get BlackboardComponent" ) );
 		return EBTNodeResult::Failed;
 	}
 
-	auto unit = Cast<AUnit>( controller->GetPawn() );
-	if ( !unit )
+	const auto attacker = Cast<IAttacker>( controller->GetPawn() );
+	if ( !attacker )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "Task UAttackEnemyTask failed to get AUnit" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Task UAttackEnemyTask failed to get IAttacker" ) );
 		return EBTNodeResult::Failed;
 	}
 
-	TObjectPtr<AActor> enemy = Cast<AActor>( blackboard->GetValueAsObject( GetSelectedBlackboardKey() ) );
-	unit->Attack( enemy );
+	const TObjectPtr<AActor> enemy = Cast<AActor>( blackboard->GetValueAsObject( GetSelectedBlackboardKey() ) );
+	attacker->Attack( enemy );
 
 	return EBTNodeResult::Succeeded;
 }

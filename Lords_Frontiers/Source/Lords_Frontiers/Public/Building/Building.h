@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Entity.h"
 #include "EntityStats.h"
 #include "Selectable.h"
 
@@ -9,7 +10,7 @@
 #include "Building.generated.h"
 
 UCLASS( Abstract )
-class LORDS_FRONTIERS_API ABuilding : public AActor, public ISelectable
+class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
 {
 	GENERATED_BODY()
 
@@ -21,12 +22,15 @@ public:
 	) override;
 
 	UFUNCTION( BlueprintPure, Category = "Settings|Stats" )
-	const FEntityStats& GetStats() const;
-
-	UFUNCTION( BlueprintPure, Category = "Settings|Stats" )
 	bool IsDestroyed() const;
 
 	virtual FString GetNameBuild();
+
+	virtual FEntityStats& Stats() override;
+
+	virtual ETeam Team() override;
+
+	virtual void TakeDamage(float damage) override;
 
 	virtual void OnSelected_Implementation() override;
 
@@ -39,9 +43,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Setting|Components" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	UStaticMeshComponent* BuildingMesh_;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Setting|Stats" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
 };

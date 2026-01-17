@@ -1,9 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/BehaviorTreeNodes/Tasks/GetEnemyInSightTask.h"
+#include "AI/BehaviorTreeNodes/Tasks/GetEnemyInSightTask.h"
 
+#include "AIController.h"
+#include "Attacker.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Units/Unit.h"
 
 UGetEnemyInSightTask::UGetEnemyInSightTask()
 {
@@ -28,14 +29,14 @@ EBTNodeResult::Type UGetEnemyInSightTask::ExecuteTask( UBehaviorTreeComponent& o
 		return EBTNodeResult::Failed;
 	}
 
-	auto unit = Cast<AUnit>( controller->GetPawn() );
-	if ( !unit )
+	const auto attacker = Cast<IAttacker>( controller->GetPawn() );
+	if ( !attacker )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "Task UGetEnemyInSightTask failed to get AUnit" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Task UAttackEnemyTask failed to get IAttacker" ) );
 		return EBTNodeResult::Failed;
 	}
 
-	blackboard->SetValueAsObject( GetSelectedBlackboardKey(), unit->EnemyInSight() );
+	blackboard->SetValueAsObject( GetSelectedBlackboardKey(), attacker->EnemyInSight() );
 
 	return EBTNodeResult::Succeeded;
 }

@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/BehaviorTreeNodes/Tasks/StopFollowingTask.h"
+#include "AI/BehaviorTreeNodes/Tasks/StopFollowingTask.h"
 
 #include "Units/Unit.h"
 

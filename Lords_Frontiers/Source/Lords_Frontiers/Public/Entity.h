@@ -18,7 +18,9 @@ class LORDS_FRONTIERS_API UEntity : public UInterface
 };
 
 /** (Gregory-hub)
- *  Interface for all game entities */
+ *  Interface for all game entities
+ *  All entities have stats, belong to a team and can take damage
+ *  Not all entities can attack */
 class LORDS_FRONTIERS_API IEntity
 {
 	GENERATED_BODY()

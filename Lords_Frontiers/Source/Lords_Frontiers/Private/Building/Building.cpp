@@ -43,9 +43,18 @@ float ABuilding::TakeDamage(
 	return ActualDamage;
 }
 
-const FEntityStats& ABuilding::GetStats() const
+FEntityStats& ABuilding::Stats()
 {
 	return Stats_;
+}
+
+ETeam ABuilding::Team()
+{
+	return Stats_.Team();
+}
+
+void ABuilding::TakeDamage( float damage )
+{
 }
 
 bool ABuilding::IsDestroyed() const

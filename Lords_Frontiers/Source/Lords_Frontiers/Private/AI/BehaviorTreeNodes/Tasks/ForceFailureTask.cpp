@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Units/BehaviorTreeNodes/Tasks/ForceFailureTask.h"
+#include "AI/BehaviorTreeNodes/Tasks/ForceFailureTask.h"
 
 UForceFailureTask::UForceFailureTask()
 {
