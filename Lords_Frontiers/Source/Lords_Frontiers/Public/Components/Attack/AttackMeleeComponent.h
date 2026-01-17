@@ -12,7 +12,7 @@ class IEntity;
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
-UCLASS( meta = ( BlueprintSpawnableComponent ) )
+UCLASS( meta = ( BlueprintSpawnableComponent ), ClassGroup = ( Attack ) )
 class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponent
 {
 	GENERATED_BODY()

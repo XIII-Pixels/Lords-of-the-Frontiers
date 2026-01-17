@@ -18,7 +18,7 @@ class LORDS_FRONTIERS_API UEntity : public UInterface
 };
 
 /** (Gregory-hub)
- *  Interface for all things that can take damage */
+ *  Interface for all game entities */
 class LORDS_FRONTIERS_API IEntity
 {
 	GENERATED_BODY()

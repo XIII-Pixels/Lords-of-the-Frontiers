@@ -11,7 +11,7 @@ class USceneComponent;
 
 /** (Gregory-hub)
  * Base class for attack components */
-UCLASS( Abstract, ClassGroup = ( Attack ) )
+UCLASS( Abstract )
 class LORDS_FRONTIERS_API UAttackComponent : public USceneComponent
 {
 	GENERATED_BODY()
