@@ -16,9 +16,9 @@ ADebugGameMode::ADebugGameMode()
 	PlayerControllerClass = ADebugPlayerController::StaticClass();
 }
 
-void ADebugGameMode::BeginPlay()
+void ADebugGameMode::StartPlay()
 {
-	Super::BeginPlay();
+	Super::StartPlay();
 
 	SetupStaticCamera();
 

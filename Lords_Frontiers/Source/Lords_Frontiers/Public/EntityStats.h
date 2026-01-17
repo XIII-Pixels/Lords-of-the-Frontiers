@@ -76,7 +76,7 @@ private:
 	int MaxHealth_ = 100;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings|Stats" )
-	int Health_ = MaxHealth_;
+	int Health_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	float AttackRange_ = 200.0f;
