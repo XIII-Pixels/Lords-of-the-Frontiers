@@ -26,6 +26,7 @@ void UMainMenuUIManager::SetupMainMenuWidget( TSubclassOf<UMainMenuWidget> mainM
 	if ( !mainMenuWidgetClass )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "Main Menu Widget Class is not set" ) );
+		return;
 	}
 
 	const auto* world = GetWorld();
@@ -44,7 +45,7 @@ void UMainMenuUIManager::SetupMainMenuWidget( TSubclassOf<UMainMenuWidget> mainM
 
 	MainMenuWidget_ = CreateWidget<UMainMenuWidget>( controller, mainMenuWidgetClass );
 
-	if ( MainMenuWidget_->NewGameButton )
+	if ( MainMenuWidget_ && MainMenuWidget_->NewGameButton )
 	{
 		MainMenuWidget_->NewGameButton->OnClicked.AddDynamic( this, &UMainMenuUIManager::OnNewGameButtonClicked );
 	}

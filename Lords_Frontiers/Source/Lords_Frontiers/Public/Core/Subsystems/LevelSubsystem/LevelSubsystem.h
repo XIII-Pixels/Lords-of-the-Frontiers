@@ -26,5 +26,5 @@ protected:
 	UPROPERTY()
 	TSoftObjectPtr<ULevelsDataAsset> Levels_;
 
-	void OpenLevel(UWorld* level) const;
+	void LoadLevel( TSoftObjectPtr<UWorld> level, const FString& errorMessage = "" ) const;
 };
