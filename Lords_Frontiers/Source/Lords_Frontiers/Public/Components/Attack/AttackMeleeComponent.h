@@ -8,11 +8,11 @@
 
 #include "AttackMeleeComponent.generated.h"
 
-class AUnit;
+class IEntity;
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
-UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
+UCLASS( meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UAttackMeleeComponent : public UAttackComponent
 {
 	GENERATED_BODY()
@@ -39,9 +39,6 @@ protected:
 
 	UPROPERTY( VisibleAnywhere, Category = "Settings|Attack" )
 	TObjectPtr<AActor> EnemyInSight_;
-
-	UPROPERTY()
-	TObjectPtr<AUnit> Unit_;
 
 	FTimerHandle SightTimerHandle_;
 };

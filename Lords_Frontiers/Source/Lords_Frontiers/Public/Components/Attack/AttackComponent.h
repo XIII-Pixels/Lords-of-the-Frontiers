@@ -6,11 +6,12 @@
 
 #include "AttackComponent.generated.h"
 
+class IEntity;
 class USceneComponent;
 
 /** (Gregory-hub)
  * Base class for attack components */
-UCLASS( Abstract )
+UCLASS( Abstract, ClassGroup = ( Attack ) )
 class LORDS_FRONTIERS_API UAttackComponent : public USceneComponent
 {
 	GENERATED_BODY()
@@ -24,4 +25,15 @@ public:
 	virtual void ActivateSight() PURE_VIRTUAL();
 
 	virtual void DeactivateSight() PURE_VIRTUAL();
+
+protected:
+	virtual void OnRegister() override;
+
+	bool OwnerIsValid() const;
+
+	// Pointer to Owner of type IEntity
+	IEntity* OwnerEntity_;
+
+private:
+	bool bOwnerIsValid_ = true;
 };

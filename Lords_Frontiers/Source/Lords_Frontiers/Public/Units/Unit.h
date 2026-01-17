@@ -3,10 +3,10 @@
 #pragma once
 
 #include "AIController.h"
-#include "Attackable.h"
+#include "Entity.h"
 #include "EntityStats.h"
-#include "Components/Attack/AttackComponent.h"
 
+#include "Components/Attack/AttackComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
@@ -21,7 +21,7 @@ class UFollowComponent;
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API AUnit : public APawn, public IAttackable
+class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity
 {
 	GENERATED_BODY()
 
@@ -44,7 +44,7 @@ public:
 
 	// Getters and setters
 
-	FEntityStats& Stats();
+	virtual FEntityStats& Stats() override;
 
 	virtual ETeam Team() override;
 

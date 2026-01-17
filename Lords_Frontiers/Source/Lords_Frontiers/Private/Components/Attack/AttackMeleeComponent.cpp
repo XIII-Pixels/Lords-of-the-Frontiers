@@ -2,43 +2,41 @@
 
 #include "Components/Attack/AttackMeleeComponent.h"
 
-#include "Units/Unit.h"
+#include "Entity.h"
 #include "Utilities/TraceChannelMappings.h"
 
 UAttackMeleeComponent::UAttackMeleeComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void UAttackMeleeComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Unit_ = Cast<AUnit>( GetOwner() );
-
 	ActivateSight();
 }
 
 void UAttackMeleeComponent::Look()
 {
-	if ( !Unit_ )
+	if ( !OwnerIsValid() )
 	{
 		return;
 	}
 
-	FVector start = Unit_->GetActorLocation();
-	FVector end = start + Unit_->GetActorForwardVector() * Unit_->Stats().AttackRange();
+	const FVector start = GetOwner()->GetActorLocation();
+	const FVector end = start + GetOwner()->GetActorForwardVector() * OwnerEntity_->Stats().AttackRange();
 
 	FHitResult hit;
 	FCollisionQueryParams params;
-	params.AddIgnoredActor( Unit_ );
+	params.AddIgnoredActor( GetOwner() );
 
 	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Entity, params ) )
 	{
 		AActor* hitActor = hit.GetActor();
-		if ( auto hitEntity = Cast<IAttackable>( hitActor ) )
+		if ( auto hitEntity = Cast<IEntity>( hitActor ) )
 		{
-			if ( Unit_->Team() != hitEntity->Team() )
+			if ( OwnerEntity_->Team() != hitEntity->Team() )
 			{
 				EnemyInSight_ = hitActor;
 				return;
@@ -52,32 +50,29 @@ void UAttackMeleeComponent::Look()
 
 void UAttackMeleeComponent::Attack( TObjectPtr<AActor> hitActor )
 {
-	// Probably should use some attack manager, because it would be easier to
-	// fetch attack info
-
-	if ( !Unit_ )
+	if ( !OwnerIsValid() )
 	{
 		return;
 	}
 
-	if ( Unit_->Stats().OnCooldown() )
+	if ( OwnerEntity_->Stats().OnCooldown() )
 	{
 		return;
 	}
 
-	auto attacked = Cast<IAttackable>( hitActor );
-	if ( !attacked )
+	const auto attackedEntity = Cast<IEntity>( hitActor );
+	if ( !attackedEntity )
 	{
 		return;
 	}
 
-	if ( Unit_->Stats().Team() == attacked->Team() )
+	if ( OwnerEntity_->Stats().Team() == attackedEntity->Team() )
 	{
 		return;
 	}
 
-	attacked->TakeDamage( Unit_->Stats().AttackDamage() );
-	Unit_->Stats().StartCooldown();
+	attackedEntity->TakeDamage( OwnerEntity_->Stats().AttackDamage() );
+	OwnerEntity_->Stats().StartCooldown();
 }
 
 TObjectPtr<AActor> UAttackMeleeComponent::EnemyInSight() const

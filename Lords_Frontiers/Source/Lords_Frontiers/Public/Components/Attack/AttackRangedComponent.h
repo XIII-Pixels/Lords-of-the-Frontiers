@@ -8,13 +8,13 @@
 
 #include "AttackRangedComponent.generated.h"
 
-class AUnit;
+class IEntity;
 class USphereComponent;
 class AProjectile;
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
-UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
+UCLASS( meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponent
 {
 	GENERATED_BODY()
@@ -56,11 +56,11 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float ProjectileSpeed_ = 1500.0f;
 
-	UPROPERTY()
-	TObjectPtr<USphereComponent> SightSphere_;
+	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	FVector ProjectileSpawnPosition_;
 
 	UPROPERTY()
-	TObjectPtr<AUnit> Unit_;
+	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;
 };
