@@ -9,6 +9,8 @@
 
 #include "Building.generated.h"
 
+class UBoxComponent;
+
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
 {
@@ -17,11 +19,6 @@ class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISele
 public:
 	ABuilding();
 
-	virtual float TakeDamage(
-	    float damageAmount, const struct FDamageEvent& damageEvent, AController* eventInstigator, AActor* damageCauser
-	) override;
-
-	UFUNCTION( BlueprintPure, Category = "Settings|Stats" )
 	bool IsDestroyed() const;
 
 	virtual FString GetNameBuild();
@@ -42,6 +39,11 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void OnDeath();
+
+	UPROPERTY()
+	TObjectPtr<UBoxComponent> CollisionComponent_;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	UStaticMeshComponent* BuildingMesh_;

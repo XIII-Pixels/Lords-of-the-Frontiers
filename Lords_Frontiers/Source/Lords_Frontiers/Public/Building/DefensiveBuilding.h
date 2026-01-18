@@ -45,6 +45,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void OnDeath() override;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	FWallMeshSet WallMeshSet_;
 

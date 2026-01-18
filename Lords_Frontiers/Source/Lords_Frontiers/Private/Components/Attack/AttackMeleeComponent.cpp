@@ -36,7 +36,7 @@ void UAttackMeleeComponent::Look()
 		AActor* hitActor = hit.GetActor();
 		if ( auto hitEntity = Cast<IEntity>( hitActor ) )
 		{
-			if ( OwnerEntity_->Team() != hitEntity->Team() )
+			if ( hitEntity->Stats().IsAlive() && OwnerEntity_->Team() != hitEntity->Team() )
 			{
 				EnemyInSight_ = hitActor;
 				return;

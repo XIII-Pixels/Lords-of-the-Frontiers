@@ -22,7 +22,7 @@ void ADefensiveBuilding::OnConstruction( const FTransform& transform )
 
 void ADefensiveBuilding::Attack( TObjectPtr<AActor> hitActor )
 {
-	if ( AttackComponent_ )
+	if ( AttackComponent_ && !IsDestroyed() )
 	{
 		AttackComponent_->Attack( hitActor );
 	}
@@ -60,6 +60,12 @@ void ADefensiveBuilding::BeginPlay()
 		    attackComponents.Num()
 		);
 	}
+}
+void ADefensiveBuilding::OnDeath()
+{
+	Super::OnDeath();
+
+	AttackComponent_->DeactivateSight();
 }
 
 FString ADefensiveBuilding::GetNameBuild()

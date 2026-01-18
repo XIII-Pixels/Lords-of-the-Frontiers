@@ -110,6 +110,7 @@ void UAttackRangedComponent::Look()
 		{
 			continue;
 		}
+
 		if ( CanSeeEnemy( actor ) )
 		{
 			float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
@@ -132,8 +133,8 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> actor ) const
 		return false;
 	}
 
-	auto enemy = Cast<IEntity>( actor );
-	if ( enemy && enemy->Team() != OwnerEntity_->Team() )
+	const auto enemy = Cast<IEntity>( actor );
+	if ( enemy->Stats().IsAlive() && enemy && enemy->Team() != OwnerEntity_->Team() )
 	{
 		if ( !bCanAttackBackward_ ) // look in half-circle in front of unit
 		{
