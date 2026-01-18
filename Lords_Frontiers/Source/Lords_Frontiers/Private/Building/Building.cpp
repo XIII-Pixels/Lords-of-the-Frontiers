@@ -18,6 +18,8 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Stats_.SetHealth( Stats_.MaxHealth() );
 }
 
 void ABuilding::OnDeath()
