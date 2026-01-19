@@ -4,14 +4,17 @@
 
 UResourceGenerator::UResourceGenerator()
 {
-	ResourceType_ = EResourceType::Gold;
-	GenerationQuantity_ = 10;
 	ResourceManager_ = nullptr;
 }
 
 void UResourceGenerator::Initialize( UResourceManager* manager )
 {
 	ResourceManager_ = manager;
+}
+
+void UResourceGenerator::SetProductionConfig( const TArray<FGameResource>& Config )
+{
+	ProductionResources_ = Config;
 }
 
 void UResourceGenerator::GenerateNow()
@@ -23,6 +26,9 @@ void UResourceGenerator::ProcessGeneration()
 {
 	if ( IsValid( ResourceManager_ ) )
 	{
-		ResourceManager_->AddResource( ResourceType_, GenerationQuantity_ );
+		for ( const FGameResource& Res : ProductionResources_ )
+		{
+			ResourceManager_->AddResource( Res.Type, Res.Quantity );
+		}
 	}
 }

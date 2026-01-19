@@ -18,41 +18,24 @@ class LORDS_FRONTIERS_API UResourceGenerator : public UObject
 public:
 	UResourceGenerator();
 
-	// Explicit initialization to link with manager (Dependency Injection)
-	UFUNCTION( BlueprintCallable, Category = "Settings|Initialization" )
 	void Initialize( UResourceManager* manager );
 
-	// Manual generation call (e.g., for "After Wave" logic)
-	UFUNCTION( BlueprintCallable, Category = "Settings|Generation" )
+	void SetProductionConfig( const TArray<FGameResource>& Config );
+
 	void GenerateNow();
 
-	// Getters for the scanner
-	UFUNCTION( BlueprintPure, Category = "Settings" )
-	EResourceType GetResourceType() const
+	const TArray<FGameResource>& GetProduction() const
 	{
-		return ResourceType_;
-	}
-
-	UFUNCTION( BlueprintPure, Category = "Settings" )
-	int32 GetGenerationQuantity() const
-	{
-		return GenerationQuantity_;
+		return ProductionResources_;
 	}
 
 protected:
-	// Type of resource being generated
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings" )
-	EResourceType ResourceType_;
-
-	// Number of resources per action
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings", meta = ( ClampMin = "1" ) )
-	int32 GenerationQuantity_;
+	TArray<FGameResource> ProductionResources_;
 
 private:
-	// Internal generation logic
 	void ProcessGeneration();
 
-	// ensuring GC handles references.
 	UPROPERTY()
 	UResourceManager* ResourceManager_;
 };
