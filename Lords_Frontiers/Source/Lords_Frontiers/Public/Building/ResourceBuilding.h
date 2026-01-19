@@ -30,8 +30,9 @@ protected:
 
 	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
 
-	// The component responsible for the core resource generation logic (type,
-	// quantity, interval).
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
+	TArray<FGameResource> ProductionConfig;
+
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
 	UResourceGenerator* ResourceGenerator_;
 

@@ -20,6 +20,7 @@ AResourceBuilding::AResourceBuilding()
 void AResourceBuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
 	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
 	{
 		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
@@ -28,23 +29,15 @@ void AResourceBuilding::BeginPlay()
 		}
 	}
 
-	// Initialization and start of generation
-	UResourceManager* ResourceManager = FindResourceManager();
+	if ( IsValid( ResourceGenerator_ ) )
+	{
+		ResourceGenerator_->SetProductionConfig( ProductionConfig );
 
-	if ( IsValid( ResourceGenerator_ ) && IsValid( ResourceManager ) )
-	{
-		// Passing the link to the ResourceManager and World Context to the
-		// generator
-		ResourceGenerator_->Initialize( ResourceManager );
-	}
-	else
-	{
-		// Log Warning if resources cannot be managed
-		UE_LOG(
-		    LogTemp, Warning,
-		    TEXT( "AResourceBuilding failed to initialize generator or find "
-		          "ResourceManager!" )
-		);
+		UResourceManager* ResManager = FindResourceManager();
+		if ( IsValid( ResManager ) )
+		{
+			ResourceGenerator_->Initialize( ResManager );
+		}
 	}
 }
 
