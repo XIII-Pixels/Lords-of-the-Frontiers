@@ -115,7 +115,30 @@ void UEconomyComponent::CollectGlobalResources()
 			UResourceGenerator* Gen = ResBuilding->GetResourceGenerator();
 			if ( Gen )
 			{
-				CollectedTotals.FindOrAdd( Gen->GetResourceType() ) += Gen->GetGenerationQuantity();
+				const TArray<FGameResource>& Production = Gen->GetProduction();
+				if ( Production.Num() == 0 )
+				{
+					UE_LOG(
+					    LogTemp, Error, TEXT( "ECONOMY: Building %s has EMPTY Production array!" ),
+					    *ResBuilding->GetName()
+					);
+				}
+				UE_LOG(
+				    LogTemp, Warning, TEXT( "Building %s has %d resource types in Production array" ),
+				    *ResBuilding->GetName(), Production.Num()
+				);
+
+				for ( const FGameResource& Res : Production )
+				{
+					if ( Res.Type != EResourceType::None && Res.Quantity > 0 )
+					{
+						CollectedTotals.FindOrAdd( Res.Type ) += Res.Quantity;
+
+						UE_LOG(
+						    LogTemp, Log, TEXT( "--- Found Resource: Type %d, Qty %d" ), (uint8) Res.Type, Res.Quantity
+						);
+					}
+				}
 				SuccessfullyProcessed++;
 			}
 			else
