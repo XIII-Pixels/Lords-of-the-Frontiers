@@ -11,27 +11,22 @@ void UGameHUDWidget::NativeConstruct ()
 
     if ( ButtonRelocateBuilding )
     {
-        ButtonRelocateBuilding->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnRelocateBuildingClicked );
         ButtonRelocateBuilding->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnRelocateBuildingClicked );
     }
     if ( ButtonRemoveBuilding )
     {
-        ButtonRemoveBuilding->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnRemoveBuildingClicked );
         ButtonRemoveBuilding->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnRemoveBuildingClicked );
     }
     if ( ButtonDefensiveBuildings )
     {
-        ButtonDefensiveBuildings->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
         ButtonDefensiveBuildings->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
     }
     if ( ButtonEconomyBuilding )
     {
-        ButtonEconomyBuilding->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnEconomyBuildingClicked );
         ButtonEconomyBuilding->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnEconomyBuildingClicked );
     }
     if ( ButtonEndTurn )
     {
-        ButtonEndTurn->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnEndTurnClicked );
         ButtonEndTurn->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnEndTurnClicked );
     }
 
