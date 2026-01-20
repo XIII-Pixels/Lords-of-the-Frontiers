@@ -61,11 +61,15 @@ void ADefensiveBuilding::BeginPlay()
 		);
 	}
 }
+
 void ADefensiveBuilding::OnDeath()
 {
 	Super::OnDeath();
 
-	AttackComponent_->DeactivateSight();
+	if ( AttackComponent_ )
+	{
+		AttackComponent_->DeactivateSight();
+	}
 }
 
 FString ADefensiveBuilding::GetNameBuild()

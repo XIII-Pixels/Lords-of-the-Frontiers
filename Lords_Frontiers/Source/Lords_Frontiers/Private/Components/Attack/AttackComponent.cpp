@@ -8,11 +8,6 @@ void UAttackComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	if ( !GetOwner() )
-	{
-		bOwnerIsValid_ = false;
-	}
-
 	OwnerEntity_ = Cast<IEntity>( GetOwner() );
 	if ( !OwnerEntity_ )
 	{

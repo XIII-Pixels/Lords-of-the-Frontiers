@@ -7,8 +7,6 @@
 
 #include "Attacker.generated.h"
 
-enum class ETeam : uint8;
-
 UINTERFACE( Blueprintable )
 class LORDS_FRONTIERS_API UAttacker : public UInterface
 {
