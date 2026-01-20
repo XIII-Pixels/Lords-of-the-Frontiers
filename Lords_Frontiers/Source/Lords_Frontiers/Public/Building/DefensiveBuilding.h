@@ -2,42 +2,61 @@
 
 #pragma once
 
+#include "Attacker.h"
 #include "Building/Building.h"
 #include "Building/WallTypes.h"
+#include "ControlledByTree.h"
 
 #include "CoreMinimal.h"
 
 #include "DefensiveBuilding.generated.h"
 
+class UAttackComponent;
+class AAIController;
+class UBehaviorTree;
+
 /**
  *
  */
 UCLASS()
-class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding
+class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding, public IAttacker, public IControlledByTree
 {
 	GENERATED_BODY()
 
 public:
 	ADefensiveBuilding();
+
+	virtual void OnConstruction(const FTransform& transform) override;
+
 	virtual FString GetNameBuild() override;
+
 	UFUNCTION( BlueprintCallable, BlueprintPure, Category = "Settings|Wall" )
 	const FWallMeshSet& GetWallMeshes() const
 	{
 		return WallMeshSet_;
 	}
 
+	virtual void Attack(TObjectPtr<AActor> hitActor) override;
+
+	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
+
+	virtual TObjectPtr<AActor> EnemyInSight() const override;
+
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void OnDeath() override;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	FWallMeshSet WallMeshSet_;
 
-	// Attack range (for the tower's component)
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Defense" )
-	float AttackRange_;
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
+	TSubclassOf<AAIController> BuildingAIControllerClass_;
 
-	// Attack damage (can be taken from FEntityStats, but often duplicated)
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Defense" )
-	int32 DefenseDamage_;
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
+	TObjectPtr<UBehaviorTree> BuildingBehaviorTree_;
+
+	UPROPERTY()
+	TObjectPtr<UAttackComponent> AttackComponent_;
 };
 // DefensiveBuilding.h

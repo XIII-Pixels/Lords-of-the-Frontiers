@@ -1,51 +1,56 @@
 #include "Building/Building.h"
 
+#include "Components/BoxComponent.h"
+#include "Utilities/TraceChannelMappings.h"
+
 ABuilding::ABuilding()
 {
-
 	PrimaryActorTick.bCanEverTick = false;
 
+	CollisionComponent_ = CreateDefaultSubobject<UBoxComponent>( TEXT( "BoxCollision" ) );
+	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
+	SetRootComponent( CollisionComponent_ );
+
 	BuildingMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "BuildingMesh" ) );
-	RootComponent = BuildingMesh_;
-
-	BuildingMesh_->SetCollisionResponseToChannel( ECollisionChannel::ECC_GameTraceChannel1, ECR_Ignore );
-
-	Stats_ = FEntityStats( 100, 0, 0.0f );
+	BuildingMesh_->SetupAttachment( RootComponent );
 }
 
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Stats_.SetHealth( Stats_.MaxHealth() );
 }
 
-float ABuilding::TakeDamage(
-    float damageAmount, const FDamageEvent& damageEvent, AController* eventInstigator, AActor* damageCauser
-)
+void ABuilding::OnDeath()
 {
-	// Call super to handle generic logic
-	const float ActualDamage = Super::TakeDamage( damageAmount, damageEvent, eventInstigator, damageCauser );
-
-	// Standard: spaces around conditions
-	if ( ActualDamage > 0.0f )
-	{
-		// Convert float damage to int for your system
-		const int32 IntDamage = FMath::RoundToInt( ActualDamage );
-
-		Stats_.ApplyDamage( IntDamage );
-
-		if ( !Stats_.IsAlive() )
-		{
-			// Logic for destruction (effects, removal, etc.)
-			Destroy();
-		}
-	}
-
-	return ActualDamage;
+	// Do not destroy building
+	// Replace building with ruins
+	// Disable component ticks in children
 }
 
-const FEntityStats& ABuilding::GetStats() const
+FEntityStats& ABuilding::Stats()
 {
 	return Stats_;
+}
+
+ETeam ABuilding::Team()
+{
+	return Stats_.Team();
+}
+
+void ABuilding::TakeDamage( float damage )
+{
+	if ( !Stats_.IsAlive() )
+	{
+		return;
+	}
+
+	Stats_.ApplyDamage( damage );
+	if ( !Stats_.IsAlive() )
+	{
+		OnDeath();
+	}
 }
 
 bool ABuilding::IsDestroyed() const
