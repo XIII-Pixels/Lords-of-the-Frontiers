@@ -20,18 +20,18 @@ public:
 
 	void Initialize( UResourceManager* manager );
 
-	void SetProductionConfig( const TArray<FGameResource>& Config );
+	void SetProductionConfig( const FResourceProduction& Config );
+
+	TMap<EResourceType, int32> GetTotalProduction() const;
 
 	void GenerateNow();
 
-	const TArray<FGameResource>& GetProduction() const
-	{
-		return ProductionResources_;
-	}
-
 protected:
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings" )
-	TArray<FGameResource> ProductionResources_;
+	UPROPERTY()
+	TMap<EResourceType, int32> BaseProduction_;
+
+	UPROPERTY()
+	TMap<EResourceType, int32> BonusProduction_;
 
 private:
 	void ProcessGeneration();

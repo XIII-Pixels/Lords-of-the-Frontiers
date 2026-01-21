@@ -31,13 +31,9 @@ void AResourceBuilding::BeginPlay()
 
 	if ( IsValid( ResourceGenerator_ ) )
 	{
-		ResourceGenerator_->SetProductionConfig( ProductionConfig );
+		ResourceGenerator_->Initialize( FindResourceManager() );
 
-		UResourceManager* ResManager = FindResourceManager();
-		if ( IsValid( ResManager ) )
-		{
-			ResourceGenerator_->Initialize( ResManager );
-		}
+		ResourceGenerator_->SetProductionConfig( ProductionConfig );
 	}
 }
 

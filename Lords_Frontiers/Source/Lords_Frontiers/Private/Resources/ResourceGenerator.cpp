@@ -12,9 +12,21 @@ void UResourceGenerator::Initialize( UResourceManager* manager )
 	ResourceManager_ = manager;
 }
 
-void UResourceGenerator::SetProductionConfig( const TArray<FGameResource>& Config )
+void UResourceGenerator::SetProductionConfig( const FResourceProduction& Config )
 {
-	ProductionResources_ = Config;
+	BaseProduction_ = Config.ToMap();
+}
+
+//hit the bonuses from the cards
+TMap<EResourceType, int32> UResourceGenerator::GetTotalProduction() const
+{
+	TMap<EResourceType, int32> Total = BaseProduction_;
+
+	for ( const auto& Bonus : BonusProduction_ )
+	{
+		Total.FindOrAdd( Bonus.Key ) += Bonus.Value;
+	}
+	return Total;
 }
 
 void UResourceGenerator::GenerateNow()
@@ -26,9 +38,12 @@ void UResourceGenerator::ProcessGeneration()
 {
 	if ( IsValid( ResourceManager_ ) )
 	{
-		for ( const FGameResource& Res : ProductionResources_ )
+		for ( const auto& Elem : GetTotalProduction() )
 		{
-			ResourceManager_->AddResource( Res.Type, Res.Quantity );
+			if ( Elem.Value > 0 )
+			{
+				ResourceManager_->AddResource( Elem.Key, Elem.Value );
+			}
 		}
 	}
 }
