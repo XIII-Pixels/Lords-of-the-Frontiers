@@ -2,7 +2,7 @@
 
 #include "EntityStats.h"
 #include "Selectable.h"
-
+#include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
@@ -36,8 +36,17 @@ public:
 
 	virtual FVector GetSelectionLocation_Implementation() const override;
 
+	const FResourceProduction& GetMaintenanceCost() const
+	{
+		return MaintenanceCost;
+	}
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
+	FResourceProduction MaintenanceCost;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Setting|Components" )
 	UStaticMeshComponent* BuildingMesh_;

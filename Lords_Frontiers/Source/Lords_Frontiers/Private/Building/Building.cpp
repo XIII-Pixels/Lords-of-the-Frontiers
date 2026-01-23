@@ -1,4 +1,6 @@
 #include "Building/Building.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ABuilding::ABuilding()
 {
@@ -16,6 +18,14 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
+		{
+			Eco->RegisterBuilding( this );
+		}
+	}
 }
 
 float ABuilding::TakeDamage(
@@ -101,4 +111,16 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 	}
 
 	return GetActorLocation();
+}
+
+void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
+		{
+			Eco->UnregisterBuilding( this );
+		}
+	}
+	Super::EndPlay( EndPlayReason );
 }
