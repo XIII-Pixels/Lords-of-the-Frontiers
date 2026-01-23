@@ -24,18 +24,24 @@ public:
 
 	virtual void PostInitProperties() override;
 
+	// Setup
+
 	// Grid is required to calculate path
 	void SetGrid( TWeakObjectPtr<AGridManager> grid );
-
 	// Find grid in the world. Fails if more than one grid is found
 	void AutoSetGrid();
 
-	// Set goal that must be reached
+	// Unit damage and cooldown are needed to calculate time to destroy a building
+	void SetUnitAttackInfo( float damage, float cooldown );
+
+	void SetEmptyCellTravelTime( float emptyCellTravelTime );
+
 	void SetStartAndGoal( const FIntPoint& start, const FIntPoint& goal );
+
+	// Pathfinding
 
 	// Update cell values. Path needs to be updated after calling this
 	void OnUpdateCell( const FIntPoint& cell );
-
 	// Calculate full path or update part of path (if grid has changed)
 	void CalculateOrUpdate();
 

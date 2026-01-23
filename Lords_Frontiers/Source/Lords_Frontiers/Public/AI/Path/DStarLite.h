@@ -7,6 +7,7 @@
 
 #include "DStarLite.generated.h"
 
+class AUnit;
 class AGridManager;
 
 struct FDStarNode
@@ -59,8 +60,9 @@ public:
 	void Initialize( const FIntPoint& start, const FIntPoint& goal );
 	void SetGrid( TWeakObjectPtr<AGridManager> grid );
 	void SetStart( const FIntPoint& newStart );
-	// Should be (cell width) / (unit speed) = (time to travel through cell)
-	void SetEmptyCellCost( float emptyCellCost );
+	void SetEmptyCellTravelTime( float emptyCellTravelTime );
+	// Unit damage and cooldown are needed to calculate time to destroy a building
+	void SetUnitAttackInfo( float damage, float cooldown );
 
 	bool ComputeShortestPath();
 
@@ -69,7 +71,11 @@ public:
 	TArray<FIntPoint> GetPath() const;
 
 private:
+	UPROPERTY()
 	TWeakObjectPtr<AGridManager> Grid_;
+
+	float UnitDps_ = -1.0f;
+	float EmptyCellTravelTime_ = 1.0f;
 
 	TMap<FIntPoint, FDStarNode> Nodes_;
 	TArray<FDStarQueueNode> Open_;
@@ -78,7 +84,6 @@ private:
 	FIntPoint Goal_;
 
 	float Km_ = 0.0f;
-	float EmptyCellCost_ = 100.0f;
 
 	// Core methods
 

@@ -19,6 +19,7 @@ void UPath::PostInitProperties()
 void UPath::SetGrid( TWeakObjectPtr<AGridManager> grid )
 {
 	Grid_ = grid;
+	DStarLite_->SetGrid( Grid_ );
 }
 
 void UPath::AutoSetGrid()
@@ -39,8 +40,18 @@ void UPath::AutoSetGrid()
 			);
 			return;
 		}
-		Grid_ = *it;
+		SetGrid( *it );
 	}
+}
+
+void UPath::SetEmptyCellTravelTime( float emptyCellTravelTime )
+{
+	DStarLite_->SetEmptyCellTravelTime( emptyCellTravelTime );
+}
+
+void UPath::SetUnitAttackInfo( float damage, float cooldown )
+{
+	DStarLite_->SetUnitAttackInfo( damage, cooldown );
 }
 
 void UPath::SetStartAndGoal( const FIntPoint& start, const FIntPoint& goal )

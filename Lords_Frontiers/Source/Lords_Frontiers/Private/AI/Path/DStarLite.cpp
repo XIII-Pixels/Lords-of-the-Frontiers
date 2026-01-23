@@ -34,7 +34,7 @@ void UDStarLite::UpdateVertex( FDStarNode& node )
 {
 	if ( node.Coord != Goal_ )
 	{
-		float minRHS = TNumericLimits<float>::Max();
+		float minRHS = BIG_NUMBER;
 
 		for ( const FIntPoint& succ : GetSuccessors( node.Coord ) )
 		{
@@ -83,7 +83,7 @@ bool UDStarLite::ComputeShortestPath()
 		}
 		else
 		{
-			node.G = TNumericLimits<float>::Max();
+			node.G = BIG_NUMBER;
 			UpdateVertex( node );
 
 			for ( const FIntPoint& pred : GetPredecessors( node.Coord ) )
@@ -108,9 +108,21 @@ void UDStarLite::SetStart( const FIntPoint& newStart )
 	Start_ = newStart;
 }
 
-void UDStarLite::SetEmptyCellCost( float emptyCellCost )
+void UDStarLite::SetEmptyCellTravelTime( float emptyCellTravelTime )
 {
-	EmptyCellCost_ = emptyCellCost;
+	EmptyCellTravelTime_ = emptyCellTravelTime;
+}
+
+void UDStarLite::SetUnitAttackInfo( float damage, float cooldown )
+{
+	if ( damage > 0.0f && cooldown > 0.0f )
+	{
+		UnitDps_ = damage / cooldown;
+	}
+	else
+	{
+		UnitDps_ = -1.0f;
+	}
 }
 
 TArray<FIntPoint> UDStarLite::GetPath() const
@@ -128,7 +140,7 @@ TArray<FIntPoint> UDStarLite::GetPath() const
 			break;
 		}
 
-		float best = TNumericLimits<float>::Max();
+		float best = BIG_NUMBER;
 		FIntPoint next = current;
 
 		for ( const FIntPoint& succ : GetSuccessors( current ) )
@@ -176,28 +188,28 @@ TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
 		return TArray<FIntPoint>();
 	}
 
-	if ( coord.X < 0 || coord.X >= Grid_->GetGridWidth() || coord.Y < 0 || coord.Y >= Grid_->GetGridHeight() )
-	{
-		return TArray<FIntPoint>();
-	}
+	static const FIntPoint directions[8] = { { 1, 0 }, { -1, 0 }, { 0, 1 },  { 0, -1 },
+	                                         { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
 
-	// also need to check if cell is occupied
+	const int32 width = Grid_->GetGridWidth();
+	const int32 height = Grid_->GetGridHeight();
+
 	TArray<FIntPoint> successors;
-	if ( coord.X + 1 < Grid_->GetGridWidth() )
+	for ( const FIntPoint& dir : directions )
 	{
-		successors.Add( FIntPoint( coord.X + 1, coord.Y ) );
-	}
-	if ( coord.X - 1 >= 0 )
-	{
-		successors.Add( FIntPoint( coord.X - 1, coord.Y ) );
-	}
-	if ( coord.Y + 1 < Grid_->GetGridHeight() )
-	{
-		successors.Add( FIntPoint( coord.X, coord.Y + 1 ) );
-	}
-	if ( coord.Y - 1 >= 0 )
-	{
-		successors.Add( FIntPoint( coord.X, coord.Y - 1 ) );
+		FIntPoint next = coord + dir;
+
+		if ( next.X < 0 || next.X >= width || next.Y < 0 || next.Y >= height )
+		{
+			continue;
+		}
+
+		if ( !Grid_->GetCell( coord.X, coord.Y )->bIsBuildable )
+		{
+			continue;
+		}
+
+		successors.Add( next );
 	}
 
 	return successors;
@@ -211,10 +223,36 @@ TArray<FIntPoint> UDStarLite::GetPredecessors( const FIntPoint& coord ) const
 
 float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 {
-	const FIntPoint diff( FMath::Abs( b.X - a.X ), FMath::Abs( b.Y - a.Y ) );
-	if ( diff.X > 1 || diff.Y > 1 )
+	const int dx = FMath::Abs( b.X - a.X );
+	const int dy = FMath::Abs( b.Y - a.Y );
+
+	if ( !Grid_.IsValid() )
 	{
-		return TNumericLimits<float>::Max();
+		return BIG_NUMBER;
 	}
-	return diff.Size(); // + time to destroy building on cell
+
+	float timeToDestroy = 0.0f;
+	if ( const FGridCell* cell = Grid_->GetCell( b.X, b.Y ) )
+	{
+		const TWeakObjectPtr<ABuilding> occupant = cell->Occupant;
+		if ( occupant.IsValid() )
+		{
+			timeToDestroy = occupant->Stats().Health() / UnitDps_;
+		}
+	}
+
+	// Cardinal move
+	if ( dx + dy == 1 )
+	{
+		return EmptyCellTravelTime_ + timeToDestroy;
+	}
+
+	// Diagonal move
+	if ( dx == 1 && dy == 1 )
+	{
+		static constexpr float sqrt2 = 1.41421356f;
+		return sqrt2 * EmptyCellTravelTime_ + timeToDestroy;
+	}
+
+	return BIG_NUMBER;
 }

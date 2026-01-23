@@ -21,11 +21,12 @@ void UDebugPathUIWidget::NativeConstruct()
 	Path_ = NewObject<UPath>(this);
 	Path_->AutoSetGrid();
 	Path_->SetStartAndGoal( { 0, 0 }, { 5, 5 } );
+	Path_->SetUnitAttackInfo( 10.0f, 2.0f );
+	Path_->SetEmptyCellTravelTime( 1.0f );
 }
 
 void UDebugPathUIWidget::OnButton1Clicked()
 {
-	UE_LOG( LogTemp, Log, TEXT( "Button 1 clicked" ) );
 	Path_->CalculateOrUpdate();
 }
 
