@@ -2,7 +2,7 @@
 
 #include "Projectiles/Projectile.h"
 
-#include "Attackable.h"
+#include "Entity.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/SphereComponent.h"
@@ -64,7 +64,7 @@ void AProjectile::Tick( float deltaTime )
 
 void AProjectile::DealDamage( TObjectPtr<AActor> target ) const
 {
-	if ( auto enemy = Cast<IAttackable>( target ) )
+	if ( auto enemy = Cast<IEntity>( target ) )
 	{
 		enemy->TakeDamage( Damage_ );
 	}

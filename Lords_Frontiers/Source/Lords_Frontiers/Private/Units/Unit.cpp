@@ -2,12 +2,12 @@
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
+#include "AI/EntityAIController.h"
 #include "Transform/TransformableHandleUtils.h"
-#include "Units/FollowComponent.h"
-#include "Units/UnitAIController.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/FollowComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AUnit::AUnit()
@@ -18,7 +18,7 @@ AUnit::AUnit()
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	UnitAIControllerClass_ = AUnitAIController::StaticClass();
+	UnitAIControllerClass_ = AEntityAIController::StaticClass();
 }
 
 void AUnit::OnConstruction( const FTransform& transform )
@@ -40,7 +40,7 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-	TArray<UAttackComponentBase*> attackComponents;
+	TArray<UAttackComponent*> attackComponents;
 	GetComponents( attackComponents );
 
 	if ( attackComponents.Num() == 1 )
