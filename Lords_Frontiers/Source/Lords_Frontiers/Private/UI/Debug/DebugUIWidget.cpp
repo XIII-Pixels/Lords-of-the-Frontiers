@@ -199,6 +199,8 @@ void UDebugUIWidget::OnButton9Clicked()
 	if ( EconomyComp )
 	{
 		EconomyComp->CollectGlobalResources();
+
+		EconomyComp->ApplyMaintenanceCosts();
 	}
 }
 
