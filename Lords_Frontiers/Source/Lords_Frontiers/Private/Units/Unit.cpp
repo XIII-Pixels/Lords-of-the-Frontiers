@@ -3,6 +3,8 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
+#include "AI/Path/Path.h"
+#include "AI/Path/PathPointsManager.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -50,7 +52,7 @@ void AUnit::BeginPlay()
 	else
 	{
 		UE_LOG(
-		    LogTemp, Error, TEXT( "Number of unit attack component is not equal to 1 (number: %d)" ),
+		    LogTemp, Error, TEXT( "AUnit: number of unit attack components is not equal to 1 (number: %d)" ),
 		    attackComponents.Num()
 		);
 	}
@@ -59,6 +61,11 @@ void AUnit::BeginPlay()
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
+
+	if ( IsCloseToTarget() )
+	{
+		FollowNextPathTarget();
+	}
 }
 
 void AUnit::StartFollowing()
@@ -123,9 +130,19 @@ TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
 	return UnitBehaviorTree_;
 }
 
-TObjectPtr<AActor> AUnit::FollowedTarget() const
+TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
 {
 	return FollowedTarget_;
+}
+
+const TObjectPtr<UPath>& AUnit::Path() const
+{
+	return Path_;
+}
+
+void AUnit::SetFollowedTarget( TObjectPtr<AActor> followedTarget )
+{
+	FollowedTarget_ = followedTarget;
 }
 
 void AUnit::OnDeath()
@@ -143,4 +160,69 @@ void AUnit::OnDeath()
 	}
 
 	Destroy();
+}
+
+void AUnit::FollowNextPathTarget()
+{
+	AdvancePathPointIndex();
+	FollowPathTarget();
+}
+
+bool AUnit::IsCloseToTarget() const
+{
+	if ( !FollowedTarget_.IsValid() || !PathPointsManager_.IsValid() )
+	{
+		return false;
+	}
+
+	const float distance = FVector::Distance( GetActorLocation(), FollowedTarget_->GetActorLocation() );
+	return distance < PathPointsManager_->PointReachRadius;
+}
+
+void AUnit::SetPath( TObjectPtr<UPath> path )
+{
+	Path_ = path;
+	PathPointIndex_ = 0;
+}
+
+void AUnit::SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager )
+{
+	PathPointsManager_ = pathPointsManager;
+}
+
+void AUnit::AdvancePathPointIndex()
+{
+	++PathPointIndex_;
+}
+
+void AUnit::SetPathPointIndex( int pathPointIndex )
+{
+	PathPointIndex_ = pathPointIndex;
+}
+
+void AUnit::FollowPathTarget()
+{
+	if ( !PathPointsManager_.IsValid() )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "AUnit: no valid PathPointsManager_. Cannot follow path" ) );
+		FollowedTarget_ = nullptr;
+	}
+
+	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
+	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
+	{
+		if ( PathPointsManager_->GoalActor.IsValid() )
+		{
+			FollowedTarget_ = PathPointsManager_->GoalActor;
+		}
+		else
+		{
+			UE_LOG( LogTemp, Error, TEXT( "AUnit: PathPointIndex_ is out of range and no GoalActor specified" ) );
+			FollowedTarget_ = nullptr;
+		}
+	}
+	else
+	{
+		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] );
+	}
 }

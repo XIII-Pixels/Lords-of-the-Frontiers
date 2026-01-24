@@ -120,6 +120,16 @@ bool AGridManager::GetCellWorldCenter( const FIntPoint& coords, FVector& outLoca
 	return true;
 }
 
+FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
+{
+	location -= GetActorLocation();	// location is relative to grid location
+
+	FIntPoint cellCoords = FIntPoint( location.X / CellSize_, location.Y / CellSize_ );
+	cellCoords.X = FMath::Clamp(cellCoords.X, 0, GetGridWidth() - 1);
+	cellCoords.Y = FMath::Clamp(cellCoords.Y, 0, GetGridHeight() - 1);
+	return cellCoords;
+}
+
 // Initializes the grid:
 //  - sets GridCoords;
 //  - resets runtime state (occupancy and actor);

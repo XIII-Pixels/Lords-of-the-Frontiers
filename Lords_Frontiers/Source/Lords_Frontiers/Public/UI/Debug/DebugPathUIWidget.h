@@ -10,8 +10,9 @@
 
 #include "DebugPathUIWidget.generated.h"
 
+class AWaveManager;
 class APathTargetPoint;
-class UPathPointsManager;
+class APathPointsManager;
 class UButton;
 
 UCLASS( Abstract, Blueprintable )
@@ -35,12 +36,5 @@ protected:
 	UFUNCTION()
 	void OnButton2Clicked();
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Path" )
-	TSubclassOf<APathTargetPoint> PathTargetPointClass_;
-
-	UPROPERTY()
-	TObjectPtr<UPath> Path_;
-
-	UPROPERTY()
-	TObjectPtr<UPathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<AWaveManager> WaveManager_;
 };

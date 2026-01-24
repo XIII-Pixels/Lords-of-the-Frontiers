@@ -35,7 +35,7 @@ void UPath::SetUnitAttackInfo( float damage, float cooldown )
 void UPath::SetStartAndGoal( const FIntPoint& start, const FIntPoint& goal )
 {
 	DStarLite_->Initialize( start, goal );
-	bInitialized = true;
+	bStartGoalInitialized = true;
 }
 
 void UPath::OnUpdateCell( const FIntPoint& cell )
@@ -50,7 +50,7 @@ void UPath::CalculateOrUpdate()
 		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path with invalid pointer to grid" ) );
 		return;
 	}
-	if ( !bInitialized )
+	if ( !bStartGoalInitialized )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path on uninitialized path" ) );
 		return;
@@ -64,7 +64,7 @@ void UPath::CalculateOrUpdate()
 	}
 }
 
-TArray<FIntPoint> UPath::GetPoints() const
+const TArray<FIntPoint>& UPath::GetPoints() const
 {
 	return PathPoints_;
 }

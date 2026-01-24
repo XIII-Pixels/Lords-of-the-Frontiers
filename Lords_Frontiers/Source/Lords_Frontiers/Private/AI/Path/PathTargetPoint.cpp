@@ -12,4 +12,5 @@ APathTargetPoint::APathTargetPoint()
 	Mesh_->SetupAttachment( RootComponent );
 	Mesh_->SetMobility( EComponentMobility::Movable );
 	Mesh_->CastShadow = false;
+	Mesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 }

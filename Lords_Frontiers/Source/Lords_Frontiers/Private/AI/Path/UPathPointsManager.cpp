@@ -1,12 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
-#include "AI/Path/PathPointsManager.h"
-
 #include "AI/Path/Path.h"
+#include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
 #include "Grid/GridManager.h"
 
-void UPathPointsManager::PostInitProperties()
+void APathPointsManager::PostInitProperties()
 {
 	Super::PostInitProperties();
 
@@ -16,14 +14,14 @@ void UPathPointsManager::PostInitProperties()
 	}
 }
 
-void UPathPointsManager::SetGrid( TWeakObjectPtr<AGridManager> grid )
+void APathPointsManager::SetGrid( TWeakObjectPtr<AGridManager> grid )
 {
-	Grid_ = grid;
+	Grid = grid;
 }
 
-void UPathPointsManager::AddPathPoints( const UPath& path )
+void APathPointsManager::AddPathPoints( const UPath& path )
 {
-	if ( !Grid_.IsValid() )
+	if ( !Grid.IsValid() )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UPathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
 		return;
@@ -42,7 +40,7 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 		if ( !PathPoints_.Contains( point ) )
 		{
 			FVector location;
-			if ( !Grid_->GetCellWorldCenter( point, location ) )
+			if ( !Grid->GetCellWorldCenter( point, location ) )
 			{
 				UE_LOG(
 				    LogTemp, Warning, TEXT( "UPathPointsManager: failed to get world center for cell=[%d, %d]" ),
@@ -56,8 +54,11 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 			FActorSpawnParameters spawnInfo;
 			spawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-			APathTargetPoint* pathPoint =
-			    GetWorld()->SpawnActor<APathTargetPoint>( PathTargetPointClass, transform, spawnInfo );
+			APathTargetPoint* pathPoint = nullptr;
+			if ( UWorld* world = GetWorld() )
+			{
+				pathPoint = world->SpawnActor<APathTargetPoint>( PathTargetPointClass, transform, spawnInfo );
+			}
 
 			if ( pathPoint )
 			{
@@ -67,12 +68,19 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 	}
 }
 
-TWeakObjectPtr<AActor> UPathPointsManager::GetTargetPoint( const FIntPoint& point ) const
+TWeakObjectPtr<AActor> APathPointsManager::GetTargetPoint( const FIntPoint& point ) const
 {
-	return PathPoints_.Find( point )->Get();
+	if ( const auto found = PathPoints_.Find( point ) )
+	{
+		return found->Get();
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
-void UPathPointsManager::Remove( const FIntPoint& point )
+void APathPointsManager::Remove( const FIntPoint& point )
 {
 	if ( TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
 	{
@@ -85,7 +93,7 @@ void UPathPointsManager::Remove( const FIntPoint& point )
 	}
 }
 
-void UPathPointsManager::Empty()
+void APathPointsManager::Empty()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{

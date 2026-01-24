@@ -43,7 +43,7 @@ public:
 	// Calculate full path or update part of path (if grid has changed)
 	void CalculateOrUpdate();
 
-	TArray<FIntPoint> GetPoints() const;
+	const TArray<FIntPoint>& GetPoints() const;
 
 private:
 	UPROPERTY()
@@ -52,7 +52,7 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<AGridManager> Grid_;
 
-	bool bInitialized = false;
+	bool bStartGoalInitialized = false;
 
 	TArray<FIntPoint> PathPoints_;
 };

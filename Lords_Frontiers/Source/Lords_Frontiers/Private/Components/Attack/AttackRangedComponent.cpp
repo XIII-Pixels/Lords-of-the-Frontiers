@@ -122,7 +122,7 @@ void UAttackRangedComponent::Look()
 		}
 	}
 
-	UE_LOG( LogTemp, Log, TEXT( "Enemy in sight: %s" ), *GetNameSafe( EnemyInSight_ ) );
+	// UE_LOG( LogTemp, Log, TEXT( "Enemy in sight: %s" ), *GetNameSafe( EnemyInSight_ ) );
 }
 
 bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> actor ) const
