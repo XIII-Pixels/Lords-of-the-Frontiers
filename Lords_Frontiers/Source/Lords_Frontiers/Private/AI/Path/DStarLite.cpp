@@ -235,7 +235,7 @@ float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 	if ( const FGridCell* cell = Grid_->GetCell( b.X, b.Y ) )
 	{
 		const TWeakObjectPtr<ABuilding> occupant = cell->Occupant;
-		if ( occupant.IsValid() )
+		if ( occupant.IsValid() && UnitDps_ != -1.0f )
 		{
 			timeToDestroy = occupant->Stats().Health() / UnitDps_;
 		}

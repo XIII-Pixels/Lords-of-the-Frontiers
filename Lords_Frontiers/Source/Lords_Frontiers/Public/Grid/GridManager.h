@@ -83,6 +83,9 @@ public:
 	/// bounds.
 	const FGridCell* GetCell( const int32 x, const int32 y ) const;
 
+	/// @brief Calculate point world location based on grid coords with z = grid z
+	bool GetCellWorldCenter( const FIntPoint& cellCoords, FVector& outLocation ) const;
+
 protected:
 	/// @brief Called when the game starts or when spawned.
 	virtual void BeginPlay() override;

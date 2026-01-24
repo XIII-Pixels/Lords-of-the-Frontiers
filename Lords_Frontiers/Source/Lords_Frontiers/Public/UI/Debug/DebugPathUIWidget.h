@@ -10,6 +10,8 @@
 
 #include "DebugPathUIWidget.generated.h"
 
+class APathTargetPoint;
+class UPathPointsManager;
 class UButton;
 
 UCLASS( Abstract, Blueprintable )
@@ -33,6 +35,12 @@ protected:
 	UFUNCTION()
 	void OnButton2Clicked();
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Path" )
+	TSubclassOf<APathTargetPoint> PathTargetPointClass_;
+
 	UPROPERTY()
 	TObjectPtr<UPath> Path_;
+
+	UPROPERTY()
+	TObjectPtr<UPathPointsManager> PathPointsManager_;
 };

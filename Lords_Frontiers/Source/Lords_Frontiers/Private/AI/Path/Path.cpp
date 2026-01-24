@@ -13,35 +13,13 @@ UPath::UPath()
 void UPath::PostInitProperties()
 {
 	Super::PostInitProperties();
-	DStarLite_ = NewObject<UDStarLite>(this);
+	DStarLite_ = NewObject<UDStarLite>( this );
 }
 
 void UPath::SetGrid( TWeakObjectPtr<AGridManager> grid )
 {
 	Grid_ = grid;
 	DStarLite_->SetGrid( Grid_ );
-}
-
-void UPath::AutoSetGrid()
-{
-	if ( Grid_.IsValid() )
-	{
-		return;
-	}
-
-	for ( TActorIterator<AGridManager> it( GetWorld() ); it; ++it )
-	{
-		if ( Grid_.IsValid() )
-		{
-			// Second grid found => grid is not unique
-			Grid_ = nullptr;
-			UE_LOG(
-			    LogTemp, Error, TEXT( "More than one grid was found in the world. Cannot set grid for pathfinding" )
-			);
-			return;
-		}
-		SetGrid( *it );
-	}
 }
 
 void UPath::SetEmptyCellTravelTime( float emptyCellTravelTime )
@@ -56,8 +34,6 @@ void UPath::SetUnitAttackInfo( float damage, float cooldown )
 
 void UPath::SetStartAndGoal( const FIntPoint& start, const FIntPoint& goal )
 {
-	Start_ = start;
-	Goal_ = goal;
 	DStarLite_->Initialize( start, goal );
 	bInitialized = true;
 }
@@ -86,4 +62,9 @@ void UPath::CalculateOrUpdate()
 	{
 		UE_LOG( LogTemp, Log, TEXT( "Path[%d] = (%d, %d)" ), i, PathPoints_[i].X, PathPoints_[i].Y );
 	}
+}
+
+TArray<FIntPoint> UPath::GetPoints() const
+{
+	return PathPoints_;
 }

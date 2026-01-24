@@ -28,8 +28,6 @@ public:
 
 	// Grid is required to calculate path
 	void SetGrid( TWeakObjectPtr<AGridManager> grid );
-	// Find grid in the world. Fails if more than one grid is found
-	void AutoSetGrid();
 
 	// Unit damage and cooldown are needed to calculate time to destroy a building
 	void SetUnitAttackInfo( float damage, float cooldown );
@@ -45,6 +43,8 @@ public:
 	// Calculate full path or update part of path (if grid has changed)
 	void CalculateOrUpdate();
 
+	TArray<FIntPoint> GetPoints() const;
+
 private:
 	UPROPERTY()
 	TObjectPtr<UDStarLite> DStarLite_;
@@ -54,7 +54,5 @@ private:
 
 	bool bInitialized = false;
 
-	FIntPoint Start_;
-	FIntPoint Goal_;
 	TArray<FIntPoint> PathPoints_;
 };

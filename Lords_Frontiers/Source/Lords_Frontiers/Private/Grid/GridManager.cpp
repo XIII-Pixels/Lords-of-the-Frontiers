@@ -99,6 +99,27 @@ const FGridCell* AGridManager::GetCell( const int32 x, const int32 y ) const
 	return &GridRows_[y].Cells[x];
 }
 
+bool AGridManager::GetCellWorldCenter( const FIntPoint& coords, FVector& outLocation ) const
+{
+	const int32 width = GetGridWidth();
+	const int32 height = GetGridHeight();
+
+	if ( coords.X < 0 || coords.X >= width || coords.Y < 0 || coords.Y >= height )
+	{
+		return false;
+	}
+
+	const float cellSize = GetCellSize();
+	const FVector origin = GetActorLocation();
+	const float z = origin.Z;
+
+	const float centerX = origin.X + ( static_cast<float>( coords.X ) + 0.5f ) * cellSize;
+	const float centerY = origin.Y + ( static_cast<float>( coords.Y ) + 0.5f ) * cellSize;
+
+	outLocation = FVector( centerX, centerY, z );
+	return true;
+}
+
 // Initializes the grid:
 //  - sets GridCoords;
 //  - resets runtime state (occupancy and actor);
