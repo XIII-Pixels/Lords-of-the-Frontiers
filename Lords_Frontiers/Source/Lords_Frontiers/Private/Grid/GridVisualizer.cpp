@@ -163,28 +163,14 @@ void AGridVisualizer::RefreshGrid()
 	}
 }
 
-bool AGridVisualizer::GetCellWorldCenter( const FIntPoint& CellCoords, FVector& OutLocation ) const
+bool AGridVisualizer::GetCellWorldCenter( const FIntPoint& cellCoords, FVector& outLocation ) const
 {
 	if ( !GridManager_ )
 	{
 		return false;
 	}
 
-	const int32 width = GridManager_->GetGridWidth();
-	const int32 height = GridManager_->GetGridHeight();
-
-	if ( CellCoords.X < 0 || CellCoords.X >= width || CellCoords.Y < 0 || CellCoords.Y >= height )
-	{
-		return false;
-	}
-
-	const float cellSize = GridManager_->GetCellSize();
-	const FVector origin = GridManager_->GetActorLocation();
-	const float z = origin.Z + ZOffset_;
-
-	const float centerX = origin.X + ( static_cast<float>( CellCoords.X ) + 0.5f ) * cellSize;
-	const float centerY = origin.Y + ( static_cast<float>( CellCoords.Y ) + 0.5f ) * cellSize;
-
-	OutLocation = FVector( centerX, centerY, z );
+	bool success = GridManager_->GetCellWorldCenter( cellCoords, outLocation );
+	outLocation.Z += ZOffset_;
 	return true;
 }

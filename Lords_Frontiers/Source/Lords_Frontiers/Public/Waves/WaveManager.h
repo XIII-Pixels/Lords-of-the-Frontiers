@@ -8,6 +8,8 @@
 
 #include "WaveManager.generated.h"
 
+class AGridManager;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveStartedSignature, int32, WaveIndex ); // needed to call from BP
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndedSignature, int32, WaveIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnAllWavesCompletedSignature );
@@ -75,6 +77,12 @@ public:
 	// If true, logs debug messages about spawning
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	bool bLogSpawning = true;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Spawn" )
+	TWeakObjectPtr<AGridManager> Grid;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Spawn" )
+	TWeakObjectPtr<APathPointsManager> PathPointsManager;
 
 	// Delegate: broadcast when a wave starts
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
