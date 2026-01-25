@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "UIManager.h"
+
 #include "CoreMinimal.h"
-#include "UObject/Object.h"
 
 #include "MainMenuUIManager.generated.h"
 
@@ -14,19 +15,14 @@ class UMainMenuWidget;
  * Should be part of GameMode
  * Configuration parameters are in corresponding GameMode */
 UCLASS()
-class LORDS_FRONTIERS_API UMainMenuUIManager : public UObject
+class LORDS_FRONTIERS_API UMainMenuUIManager : public UUIManager
 {
 	GENERATED_BODY()
 
 public:
-	void OnStartPlay();
-
-	void SetupMainMenuWidget(TSubclassOf<UMainMenuWidget> mainMenuWidgetClass);
+	virtual void SetupWidget( TSubclassOf<UUserWidget> widgetClass ) override;
 
 protected:
-	UPROPERTY()
-	TObjectPtr<UMainMenuWidget> MainMenuWidget_;
-
 	UFUNCTION()
 	void OnNewGameButtonClicked();
 };
