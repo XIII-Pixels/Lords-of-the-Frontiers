@@ -53,42 +53,41 @@ class LORDS_FRONTIERS_API UEnemyAggroComponent : public UActorComponent
 public:
 	UEnemyAggroComponent();
 
-	/** Which profile this component uses (choose per-enemy in BP) */
+	// Which profile this component uses (choose in BP)
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
 	EEnemyAggroProfile AggroProfile = EEnemyAggroProfile::WolfGoblin;
 
-	/** Size of one grid cell in cm. */
+	// Size of one grid cell in cm.
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
 	float CellSizeCm = 100.0f;
 
-	/** Configs for profiles Ч designer fills one element per profile needed */
+	// Configs for profiles Ч GD fills one element per profile needed
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
 	TArray<FAggroProfileConfig> ProfileConfigs;
 
-	/** Draw debug spheres / found target */
+	// Draw debug spheres / found target 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro|Debug" )
 	bool bDebugDraw = false;
 
-	/** If true, component will create a USphereComponent attached to owner for easy visualization (transient) */
+	// If true, component will create a USphereComponent
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro|Debug" )
 	bool bUseOverlapComponent = false;
 
 	UPROPERTY( Transient )
 	TObjectPtr<USphereComponent> OverlapSphereComponent = nullptr;
 
-	/** Ќайти наилучшую цель по текущему профилю и ѕ–яћќ установить ее в FollowedTarget владельца
-	 * (AUnit::SetFollowedTarget). */
+	// find best target and apply it to unit (AUnit::SetFollowedTarget).
 	UFUNCTION( BlueprintCallable, Category = "Aggro" )
 	void UpdateAggroTarget();
 
 protected:
 	virtual void BeginPlay() override;
 
-	const FAggroProfileConfig* FindConfigForProfile( EEnemyAggroProfile Profile ) const;
+	const FAggroProfileConfig* FindConfigForProfile( EEnemyAggroProfile profile ) const;
 
-	int32 GetPriorityIndexForCandidate( const FAggroProfileConfig& Config, ABuilding* Candidate ) const;
+	int32 GetPriorityIndexForCandidate( const FAggroProfileConfig& config, ABuilding* candidate ) const;
 
-	bool CandidatePassesFilters( const FAggroProfileConfig& Config, ABuilding* Candidate ) const;
+	bool CandidatePassesFilters( const FAggroProfileConfig& config, ABuilding* candidate ) const;
 
 	void UpdateOverlapSphereRadius();
 
