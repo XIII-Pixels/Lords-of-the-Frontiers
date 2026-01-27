@@ -42,6 +42,11 @@ public:
 		return MaintenanceCost;
 	}
 
+	const FResourceProduction& GetBuildingCost() const
+	{
+		return BuildingCost;
+	}
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
@@ -59,4 +64,7 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
+	FResourceProduction BuildingCost;
 };
