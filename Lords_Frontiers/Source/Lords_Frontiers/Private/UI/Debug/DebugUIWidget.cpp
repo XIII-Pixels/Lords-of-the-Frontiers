@@ -553,6 +553,20 @@ bool UDebugUIWidget::Initialize()
 	const ESlateVisibility newVis = bExtraButtonsVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
 	const bool success = Super::Initialize();
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
+	if ( PC )
+	{
+		UResourceManager* ResManager = PC->FindComponentByClass<UResourceManager>();
+		if ( !ResManager )
+		{
+			ResManager = NewObject<UResourceManager>( PC, TEXT( "GlobalResourceManager" ) );
+			ResManager->RegisterComponent();
+		}
+
+		CreateResourceWidgets( ResManager );
+	}
+
 	if ( !success )
 	{
 		return false;
