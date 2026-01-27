@@ -47,6 +47,10 @@ public:
 
 	int32 GetMaxResourceAmount( EResourceType type ) const;
 
+	bool CanAfford( const FResourceProduction& Cost ) const;
+
+	void SpendResources( const FResourceProduction& Cost );
+
 private:
 	// Resource Storage: Key - Type, Value - Quantity
 	UPROPERTY( VisibleAnywhere, Category = "Settings|Resources" )

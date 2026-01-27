@@ -8,6 +8,8 @@
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
 
+#include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+
 #include "Components/StaticMeshComponent.h" // <-- новое
 #include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
@@ -90,6 +92,20 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 	bCanBuildHere_ = false;
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
+
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	UResourceManager* ResManager = PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
+
+	if ( ResManager )
+	{
+		const ABuilding* CDO = buildingClass->GetDefaultObject<ABuilding>();
+		if ( !ResManager->CanAfford( CDO->GetBuildingCost() ) )
+		{
+			if ( GEngine )
+				GEngine->AddOnScreenDebugMessage( -1, 3.f, FColor::Red, TEXT( "Not enough resources to build this!" ) );
+			return;
+		}
+	}
 
 	// Спавн превью, если ещё не создано.
 	if ( !PreviewActor_ )
@@ -226,9 +242,28 @@ void ABuildManager::ConfirmPlacing()
 			return;
 		}
 
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		UResourceManager* ResManager = PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
+
+		const ABuilding* CDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
+
+		if ( ResManager && !ResManager->CanAfford( CDO->GetBuildingCost() ) )
+		{
+			if ( GEngine )
+				GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Red, TEXT( "Resources ran out!" ) );
+			return;
+		}
+
 		ABuilding* newBuilding = BuildingPlacementUtils::PlaceBuilding(
 		    world, CurrentBuildingClass_, cellWorldLocation, GridManager_, CurrentCellCoords_
 		);
+
+		if ( newBuilding )
+		{
+			if ( ResManager ) ResManager->SpendResources( CDO->GetBuildingCost() );
+
+			if ( GEngine ) GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building placed & Resources deducted" ) );
+		}
 
 		if ( !newBuilding )
 		{
