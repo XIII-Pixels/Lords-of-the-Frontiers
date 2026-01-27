@@ -70,3 +70,26 @@ int32 UResourceManager::GetMaxResourceAmount( EResourceType type ) const
 {
 	return MaxResources_.Contains( type ) ? MaxResources_[type] : cDefaultMaxResource;
 }
+
+bool UResourceManager::CanAfford( const FResourceProduction& Cost ) const
+{
+	for ( const auto& Pair : Cost.ToMap() )
+	{
+		if ( Pair.Value > 0 && GetResourceAmount( Pair.Key ) < Pair.Value )
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void UResourceManager::SpendResources( const FResourceProduction& Cost )
+{
+	for ( const auto& Pair : Cost.ToMap() )
+	{
+		if ( Pair.Value > 0 )
+		{
+			TrySpendResource( Pair.Key, Pair.Value );
+		}
+	}
+}
