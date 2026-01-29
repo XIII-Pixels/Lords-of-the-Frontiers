@@ -9,6 +9,14 @@ class ABuilding;
 class USphereComponent;
 class AUnit; // owner unit
 
+
+
+/** (Artyom)
+* Defines different enemy aggro profiles
+* Each profile can have its own aggro radius, attack radius, priority classes, and filters.
+* Used in EnemyUnit BP
+* Contains a lot of debug logs, should be cleaned later
+*/
 UENUM( BlueprintType )
 enum class EEnemyAggroProfile : uint8
 {
@@ -26,15 +34,15 @@ struct FAggroProfileConfig
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
 	EEnemyAggroProfile Profile = EEnemyAggroProfile::WolfGoblin;
 
-	/** Aggro radius in *cells* (designer-friendly). It will be multiplied by CellSizeCm to obtain world units (cm). */
+	// Aggro radius in cells. It will be multiplied by CellSizeCm
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro", meta = ( ClampMin = "0.0" ) )
 	float AggroRadiusCells = 5.0f;
 
-	/** Attack radius in meters (for information/other systems). */
+	// Attack radius in meters. maybe should be deleted
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro", meta = ( ClampMin = "0.0" ) )
 	float AttackRadiusMeters = 1.0f;
 
-	/** Priority list of building classes. Earlier entries = higher priority (index 0 = top priority). */
+	// Priority list of building classes. Earlier entries = higher priority (index 0 = top priority).
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
 	TArray<TSubclassOf<ABuilding>> PriorityClasses;
 

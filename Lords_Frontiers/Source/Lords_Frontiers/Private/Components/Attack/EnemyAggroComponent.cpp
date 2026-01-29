@@ -12,6 +12,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
+
 UEnemyAggroComponent::UEnemyAggroComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -35,8 +36,7 @@ void UEnemyAggroComponent::BeginPlay()
 			{
 				if ( owner->GetRootComponent() )
 				{
-					sphere->AttachToComponent(
-					    owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform
+					sphere->AttachToComponent( owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform
 					);
 				}
 				sphere->RegisterComponent();
@@ -49,6 +49,13 @@ void UEnemyAggroComponent::BeginPlay()
 
 				OverlapSphereComponent = sphere;
 				UpdateOverlapSphereRadius();
+
+				UE_LOG( LogTemp, Log, TEXT( "EnemyAggroComponent: Created overlap sphere component on '%s' (Radius=%f)" ),
+				    *owner->GetName(), OverlapSphereComponent ? OverlapSphereComponent->GetUnscaledSphereRadius() : 0.f );
+			}
+			else
+			{
+				UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Failed to create OverlapSphereComponent on '%s'" ), *owner->GetName() );
 			}
 		}
 	}
@@ -59,7 +66,9 @@ const FAggroProfileConfig* UEnemyAggroComponent::FindConfigForProfile( EEnemyAgg
 	for ( const FAggroProfileConfig& contestant : ProfileConfigs )
 	{
 		if ( contestant.Profile == profile )
+		{
 			return &contestant;
+		}
 	}
 	return nullptr;
 }
@@ -67,30 +76,45 @@ const FAggroProfileConfig* UEnemyAggroComponent::FindConfigForProfile( EEnemyAgg
 bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& config, ABuilding* candidate ) const
 {
 	if ( !candidate )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: candidate is null" ) );
 		return false;
+	}
 
-	// can be extend with class checks
+	UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Candidate='%s' Class='%s'" ), *candidate->GetName(), *candidate->GetClass()->GetName() );
+
+	// economy filter -> ResourceBuilding
 	if ( config.bIgnoreEconomyBuildings )
 	{
-		if ( candidate->IsA( AResourceBuilding::StaticClass() ) )
+		const bool bIsResource = candidate->IsA( AResourceBuilding::StaticClass() );
+		UE_LOG( LogTemp, VeryVerbose, TEXT( "CandidatePassesFilters: bIgnoreEconomyBuildings=1, IsResource=%d" ), bIsResource ? 1 : 0 );
+		if ( bIsResource )
 		{
+			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a ResourceBuilding and config requests "
+			    "ignoring economy." ), *candidate->GetName() );
 			return false;
 		}
 	}
 
+	// defensive filter -> DefensiveBuilding
 	if ( config.bIgnoreTowers )
 	{
-		if ( candidate->IsA( ADefensiveBuilding::StaticClass() ) )
+		const bool bIsDefensive = candidate->IsA( ADefensiveBuilding::StaticClass() );
+		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: bIgnoreTowers=1, IsDefensive=%d" ), bIsDefensive ? 1 : 0 );
+		if ( bIsDefensive )
 		{
+			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a DefensiveBuilding and config requests "
+			    "ignoring towers." ), *candidate->GetName() );
 			return false;
 		}
 	}
 
+	// passed all filters
+	UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Accepting '%s'" ), *candidate->GetName() );
 	return true;
 }
 
-int32 UEnemyAggroComponent::GetPriorityIndexForCandidate( const FAggroProfileConfig& config, ABuilding* candidate )
-    const
+int32 UEnemyAggroComponent::GetPriorityIndexForCandidate( const FAggroProfileConfig& config, ABuilding* candidate ) const
 {
 	if ( !candidate )
 		return INT32_MAX;
@@ -123,6 +147,8 @@ void UEnemyAggroComponent::UpdateOverlapSphereRadius()
 
 void UEnemyAggroComponent::UpdateAggroTarget()
 {
+	UE_LOG( LogTemp, Log, TEXT( "Aggro tick from %s" ), *GetOwner()->GetName() );
+
 	AActor* owner = GetOwner();
 	if ( !owner )
 		return;
@@ -130,40 +156,62 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	AUnit* ownerUnit = Cast<AUnit>( owner );
 	if ( !ownerUnit )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Owner is not AUnit, cannot set FollowedTarget" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Owner is not AUnit, cannot set FollowedTarget (Owner=%s)" ), 
+			owner ? *owner->GetName() : TEXT( "NULL" ) );
 		return;
 	}
 
 	const FAggroProfileConfig* config = FindConfigForProfile( AggroProfile );
 	if ( !config )
 	{
-		ownerUnit->SetFollowedTarget( nullptr );
+		UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Config invalid for profile %d" ), (int) AggroProfile );
+		//ownerUnit->SetFollowedTarget( nullptr );
 		return;
 	}
+
+	UE_LOG( LogTemp, Log, TEXT( "Aggro: Profile=%d AggroRadiusCells=%d IgnoreEconomy=%d IgnoreTowers=%d" ),
+	    static_cast<int32>( config->Profile ), static_cast<int32>( config->AggroRadiusCells ),
+	    config->bIgnoreEconomyBuildings ? 1 : 0, config->bIgnoreTowers ? 1 : 0 );
 
 	UWorld* world = GetWorld();
 	if ( !world )
 	{
-		ownerUnit->SetFollowedTarget( nullptr );
+		//ownerUnit->SetFollowedTarget( nullptr );
 		return;
 	}
 
 	const FVector myLoc = owner->GetActorLocation();
-	const float radiusCm = CellsToCm( config->AggroRadiusCells );
+	float radiusCm = CellsToCm( config->AggroRadiusCells );
+
+	const float MinRadius = 10.f;
+	const float MaxRadius = 20000.f; // 20000 cm
+	radiusCm = FMath::Clamp( radiusCm, MinRadius, MaxRadius );
+
+	UE_LOG( LogTemp, Log, TEXT( "Aggro: Using radiusCm = %.1f (clamped)" ), radiusCm );
 
 	if ( bDebugDraw )
 	{
 		DrawDebugSphere( world, myLoc, radiusCm, 24, FColor::Purple, false, 2.5f, 0, 4.0f );
 	}
 
+	// colliders settings
 	TArray<TEnumAsByte<EObjectTypeQuery>> objectTypes;
-	objectTypes.Add( UEngineTypes::ConvertToObjectType( ECC_Pawn ) ); // search pawns
+	objectTypes.Add( UEngineTypes::ConvertToObjectType( ECC_Pawn ) );
+	objectTypes.Add( UEngineTypes::ConvertToObjectType( ECC_WorldStatic ) );
+	objectTypes.Add( UEngineTypes::ConvertToObjectType( ECC_WorldDynamic ) );
+
+	objectTypes.Add( UEngineTypes::ConvertToObjectType( ECC_GameTraceChannel1 ) );
 
 	TArray<AActor*> ignoredActors;
 	ignoredActors.Add( owner );
 
 	TArray<AActor*> overlappedActors;
-	UKismetSystemLibrary::SphereOverlapActors( world, myLoc, radiusCm, objectTypes, ABuilding::StaticClass(), ignoredActors, overlappedActors );
+	UKismetSystemLibrary::SphereOverlapActors(
+	    world, myLoc, radiusCm, objectTypes, ABuilding::StaticClass(), ignoredActors, overlappedActors
+	);
+
+	UE_LOG( LogTemp, Log, TEXT( "Aggro: SphereOverlap found %d actors around '%s' (radius cm=%.1f)" ),
+	    overlappedActors.Num(), *owner->GetName(), radiusCm );
 
 	int32 bestPriority = INT32_MAX;
 	float bestDistSq = TNumericLimits<float>::Max();
@@ -172,41 +220,65 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	for ( AActor* actor : overlappedActors )
 	{
 		if ( !actor )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: overlapped actor null - skip" ) );
 			continue;
+		}
+
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate actor name='%s' class='%s'" ), *actor->GetName(),
+		    actor->GetClass() ? *actor->GetClass()->GetName() : TEXT( "None" ) );
 
 		ABuilding* B = Cast<ABuilding>( actor );
 		if ( !B )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' is not ABuilding - skip" ), *actor->GetName() );
 			continue;
+		}
 
+		// log inheritance checks
+		const bool bIsResource = B->IsA( AResourceBuilding::StaticClass() );
+		const bool bIsDefensive = B->IsA( ADefensiveBuilding::StaticClass() );
+
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' IsResource=%d IsDefensive=%d" ), *B->GetName(),
+		    bIsResource ? 1 : 0, bIsDefensive ? 1 : 0 );
+
+		// filter
 		if ( !CandidatePassesFilters( *config, B ) )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' filtered out by CandidatePassesFilters" ), *B->GetName() );
 			continue;
+		}
 
 		const int32 pri = GetPriorityIndexForCandidate( *config, B );
 		if ( pri == INT32_MAX )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' has no matching priority class - skip" ), *B->GetName() );
 			continue;
+		}
 
 		const float distSq = FVector::DistSquared( myLoc, B->GetActorLocation() );
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' priority=%d distSq=%.1f" ), *B->GetName(), pri, distSq );
 
 		if ( pri < bestPriority || ( pri == bestPriority && distSq < bestDistSq ) )
 		{
 			bestPriority = pri;
 			bestDistSq = distSq;
 			bestBuilding = B;
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: New best candidate '%s' (priority=%d distSq=%.1f)" ), *B->GetName(), pri, distSq );
 		}
 	}
 
-	// set owners FollowedTarget
-	ownerUnit->SetFollowedTarget( bestBuilding );
-
+	if ( bestBuilding != nullptr )
+	{
+		ownerUnit->SetFollowedTarget( bestBuilding );
+	}
+	
 	if ( bDebugDraw )
 	{
 		if ( bestBuilding )
 		{
 			DrawDebugSphere( world, bestBuilding->GetActorLocation(), 50.f, 8, FColor::Green, false, 3.0f );
-			UE_LOG(
-			    LogTemp, Log, TEXT( "Aggro: Owner %s -> new target %s (priority=%d)" ), *owner->GetName(),
-			    *bestBuilding->GetName(), bestPriority
-			);
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: Owner %s -> new target %s (priority=%d)" ), *owner->GetName(), *bestBuilding->GetName(), bestPriority );
 		}
 		else
 		{
