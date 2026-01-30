@@ -433,7 +433,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		return;
 	}
 
-		if ( bIsPlacing_ )
+	if ( bIsPlacing_ )
 	{
 		CancelPlacing();
 	}

@@ -52,6 +52,11 @@ struct FResourceReward
 	{
 		return FResourceReward( Gold + other.Gold, Food + other.Food, Population + other.Population );
 	}
+	/** Deducts two awards. Useful for subtracting the base reward and bonus. */
+	FResourceReward operator-( const FResourceReward& other ) const
+	{
+		return FResourceReward( Gold - other.Gold, Food - other.Food, Population - other.Population );
+	}
 
 	/** In-place addition for accumulating rewards. */
 	FResourceReward& operator+=( const FResourceReward& other )
@@ -59,6 +64,15 @@ struct FResourceReward
 		Gold += other.Gold;
 		Food += other.Food;
 		Population += other.Population;
+		return *this;
+	}
+
+	/** in-place subtraction for accumulating rewards. */
+	FResourceReward& operator-=( const FResourceReward& other )
+	{
+		Gold -= other.Gold;
+		Food -= other.Food;
+		Population -= other.Population;
 		return *this;
 	}
 
@@ -73,6 +87,19 @@ struct FResourceReward
 		    FMath::RoundToInt( Population * multiplier )
 		);
 	}
+
+	/**
+	 * Reduces the reward by the divisor. Used to calculate the reward based on the wave.
+	 * Values are rounded to the nearest integer to avoid floating-point accumulation errors.
+	 */
+	FResourceReward operator/( float multiplier ) const
+	{
+		return FResourceReward(
+		    FMath::RoundToInt( Gold / multiplier ), FMath::RoundToInt( Food / multiplier ),
+		    FMath::RoundToInt( Population / multiplier )
+		);
+	}
+
 };
 
 /**

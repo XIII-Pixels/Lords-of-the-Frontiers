@@ -625,6 +625,11 @@ void UGameLoopManager::OnCombatTimerExpired()
 
 	if ( CurrentPhase_ == EGameLoopPhase::Combat )
 	{
+		if ( AWaveManager* wM = WaveManager_.Get() )
+		{
+			wM->CancelCurrentWave();
+		}
+
 		EnterRewardPhase();
 	}
 }

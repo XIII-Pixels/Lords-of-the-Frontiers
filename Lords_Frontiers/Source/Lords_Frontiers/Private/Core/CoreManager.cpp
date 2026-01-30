@@ -3,6 +3,7 @@
 #include "Building/Construction/BuildManager.h"
 #include "Core/GameLoopManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
+#include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
@@ -139,6 +140,7 @@ void UCoreManager::ClearAllReferences()
 	WaveManager_.Reset();
 	BuildManager_.Reset();
 	GridVisualizer_.Reset();
+	GridManager_.Reset();
 	ResourceManager_.Reset();
 	EconomyComponent_.Reset();
 	SelectionManager_.Reset();
@@ -160,7 +162,7 @@ void UCoreManager::UpdateGameLoopDependencies()
 
 bool UCoreManager::AreAllSystemsReady() const
 {
-	return WaveManager_.IsValid() && BuildManager_.IsValid() && GridVisualizer_.IsValid() &&
+	return WaveManager_.IsValid() && BuildManager_.IsValid() && GridVisualizer_.IsValid() && GridManager_.IsValid() &&
 	       ResourceManager_.IsValid() && EconomyComponent_.IsValid() && GameLoopManager_ != nullptr;
 }
 
@@ -182,6 +184,11 @@ ABuildManager* UCoreManager::GetBuildManager() const
 AGridVisualizer* UCoreManager::GetGridVisualizer() const
 {
 	return GridVisualizer_.Get();
+}
+
+AGridManager* UCoreManager::GetGridManager() const
+{
+	return GridManager_.Get();
 }
 
 UResourceManager* UCoreManager::GetResourceManager() const
@@ -307,6 +314,16 @@ void UCoreManager::UnregisterGridVisualizer( AGridVisualizer* inGridVisualizer )
 	UnregisterManagerInternal( GridVisualizer_, inGridVisualizer, TEXT( "GridVisualizer" ) );
 }
 
+void UCoreManager::RegisterGridManager( AGridManager* InGridManager )
+{
+	RegisterManagerInternal( GridManager_, InGridManager, TEXT( "GridManager" ) );
+}
+
+void UCoreManager::UnregisterGridManager( AGridManager* InGridManager )
+{
+	UnregisterManagerInternal( GridManager_, InGridManager, TEXT( "GridManager" ) );
+}
+
 void UCoreManager::FindWorldActors()
 {
 	UWorld* world = GetWorldSafe();
@@ -332,6 +349,12 @@ void UCoreManager::FindWorldActors()
 	{
 		AActor* found = UGameplayStatics::GetActorOfClass( world, AGridVisualizer::StaticClass() );
 		GridVisualizer_ = Cast<AGridVisualizer>( found );
+	}
+
+	if ( !GridManager_.IsValid() )
+	{
+		AActor* found = UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() );
+		GridManager_ = Cast<AGridManager>( found );
 	}
 }
 
@@ -372,6 +395,14 @@ void UCoreManager::FindPlayerControllerComponents()
 	if ( !SelectionManager_.IsValid() )
 	{
 		SelectionManager_ = pc->FindComponentByClass<USelectionManagerComponent>();
+
+		if ( !SelectionManager_.IsValid() )
+		{
+			USelectionManagerComponent* newEC = NewObject<USelectionManagerComponent>( pc, TEXT( "SelectionManager" ) );
+			SelectionManager_ = newEC;
+			newEC->RegisterComponent();
+			UE_LOG( LogCoreManager, Log, TEXT( "Created SelectionManager on PlayerController" ) );
+		}
 	}
 }
 
@@ -391,14 +422,15 @@ void UCoreManager::SetupManagerConnections()
 		UE_LOG( LogCoreManager, Error, TEXT( "SetupManagerConnections: ResourceManager is missing!" ) );
 	}
 
+	if ( EconomyComponent_.IsValid() )
+	{
+		UE_LOG( LogCoreManager, Warning, TEXT( "Cannot connect EconomyComponent: ResourceManager missing" ) );
+	}
+
 	if ( EconomyComponent_.IsValid() && ResourceManager_.IsValid() )
 	{
 		EconomyComponent_->SetResourceManager( ResourceManager_.Get() );
 		UE_LOG( LogCoreManager, Log, TEXT( "Connected EconomyComponent -> ResourceManager" ) );
-	}
-	else if ( EconomyComponent_.IsValid() )
-	{
-		UE_LOG( LogCoreManager, Warning, TEXT( "Cannot connect EconomyComponent: ResourceManager missing" ) );
 	}
 
 	if ( GameLoopManager_ )
@@ -426,6 +458,9 @@ void UCoreManager::LogSystemsStatus() const
 	UE_LOG(
 	    LogCoreManager, Log, TEXT( "  GridVisualizer:   %s" ),
 	    GridVisualizer_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" )
+	);
+	UE_LOG(
+	    LogCoreManager, Log, TEXT( "  GridManager:      %s" ), GridManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" )
 	);
 	UE_LOG(
 	    LogCoreManager, Log, TEXT( "  ResourceManager:  %s [CRITICAL]" ),

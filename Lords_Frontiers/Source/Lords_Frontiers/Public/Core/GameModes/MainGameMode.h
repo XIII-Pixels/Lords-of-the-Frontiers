@@ -20,21 +20,11 @@ public:
 	virtual void StartPlay() override;
 
 protected:
-	// ========================================================================
-	// Конфигурация
-	// ========================================================================
-
-	/** Конфиг игрового цикла (Data Asset) */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Config" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Config" )
 	TObjectPtr<UGameLoopConfig> GameLoopConfig;
 
-	/** Класс HUD виджета */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "UI" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI" )
 	TSubclassOf<UUserWidget> HUDWidgetClass;
-
-	// ========================================================================
-	// Runtime
-	// ========================================================================
 
 	UPROPERTY()
 	TObjectPtr<UUserWidget> HUDWidget;

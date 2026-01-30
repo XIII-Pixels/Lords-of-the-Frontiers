@@ -53,7 +53,6 @@ class LORDS_FRONTIERS_API UCoreManager : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-
 	/**
 	 * Retrieves the CoreManager instance from any world context object.
 	 *
@@ -64,7 +63,7 @@ public:
 	 * @param worldContextObject - Any UObject with a valid world (Actor, Component, etc.)
 	 * @return CoreManager instance, or nullptr if not available
 	 */
-	UFUNCTION( BlueprintPure, Category = "Core", meta = ( WorldContext = "WorldContextObject" ) )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core", meta = ( WorldContext = "WorldContextObject" ) )
 	static UCoreManager* Get( const UObject* worldContextObject );
 
 	/**
@@ -99,7 +98,7 @@ public:
 	 *
 	 * Broadcasts OnSystemsReady if critical systems available.
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Core|Setup" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Setup" )
 	void InitializeSystems();
 
 	/**
@@ -112,21 +111,21 @@ public:
 	 *
 	 * Does NOT reset GameLoopManager state or config.
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Core|Setup" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Setup" )
 	void RefreshSystemReferences();
 
 	/**
 	 * Full system reset. Cleans up everything.
 	 * Use when completely restarting the game session.
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Core|Setup" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Setup" )
 	void ResetSystems();
 
 	/**
 	 * Returns true if ALL systems are initialized and valid.
 	 * Use for full feature availability checks.
 	 */
-	UFUNCTION( BlueprintPure, Category = "Core|Setup" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Setup" )
 	bool AreAllSystemsReady() const;
 
 	/**
@@ -134,42 +133,45 @@ public:
 	 * Critical = ResourceManager + GameLoopManager
 	 * Game can start with only critical systems.
 	 */
-	UFUNCTION( BlueprintPure, Category = "Core|Setup" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Setup" )
 	bool AreCriticalSystemsReady() const;
 
 	/** Returns true after InitializeSystems() has completed. */
-	UFUNCTION( BlueprintPure, Category = "Core|Setup" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Setup" )
 	bool IsInitialized() const
 	{
 		return bIsInitialized_;
 	}
 
 	/** Returns WaveManager actor. May be null if not placed in level. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	AWaveManager* GetWaveManager() const;
 
 	/** Returns BuildManager actor. May be null if not placed in level. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	ABuildManager* GetBuildManager() const;
 
 	/** Returns GridVisualizer actor. May be null if not placed in level. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	AGridVisualizer* GetGridVisualizer() const;
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
+	AGridManager* GetGridManager() const;
+
 	/** Returns ResourceManager component. Created if not found on PlayerController. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	UResourceManager* GetResourceManager() const;
 
 	/** Returns EconomyComponent. Created if not found on PlayerController. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	UEconomyComponent* GetEconomyComponent() const;
 
 	/** Returns SelectionManager component. Optional - may be null. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	USelectionManagerComponent* GetSelectionManager() const;
 
 	/** Returns GameLoopManager. Always created internally. */
-	UFUNCTION( BlueprintPure, Category = "Core|Managers" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	UGameLoopManager* GetGameLoop() const;
 
 	/**
@@ -178,37 +180,45 @@ public:
 	 *
 	 * @param waveManager - The WaveManager to register
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Core|Registration" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void RegisterWaveManager( AWaveManager* waveManager );
 
 	/**
 	 * Unregisters a WaveManager.
 	 * Called by WaveManager::EndPlay().
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Core|Registration" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void UnregisterWaveManager( AWaveManager* waveManager );
 
 	/** Registers BuildManager. Called from BuildManager::BeginPlay(). */
-	UFUNCTION( BlueprintCallable, Category = "Core|Registration" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void RegisterBuildManager( ABuildManager* buildManager );
 
 	/** Unregisters BuildManager. Called from BuildManager::EndPlay(). */
-	UFUNCTION( BlueprintCallable, Category = "Core|Registration" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void UnregisterBuildManager( ABuildManager* buildManager );
 
 	/** Registers GridVisualizer. Called from GridVisualizer::BeginPlay(). */
-	UFUNCTION( BlueprintCallable, Category = "Core|Registration" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void RegisterGridVisualizer( AGridVisualizer* gridVisualizer );
 
 	/** Unregisters GridVisualizer. Called from GridVisualizer::EndPlay(). */
-	UFUNCTION( BlueprintCallable, Category = "Core|Registration" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void UnregisterGridVisualizer( AGridVisualizer* gridVisualizer );
+
+	/** Registers GridManager. Called from GridManager::BeginPlay(). */
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
+	void RegisterGridManager( AGridManager* InGridManager );
+
+	/** Unregisters GridManager. Called from GridManager::EndPlay(). */
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
+	void UnregisterGridManager( AGridManager* InGridManager );
 
 	/**
 	 * Broadcast when critical systems become ready.
 	 * Subscribe to this to safely access managers after initialization.
 	 */
-	UPROPERTY( BlueprintAssignable, Category = "Core|Events" )
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Core|Events" )
 	FOnCoreSystemsReady OnSystemsReady;
 
 	/**
@@ -218,7 +228,7 @@ public:
 	 * @param playerIndex - Usually 0 for single-player
 	 * @return PlayerController or nullptr
 	 */
-	UFUNCTION( BlueprintPure, Category = "Core|Utilities" )
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Utilities" )
 	APlayerController* GetPlayerController( int32 playerIndex = 0 ) const;
 
 	/**
@@ -226,11 +236,10 @@ public:
 	 * Useful for debugging initialization issues.
 	 * Only runs in non-shipping builds.
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Core|Debug" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Debug" )
 	void LogSystemsStatus() const;
 
 protected:
-
 	/**
 	 * Generic manager registration with consistent logging and null checks.
 	 *
@@ -260,6 +269,10 @@ protected:
 	/** Weak reference to GridVisualizer actor in world. */
 	UPROPERTY()
 	TWeakObjectPtr<AGridVisualizer> GridVisualizer_;
+
+	/** Weak reference to GridManager actor in world. */
+	UPROPERTY()
+	TWeakObjectPtr<AGridManager> GridManager_;
 
 	/** Weak reference to ResourceManager on PlayerController. */
 	UPROPERTY()

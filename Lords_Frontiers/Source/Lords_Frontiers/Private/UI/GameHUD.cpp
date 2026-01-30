@@ -74,18 +74,18 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
 	}
 
-	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		if ( UGameLoopManager* GL = Core->GetGameLoop() )
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
 		{
-			GL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
-			GL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
-			GL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
+			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
+			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 		}
 
-		if ( UResourceManager* RM = Core->GetResourceManager() )
+		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
-			RM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+			rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
 	}
 
@@ -135,18 +135,18 @@ void UGameHUDWidget::NativeDestruct()
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
 
-	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		if ( UGameLoopManager* GL = Core->GetGameLoop() )
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
 		{
-			GL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
-			GL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
-			GL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
+			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
+			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 		}
 
-		if ( UResourceManager* RM = Core->GetResourceManager() )
+		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
-			RM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
 	}
 
@@ -162,8 +162,8 @@ void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
 {
 	if ( TextTimer )
 	{
-		int32 Seconds = FMath::CeilToInt( TimeRemaining );
-		TextTimer->SetText( FText::FromString( FString::Printf( TEXT( "%d" ), Seconds ) ) );
+		int32 seconds = FMath::CeilToInt( TimeRemaining );
+		TextTimer->SetText( FText::FromString( FString::Printf( TEXT( "%d" ), seconds ) ) );
 	}
 }
 
@@ -195,134 +195,149 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 void UGameHUDWidget::UpdateDayText()
 {
 	if ( !TextDay )
+	{
 		return;
+	}
 
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
 		return;
+	}
 
-	UGameLoopManager* GL = Core->GetGameLoop();
-	if ( !GL )
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
 		return;
+	}
 
-	int32 Wave = GL->GetCurrentWave();
-	TextDay->SetText( FText::FromString( FString::Printf( TEXT( "День %d" ), Wave ) ) );
+	int32 wave = gL->GetCurrentWave();
+	TextDay->SetText( FText::FromString( FString::Printf( TEXT( "День %d" ), wave ) ) );
 }
 
 void UGameHUDWidget::UpdateStatusText()
 {
 	if ( !TextStatus )
-		return;
-
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
-		return;
-
-	UGameLoopManager* GL = Core->GetGameLoop();
-	if ( !GL )
-		return;
-
-	FText Status;
-	EGameLoopPhase Phase = GL->GetCurrentPhase();
-
-	if ( Phase == EGameLoopPhase::Building )
 	{
-		int32 Turn = GL->GetCurrentBuildTurn();
-		if ( Turn == 1 )
+		return;
+	}
+
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
+		return;
+	}
+
+	FText status;
+	EGameLoopPhase phase = gL->GetCurrentPhase();
+
+	if ( phase == EGameLoopPhase::Building )
+	{
+		int32 turn = gL->GetCurrentBuildTurn();
+		if ( turn == 1 )
 		{
-			Status = FText::FromString( TEXT( "Утро" ) );
+			status = FText::FromString( TEXT( "Утро" ) );
 		}
 		else
 		{
-			Status = FText::FromString( TEXT( "Закат" ) );
+			status = FText::FromString( TEXT( "Закат" ) );
 		}
 	}
-	else if ( Phase == EGameLoopPhase::Combat )
+	else if ( phase == EGameLoopPhase::Combat )
 	{
-		Status = FText::FromString( TEXT( "Бой" ) );
+		status = FText::FromString( TEXT( "Бой" ) );
 	}
-	else if ( Phase == EGameLoopPhase::Victory )
+	else if ( phase == EGameLoopPhase::Victory )
 	{
-		Status = FText::FromString( TEXT( "Победа!" ) );
+		status = FText::FromString( TEXT( "Победа!" ) );
 	}
-	else if ( Phase == EGameLoopPhase::Defeat )
+	else if ( phase == EGameLoopPhase::Defeat )
 	{
-		Status = FText::FromString( TEXT( "Поражение" ) );
+		status = FText::FromString( TEXT( "Поражение" ) );
 	}
 	else
 	{
-		Status = FText::FromString( TEXT( "---" ) );
+		status = FText::FromString( TEXT( "---" ) );
 	}
 
-	TextStatus->SetText( Status );
+	TextStatus->SetText( status );
 }
 
 void UGameHUDWidget::UpdateResources()
 {
 	UE_LOG( LogTemp, Warning, TEXT( "=== UpdateResources ===" ) );
 
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Core is NULL" ) );
 		return;
 	}
 
-	UResourceManager* RM = Core->GetResourceManager();
-	if ( !RM )
+	UResourceManager* rM = core->GetResourceManager();
+	if ( !rM )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "ResourceManager is NULL" ) );
 		return;
 	}
 
-	int32 Gold = RM->GetResourceAmount( EResourceType::Gold );
-	int32 Food = RM->GetResourceAmount( EResourceType::Food );
-	int32 Pop = RM->GetResourceAmount( EResourceType::Population );
+	int32 gold = rM->GetResourceAmount( EResourceType::Gold );
+	int32 food = rM->GetResourceAmount( EResourceType::Food );
+	int32 pop = rM->GetResourceAmount( EResourceType::Population );
 
-	UE_LOG( LogTemp, Warning, TEXT( "Resources: Gold=%d, Food=%d, Pop=%d" ), Gold, Food, Pop );
+	UE_LOG( LogTemp, Warning, TEXT( "Resources: Gold=%d, Food=%d, Pop=%d" ), gold, food, pop );
 
 	if ( Text_Gold )
 	{
-		Text_Gold->SetText( FText::AsNumber( Gold ) );
+		Text_Gold->SetText( FText::AsNumber( gold ) );
 	}
 
 	if ( Text_Food )
 	{
-		Text_Food->SetText( FText::AsNumber( Food ) );
+		Text_Food->SetText( FText::AsNumber( food ) );
 	}
 
 	if ( Text_Citizens )
 	{
-		Text_Citizens->SetText( FText::AsNumber( Pop ) );
+		Text_Citizens->SetText( FText::AsNumber( pop ) );
 	}
 }
 
 void UGameHUDWidget::UpdateButtonVisibility()
 {
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
 		return;
-
-	UGameLoopManager* GL = Core->GetGameLoop();
-	if ( !GL )
+	}
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
 		return;
+	}
 
-	EGameLoopPhase Phase = GL->GetCurrentPhase();
+	EGameLoopPhase phase = gL->GetCurrentPhase();
 
 	if ( ButtonEndTurn )
 	{
-		bool bShow = ( Phase == EGameLoopPhase::Building );
+		bool bShow = ( phase == EGameLoopPhase::Building );
 		ButtonEndTurn->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
 	}
 }
 
 void UGameHUDWidget::OnEndTurnClicked()
 {
-	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		if ( UGameLoopManager* GL = Core->GetGameLoop() )
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
 		{
-			GL->EndBuildTurn();
+			gL->EndBuildTurn();
 		}
 	}
 }
@@ -349,7 +364,7 @@ void UGameHUDWidget::OnEconomyBuildingClicked()
 
 void UGameHUDWidget::ShowEconomyBuildings()
 {
-	bShowingEconomyBuildings = true;
+	bShowingEconomyBuildings_ = true;
 
 	if ( EconomyCardBox )
 	{
@@ -364,7 +379,7 @@ void UGameHUDWidget::ShowEconomyBuildings()
 
 void UGameHUDWidget::ShowDefensiveBuildings()
 {
-	bShowingEconomyBuildings = false;
+	bShowingEconomyBuildings_ = false;
 
 	if ( EconomyCardBox )
 	{
@@ -385,20 +400,20 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 		return;
 	}
 
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
 	{
 		return;
 	}
 
-	ABuildManager* BM = Core->GetBuildManager();
-	if ( !BM )
+	ABuildManager* bM = core->GetBuildManager();
+	if ( !bM )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildManager is null" ) );
 		return;
 	}
 
-	BM->StartPlacingBuilding( BuildingClass );
+	bM->StartPlacingBuilding( BuildingClass );
 }
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
@@ -448,16 +463,20 @@ void UGameHUDWidget::OnBuildTowerT2Clicked()
 
 void UGameHUDWidget::UpdateBuildingUIVisibility()
 {
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
 		return;
+	};
 
-	UGameLoopManager* GL = Core->GetGameLoop();
-	if ( !GL )
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
 		return;
+	};
 
-	EGameLoopPhase Phase = GL->GetCurrentPhase();
-	bool bShowBuildingUI = ( Phase == EGameLoopPhase::Building );
+	EGameLoopPhase phase = gL->GetCurrentPhase();
+	bool bShowBuildingUI = ( phase == EGameLoopPhase::Building );
 
 	ESlateVisibility NewVisibility = bShowBuildingUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
@@ -490,7 +509,7 @@ void UGameHUDWidget::UpdateBuildingUIVisibility()
 
 	if ( bShowBuildingUI )
 	{
-		if ( bShowingEconomyBuildings )
+		if ( bShowingEconomyBuildings_ )
 		{
 			ShowEconomyBuildings();
 		}
@@ -514,16 +533,19 @@ void UGameHUDWidget::UpdateBuildingUIVisibility()
 
 void UGameHUDWidget::CancelCurrentBuilding()
 {
-	UCoreManager* Core = UCoreManager::Get( this );
-	if ( !Core )
-		return;
-
-	ABuildManager* BM = Core->GetBuildManager();
-	if ( !BM )
-		return;
-
-	if ( BM->IsPlacing() )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
 	{
-		BM->CancelPlacing();
+		return;
+	}
+	ABuildManager* bM = core->GetBuildManager();
+	if ( !bM )
+	{
+		return;
+	};
+
+	if ( bM->IsPlacing() )
+	{
+		bM->CancelPlacing();
 	}
 }

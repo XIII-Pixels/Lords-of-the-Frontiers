@@ -139,7 +139,7 @@ protected:
 	void UpdateBuildingUIVisibility();
 	void CancelCurrentBuilding();
 
-	bool bShowingEconomyBuildings = true;
+	bool bShowingEconomyBuildings_ = true;
 	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
