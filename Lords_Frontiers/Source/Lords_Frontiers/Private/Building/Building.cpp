@@ -21,7 +21,7 @@ void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-  Stats_.SetHealth( Stats_.MaxHealth() );
+	Stats_.SetHealth( Stats_.MaxHealth() );
 	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
 	{
 		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )

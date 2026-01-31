@@ -21,14 +21,6 @@ void AResourceBuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
-		{
-			Eco->RegisterBuilding( this );
-		}
-	}
-
 	if ( IsValid( ResourceGenerator_ ) )
 	{
 		ResourceGenerator_->Initialize( FindResourceManager() );
@@ -50,16 +42,4 @@ UResourceManager* AResourceBuilding::FindResourceManager() const
 	}
 
 	return nullptr;
-}
-
-void AResourceBuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
-{
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
-		{
-			Eco->UnregisterBuilding( this );
-		}
-	}
-	Super::EndPlay( EndPlayReason );
 }

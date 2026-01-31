@@ -1,11 +1,10 @@
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
 #include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
-
-#include "Kismet/GameplayStatics.h"
 
 UEconomyComponent::UEconomyComponent()
 {
@@ -91,29 +90,6 @@ void UEconomyComponent::CollectGlobalResources()
 		}
 	}
 
-	/*if ( RegisteredBuildings_.Num() == 0 )
-	{
-		TArray<AActor*> FoundActors;
-		UGameplayStatics::GetAllActorsOfClass( GetWorld(), AActor::StaticClass(), FoundActors );
-
-		int32 BuildingsFound = 0;
-		for ( AActor* Actor : FoundActors )
-		{
-			if ( AResourceBuilding* RB = Cast<AResourceBuilding>( Actor ) )
-			{
-				RegisterBuilding( RB );
-				BuildingsFound++;
-			}
-		}
-		if ( GEngine )
-		{
-			GEngine->AddOnScreenDebugMessage(
-			    -1, 5.f, FColor::Cyan,
-			    FString::Printf( TEXT( "Lazy Discovery: Found %d ResourceBuildings" ), BuildingsFound )
-			);
-		}
-	}*/
-
 	PerformInitialScan();
 
 	if ( RegisteredBuildings_.Num() == 0 )
@@ -173,7 +149,6 @@ void UEconomyComponent::CollectGlobalResources()
 		}
 	}
 }
-
 
 void UEconomyComponent::ApplyMaintenanceCosts()
 {
