@@ -17,7 +17,7 @@ struct FGridCell
 	GENERATED_BODY()
 
 	FGridCell()
-	    : GridCoords( FIntPoint::ZeroValue ), bIsOccupied( false ), bIsBuildable( true ), PathCost( 1.0f ),
+	    : GridCoords( FIntPoint::ZeroValue ), bIsOccupied( false ), bIsBuildable( true ),
 	      BuildBonus( 0.0f ), Occupant( nullptr )
 	{
 	}
@@ -30,9 +30,6 @@ struct FGridCell
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Grid" )
 	bool bIsBuildable;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Grid|Pathfinding" )
-	float PathCost;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Grid|Bonus" )
 	float BuildBonus;

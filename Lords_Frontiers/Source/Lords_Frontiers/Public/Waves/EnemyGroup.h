@@ -35,6 +35,10 @@ struct FEnemyGroup
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Spawn" )
 	float SpawnInterval = 0.0f;
 
+	// Path for a group to follow
+	UPROPERTY()
+	TObjectPtr<UPath> Path;
+
 	FEnemyGroup();
 	FEnemyGroup( TSubclassOf<AUnit> inClass, int32 inCount, float inSpawnInterval = 0.0f );
 
