@@ -422,9 +422,9 @@ void UCoreManager::SetupManagerConnections()
 		UE_LOG( LogCoreManager, Error, TEXT( "SetupManagerConnections: ResourceManager is missing!" ) );
 	}
 
-	if ( EconomyComponent_.IsValid() )
+	if ( !EconomyComponent_.IsValid() )
 	{
-		UE_LOG( LogCoreManager, Warning, TEXT( "Cannot connect EconomyComponent: ResourceManager missing" ) );
+		UE_LOG( LogCoreManager, Warning, TEXT( "SetupManagerConnections: EconomyComponent is missing!" ) );
 	}
 
 	if ( EconomyComponent_.IsValid() && ResourceManager_.IsValid() )
