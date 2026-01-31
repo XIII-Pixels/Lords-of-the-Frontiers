@@ -83,6 +83,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		}
 		return;
 	}
+	GridVisualizer_->ShowGrid();
 
 	CurrentBuildingClass_ = buildingClass;
 	bIsPlacing_ = true;
@@ -180,6 +181,11 @@ void ABuildManager::CancelPlacing()
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
+
+	if ( GridVisualizer_ )
+	{
+		GridVisualizer_->HideGrid();
+	}
 
 	if ( GEngine )
 	{
@@ -298,6 +304,11 @@ void ABuildManager::ConfirmPlacing()
 		PreviewActor_->SetActorHiddenInGame( true );
 	}
 
+	if ( GridVisualizer_ )
+	{
+		GridVisualizer_->HideGrid();
+	}
+
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
@@ -413,8 +424,10 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		{
 			GEngine->AddOnScreenDebugMessage(
 			    -1, 2.0f, FColor::Red,
-			    TEXT( "StartRelocatingBuilding: GridManager or GridVisualizer is "
-			          "null" )
+			    TEXT(
+			        "StartRelocatingBuilding: GridManager or GridVisualizer is "
+			        "null"
+			    )
 			);
 		}
 		return;
@@ -425,6 +438,10 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		CancelPlacing();
 	}
 
+	if ( GridVisualizer_ )
+	{
+		GridVisualizer_->ShowGrid();
+	}
 	// 2) Находим клетку, в которой сейчас стоит это здание.
 	FIntPoint foundCoords( -1, -1 );
 	bool bFound = false;
