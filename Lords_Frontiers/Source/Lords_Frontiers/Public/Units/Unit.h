@@ -9,6 +9,7 @@
 #include "EntityStats.h"
 
 #include "Components/Attack/AttackComponent.h"
+#include "Components/Attack/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
@@ -56,6 +57,9 @@ public:
 
 	TObjectPtr<AActor> FollowedTarget() const;
 
+
+	void SetFollowedTarget( AActor* newTarget );
+
 protected:
 	void OnDeath();
 
@@ -79,4 +83,7 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;
+
+	UPROPERTY()
+	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 };
