@@ -97,15 +97,15 @@ void AStrategyCamera::Tick(float DeltaTime)
 }
 
 // Called to bind functionality to input
-void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	Super::SetupPlayerInputComponent(playerInputComponent);
 
-	PlayerInputComponent->BindAxis( "MoveForward", this, &AStrategyCamera::MoveForward );
-	PlayerInputComponent->BindAxis( "MoveRight", this, &AStrategyCamera::MoveRight );
+	playerInputComponent->BindAxis( "MoveForward", this, &AStrategyCamera::MoveForward );
+	playerInputComponent->BindAxis( "MoveRight", this, &AStrategyCamera::MoveRight );
 
-	PlayerInputComponent->BindAction( "ZoomIn", IE_Pressed, this, &AStrategyCamera::ZoomIn );
-	PlayerInputComponent->BindAction( "ZoomOut", IE_Pressed, this, &AStrategyCamera::ZoomOut );
+	playerInputComponent->BindAction( "ZoomIn", IE_Pressed, this, &AStrategyCamera::ZoomIn );
+	playerInputComponent->BindAction( "ZoomOut", IE_Pressed, this, &AStrategyCamera::ZoomOut );
 
 }
 
