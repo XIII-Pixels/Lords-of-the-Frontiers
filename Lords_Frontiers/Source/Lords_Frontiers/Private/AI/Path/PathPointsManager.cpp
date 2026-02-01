@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-#include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
+
+#include "AI/Path/Path.h"
 #include "AI/Path/PathTargetPoint.h"
 #include "Grid/GridManager.h"
 
