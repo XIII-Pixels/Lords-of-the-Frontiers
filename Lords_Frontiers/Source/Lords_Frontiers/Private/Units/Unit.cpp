@@ -225,6 +225,6 @@ void AUnit::FollowPathTarget()
 	}
 	else
 	{
-		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] );
+		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
 	}
 }
