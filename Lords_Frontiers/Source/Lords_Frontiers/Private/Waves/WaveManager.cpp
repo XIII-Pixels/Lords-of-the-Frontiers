@@ -229,10 +229,18 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 				FIntPoint startCoords = Grid->GetClosestCellCoords( spawnTransform.GetLocation() );
 				FIntPoint goalCoords = Grid->GetClosestCellCoords( PathPointsManager->GoalActor->GetActorLocation() );
 
-				enemyGroup.Path->SetGrid( Grid );
-				enemyGroup.Path->SetStartAndGoal( startCoords, goalCoords );
-				enemyGroup.Path->SetUnitAttackInfo( 10.0f, 2.0f );
-				enemyGroup.Path->SetEmptyCellTravelTime( 1.0f );
+				AUnit* defaultUnit = enemyGroup.EnemyClass.GetDefaultObject();
+
+				FDStarLiteConfig config{
+				    Grid,
+				    startCoords,
+				    goalCoords,
+				    defaultUnit->Stats().AttackDamage(),
+				    defaultUnit->Stats().AttackCooldown(),
+				    Grid->GetCellSize() / defaultUnit->Stats().MaxSpeed()
+				};
+
+				enemyGroup.Path->Initialize( config );
 				enemyGroup.Path->CalculateOrUpdate();
 				PathPointsManager->AddPathPoints( *enemyGroup.Path );
 			}

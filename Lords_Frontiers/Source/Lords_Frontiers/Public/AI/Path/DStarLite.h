@@ -89,6 +89,35 @@ struct DStarQueueEntryCompare
 	}
 };
 
+USTRUCT()
+struct FDStarLiteConfig
+{
+	GENERATED_BODY()
+
+	// Grid is required to calculate path
+	TWeakObjectPtr<AGridManager> Grid;
+
+	FIntPoint Start;
+	FIntPoint Goal;
+
+	// Unit damage and cooldown are needed to calculate time to destroy a building
+	int UnitDamage;
+	float UnitCooldown;
+
+	float EmptyCellTravelTime;
+
+	FDStarLiteConfig() = default;
+
+	FDStarLiteConfig(
+	    TWeakObjectPtr<AGridManager> grid, FIntPoint start, FIntPoint goal, int unitDamage, float unitCooldown,
+	    float emptyCellTravelTime
+	)
+	    : Grid( grid ), Start( start ), Goal( goal ), UnitDamage( unitDamage ), UnitCooldown( unitCooldown ),
+	      EmptyCellTravelTime( emptyCellTravelTime )
+	{
+	}
+};
+
 /** (Gregory-hub)
  * D*-lite algorithm implementation */
 UCLASS()
@@ -99,17 +128,11 @@ class LORDS_FRONTIERS_API UDStarLite : public UObject
 public:
 	UDStarLite();
 
-	void Initialize( const FIntPoint& start, const FIntPoint& goal );
-	void Reset();
-	void SetGrid( TWeakObjectPtr<AGridManager> grid );
-	void SetStart( const FIntPoint& newStart );
-	void SetEmptyCellTravelTime( float emptyCellTravelTime );
-	// Unit damage and cooldown are needed to calculate time to destroy a building
-	void SetUnitAttackInfo( float damage, float cooldown );
-
-	void ComputeShortestPath();
+	void Initialize( const FDStarLiteConfig& config );
 
 	void OnUpdateEdgeCost( const FIntPoint& from );
+
+	void ComputeShortestPath();
 
 	TArray<FIntPoint> GetPath() const;
 

@@ -14,26 +14,9 @@ void UPath::PostInitProperties()
 	DStarLite_ = NewObject<UDStarLite>( this );
 }
 
-void UPath::SetGrid( TWeakObjectPtr<AGridManager> grid )
+void UPath::Initialize( const FDStarLiteConfig& config )
 {
-	Grid_ = grid;
-	DStarLite_->SetGrid( Grid_ );
-}
-
-void UPath::SetEmptyCellTravelTime( float emptyCellTravelTime )
-{
-	DStarLite_->SetEmptyCellTravelTime( emptyCellTravelTime );
-}
-
-void UPath::SetUnitAttackInfo( float damage, float cooldown )
-{
-	DStarLite_->SetUnitAttackInfo( damage, cooldown );
-}
-
-void UPath::SetStartAndGoal( const FIntPoint& start, const FIntPoint& goal )
-{
-	DStarLite_->Initialize( start, goal );
-	bStartGoalInitialized = true;
+	DStarLite_->Initialize( config );
 }
 
 void UPath::OnUpdateCell( const FIntPoint& cell )
@@ -43,17 +26,6 @@ void UPath::OnUpdateCell( const FIntPoint& cell )
 
 void UPath::CalculateOrUpdate()
 {
-	if ( !Grid_.IsValid() )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path with invalid pointer to grid" ) );
-		return;
-	}
-	if ( !bStartGoalInitialized )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path on uninitialized path" ) );
-		return;
-	}
-
 	DStarLite_->ComputeShortestPath();
 	PathPoints_ = DStarLite_->GetPath();
 }

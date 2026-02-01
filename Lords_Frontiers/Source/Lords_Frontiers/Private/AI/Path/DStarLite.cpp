@@ -9,23 +9,31 @@ UDStarLite::UDStarLite()
 {
 }
 
-FDStarKey UDStarLite::CalculateKey( const FDStarNode& node ) const
+void UDStarLite::Initialize( const FDStarLiteConfig& config )
 {
-	const float min = FMath::Min( node.G, node.RHS );
-	return { min + Heuristic( Start_, node.Coord ) + Km_, min };
-}
+	Grid_ = config.Grid;
+	EmptyCellTravelTime_ = config.EmptyCellTravelTime;
 
-void UDStarLite::Initialize( const FIntPoint& start, const FIntPoint& goal )
-{
+	if ( config.UnitDamage > 0.0f && config.UnitCooldown > 0.0f )
+	{
+		UnitDps_ = config.UnitDamage / config.UnitCooldown;
+	}
+	else
+	{
+		UnitDps_ = -1.0f;
+	}
+
+	// Algorithm setup
+
 	Nodes_.Empty();
 	Open_ = std::priority_queue<FDStarQueueEntry, std::vector<FDStarQueueEntry>, DStarQueueEntryCompare>();
 
 	Km_ = 0.0f;
 
-	Start_ = start;
+	Start_ = config.Start;
 	Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
 
-	Goal_ = goal;
+	Goal_ = config.Goal;
 	FDStarNode& goalNode = Nodes_.FindOrAdd( Goal_, FDStarNode( Goal_ ) );
 	goalNode.RHS = 0.0f;
 
@@ -35,9 +43,10 @@ void UDStarLite::Initialize( const FIntPoint& start, const FIntPoint& goal )
 	bInitialized = true;
 }
 
-void UDStarLite::Reset()
+FDStarKey UDStarLite::CalculateKey( const FDStarNode& node ) const
 {
-	Initialize( Start_, Goal_ );
+	const float min = FMath::Min( node.G, node.RHS );
+	return { min + Heuristic( Start_, node.Coord ) + Km_, min };
 }
 
 void UDStarLite::UpdateVertex( FDStarNode& node )
@@ -55,6 +64,17 @@ void UDStarLite::UpdateVertex( FDStarNode& node )
 
 void UDStarLite::ComputeShortestPath()
 {
+	if ( !Grid_.IsValid() )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path with invalid pointer to grid" ) );
+		return;
+	}
+	if ( !bInitialized )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path on uninitialized path" ) );
+		return;
+	}
+
 	FDStarNode& startNode = Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
 	while ( !Open_.empty() && ( Open_.top().Key < CalculateKey( startNode ) || startNode.RHS > startNode.G ) )
 	{
@@ -188,31 +208,6 @@ void UDStarLite::OnUpdateEdgeCost( const FIntPoint& from )
 {
 }
 
-void UDStarLite::SetStart( const FIntPoint& newStart )
-{
-}
-
-void UDStarLite::SetEmptyCellTravelTime( float emptyCellTravelTime )
-{
-	EmptyCellTravelTime_ = emptyCellTravelTime;
-}
-
-void UDStarLite::SetUnitAttackInfo( float damage, float cooldown )
-{
-	if ( damage > 0.0f && cooldown > 0.0f )
-	{
-		UnitDps_ = damage / cooldown;
-	}
-	else
-	{
-		UnitDps_ = -1.0f;
-	}
-}
-
-void UDStarLite::SetGrid( TWeakObjectPtr<AGridManager> grid )
-{
-	Grid_ = grid;
-}
 
 float UDStarLite::Heuristic( const FIntPoint& a, const FIntPoint& b ) const
 {
