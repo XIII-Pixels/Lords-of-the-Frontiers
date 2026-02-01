@@ -5,15 +5,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 
-#include "MainMenuGameMode.generated.h"
+#include "UIOnlyGameMode.generated.h"
 
-class UMainMenuWidget;
+class UUIManager;
 class UMainMenuUIManager;
 
 /** (Gregory-hub)
- * Game mode for main menu */
+ * Game mode for menus */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API AMainMenuGameMode : public AGameModeBase
+class LORDS_FRONTIERS_API AUIOnlyGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
@@ -23,9 +23,12 @@ public:
 	virtual void StartPlay() override;
 
 protected:
-	UPROPERTY()
-	TObjectPtr<UMainMenuUIManager> UIManager_;
+	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
+	TSubclassOf<UUIManager> UIManagerClass_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
-	TSubclassOf<UMainMenuWidget> MainMenuWidgetClass_;
+	TSubclassOf<UUserWidget> WidgetClass_;
+
+	UPROPERTY()
+	TObjectPtr<UUIManager> UIManager_;
 };
