@@ -3,7 +3,7 @@
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Selectable.h"
-
+#include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
@@ -37,8 +37,22 @@ public:
 
 	virtual FVector GetSelectionLocation_Implementation() const override;
 
+	const FResourceProduction& GetMaintenanceCost() const
+	{
+		return MaintenanceCost;
+	}
+
+	const FResourceProduction& GetBuildingCost() const
+	{
+		return BuildingCost_;
+	}
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
+	FResourceProduction MaintenanceCost;
 
 	virtual void OnDeath();
 
@@ -50,4 +64,7 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
+	FResourceProduction BuildingCost_;
 };

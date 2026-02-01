@@ -1,4 +1,6 @@
 #include "Building/Building.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Components/BoxComponent.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -20,6 +22,13 @@ void ABuilding::BeginPlay()
 	Super::BeginPlay();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
+	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
+		{
+			Eco->RegisterBuilding( this );
+		}
+	}
 }
 
 void ABuilding::OnDeath()
@@ -106,4 +115,16 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 	}
 
 	return GetActorLocation();
+}
+
+void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
+		{
+			Eco->UnregisterBuilding( this );
+		}
+	}
+	Super::EndPlay( EndPlayReason );
 }
