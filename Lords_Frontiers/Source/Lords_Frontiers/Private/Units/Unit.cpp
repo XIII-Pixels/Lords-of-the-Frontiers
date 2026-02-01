@@ -5,6 +5,7 @@
 #include "AI/EntityAIController.h"
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
+#include "AI/Path/PathTargetPoint.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -227,4 +228,9 @@ void AUnit::FollowPathTarget()
 	{
 		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
 	}
+}
+
+void AUnit::SetFollowedTarget( AActor* newTarget )
+{
+	FollowedTarget_ = newTarget;
 }

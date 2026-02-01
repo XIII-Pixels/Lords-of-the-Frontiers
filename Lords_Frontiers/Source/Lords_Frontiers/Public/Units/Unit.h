@@ -108,5 +108,6 @@ protected:
 	TObjectPtr<UPath> Path_;
 
 	int PathPointIndex_ = -1;
+
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 };
