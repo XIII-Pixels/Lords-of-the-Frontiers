@@ -25,7 +25,7 @@ void AResourceBuilding::BeginPlay()
 	{
 		ResourceGenerator_->Initialize( FindResourceManager() );
 
-		ResourceGenerator_->SetProductionConfig( ProductionConfig );
+		ResourceGenerator_->SetProductionConfig( ProductionConfig_ );
 	}
 }
 

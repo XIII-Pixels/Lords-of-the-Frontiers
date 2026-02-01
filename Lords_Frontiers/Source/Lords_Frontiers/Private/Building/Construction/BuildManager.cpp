@@ -93,8 +93,8 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	UResourceManager* ResManager = PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
+	APlayerController* pc = GetWorld()->GetFirstPlayerController();
+	UResourceManager* ResManager = pc ? pc->FindComponentByClass<UResourceManager>() : nullptr;
 
 	if ( ResManager )
 	{
@@ -242,8 +242,8 @@ void ABuildManager::ConfirmPlacing()
 			return;
 		}
 
-		APlayerController* PC = GetWorld()->GetFirstPlayerController();
-		UResourceManager* ResManager = PC ? PC->FindComponentByClass<UResourceManager>() : nullptr;
+		APlayerController* pc = GetWorld()->GetFirstPlayerController();
+		UResourceManager* ResManager = pc ? pc->FindComponentByClass<UResourceManager>() : nullptr;
 
 		const ABuilding* CDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
 

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "GameResource.h"
-
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
+#include "GameResource.h"
 
 #include "ResourceManager.generated.h"
 
@@ -47,9 +46,9 @@ public:
 
 	int32 GetMaxResourceAmount( EResourceType type ) const;
 
-	bool CanAfford( const FResourceProduction& Cost ) const;
+	bool CanAfford( const FResourceProduction& cost ) const;
 
-	void SpendResources( const FResourceProduction& Cost );
+	void SpendResources( const FResourceProduction& cost );
 
 private:
 	// Resource Storage: Key - Type, Value - Quantity

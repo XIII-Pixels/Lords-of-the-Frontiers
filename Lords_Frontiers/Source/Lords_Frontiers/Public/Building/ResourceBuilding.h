@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Building.h"
-#include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
-
 #include "CoreMinimal.h"
+#include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 
 #include "ResourceBuilding.generated.h"
 
@@ -29,7 +28,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
-	FResourceProduction ProductionConfig;
+	FResourceProduction ProductionConfig_;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
 	UResourceGenerator* ResourceGenerator_;

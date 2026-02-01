@@ -71,9 +71,9 @@ int32 UResourceManager::GetMaxResourceAmount( EResourceType type ) const
 	return MaxResources_.Contains( type ) ? MaxResources_[type] : cDefaultMaxResource;
 }
 
-bool UResourceManager::CanAfford( const FResourceProduction& Cost ) const
+bool UResourceManager::CanAfford( const FResourceProduction& cost ) const
 {
-	for ( const auto& Pair : Cost.ToMap() )
+	for ( const auto& Pair : cost.ToMap() )
 	{
 		if ( Pair.Value > 0 && GetResourceAmount( Pair.Key ) < Pair.Value )
 		{
@@ -83,9 +83,9 @@ bool UResourceManager::CanAfford( const FResourceProduction& Cost ) const
 	return true;
 }
 
-void UResourceManager::SpendResources( const FResourceProduction& Cost )
+void UResourceManager::SpendResources( const FResourceProduction& cost )
 {
-	for ( const auto& Pair : Cost.ToMap() )
+	for ( const auto& Pair : cost.ToMap() )
 	{
 		if ( Pair.Value > 0 )
 		{

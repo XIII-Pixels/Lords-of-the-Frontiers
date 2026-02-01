@@ -29,8 +29,8 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Economy" )
 	void ApplyMaintenanceCosts();
 
-	void RegisterBuilding( class ABuilding* Building );
-	void UnregisterBuilding( class ABuilding* Building );
+	void RegisterBuilding( class ABuilding* building );
+	void UnregisterBuilding( class ABuilding* building );
 
 	void SetResourceManager( UResourceManager* InManager )
 	{

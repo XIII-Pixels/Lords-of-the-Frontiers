@@ -44,7 +44,7 @@ public:
 
 	const FResourceProduction& GetBuildingCost() const
 	{
-		return BuildingCost;
+		return BuildingCost_;
 	}
 
 protected:
@@ -66,5 +66,5 @@ protected:
 	FEntityStats Stats_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
-	FResourceProduction BuildingCost;
+	FResourceProduction BuildingCost_;
 };

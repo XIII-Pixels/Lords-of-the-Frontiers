@@ -37,15 +37,15 @@ void UEconomyComponent::FindSystems()
 		UE_LOG( LogTemp, Warning, TEXT( "EconomyComponent: ResourceManager not found on owner!" ) );
 }
 
-void UEconomyComponent::RegisterBuilding( ABuilding* Building )
+void UEconomyComponent::RegisterBuilding( ABuilding* building )
 {
-	if ( Building )
-		RegisteredBuildings_.AddUnique( Building );
+	if ( building )
+		RegisteredBuildings_.AddUnique( building );
 }
 
-void UEconomyComponent::UnregisterBuilding( ABuilding* Building )
+void UEconomyComponent::UnregisterBuilding( ABuilding* building )
 {
-	RegisteredBuildings_.Remove( Building );
+	RegisteredBuildings_.Remove( building );
 }
 
 void UEconomyComponent::PerformInitialScan()
