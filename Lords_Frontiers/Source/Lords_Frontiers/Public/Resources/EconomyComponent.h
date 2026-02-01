@@ -5,6 +5,7 @@
 
 #include "EconomyComponent.generated.h"
 
+class ABuilding;
 class AGridManager;
 class UResourceManager;
 
@@ -25,13 +26,18 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Economy" )
 	void CollectGlobalResources();
 
-	void RegisterBuilding( class AResourceBuilding* Building );
-	void UnregisterBuilding( class AResourceBuilding* Building );
+	UFUNCTION( BlueprintCallable, Category = "Settings|Economy" )
+	void ApplyMaintenanceCosts();
+
+	void RegisterBuilding( class ABuilding* building );
+	void UnregisterBuilding( class ABuilding* building );
 
 	void SetResourceManager( UResourceManager* InManager )
 	{
 		ResourceManager_ = InManager;
 	}
+
+	void PerformInitialScan();
 
 private:
 	// url system
@@ -42,7 +48,10 @@ private:
 	UResourceManager* ResourceManager_;
 
 	UPROPERTY()
-	TArray<TWeakObjectPtr<class AResourceBuilding>> RegisteredBuildings_;
+	TArray<TWeakObjectPtr<class ABuilding>> RegisteredBuildings_;
+
+	UPROPERTY()
+	bool bInitialScanDone = false;
 
 	// dependency search
 	void FindSystems();
