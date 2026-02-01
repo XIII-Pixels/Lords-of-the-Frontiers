@@ -2,6 +2,7 @@
 #include "Lords_Frontiers/Public/Building/Building.h"
 #include "Lords_Frontiers/Public/Building/DefensiveBuilding.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
+#include "Lords_Frontiers/Public/Building/MainBase.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "CollisionQueryParams.h"
 #include "DrawDebugHelpers.h"
@@ -77,21 +78,40 @@ bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& co
 {
 	if ( !candidate )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: candidate is null" ) );
+		if ( bDebugDraw )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: candidate is null" ) );
+		}
 		return false;
 	}
 
-	UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Candidate='%s' Class='%s'" ), *candidate->GetName(), *candidate->GetClass()->GetName() );
+	if ( bDebugDraw )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Candidate='%s' Class='%s'" ), *candidate->GetName(), *candidate->GetClass()->GetName() );
+	}
+
+	if ( candidate->IsDestroyed() )
+	{
+		if ( bDebugDraw )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is destroyed." ), *candidate->GetName() );
+		}
+		return false;
+	}
 
 	// economy filter -> ResourceBuilding
 	if ( config.bIgnoreEconomyBuildings )
 	{
 		const bool bIsResource = candidate->IsA( AResourceBuilding::StaticClass() );
-		UE_LOG( LogTemp, VeryVerbose, TEXT( "CandidatePassesFilters: bIgnoreEconomyBuildings=1, IsResource=%d" ), bIsResource ? 1 : 0 );
+
+		if ( bDebugDraw ) {UE_LOG( LogTemp, VeryVerbose, TEXT( "CandidatePassesFilters: bIgnoreEconomyBuildings=1, IsResource=%d" ), bIsResource ? 1 : 0 ); }
+		
 		if ( bIsResource )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a ResourceBuilding and config requests "
-			    "ignoring economy." ), *candidate->GetName() );
+			if ( bDebugDraw )
+			{
+				UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a ResourceBuilding and config requests ignoring economy." ), *candidate->GetName() );
+			}
 			return false;
 		}
 	}
@@ -100,17 +120,26 @@ bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& co
 	if ( config.bIgnoreTowers )
 	{
 		const bool bIsDefensive = candidate->IsA( ADefensiveBuilding::StaticClass() );
-		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: bIgnoreTowers=1, IsDefensive=%d" ), bIsDefensive ? 1 : 0 );
+		if ( bDebugDraw )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: bIgnoreTowers=1, IsDefensive=%d" ), bIsDefensive ? 1 : 0 );
+		}
 		if ( bIsDefensive )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a DefensiveBuilding and config requests "
-			    "ignoring towers." ), *candidate->GetName() );
+			if ( bDebugDraw )
+			{
+				UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a DefensiveBuilding and config requests "
+					"ignoring towers." ), *candidate->GetName() );
+			}
 			return false;
 		}
 	}
 
 	// passed all filters
-	UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Accepting '%s'" ), *candidate->GetName() );
+	if ( bDebugDraw )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Accepting '%s'" ), *candidate->GetName() );
+	}
 	return true;
 }
 
@@ -147,7 +176,10 @@ void UEnemyAggroComponent::UpdateOverlapSphereRadius()
 
 void UEnemyAggroComponent::UpdateAggroTarget()
 {
-	UE_LOG( LogTemp, Log, TEXT( "Aggro tick from %s" ), *GetOwner()->GetName() );
+	if ( bDebugDraw )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "Aggro tick from %s" ), *GetOwner()->GetName() );
+	}
 
 	AActor* owner = GetOwner();
 	if ( !owner )
@@ -165,18 +197,19 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	if ( !config )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Config invalid for profile %d" ), (int) AggroProfile );
-		//ownerUnit->SetFollowedTarget( nullptr );
 		return;
 	}
-
-	UE_LOG( LogTemp, Log, TEXT( "Aggro: Profile=%d AggroRadiusCells=%d IgnoreEconomy=%d IgnoreTowers=%d" ),
-	    static_cast<int32>( config->Profile ), static_cast<int32>( config->AggroRadiusCells ),
-	    config->bIgnoreEconomyBuildings ? 1 : 0, config->bIgnoreTowers ? 1 : 0 );
+	if ( bDebugDraw )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: Profile=%d AggroRadiusCells=%d IgnoreEconomy=%d IgnoreTowers=%d" ),
+		    static_cast<int32>( config->Profile ), static_cast<int32>( config->AggroRadiusCells ),
+		    config->bIgnoreEconomyBuildings ? 1 : 0, config->bIgnoreTowers ? 1 : 0
+		);
+	}
 
 	UWorld* world = GetWorld();
 	if ( !world )
 	{
-		//ownerUnit->SetFollowedTarget( nullptr );
 		return;
 	}
 
@@ -187,10 +220,9 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	const float MaxRadius = 20000.f; // 20000 cm
 	radiusCm = FMath::Clamp( radiusCm, MinRadius, MaxRadius );
 
-	UE_LOG( LogTemp, Log, TEXT( "Aggro: Using radiusCm = %.1f (clamped)" ), radiusCm );
-
 	if ( bDebugDraw )
 	{
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: Using radiusCm = %.1f (clamped)" ), radiusCm );
 		DrawDebugSphere( world, myLoc, radiusCm, 24, FColor::Purple, false, 2.5f, 0, 4.0f );
 	}
 
@@ -210,8 +242,10 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	    world, myLoc, radiusCm, objectTypes, ABuilding::StaticClass(), ignoredActors, overlappedActors
 	);
 
-	UE_LOG( LogTemp, Log, TEXT( "Aggro: SphereOverlap found %d actors around '%s' (radius cm=%.1f)" ),
-	    overlappedActors.Num(), *owner->GetName(), radiusCm );
+	if ( bDebugDraw )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: SphereOverlap found %d actors around '%s' (radius cm=%.1f)" ), overlappedActors.Num(), *owner->GetName(), radiusCm );
+	}
 
 	int32 bestPriority = INT32_MAX;
 	float bestDistSq = TNumericLimits<float>::Max();
@@ -221,56 +255,105 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	{
 		if ( !actor )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: overlapped actor null - skip" ) );
+			if ( bDebugDraw )
+			{
+				UE_LOG( LogTemp, Log, TEXT( "Aggro: overlapped actor null - skip" ) );
+			}
 			continue;
 		}
-
-		UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate actor name='%s' class='%s'" ), *actor->GetName(),
-		    actor->GetClass() ? *actor->GetClass()->GetName() : TEXT( "None" ) );
-
-		ABuilding* B = Cast<ABuilding>( actor );
-		if ( !B )
+		if ( bDebugDraw )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' is not ABuilding - skip" ), *actor->GetName() );
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate actor name='%s' class='%s'" ), *actor->GetName(),
+			    actor->GetClass() ? *actor->GetClass()->GetName() : TEXT( "None" ) );
+		}
+
+		ABuilding* building = Cast<ABuilding>( actor );
+		if ( !building )
+		{
+			if ( bDebugDraw )
+			{
+				UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' is not ABuilding - skip" ), *actor->GetName() );
+			}
 			continue;
 		}
 
 		// log inheritance checks
-		const bool bIsResource = B->IsA( AResourceBuilding::StaticClass() );
-		const bool bIsDefensive = B->IsA( ADefensiveBuilding::StaticClass() );
+		const bool bIsResource = building->IsA( AResourceBuilding::StaticClass() );
+		const bool bIsDefensive = building->IsA( ADefensiveBuilding::StaticClass() );
 
-		UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' IsResource=%d IsDefensive=%d" ), *B->GetName(),
-		    bIsResource ? 1 : 0, bIsDefensive ? 1 : 0 );
+		if ( bDebugDraw )
+		{
+			UE_LOG(
+			    LogTemp, Log, TEXT( "Aggro: Candidate '%s' IsResource=%d IsDefensive=%d" ), *building->GetName(),
+			    bIsResource ? 1 : 0, bIsDefensive ? 1 : 0 );
+		}
 
 		// filter
-		if ( !CandidatePassesFilters( *config, B ) )
+		if ( !CandidatePassesFilters( *config, building ) )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' filtered out by CandidatePassesFilters" ), *B->GetName() );
+			if ( bDebugDraw )
+			{
+				UE_LOG(
+				    LogTemp, Log, TEXT( "Aggro: Candidate '%s' filtered out by CandidatePassesFilters" ), *building->GetName()
+				);
+			}
 			continue;
 		}
 
-		const int32 pri = GetPriorityIndexForCandidate( *config, B );
+		const int32 pri = GetPriorityIndexForCandidate( *config, building );
 		if ( pri == INT32_MAX )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' has no matching priority class - skip" ), *B->GetName() );
+			if ( bDebugDraw )
+			{
+				UE_LOG(
+				    LogTemp, Log, TEXT( "Aggro: Candidate '%s' has no matching priority class - skip" ), *building->GetName()
+				);
+			}
 			continue;
 		}
 
-		const float distSq = FVector::DistSquared( myLoc, B->GetActorLocation() );
-		UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' priority=%d distSq=%.1f" ), *B->GetName(), pri, distSq );
+		const float distSq = FVector::DistSquared( myLoc, building->GetActorLocation() );
+
+		if ( bDebugDraw )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' priority=%d distSq=%.1f" ), *building->GetName(), pri, distSq );
+		}
 
 		if ( pri < bestPriority || ( pri == bestPriority && distSq < bestDistSq ) )
 		{
 			bestPriority = pri;
 			bestDistSq = distSq;
-			bestBuilding = B;
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: New best candidate '%s' (priority=%d distSq=%.1f)" ), *B->GetName(), pri, distSq );
+			bestBuilding = building;
+			if ( bDebugDraw )
+			{
+				UE_LOG( LogTemp, Log, TEXT( "Aggro: New best candidate '%s' (priority=%d distSq=%.1f)" ), *building->GetName(), pri, distSq );
+			}
 		}
 	}
 
 	if ( bestBuilding != nullptr )
 	{
 		ownerUnit->SetFollowedTarget( bestBuilding );
+	}
+	else // BASIC FALLBACK. DELETE THIS "else" BLOCK WHEN MORE COMPLEX BEHAVIOR IS IMPLEMENTED
+	{
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: FALLBACK TO MAINBASE" ));
+		AMainBase* mainBase = Cast<AMainBase>( UGameplayStatics::GetActorOfClass( world, AMainBase::StaticClass() ) );
+
+		ownerUnit->SetFollowedTarget( mainBase );
+
+		if ( bDebugDraw )
+		{
+			if ( mainBase )
+			{
+				DrawDebugSphere( world, mainBase->GetActorLocation(), 60.f, 8, FColor::Orange, false, 3.0f );
+				UE_LOG( LogTemp, Log, TEXT( "Aggro: Owner %s -> fallback target MainBase %s" ), *owner->GetName(), *mainBase->GetName() );
+			}
+			else
+			{
+				UE_LOG( LogTemp, Warning, TEXT( "Aggro: Owner %s -> fallback MainBase not found (target = nullptr)" ), *owner->GetName() );
+			}
+		}
 	}
 	
 	if ( bDebugDraw )

@@ -38,10 +38,6 @@ struct FAggroProfileConfig
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro", meta = ( ClampMin = "0.0" ) )
 	float AggroRadiusCells = 5.0f;
 
-	// Attack radius in meters. maybe should be deleted
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro", meta = ( ClampMin = "0.0" ) )
-	float AttackRadiusMeters = 1.0f;
-
 	// Priority list of building classes. Earlier entries = higher priority (index 0 = top priority).
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
 	TArray<TSubclassOf<ABuilding>> PriorityClasses;
