@@ -56,6 +56,14 @@ void AWaveManager::StartWaves()
 		PathPointsManager->Empty();
 	}
 
+	for ( int waveIndex = 0; waveIndex < Waves.Num(); waveIndex++ )
+	{
+		for ( FEnemyGroup& enemyGroup : Waves[waveIndex].EnemyGroups )
+		{
+			enemyGroup.Path = nullptr;
+		}
+	}
+
 	StartWaveAtIndex( startIndex );
 	bHasRequestedFirstWave_ = true;
 }
@@ -319,11 +327,6 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 		{
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed." ) );
 		}
-	}
-
-	for (FEnemyGroup& enemyGroup : Waves[waveIndex].EnemyGroups)
-	{
-		enemyGroup.Path = nullptr;
 	}
 }
 

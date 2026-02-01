@@ -12,59 +12,82 @@
 class AUnit;
 class AGridManager;
 
+USTRUCT()
 struct FDStarKey
 {
+	GENERATED_BODY()
+
 	float K1 = TNumericLimits<float>::Max();
 	float K2 = TNumericLimits<float>::Max();
 
 	bool operator<( const FDStarKey& other ) const
 	{
+		checkf(
+		    FMath::IsFinite( K1 ) && FMath::IsFinite( K2 ) && FMath::IsFinite( other.K1 ) &&
+		        FMath::IsFinite( other.K2 ),
+		    TEXT( "FDStarKey contains NaN or Inf: this=%f,%f other=%f,%f" ), K1, K2, other.K1, other.K2
+		);
+
 		return ( K1 < other.K1 ) || ( K1 == other.K1 && K2 < other.K2 );
 	}
 
 	bool operator>( const FDStarKey& other ) const
 	{
+		checkf(
+		    FMath::IsFinite( K1 ) && FMath::IsFinite( K2 ) && FMath::IsFinite( other.K1 ) &&
+		        FMath::IsFinite( other.K2 ),
+		    TEXT( "FDStarKey contains NaN or Inf: this=%f,%f other=%f,%f" ), K1, K2, other.K1, other.K2
+		);
+
 		return ( K1 > other.K1 ) || ( K1 == other.K1 && K2 > other.K2 );
 	}
 };
 
+USTRUCT()
 struct FDStarNode
 {
+	GENERATED_BODY()
+
 	FIntPoint Coord;
-	FDStarKey Key;
 
 	float G = TNumericLimits<float>::Max();
 	float RHS = TNumericLimits<float>::Max();
 
 	bool bInOpen = false;
 
+	FDStarNode() = default;
+
 	FDStarNode( const FIntPoint& coord ) : Coord( coord )
 	{
 	}
+};
 
-	FDStarNode( const FIntPoint& coord, const FDStarKey& key ) : Coord( coord ), Key( key )
-	{
-	}
+USTRUCT()
+struct FDStarQueueEntry
+{
+	GENERATED_BODY()
 
-	bool operator<( const FDStarNode& other ) const
+	FIntPoint NodeCoord;
+	FDStarKey Key;
+
+	bool operator<( const FDStarQueueEntry& other ) const
 	{
 		return other.Key < Key;
 	}
 
-	bool operator>( const FDStarNode& other ) const
+	bool operator>( const FDStarQueueEntry& other ) const
 	{
 		return other.Key > Key;
 	}
 };
 
-struct FDStarNodePtrCompare
+struct DStarQueueEntryCompare
 {
-	bool operator()( const FDStarNode* a, const FDStarNode* b ) const
+	bool operator()( const FDStarQueueEntry& a, const FDStarQueueEntry& b ) const
 	{
-		return a->Key > b->Key;
+		return a.Key > b.Key;
 	}
 };
-
 
 /** (Gregory-hub)
  * D*-lite algorithm implementation */
@@ -77,6 +100,7 @@ public:
 	UDStarLite();
 
 	void Initialize( const FIntPoint& start, const FIntPoint& goal );
+	void Reset();
 	void SetGrid( TWeakObjectPtr<AGridManager> grid );
 	void SetStart( const FIntPoint& newStart );
 	void SetEmptyCellTravelTime( float emptyCellTravelTime );
@@ -96,8 +120,10 @@ private:
 	float UnitDps_ = -1.0f;
 	float EmptyCellTravelTime_ = 1.0f;
 
+	UPROPERTY()
 	TMap<FIntPoint, FDStarNode> Nodes_;
-	std::priority_queue<FDStarNode*, std::vector<FDStarNode*>, FDStarNodePtrCompare> Open_;
+
+	std::priority_queue<FDStarQueueEntry, std::vector<FDStarQueueEntry>, DStarQueueEntryCompare> Open_;
 
 	FIntPoint Start_;
 	FIntPoint Goal_;

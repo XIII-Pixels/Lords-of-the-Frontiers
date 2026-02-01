@@ -56,10 +56,6 @@ void UPath::CalculateOrUpdate()
 
 	DStarLite_->ComputeShortestPath();
 	PathPoints_ = DStarLite_->GetPath();
-	for ( int32 i = 0; i < PathPoints_.Num(); ++i )
-	{
-		UE_LOG( LogTemp, Log, TEXT( "Path[%d] = (%d, %d)" ), i, PathPoints_[i].X, PathPoints_[i].Y );
-	}
 }
 
 const TArray<FIntPoint>& UPath::GetPoints() const
