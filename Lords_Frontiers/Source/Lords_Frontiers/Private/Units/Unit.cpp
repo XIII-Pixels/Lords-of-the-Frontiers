@@ -144,3 +144,7 @@ void AUnit::OnDeath()
 
 	Destroy();
 }
+void AUnit::SetFollowedTarget( AActor* newTarget )
+{
+	FollowedTarget_ = newTarget;
+}
