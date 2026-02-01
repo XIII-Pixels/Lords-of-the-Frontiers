@@ -9,6 +9,7 @@
 #include "EntityStats.h"
 
 #include "Components/Attack/AttackComponent.h"
+#include "Components/Attack/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
@@ -71,6 +72,8 @@ public:
 
 	void FollowPathTarget();
 
+	void SetFollowedTarget( AActor* newTarget );
+
 protected:
 	void OnDeath();
 
@@ -105,4 +108,5 @@ protected:
 	TObjectPtr<UPath> Path_;
 
 	int PathPointIndex_ = -1;
+	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 };

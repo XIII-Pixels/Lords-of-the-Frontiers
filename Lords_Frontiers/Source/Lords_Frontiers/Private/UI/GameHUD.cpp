@@ -1,97 +1,551 @@
-#include "Lords_Frontiers/Public/UI/GameHUD.h"
-#include "Kismet/GameplayStatics.h"
-#include "Components/VerticalBox.h"
+﻿#include "Lords_Frontiers/Public/UI/GameHUD.h"
+
+#include "Building/Building.h"
+#include "Building/Construction/BuildManager.h"
+#include "Core/CoreManager.h"
+#include "Core/GameLoopManager.h"
+#include "Resources/ResourceManager.h"
+
 #include "Components/GridPanel.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Kismet/GameplayStatics.h"
 
-
-
-void UGameHUDWidget::NativeConstruct ()
+void UGameHUDWidget::NativeConstruct()
 {
-    Super::NativeConstruct ();
+	Super::NativeConstruct();
 
-    if ( ButtonRelocateBuilding )
-    {
-        ButtonRelocateBuilding->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnRelocateBuildingClicked );
-    }
-    if ( ButtonRemoveBuilding )
-    {
-        ButtonRemoveBuilding->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnRemoveBuildingClicked );
-    }
-    if ( ButtonDefensiveBuildings )
-    {
-        ButtonDefensiveBuildings->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
-    }
-    if ( ButtonEconomyBuilding )
-    {
-        ButtonEconomyBuilding->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnEconomyBuildingClicked );
-    }
-    if ( ButtonEndTurn )
-    {
-        ButtonEndTurn->OnClicked.AddDynamic ( this, &UGameHUDWidget::OnEndTurnClicked );
-    }
+	if ( ButtonRelocateBuilding )
+	{
+		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
+	}
+	if ( ButtonRemoveBuilding )
+	{
+		ButtonRemoveBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
+	}
+	if ( ButtonDefensiveBuildings )
+	{
+		ButtonDefensiveBuildings->OnClicked.AddDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
+	}
+	if ( ButtonEconomyBuilding )
+	{
+		ButtonEconomyBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
+	}
+	if ( ButtonEndTurn )
+	{
+		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+	}
 
-    ShowEconomyBuildings ();
+	if ( ButtonBuildingWoodenHouse )
+	{
+		ButtonBuildingWoodenHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
+	}
+	if ( ButtonBuildingStrawHouse )
+	{
+		ButtonBuildingStrawHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
+	}
+	if ( ButtonBuildingFarm )
+	{
+		ButtonBuildingFarm->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
+	}
+	if ( ButtonBuildingLawnHouse )
+	{
+		ButtonBuildingLawnHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
+	}
+	if ( ButtonBuildingMagicHouse )
+	{
+		ButtonBuildingMagicHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
+	}
+
+	if ( ButtonBuildingWall )
+	{
+		ButtonBuildingWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWallClicked );
+	}
+	if ( ButtonBuildingTowerT0 )
+	{
+		ButtonBuildingTowerT0->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
+	}
+	if ( ButtonBuildingTowerT1 )
+	{
+		ButtonBuildingTowerT1->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
+	}
+	if ( ButtonBuildingTowerT2 )
+	{
+		ButtonBuildingTowerT2->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	}
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
+			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
+			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+		}
+
+		if ( UResourceManager* rM = core->GetResourceManager() )
+		{
+			rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+		}
+	}
+
+	if ( TextTimer )
+	{
+		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
+	}
+
+	UpdateDayText();
+	UpdateStatusText();
+	UpdateResources();
+	UpdateButtonVisibility();
+	UpdateBuildingUIVisibility();
+
+	ShowEconomyBuildings();
 }
 
-void UGameHUDWidget::NativeDestruct ()
+void UGameHUDWidget::NativeDestruct()
 {
-    // Unbind
-    if ( ButtonRelocateBuilding ) ButtonRelocateBuilding->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnRelocateBuildingClicked );
-    if ( ButtonRemoveBuilding ) ButtonRemoveBuilding->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnRemoveBuildingClicked );
-    if ( ButtonDefensiveBuildings ) ButtonDefensiveBuildings->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
-    if ( ButtonEconomyBuilding ) ButtonEconomyBuilding->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnEconomyBuildingClicked );
-    if ( ButtonEndTurn ) ButtonEndTurn->OnClicked.RemoveDynamic ( this, &UGameHUDWidget::OnEndTurnClicked );
+	if ( ButtonRelocateBuilding )
+		ButtonRelocateBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
+	if ( ButtonRemoveBuilding )
+		ButtonRemoveBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
+	if ( ButtonDefensiveBuildings )
+		ButtonDefensiveBuildings->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
+	if ( ButtonEconomyBuilding )
+		ButtonEconomyBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
+	if ( ButtonEndTurn )
+		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
 
-    Super::NativeDestruct ();
+	if ( ButtonBuildingWoodenHouse )
+		ButtonBuildingWoodenHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
+	if ( ButtonBuildingStrawHouse )
+		ButtonBuildingStrawHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
+	if ( ButtonBuildingFarm )
+		ButtonBuildingFarm->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
+	if ( ButtonBuildingLawnHouse )
+		ButtonBuildingLawnHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
+	if ( ButtonBuildingMagicHouse )
+		ButtonBuildingMagicHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
+	if ( ButtonBuildingWall )
+		ButtonBuildingWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWallClicked );
+	if ( ButtonBuildingTowerT0 )
+		ButtonBuildingTowerT0->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
+	if ( ButtonBuildingTowerT1 )
+		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
+	if ( ButtonBuildingTowerT2 )
+		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
+			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
+			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+		}
+
+		if ( UResourceManager* rM = core->GetResourceManager() )
+		{
+			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+		}
+	}
+
+	Super::NativeDestruct();
 }
 
-void UGameHUDWidget::OnRelocateBuildingClicked ()
+void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 {
-    UE_LOG ( LogTemp, Log, TEXT ( "Relocate building clicked" ) );
+	UpdateStatusText();
 }
 
-void UGameHUDWidget::OnRemoveBuildingClicked ()
+void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
 {
-    UE_LOG ( LogTemp, Log, TEXT ( "Remove building clicked" ) );
+	if ( TextTimer )
+	{
+		int32 seconds = FMath::CeilToInt( TimeRemaining );
+		TextTimer->SetText( FText::FromString( FString::Printf( TEXT( "%d" ), seconds ) ) );
+	}
 }
 
-void UGameHUDWidget::OnDefensiveBuildingsClicked ()
+void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount )
 {
-    ShowDefensiveBuildings ();
+	UE_LOG( LogTemp, Warning, TEXT( "HandleResourceChanged: Type=%d, Amount=%d" ), (int32) Type, NewAmount );
+	UpdateResources();
 }
 
-void UGameHUDWidget::OnEconomyBuildingClicked ()
+void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
 {
-    ShowEconomyBuildings ();
+	UpdateDayText();
+	UpdateStatusText();
+	UpdateButtonVisibility();
+	UpdateBuildingUIVisibility();
+
+	if ( TextTimer )
+	{
+		bool bShowTimer = ( NewPhase == EGameLoopPhase::Combat );
+		TextTimer->SetVisibility( bShowTimer ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+
+	if ( NewPhase == EGameLoopPhase::Combat )
+	{
+		CancelCurrentBuilding();
+	}
 }
 
-void UGameHUDWidget::OnEndTurnClicked ()
+void UGameHUDWidget::UpdateDayText()
 {
-    UE_LOG ( LogTemp, Log, TEXT ( "End Turn clicked" ) );
+	if ( !TextDay )
+	{
+		return;
+	}
+
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
+		return;
+	}
+
+	int32 wave = gL->GetCurrentWave();
+	TextDay->SetText( FText::FromString( FString::Printf( TEXT( "День %d" ), wave ) ) );
 }
 
-void UGameHUDWidget::ShowEconomyBuildings ()
+void UGameHUDWidget::UpdateStatusText()
 {
-    if ( EconomyCardBox )
-    {
-        EconomyCardBox->SetVisibility ( ESlateVisibility::Visible );
-    }
+	if ( !TextStatus )
+	{
+		return;
+	}
 
-    if ( DefensiveCardBox )
-    {
-        DefensiveCardBox->SetVisibility ( ESlateVisibility::Collapsed );
-    }
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
+		return;
+	}
+
+	FText status;
+	EGameLoopPhase phase = gL->GetCurrentPhase();
+
+	if ( phase == EGameLoopPhase::Building )
+	{
+		int32 turn = gL->GetCurrentBuildTurn();
+		if ( turn == 1 )
+		{
+			status = FText::FromString( TEXT( "Утро" ) );
+		}
+		else
+		{
+			status = FText::FromString( TEXT( "Закат" ) );
+		}
+	}
+	else if ( phase == EGameLoopPhase::Combat )
+	{
+		status = FText::FromString( TEXT( "Бой" ) );
+	}
+	else if ( phase == EGameLoopPhase::Victory )
+	{
+		status = FText::FromString( TEXT( "Победа!" ) );
+	}
+	else if ( phase == EGameLoopPhase::Defeat )
+	{
+		status = FText::FromString( TEXT( "Поражение" ) );
+	}
+	else
+	{
+		status = FText::FromString( TEXT( "---" ) );
+	}
+
+	TextStatus->SetText( status );
 }
 
-void UGameHUDWidget::ShowDefensiveBuildings ()
+void UGameHUDWidget::UpdateResources()
 {
-    if ( EconomyCardBox )
-    {
-        EconomyCardBox->SetVisibility ( ESlateVisibility::Collapsed );
-    }
+	UE_LOG( LogTemp, Warning, TEXT( "=== UpdateResources ===" ) );
 
-    if ( DefensiveCardBox )
-    {
-        DefensiveCardBox->SetVisibility ( ESlateVisibility::Visible );
-    }
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "Core is NULL" ) );
+		return;
+	}
+
+	UResourceManager* rM = core->GetResourceManager();
+	if ( !rM )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "ResourceManager is NULL" ) );
+		return;
+	}
+
+	int32 gold = rM->GetResourceAmount( EResourceType::Gold );
+	int32 food = rM->GetResourceAmount( EResourceType::Food );
+	int32 pop = rM->GetResourceAmount( EResourceType::Population );
+
+	UE_LOG( LogTemp, Warning, TEXT( "Resources: Gold=%d, Food=%d, Pop=%d" ), gold, food, pop );
+
+	if ( Text_Gold )
+	{
+		Text_Gold->SetText( FText::AsNumber( gold ) );
+	}
+
+	if ( Text_Food )
+	{
+		Text_Food->SetText( FText::AsNumber( food ) );
+	}
+
+	if ( Text_Citizens )
+	{
+		Text_Citizens->SetText( FText::AsNumber( pop ) );
+	}
+}
+
+void UGameHUDWidget::UpdateButtonVisibility()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
+		return;
+	}
+
+	EGameLoopPhase phase = gL->GetCurrentPhase();
+
+	if ( ButtonEndTurn )
+	{
+		bool bShow = ( phase == EGameLoopPhase::Building );
+		ButtonEndTurn->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+}
+
+void UGameHUDWidget::OnEndTurnClicked()
+{
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			gL->EndBuildTurn();
+		}
+	}
+}
+
+void UGameHUDWidget::OnRelocateBuildingClicked()
+{
+	UE_LOG( LogTemp, Log, TEXT( "Relocate building clicked" ) );
+}
+
+void UGameHUDWidget::OnRemoveBuildingClicked()
+{
+	UE_LOG( LogTemp, Log, TEXT( "Remove building clicked" ) );
+}
+
+void UGameHUDWidget::OnDefensiveBuildingsClicked()
+{
+	ShowDefensiveBuildings();
+}
+
+void UGameHUDWidget::OnEconomyBuildingClicked()
+{
+	ShowEconomyBuildings();
+}
+
+void UGameHUDWidget::ShowEconomyBuildings()
+{
+	bShowingEconomyBuildings_ = true;
+
+	if ( EconomyCardBox )
+	{
+		EconomyCardBox->SetVisibility( ESlateVisibility::Visible );
+	}
+
+	if ( DefensiveCardBox )
+	{
+		DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
+	}
+}
+
+void UGameHUDWidget::ShowDefensiveBuildings()
+{
+	bShowingEconomyBuildings_ = false;
+
+	if ( EconomyCardBox )
+	{
+		EconomyCardBox->SetVisibility( ESlateVisibility::Collapsed );
+	}
+
+	if ( DefensiveCardBox )
+	{
+		DefensiveCardBox->SetVisibility( ESlateVisibility::Visible );
+	}
+}
+
+void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
+{
+	if ( !BuildingClass )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildingClass is null" ) );
+		return;
+	}
+
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+
+	ABuildManager* bM = core->GetBuildManager();
+	if ( !bM )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildManager is null" ) );
+		return;
+	}
+
+	bM->StartPlacingBuilding( BuildingClass );
+}
+
+void UGameHUDWidget::OnBuildWoodenHouseClicked()
+{
+	StartBuilding( WoodenHouseClass );
+}
+
+void UGameHUDWidget::OnBuildStrawHouseClicked()
+{
+	StartBuilding( StrawHouseClass );
+}
+
+void UGameHUDWidget::OnBuildFarmClicked()
+{
+	StartBuilding( FarmClass );
+}
+
+void UGameHUDWidget::OnBuildLawnHouseClicked()
+{
+	StartBuilding( LawnHouseClass );
+}
+
+void UGameHUDWidget::OnBuildMagicHouseClicked()
+{
+	StartBuilding( MagicHouseClass );
+}
+
+void UGameHUDWidget::OnBuildWallClicked()
+{
+	StartBuilding( WallClass );
+}
+
+void UGameHUDWidget::OnBuildTowerT0Clicked()
+{
+	StartBuilding( TowerT0Class );
+}
+
+void UGameHUDWidget::OnBuildTowerT1Clicked()
+{
+	StartBuilding( TowerT1Class );
+}
+
+void UGameHUDWidget::OnBuildTowerT2Clicked()
+{
+	StartBuilding( TowerT2Class );
+}
+
+void UGameHUDWidget::UpdateBuildingUIVisibility()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	};
+
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
+		return;
+	};
+
+	EGameLoopPhase phase = gL->GetCurrentPhase();
+	bool bShowBuildingUI = ( phase == EGameLoopPhase::Building );
+
+	ESlateVisibility NewVisibility = bShowBuildingUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+
+	// Кнопки категорий
+	if ( ButtonEconomyBuilding )
+	{
+		ButtonEconomyBuilding->SetVisibility( NewVisibility );
+	}
+	if ( ButtonDefensiveBuildings )
+	{
+		ButtonDefensiveBuildings->SetVisibility( NewVisibility );
+	}
+	if ( ButtonClassBuilding3 )
+	{
+		ButtonClassBuilding3->SetVisibility( NewVisibility );
+	}
+	if ( ButtonClassBuilding4 )
+	{
+		ButtonClassBuilding4->SetVisibility( NewVisibility );
+	}
+
+	if ( ButtonRelocateBuilding )
+	{
+		ButtonRelocateBuilding->SetVisibility( NewVisibility );
+	}
+	if ( ButtonRemoveBuilding )
+	{
+		ButtonRemoveBuilding->SetVisibility( NewVisibility );
+	}
+
+	if ( bShowBuildingUI )
+	{
+		if ( bShowingEconomyBuildings_ )
+		{
+			ShowEconomyBuildings();
+		}
+		else
+		{
+			ShowDefensiveBuildings();
+		}
+	}
+	else
+	{
+		if ( EconomyCardBox )
+		{
+			EconomyCardBox->SetVisibility( ESlateVisibility::Collapsed );
+		}
+		if ( DefensiveCardBox )
+		{
+			DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
+		}
+	}
+}
+
+void UGameHUDWidget::CancelCurrentBuilding()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+	ABuildManager* bM = core->GetBuildManager();
+	if ( !bM )
+	{
+		return;
+	};
+
+	if ( bM->IsPlacing() )
+	{
+		bM->CancelPlacing();
+	}
 }
