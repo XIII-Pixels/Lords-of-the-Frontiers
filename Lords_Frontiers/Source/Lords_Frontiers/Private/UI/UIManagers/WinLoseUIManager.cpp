@@ -34,12 +34,12 @@ void UWinLoseUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 			widget->MainMenuButton->OnClicked.AddDynamic( this, &UWinLoseUIManager::OnMainMenuButtonClicked );
 		}
 
-		if ( widget && widget->NewGameButton )
+		if ( widget->NewGameButton )
 		{
 			widget->NewGameButton->OnClicked.AddDynamic( this, &UWinLoseUIManager::OnNewGameButtonClicked );
 		}
 
-		if ( widget && widget->QuitButton )
+		if ( widget->QuitButton )
 		{
 			widget->QuitButton->OnClicked.AddDynamic( this, &UWinLoseUIManager::OnQuitButtonClicked );
 		}
