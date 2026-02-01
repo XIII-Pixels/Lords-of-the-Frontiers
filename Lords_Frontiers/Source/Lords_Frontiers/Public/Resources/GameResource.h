@@ -44,3 +44,32 @@ struct FGameResource
 		return Type == other.Type && Quantity == other.Quantity;
 	}
 };
+
+
+USTRUCT( BlueprintType )
+struct FResourceProduction
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Production" )
+	int32 Gold = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Production" )
+	int32 Food = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Production" )
+	int32 Population = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Production" )
+	int32 Progress = 0;
+
+	TMap<EResourceType, int32> ToMap() const
+	{
+		TMap<EResourceType, int32> Map;
+		Map.Add( EResourceType::Gold, Gold );
+		Map.Add( EResourceType::Food, Food );
+		Map.Add( EResourceType::Population, Population );
+		Map.Add( EResourceType::Progress, Progress );
+		return Map;
+	}
+};
