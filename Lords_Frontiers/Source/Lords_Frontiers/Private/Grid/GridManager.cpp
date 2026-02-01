@@ -176,7 +176,7 @@ void AGridManager::InitializeGrid()
 			cell.SetCoords( x, y );
 
 			// Reset only runtime state (occupancy and occupant).
-			// cell.ResetRuntimeState();
+			cell.ResetRuntimeState();
 		}
 	}
 }
