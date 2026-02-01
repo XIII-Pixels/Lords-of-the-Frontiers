@@ -109,13 +109,13 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 
 }
 
-void AStrategyCamera::MoveForward( float Value )
+void AStrategyCamera::MoveForward( float value )
 {
-	AddMovementInput( GetActorForwardVector(), Value );
+	AddMovementInput( GetActorForwardVector(), value );
 }
-void AStrategyCamera::MoveRight( float Value )
+void AStrategyCamera::MoveRight( float value )
 {
-	AddMovementInput( GetActorRightVector(), Value );
+	AddMovementInput( GetActorRightVector(), value );
 }
 
 void AStrategyCamera::ZoomIn()
