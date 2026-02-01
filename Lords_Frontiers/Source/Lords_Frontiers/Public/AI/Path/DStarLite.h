@@ -5,47 +5,66 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 
+#include <queue>
+
 #include "DStarLite.generated.h"
 
 class AUnit;
 class AGridManager;
 
+struct FDStarKey
+{
+	float K1 = TNumericLimits<float>::Max();
+	float K2 = TNumericLimits<float>::Max();
+
+	bool operator<( const FDStarKey& other ) const
+	{
+		return ( K1 < other.K1 ) || ( K1 == other.K1 && K2 < other.K2 );
+	}
+
+	bool operator>( const FDStarKey& other ) const
+	{
+		return ( K1 > other.K1 ) || ( K1 == other.K1 && K2 > other.K2 );
+	}
+};
+
 struct FDStarNode
 {
 	FIntPoint Coord;
+	FDStarKey Key;
 
 	float G = TNumericLimits<float>::Max();
 	float RHS = TNumericLimits<float>::Max();
 
 	bool bInOpen = false;
 
-	FDStarNode() = default;
-	explicit FDStarNode( const FIntPoint inCoord ) : Coord( inCoord )
+	FDStarNode( const FIntPoint& coord ) : Coord( coord )
 	{
 	}
-};
 
-struct FDStarKey
-{
-	float K1;
-	float K2;
-
-	bool operator<( const FDStarKey& other ) const
+	FDStarNode( const FIntPoint& coord, const FDStarKey& key ) : Coord( coord ), Key( key )
 	{
-		return ( K1 < other.K1 ) || ( K1 == other.K1 && K2 < other.K2 );
 	}
-};
 
-struct FDStarQueueNode
-{
-	FDStarNode* Node;
-	FDStarKey Key;
-
-	bool operator<( const FDStarQueueNode& other ) const
+	bool operator<( const FDStarNode& other ) const
 	{
 		return other.Key < Key;
 	}
+
+	bool operator>( const FDStarNode& other ) const
+	{
+		return other.Key > Key;
+	}
 };
+
+struct FDStarNodePtrCompare
+{
+	bool operator()( const FDStarNode* a, const FDStarNode* b ) const
+	{
+		return a->Key > b->Key;
+	}
+};
+
 
 /** (Gregory-hub)
  * D*-lite algorithm implementation */
@@ -64,7 +83,7 @@ public:
 	// Unit damage and cooldown are needed to calculate time to destroy a building
 	void SetUnitAttackInfo( float damage, float cooldown );
 
-	bool ComputeShortestPath();
+	void ComputeShortestPath();
 
 	void OnUpdateEdgeCost( const FIntPoint& from );
 
@@ -78,12 +97,14 @@ private:
 	float EmptyCellTravelTime_ = 1.0f;
 
 	TMap<FIntPoint, FDStarNode> Nodes_;
-	TArray<FDStarQueueNode> Open_;
+	std::priority_queue<FDStarNode*, std::vector<FDStarNode*>, FDStarNodePtrCompare> Open_;
 
 	FIntPoint Start_;
 	FIntPoint Goal_;
 
 	float Km_ = 0.0f;
+
+	bool bInitialized = false;
 
 	// Core methods
 

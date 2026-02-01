@@ -23,14 +23,14 @@ void APathPointsManager::AddPathPoints( const UPath& path )
 {
 	if ( !Grid.IsValid() )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "UPathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
+		UE_LOG( LogTemp, Error, TEXT( "PathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
 		return;
 	}
 
 	if ( !PathTargetPointClass )
 	{
 		UE_LOG(
-		    LogTemp, Error, TEXT( "UPathPointsManager: PathTargetPointClass not specified. Cannot add path targets" )
+		    LogTemp, Error, TEXT( "PathPointsManager: PathTargetPointClass not specified. Cannot add path targets" )
 		);
 		return;
 	}
@@ -43,7 +43,7 @@ void APathPointsManager::AddPathPoints( const UPath& path )
 			if ( !Grid->GetCellWorldCenter( point, location ) )
 			{
 				UE_LOG(
-				    LogTemp, Warning, TEXT( "UPathPointsManager: failed to get world center for cell=[%d, %d]" ),
+				    LogTemp, Warning, TEXT( "PathPointsManager: failed to get world center for cell=[%d, %d]" ),
 				    point.Y, point.X
 				);
 				continue;
@@ -68,9 +68,9 @@ void APathPointsManager::AddPathPoints( const UPath& path )
 	}
 }
 
-TWeakObjectPtr<AActor> APathPointsManager::GetTargetPoint( const FIntPoint& point ) const
+TWeakObjectPtr<APathTargetPoint> APathPointsManager::GetTargetPoint( const FIntPoint& point ) const
 {
-	if ( const auto found = PathPoints_.Find( point ) )
+	if ( const TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
 	{
 		return found->Get();
 	}

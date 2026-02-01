@@ -2,110 +2,177 @@
 
 #include "AI/Path/DStarLite.h"
 
+#include "EntitySystem/MovieSceneEntitySystemRunner.h"
 #include "Grid/GridManager.h"
 
 UDStarLite::UDStarLite()
 {
 }
 
-void UDStarLite::Initialize( const FIntPoint& start, const FIntPoint& goal )
-{
-	Start_ = start;
-	Goal_ = goal;
-	Km_ = 0.0f;
-
-	Nodes_.Empty();
-	Open_.Empty();
-
-	FDStarNode& goalNode = Nodes_.FindOrAdd( Goal_, FDStarNode( Goal_ ) );
-	goalNode.RHS = 0.0f;
-
-	Open_.Push( { &goalNode, CalculateKey( goalNode ) } );
-	goalNode.bInOpen = true;
-}
-
 FDStarKey UDStarLite::CalculateKey( const FDStarNode& node ) const
 {
-	float minGrhs = FMath::Min( node.G, node.RHS );
-	return { minGrhs + Heuristic( Start_, node.Coord ) + Km_, minGrhs };
+	const float min = FMath::Min( node.G, node.RHS );
+	return { min + Heuristic( Start_, node.Coord ) + Km_, min };
+}
+
+void UDStarLite::Initialize( const FIntPoint& start, const FIntPoint& goal )
+{
+	Open_ = std::priority_queue<FDStarNode*, std::vector<FDStarNode*>, FDStarNodePtrCompare>();
+
+	Km_ = 0.0f;
+
+	Start_ = start;
+	Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
+
+	Goal_ = goal;
+	FDStarNode& goalNode = Nodes_.FindOrAdd( Goal_, FDStarNode( Goal_ ) );
+	goalNode.RHS = 0.0f;
+	goalNode.Key = FDStarKey( Heuristic( Start_, goalNode.Coord ), 0.0f );
+	Open_.push( &goalNode );
+	goalNode.bInOpen = true;
+
+	bInitialized = true;
 }
 
 void UDStarLite::UpdateVertex( FDStarNode& node )
 {
-	if ( node.Coord != Goal_ )
+	if ( node.G != node.RHS )
 	{
-		float minRHS = BIG_NUMBER;
-
-		for ( const FIntPoint& succ : GetSuccessors( node.Coord ) )
-		{
-			const FDStarNode& succNode = Nodes_.FindOrAdd( succ, FDStarNode( succ ) );
-			minRHS = FMath::Min( minRHS, Cost( node.Coord, succ ) + succNode.G );
-		}
-
-		node.RHS = minRHS;
-	}
-
-	if ( node.bInOpen )
-	{
-		node.bInOpen = false;
-	}
-
-	if ( !FMath::IsNearlyEqual( node.G, node.RHS ) )
-	{
-		Open_.Push( { &node, CalculateKey( node ) } );
+		node.Key = CalculateKey( node );
+		Open_.push( &node );
 		node.bInOpen = true;
+	}
+	else if ( node.G == node.RHS && node.bInOpen )
+	{
+		node.bInOpen = false; // lazy removal
 	}
 }
 
-bool UDStarLite::ComputeShortestPath()
+void UDStarLite::ComputeShortestPath()
 {
-	while ( !Open_.IsEmpty() )
+	FDStarNode& startNode = Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
+	while ( !Open_.empty() && ( Open_.top()->Key < CalculateKey( startNode ) || startNode.RHS > startNode.G ) )
 	{
-		const FDStarQueueNode top = Open_.Top();
-		FDStarNode& startNode = Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
-
-		if ( !( top.Key < CalculateKey( startNode ) ) && FMath::IsNearlyEqual( startNode.G, startNode.RHS ) )
+		FDStarNode& node = *Open_.top();
+		if ( !node.bInOpen )
 		{
-			return true;
+			Open_.pop(); // lazy removal
+			continue;
 		}
 
-		Open_.Pop();
-
-		FDStarNode& node = *top.Node;
-		if ( node.G > node.RHS )
+		FDStarKey newKey = CalculateKey( node );
+		if ( node.Key < newKey )
+		{
+			Open_.pop();
+			node.Key = newKey;
+			Open_.push( &node );
+			node.bInOpen = true;
+		}
+		else if ( node.G > node.RHS )
 		{
 			node.G = node.RHS;
+			node.bInOpen = false;
+			Open_.pop();
 
 			for ( const FIntPoint& pred : GetPredecessors( node.Coord ) )
 			{
-				UpdateVertex( Nodes_.FindOrAdd( pred, FDStarNode( pred ) ) );
+				FDStarNode& predNode = Nodes_.FindOrAdd( pred, FDStarNode( pred ) );
+				if ( pred != Goal_ )
+				{
+					predNode.RHS = FMath::Min( predNode.RHS, Cost( predNode.Coord, node.Coord ) + node.G );
+				}
+				UpdateVertex( predNode );
 			}
 		}
 		else
 		{
-			node.G = BIG_NUMBER;
-			UpdateVertex( node );
-
-			for ( const FIntPoint& pred : GetPredecessors( node.Coord ) )
+			float gOld = node.G;
+			node.G = TNumericLimits<float>::Max();
+			TArray<FIntPoint> nodes = GetPredecessors( node.Coord );
+			nodes.Add( node.Coord );
+			for ( const FIntPoint& pred : nodes )
 			{
-				UpdateVertex( Nodes_.FindOrAdd( pred, FDStarNode( pred ) ) );
+				FDStarNode& predNode = Nodes_.FindOrAdd( pred, FDStarNode( pred ) );
+
+				if ( predNode.RHS == Cost( pred, node.Coord ) + gOld && pred != Goal_ )
+				{
+					float minValue = TNumericLimits<float>::Max();
+
+					for ( const FIntPoint& succ : GetSuccessors( pred ) )
+					{
+						FDStarNode& succNode = Nodes_.FindOrAdd( succ, FDStarNode( succ ) );
+						minValue = std::min( minValue, Cost( pred, succ ) + succNode.G );
+					}
+
+					predNode.RHS = minValue;
+				}
+				UpdateVertex( predNode );
 			}
 		}
 	}
+}
 
-	return false;
+TArray<FIntPoint> UDStarLite::GetPath() const
+{
+	const FDStarNode* startNode = Nodes_.Find( Start_ );
+	const FDStarNode* goalNode = Nodes_.Find( Goal_ );
+
+	if ( !bInitialized || !startNode || !goalNode )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UDStarLite: not initialized" ) );
+		return {};
+	}
+
+	if ( FMath::IsNearlyEqual( startNode->G, TNumericLimits<float>::Max(), 1E-6 ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UDStarLite: path not found" ) );
+		return {};
+	}
+
+	TArray<FIntPoint> path;
+	FIntPoint current = Start_;
+	path.Add( current );
+
+	while ( current != Goal_ )
+	{
+		float best = TNumericLimits<float>::Max();
+		FIntPoint next = current;
+
+		for ( const FIntPoint& succ : GetSuccessors( current ) )
+		{
+			const FDStarNode* succNode = Nodes_.Find( succ );
+			if ( !succNode || succNode->G == TNumericLimits<float>::Max() )
+			{
+				continue;
+			}
+
+			const float value = Cost( current, succ ) + succNode->G;
+			if ( value < best )
+			{
+				best = value;
+				next = succ;
+			}
+		}
+
+		if ( next == current || FMath::IsNearlyEqual( best, TNumericLimits<float>::Max(), 1E-6 ) )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "UDStarLite::GetPath: stuck while extracting path" ) );
+			return {};
+		}
+
+		current = next;
+		path.Add( current );
+	}
+
+	return path;
 }
 
 void UDStarLite::OnUpdateEdgeCost( const FIntPoint& from )
 {
-	FDStarNode& fromNode = Nodes_.FindOrAdd( from, FDStarNode( from ) );
-	UpdateVertex( fromNode );
 }
 
 void UDStarLite::SetStart( const FIntPoint& newStart )
 {
-	Km_ += Heuristic( Start_, newStart );
-	Start_ = newStart;
 }
 
 void UDStarLite::SetEmptyCellTravelTime( float emptyCellTravelTime )
@@ -125,52 +192,6 @@ void UDStarLite::SetUnitAttackInfo( float damage, float cooldown )
 	}
 }
 
-TArray<FIntPoint> UDStarLite::GetPath() const
-{
-	TArray<FIntPoint> path;
-	FIntPoint current = Start_;
-
-	path.Add( current );
-
-	while ( current != Goal_ )
-	{
-		const FDStarNode* node = Nodes_.Find( current );
-		if ( !node )
-		{
-			break;
-		}
-
-		float best = BIG_NUMBER;
-		FIntPoint next = current;
-
-		for ( const FIntPoint& succ : GetSuccessors( current ) )
-		{
-			const FDStarNode* succNode = Nodes_.Find( succ );
-			if ( !succNode )
-			{
-				continue;
-			}
-
-			float value = Cost( current, succ ) + succNode->G;
-			if ( value < best )
-			{
-				best = value;
-				next = succ;
-			}
-		}
-
-		if ( next == current )
-		{
-			break;
-		}
-
-		current = next;
-		path.Add( current );
-	}
-
-	return path;
-}
-
 void UDStarLite::SetGrid( TWeakObjectPtr<AGridManager> grid )
 {
 	Grid_ = grid;
@@ -178,6 +199,10 @@ void UDStarLite::SetGrid( TWeakObjectPtr<AGridManager> grid )
 
 float UDStarLite::Heuristic( const FIntPoint& a, const FIntPoint& b ) const
 {
+	// float dx = abs(a.X - b.X);
+	// float dy = abs(a.Y - b.Y);
+	// return (dx + dy) + (1.41421356f - 2.f) * FMath::Min(dx, dy);
+
 	return FMath::Abs( a.X - b.X ) + FMath::Abs( a.Y - b.Y ); // Manhattan
 }
 
@@ -204,7 +229,7 @@ TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
 			continue;
 		}
 
-		if ( !Grid_->GetCell( coord.X, coord.Y )->bIsBuildable )
+		if ( !Grid_->GetCell( next.X, next.Y )->bIsBuildable )
 		{
 			continue;
 		}
@@ -223,8 +248,8 @@ TArray<FIntPoint> UDStarLite::GetPredecessors( const FIntPoint& coord ) const
 
 float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 {
-	const int dx = FMath::Abs( b.X - a.X );
-	const int dy = FMath::Abs( b.Y - a.Y );
+	// const int dx = FMath::Abs( b.X - a.X );
+	// const int dy = FMath::Abs( b.Y - a.Y );
 
 	if ( !Grid_.IsValid() )
 	{
@@ -232,27 +257,27 @@ float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 	}
 
 	float timeToDestroy = 0.0f;
-	if ( const FGridCell* cell = Grid_->GetCell( b.X, b.Y ) )
-	{
-		const TWeakObjectPtr<ABuilding> occupant = cell->Occupant;
-		if ( occupant.IsValid() && UnitDps_ != -1.0f )
-		{
-			timeToDestroy = occupant->Stats().Health() / UnitDps_;
-		}
-	}
+	// if ( const FGridCell* cell = Grid_->GetCell( b.X, b.Y ) )
+	// {
+	// 	const TWeakObjectPtr<ABuilding> occupant = cell->Occupant;
+	// 	if ( occupant.IsValid() && UnitDps_ != -1.0f )
+	// 	{
+	// 		timeToDestroy = occupant->Stats().Health() / UnitDps_;
+	// 	}
+	// }
 
 	// Cardinal move
-	if ( dx + dy == 1 )
-	{
-		return EmptyCellTravelTime_ + timeToDestroy;
-	}
+	// if ( dx + dy == 1 )
+	// {
+	return EmptyCellTravelTime_ + timeToDestroy;
+	// }
+	//
+	// // Diagonal move
+	// if ( dx == 1 && dy == 1 )
+	// {
+	// 	static constexpr float sqrt2 = 1.41421356f;
+	// 	return sqrt2 * EmptyCellTravelTime_ + timeToDestroy;
+	// }
 
-	// Diagonal move
-	if ( dx == 1 && dy == 1 )
-	{
-		static constexpr float sqrt2 = 1.41421356f;
-		return sqrt2 * EmptyCellTravelTime_ + timeToDestroy;
-	}
-
-	return BIG_NUMBER;
+	// return BIG_NUMBER;
 }

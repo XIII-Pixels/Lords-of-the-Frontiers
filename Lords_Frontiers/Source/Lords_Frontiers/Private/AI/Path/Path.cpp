@@ -4,8 +4,6 @@
 
 #include "Grid/GridManager.h"
 
-#include "EngineUtils.h"
-
 UPath::UPath()
 {
 }

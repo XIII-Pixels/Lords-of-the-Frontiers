@@ -22,7 +22,7 @@ public:
 
 	void SetGrid( TWeakObjectPtr<AGridManager> grid );
 	void AddPathPoints( const UPath& path );
-	TWeakObjectPtr<AActor> GetTargetPoint( const FIntPoint& point ) const;
+	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
 
 	void Remove( const FIntPoint& point );
 	void Empty();
@@ -40,5 +40,6 @@ public:
 	float PointReachRadius = 100.0f;
 
 private:
+	UPROPERTY()
 	TMap<FIntPoint, TObjectPtr<APathTargetPoint>> PathPoints_;
 };

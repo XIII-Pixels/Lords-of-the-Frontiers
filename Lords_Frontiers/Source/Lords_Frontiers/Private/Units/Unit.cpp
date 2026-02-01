@@ -52,7 +52,7 @@ void AUnit::BeginPlay()
 	else
 	{
 		UE_LOG(
-		    LogTemp, Error, TEXT( "AUnit: number of unit attack components is not equal to 1 (number: %d)" ),
+		    LogTemp, Error, TEXT( "Unit: number of unit attack components is not equal to 1 (number: %d)" ),
 		    attackComponents.Num()
 		);
 	}
@@ -175,8 +175,9 @@ bool AUnit::IsCloseToTarget() const
 		return false;
 	}
 
-	const float distance = FVector::Distance( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	return distance < PathPointsManager_->PointReachRadius;
+	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
+	const float radiusSq = PathPointsManager_->PointReachRadius * PathPointsManager_->PointReachRadius;
+	return distanceSq < radiusSq;
 }
 
 void AUnit::SetPath( TObjectPtr<UPath> path )
@@ -204,8 +205,9 @@ void AUnit::FollowPathTarget()
 {
 	if ( !PathPointsManager_.IsValid() )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "AUnit: no valid PathPointsManager_. Cannot follow path" ) );
+		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid PathPointsManager_. Cannot follow path" ) );
 		FollowedTarget_ = nullptr;
+		return;
 	}
 
 	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
@@ -217,7 +219,7 @@ void AUnit::FollowPathTarget()
 		}
 		else
 		{
-			UE_LOG( LogTemp, Error, TEXT( "AUnit: PathPointIndex_ is out of range and no GoalActor specified" ) );
+			UE_LOG( LogTemp, Error, TEXT( "Unit: PathPointIndex_ is out of range and no GoalActor specified" ) );
 			FollowedTarget_ = nullptr;
 		}
 	}
