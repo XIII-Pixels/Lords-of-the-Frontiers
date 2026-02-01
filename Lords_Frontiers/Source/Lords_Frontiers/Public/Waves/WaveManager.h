@@ -151,4 +151,11 @@ protected:
 	// broadcast OnAllWavesCompleted only once (until waves are restarted).
 	UPROPERTY( Transient )
 	bool bHasBroadcastedAllWavesCompleted_ = false;
+
+	UPROPERTY( Transient )
+	TArray<TWeakObjectPtr<AUnit>> SpawnedUnits;
+
+	int32 DestroyAllEnemies();
+
+	void HandleSpawnedDestroyed( AActor* destroyedActor );
 };
