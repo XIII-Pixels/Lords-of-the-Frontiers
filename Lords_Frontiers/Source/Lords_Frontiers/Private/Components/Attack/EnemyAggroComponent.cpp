@@ -335,12 +335,15 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	{
 		ownerUnit->SetFollowedTarget( bestBuilding );
 	}
-	else // BASIC FALLBACK. DELETE THIS "else" BLOCK WHEN MORE COMPLEX BEHAVIOR IS IMPLEMENTED
+	else // ======= BASIC FALLBACK. DELETE THIS "else" BLOCK WHEN MORE COMPLEX BEHAVIOR IS IMPLEMENTED ====================
 	{
 		UE_LOG( LogTemp, Log, TEXT( "Aggro: FALLBACK TO MAINBASE" ));
 		AMainBase* mainBase = Cast<AMainBase>( UGameplayStatics::GetActorOfClass( world, AMainBase::StaticClass() ) );
 
-		ownerUnit->SetFollowedTarget( mainBase );
+		if ( mainBase )
+		{
+			ownerUnit->SetFollowedTarget( mainBase );
+		}
 
 		if ( bDebugDraw )
 		{
@@ -354,7 +357,7 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 				UE_LOG( LogTemp, Warning, TEXT( "Aggro: Owner %s -> fallback MainBase not found (target = nullptr)" ), *owner->GetName() );
 			}
 		}
-	}
+	} // ============================================================================================================
 	
 	if ( bDebugDraw )
 	{
