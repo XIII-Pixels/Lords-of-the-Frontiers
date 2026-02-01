@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Building.h"
-#include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
-
 #include "CoreMinimal.h"
+#include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 
 #include "ResourceBuilding.generated.h"
 
@@ -28,10 +27,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
+	FResourceProduction ProductionConfig_;
 
-	// The component responsible for the core resource generation logic (type,
-	// quantity, interval).
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Resource Generation" )
 	UResourceGenerator* ResourceGenerator_;
 

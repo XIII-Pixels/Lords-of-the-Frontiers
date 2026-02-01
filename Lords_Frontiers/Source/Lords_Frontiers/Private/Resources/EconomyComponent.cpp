@@ -1,11 +1,10 @@
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
 #include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
-
-#include "Kismet/GameplayStatics.h"
 
 UEconomyComponent::UEconomyComponent()
 {
@@ -38,17 +37,37 @@ void UEconomyComponent::FindSystems()
 		UE_LOG( LogTemp, Warning, TEXT( "EconomyComponent: ResourceManager not found on owner!" ) );
 }
 
-void UEconomyComponent::RegisterBuilding( AResourceBuilding* Building )
+void UEconomyComponent::RegisterBuilding( ABuilding* building )
 {
-	if ( Building )
-	{
-		RegisteredBuildings_.AddUnique( Building );
-	}
+	if ( building )
+		RegisteredBuildings_.AddUnique( building );
 }
 
-void UEconomyComponent::UnregisterBuilding( AResourceBuilding* Building )
+void UEconomyComponent::UnregisterBuilding( ABuilding* building )
 {
-	RegisteredBuildings_.Remove( Building );
+	RegisteredBuildings_.Remove( building );
+}
+
+void UEconomyComponent::PerformInitialScan()
+{
+	if ( bInitialScanDone )
+		return;
+
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), FoundActors );
+
+	for ( AActor* Actor : FoundActors )
+	{
+		if ( ABuilding* B = Cast<ABuilding>( Actor ) )
+		{
+			RegisterBuilding( B );
+		}
+	}
+
+	bInitialScanDone = true;
+	UE_LOG(
+	    LogTemp, Warning, TEXT( "Economy: Initial Scan completed. Found %d buildings." ), RegisteredBuildings_.Num()
+	);
 }
 
 void UEconomyComponent::CollectGlobalResources()
@@ -71,28 +90,7 @@ void UEconomyComponent::CollectGlobalResources()
 		}
 	}
 
-	if ( RegisteredBuildings_.Num() == 0 )
-	{
-		TArray<AActor*> FoundActors;
-		UGameplayStatics::GetAllActorsOfClass( GetWorld(), AActor::StaticClass(), FoundActors );
-
-		int32 BuildingsFound = 0;
-		for ( AActor* Actor : FoundActors )
-		{
-			if ( AResourceBuilding* RB = Cast<AResourceBuilding>( Actor ) )
-			{
-				RegisterBuilding( RB );
-				BuildingsFound++;
-			}
-		}
-		if ( GEngine )
-		{
-			GEngine->AddOnScreenDebugMessage(
-			    -1, 5.f, FColor::Cyan,
-			    FString::Printf( TEXT( "Lazy Discovery: Found %d ResourceBuildings" ), BuildingsFound )
-			);
-		}
-	}
+	PerformInitialScan();
 
 	if ( RegisteredBuildings_.Num() == 0 )
 	{
@@ -110,17 +108,21 @@ void UEconomyComponent::CollectGlobalResources()
 
 	for ( auto It = RegisteredBuildings_.CreateIterator(); It; ++It )
 	{
-		if ( AResourceBuilding* ResBuilding = It->Get() )
+		if ( ABuilding* B = It->Get() )
 		{
-			UResourceGenerator* Gen = ResBuilding->GetResourceGenerator();
-			if ( Gen )
+			if ( AResourceBuilding* ResBuilding = Cast<AResourceBuilding>( B ) )
 			{
-				CollectedTotals.FindOrAdd( Gen->GetResourceType() ) += Gen->GetGenerationQuantity();
-				SuccessfullyProcessed++;
-			}
-			else
-			{
-				UE_LOG( LogTemp, Warning, TEXT( "Economy: Building %s has no Generator!" ), *ResBuilding->GetName() );
+				UResourceGenerator* Gen = ResBuilding->GetResourceGenerator();
+				if ( Gen )
+				{
+					for ( const auto& Elem : Gen->GetTotalProduction() )
+					{
+						if ( Elem.Key != EResourceType::None && Elem.Value > 0 )
+						{
+							CollectedTotals.FindOrAdd( Elem.Key ) += Elem.Value;
+						}
+					}
+				}
 			}
 		}
 		else
@@ -145,5 +147,39 @@ void UEconomyComponent::CollectGlobalResources()
 			    -1, 5.f, FColor::Green, FString::Printf( TEXT( "Added %d of type %d" ), Elem.Value, (uint8) Elem.Key )
 			);
 		}
+	}
+}
+
+void UEconomyComponent::ApplyMaintenanceCosts()
+{
+	if ( !ResourceManager_ )
+		return;
+
+	PerformInitialScan();
+
+	TMap<EResourceType, int32> TotalCosts;
+
+	for ( auto It = RegisteredBuildings_.CreateIterator(); It; ++It )
+	{
+		if ( ABuilding* B = It->Get() )
+		{
+			TMap<EResourceType, int32> Costs = B->GetMaintenanceCost().ToMap();
+			for ( const auto& Pair : Costs )
+			{
+				if ( Pair.Value > 0 )
+				{
+					TotalCosts.FindOrAdd( Pair.Key ) += Pair.Value;
+				}
+			}
+		}
+		else
+		{
+			It.RemoveCurrent();
+		}
+	}
+
+	for ( const auto& Pair : TotalCosts )
+	{
+		ResourceManager_->TrySpendResource( Pair.Key, Pair.Value );
 	}
 }
