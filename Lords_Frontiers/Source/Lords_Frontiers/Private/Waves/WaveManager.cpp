@@ -218,11 +218,12 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	    *spawnTransform.GetLocation().ToString()
 	);
 
-	if ( PathPointsManager.IsValid() )
+	if ( PathPointsManager.IsValid() && PathPointsManager->GoalActor.IsValid() )
 	{
 		// Calculate path if not calculated
 		if ( !enemyGroup.Path )
 		{
+
 			enemyGroup.Path = NewObject<UPath>( GetWorld() );
 			if ( enemyGroup.Path )
 			{
@@ -248,7 +249,11 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	}
 	else
 	{
-		UE_LOG( LogTemp, Error, TEXT( "WaveManager: PathPointsManager.IsValid() == false. Cannot calculate path" ) );
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "WaveManager: Cannot calculate path. PathPointsManager invalid or PathPointsManager::GoalActor is "
+		          "not specified" )
+		);
 	}
 
 #if WITH_EDITOR
@@ -300,7 +305,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	// Set unit path
 	spawned->SetPath( enemyGroup.Path );
 	spawned->SetPathPointsManager( PathPointsManager );
-	spawned->FollowPathTarget();
+	spawned->FollowPath();
 
 	if ( bLogSpawning )
 	{

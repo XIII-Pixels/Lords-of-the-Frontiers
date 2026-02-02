@@ -70,7 +70,7 @@ public:
 	void AdvancePathPointIndex();
 	void SetPathPointIndex( int pathPointIndex );
 
-	void FollowPathTarget();
+	void FollowPath();
 
 	void SetFollowedTarget( AActor* newTarget );
 
@@ -109,5 +109,6 @@ protected:
 
 	int PathPointIndex_ = -1;
 
+	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 };

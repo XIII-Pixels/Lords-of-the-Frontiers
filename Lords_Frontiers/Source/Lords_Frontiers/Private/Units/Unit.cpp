@@ -63,7 +63,7 @@ void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
 
-	if ( IsCloseToTarget() )
+	if ( FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
 	{
 		FollowNextPathTarget();
 	}
@@ -166,7 +166,7 @@ void AUnit::OnDeath()
 void AUnit::FollowNextPathTarget()
 {
 	AdvancePathPointIndex();
-	FollowPathTarget();
+	FollowPath();
 }
 
 bool AUnit::IsCloseToTarget() const
@@ -202,8 +202,15 @@ void AUnit::SetPathPointIndex( int pathPointIndex )
 	PathPointIndex_ = pathPointIndex;
 }
 
-void AUnit::FollowPathTarget()
+void AUnit::FollowPath()
 {
+	if ( !Path_ )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid Path_. Cannot follow path" ) );
+		FollowedTarget_ = nullptr;
+		return;
+	}
+
 	if ( !PathPointsManager_.IsValid() )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid PathPointsManager_. Cannot follow path" ) );
