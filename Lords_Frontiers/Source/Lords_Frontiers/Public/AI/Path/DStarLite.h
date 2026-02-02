@@ -24,23 +24,11 @@ struct FDStarKey
 
 	bool operator<( const FDStarKey& other ) const
 	{
-		checkf(
-		    FMath::IsFinite( K1 ) && FMath::IsFinite( K2 ) && FMath::IsFinite( other.K1 ) &&
-		        FMath::IsFinite( other.K2 ),
-		    TEXT( "FDStarKey contains NaN or Inf: this=%f,%f other=%f,%f" ), K1, K2, other.K1, other.K2
-		);
-
 		return ( K1 < other.K1 ) || ( K1 == other.K1 && K2 < other.K2 );
 	}
 
 	bool operator>( const FDStarKey& other ) const
 	{
-		checkf(
-		    FMath::IsFinite( K1 ) && FMath::IsFinite( K2 ) && FMath::IsFinite( other.K1 ) &&
-		        FMath::IsFinite( other.K2 ),
-		    TEXT( "FDStarKey contains NaN or Inf: this=%f,%f other=%f,%f" ), K1, K2, other.K1, other.K2
-		);
-
 		return ( K1 > other.K1 ) || ( K1 == other.K1 && K2 > other.K2 );
 	}
 };
@@ -67,7 +55,7 @@ struct FDStarNode
 };
 
 /** (Gregory-hub)
-* Priority queue entry - node and key */
+ * Priority queue entry - node and key */
 USTRUCT()
 struct FDStarQueueEntry
 {
@@ -88,7 +76,7 @@ struct FDStarQueueEntry
 };
 
 /** (Gregory-hub)
-* Comparator class for priority queue sorting */
+ * Comparator class for priority queue sorting */
 struct DStarQueueEntryCompare
 {
 	bool operator()( const FDStarQueueEntry& a, const FDStarQueueEntry& b ) const
@@ -98,7 +86,7 @@ struct DStarQueueEntryCompare
 };
 
 /** (Gregory-hub)
-* D*-lite algorithm configuration */
+ * D*-lite algorithm configuration */
 USTRUCT()
 struct FDStarLiteConfig
 {
@@ -163,7 +151,7 @@ private:
 
 	float Km_ = 0.0f;
 
-	bool bInitialized = false;
+	bool bInitialized_ = false;
 
 	// Core methods
 

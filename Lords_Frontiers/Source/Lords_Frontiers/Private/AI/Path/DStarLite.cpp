@@ -40,7 +40,7 @@ void UDStarLite::Initialize( const FDStarLiteConfig& config )
 	Open_.push( { goalNode.Coord, FDStarKey( Heuristic( Start_, goalNode.Coord ), 0.0f ) } );
 	goalNode.bInOpen = true;
 
-	bInitialized = true;
+	bInitialized_ = true;
 }
 
 FDStarKey UDStarLite::CalculateKey( const FDStarNode& node ) const
@@ -69,7 +69,7 @@ void UDStarLite::ComputeShortestPath()
 		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path with invalid pointer to grid" ) );
 		return;
 	}
-	if ( !bInitialized )
+	if ( !bInitialized_ )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Trying to calculate path on uninitialized path" ) );
 		return;
@@ -128,7 +128,7 @@ void UDStarLite::ComputeShortestPath()
 					for ( const FIntPoint& succ : GetSuccessors( pred ) )
 					{
 						FDStarNode& succNode = Nodes_.FindOrAdd( succ, FDStarNode( succ ) );
-						minValue = std::min( minValue, Cost( pred, succ ) + succNode.G );
+						minValue = FMath::Min( minValue, Cost( pred, succ ) + succNode.G );
 					}
 
 					predNode.RHS = minValue;
@@ -144,7 +144,7 @@ TArray<FIntPoint> UDStarLite::GetPath() const
 	const FDStarNode* startNode = Nodes_.Find( Start_ );
 	const FDStarNode* goalNode = Nodes_.Find( Goal_ );
 
-	if ( !bInitialized || !startNode || !goalNode )
+	if ( !bInitialized_ || !startNode || !goalNode )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "DStarLite: not initialized" ) );
 		return {};
@@ -208,14 +208,11 @@ void UDStarLite::OnUpdateEdgeCost( const FIntPoint& from )
 {
 }
 
-
 float UDStarLite::Heuristic( const FIntPoint& a, const FIntPoint& b ) const
 {
-	float dx = abs( a.X - b.X );
-	float dy = abs( a.Y - b.Y );
-	return ( dx + dy ) + ( 1.41421356f - 2.f ) * FMath::Min( dx, dy );
-
-	// return FMath::Abs( a.X - b.X ) + FMath::Abs( a.Y - b.Y ); // Manhattan
+	float dx = FMath::Abs( a.X - b.X );
+	float dy = FMath::Abs( a.Y - b.Y );
+	return ( dx + dy ) + ( 1.41421356f - 2.0f ) * FMath::Min( dx, dy );
 }
 
 TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
