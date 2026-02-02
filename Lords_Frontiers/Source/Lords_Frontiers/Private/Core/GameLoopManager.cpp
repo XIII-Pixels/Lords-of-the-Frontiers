@@ -4,7 +4,7 @@
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
-
+#include "Kismet/GameplayStatics.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 
@@ -489,14 +489,21 @@ void UGameLoopManager::EnterVictoryPhase()
 	OnGameEnded.Broadcast( true );
 
 	Log( TEXT( "=== VICTORY! ===" ) );
+
+	const FName levelName = FName( TEXT( "Win" ) );
+
+	UWorld* world = GetWorldSafe();
+
+	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::EnterDefeatPhase()
 {
 	SetPhase( EGameLoopPhase::Defeat );
 	bIsGameStarted_ = false;
+	UWorld* world = GetWorldSafe();
 
-	if ( UWorld* world = GetWorldSafe() )
+	if ( world )
 	{
 		world->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
 	}
@@ -504,6 +511,10 @@ void UGameLoopManager::EnterDefeatPhase()
 	OnGameEnded.Broadcast( false );
 
 	Log( TEXT( "=== DEFEAT ===" ) );
+
+	const FName levelName = FName( TEXT( "Lose" ) );
+
+	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::GrantStartingResources()

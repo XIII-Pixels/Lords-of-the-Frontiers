@@ -208,7 +208,43 @@ USelectionManagerComponent* UCoreManager::GetSelectionManager() const
 
 UGameLoopManager* UCoreManager::GetGameLoop() const
 {
-	return GameLoopManager_;
+	// Если уже есть — вернуть.
+	if ( GameLoopManager_ )
+	{
+		return GameLoopManager_.Get();
+	}
+
+	// Попытка создать лениво. const_cast потому что метод const.
+	UCoreManager* MutableThis = const_cast<UCoreManager*>( this );
+	if ( !MutableThis )
+	{
+		return nullptr;
+	}
+
+	UE_LOG( LogTemp, Log, TEXT( "UCoreManager::GetGameLoop - lazily creating GameLoopManager" ) );
+
+	// Создаём объект управляемый CoreManager (владелец = this)
+	UGameLoopManager* NewGL = NewObject<UGameLoopManager>( MutableThis );
+	if ( !NewGL )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UCoreManager::GetGameLoop - failed to NewObject<UGameLoopManager>()" ) );
+		return nullptr;
+	}
+
+	// Сохраняем
+	MutableThis->GameLoopManager_ = NewGL;
+
+	// Попробуем настроить зависимости, если они у нас есть
+	AWaveManager* Wave = WaveManager_.Get();
+	UResourceManager* RM = ResourceManager_.Get();
+	UEconomyComponent* Econ = EconomyComponent_.Get();
+	UGameLoopConfig* Config = nullptr;
+
+	NewGL->Initialize( Config, Wave, RM, Econ );
+
+	UE_LOG( LogTemp, Log, TEXT( "UCoreManager::GetGameLoop - GameLoopManager created and Initialize() called" ) );
+
+	return NewGL;
 }
 
 UWorld* UCoreManager::GetWorldSafe() const
