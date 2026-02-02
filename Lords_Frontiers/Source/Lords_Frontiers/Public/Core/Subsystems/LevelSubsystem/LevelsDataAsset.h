@@ -20,4 +20,10 @@ public:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
 	TSoftObjectPtr<UWorld> RunLevel;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
+	TSoftObjectPtr<UWorld> WinLevel;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
+	TSoftObjectPtr<UWorld> LoseLevel;
 };

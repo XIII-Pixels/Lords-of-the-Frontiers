@@ -8,7 +8,7 @@ void ULevelSubsystem::LoadMainMenu() const
 {
 	if ( Levels_ )
 	{
-		LoadLevel( Levels_->MainMenuLevel, "Failed to load main menu" );
+		LoadLevel( Levels_->MainMenuLevel, "main menu" );
 	}
 }
 
@@ -16,15 +16,31 @@ void ULevelSubsystem::LoadRunLevel() const
 {
 	if ( Levels_ )
 	{
-		LoadLevel( Levels_->RunLevel, "Failed to load run level" );
+		LoadLevel( Levels_->RunLevel, "run level" );
+	}
+}
+
+void ULevelSubsystem::LoadWinLevel() const
+{
+	if ( Levels_ )
+	{
+		LoadLevel( Levels_->WinLevel, "win level" );
+	}
+}
+
+void ULevelSubsystem::LoadLoseLevel() const
+{
+	if ( Levels_ )
+	{
+		LoadLevel( Levels_->LoseLevel, "lose level" );
 	}
 }
 
 void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 {
-	if ( levels )
+	if ( ULevelsDataAsset* loaded = levels.LoadSynchronous() )
 	{
-		Levels_ = levels;
+		Levels_ = loaded;
 	}
 	else
 	{
@@ -32,14 +48,14 @@ void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 	}
 }
 
-void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& errorMessage ) const
+void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName ) const
 {
-	if ( level.LoadSynchronous() )
+	if ( !level.IsNull() )
 	{
-		UGameplayStatics::OpenLevel( GetWorld(), FName( level->GetName() ) );
+		UGameplayStatics::OpenLevel( GetWorld(), FName( *level.ToSoftObjectPath().GetLongPackageName() ) );
 	}
 	else
 	{
-		UE_LOG( LogTemp, Error, TEXT( "%s" ), *errorMessage );
+		UE_LOG( LogTemp, Error, TEXT( "Failed to load %s" ), *levelName );
 	}
 }
