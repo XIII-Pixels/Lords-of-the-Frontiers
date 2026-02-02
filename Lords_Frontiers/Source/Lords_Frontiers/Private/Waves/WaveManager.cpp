@@ -1,6 +1,9 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
+#include "AI/Path/Path.h"
+#include "AI/Path/PathPointsManager.h"
 #include "DrawDebugHelpers.h"
+#include "Grid/GridManager.h"
 #include "TimerManager.h"
 
 #include "Components/CapsuleComponent.h"
@@ -46,6 +49,19 @@ void AWaveManager::StartWaves()
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
+	}
+
+	if ( PathPointsManager.IsValid() )
+	{
+		PathPointsManager->Empty();
+	}
+
+	for ( int waveIndex = 0; waveIndex < Waves.Num(); waveIndex++ )
+	{
+		for ( FEnemyGroup& enemyGroup : Waves[waveIndex].EnemyGroups )
+		{
+			enemyGroup.Path = nullptr;
+		}
 	}
 
 	StartWaveAtIndex( startIndex );
@@ -178,14 +194,14 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
-	const FWave& wave = Waves[waveIndex];
+	FWave& wave = Waves[waveIndex];
 
 	if ( !wave.EnemyGroups.IsValidIndex( groupIndex ) )
 	{
 		return;
 	}
 
-	const FEnemyGroup& enemyGroup = wave.EnemyGroups[groupIndex];
+	FEnemyGroup& enemyGroup = wave.EnemyGroups[groupIndex];
 	if ( !enemyGroup.IsValid() )
 	{
 		return;
@@ -197,11 +213,48 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	}
 
 	FTransform spawnTransform = wave.GetSpawnTransformForGroup( this, groupIndex );
-
 	UE_LOG(
 	    LogTemp, Warning, TEXT( "WaveManager: RESOLVED transform for Wave[%d] Group[%d] = %s" ), waveIndex, groupIndex,
 	    *spawnTransform.GetLocation().ToString()
 	);
+
+	if ( PathPointsManager.IsValid() && PathPointsManager->GoalActor.IsValid() )
+	{
+		// Calculate path if not calculated
+		if ( !enemyGroup.Path )
+		{
+
+			enemyGroup.Path = NewObject<UPath>( GetWorld() );
+			if ( enemyGroup.Path )
+			{
+				FIntPoint startCoords = Grid->GetClosestCellCoords( spawnTransform.GetLocation() );
+				FIntPoint goalCoords = Grid->GetClosestCellCoords( PathPointsManager->GoalActor->GetActorLocation() );
+
+				AUnit* defaultUnit = enemyGroup.EnemyClass.GetDefaultObject();
+
+				FDStarLiteConfig config{
+				    Grid,
+				    startCoords,
+				    goalCoords,
+				    defaultUnit->Stats().AttackDamage(),
+				    defaultUnit->Stats().AttackCooldown(),
+				    Grid->GetCellSize() / defaultUnit->Stats().MaxSpeed()
+				};
+
+				enemyGroup.Path->Initialize( config );
+				enemyGroup.Path->CalculateOrUpdate();
+				PathPointsManager->AddPathPoints( *enemyGroup.Path );
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "WaveManager: Cannot calculate path. PathPointsManager invalid or PathPointsManager::GoalActor is "
+		          "not specified" )
+		);
+	}
 
 #if WITH_EDITOR
 	DrawDebugSphere( GetWorld(), spawnTransform.GetLocation(), 50.f, 8, FColor::Blue, false, 6.f );
@@ -248,6 +301,11 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		);
 		return;
 	}
+
+	// Set unit path
+	spawned->SetPath( enemyGroup.Path );
+	spawned->SetPathPointsManager( PathPointsManager );
+	spawned->FollowPath();
 
 	if ( bLogSpawning )
 	{

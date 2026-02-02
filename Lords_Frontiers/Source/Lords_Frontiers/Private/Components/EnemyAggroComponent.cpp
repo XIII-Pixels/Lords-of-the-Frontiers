@@ -1,18 +1,18 @@
-#include "Lords_Frontiers/Public/Components/Attack/EnemyAggroComponent.h"
+#include "Lords_Frontiers/Public/Components/EnemyAggroComponent.h"
+
+#include "Building/MainBase.h"
+#include "DrawDebugHelpers.h"
 #include "Lords_Frontiers/Public/Building/Building.h"
 #include "Lords_Frontiers/Public/Building/DefensiveBuilding.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
-#include "Lords_Frontiers/Public/Building/MainBase.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
-#include "CollisionQueryParams.h"
-#include "DrawDebugHelpers.h"
 
-#include "Kismet/KismetSystemLibrary.h"
 #include "Components/SphereComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UEnemyAggroComponent::UEnemyAggroComponent()
 {
@@ -32,12 +32,14 @@ void UEnemyAggroComponent::BeginPlay()
 		AActor* owner = GetOwner();
 		if ( owner )
 		{
-			USphereComponent* sphere = NewObject<USphereComponent>( owner, USphereComponent::StaticClass(), TEXT( "EnemyAggro_Sphere" ) );
+			USphereComponent* sphere =
+			    NewObject<USphereComponent>( owner, USphereComponent::StaticClass(), TEXT( "EnemyAggro_Sphere" ) );
 			if ( sphere )
 			{
 				if ( owner->GetRootComponent() )
 				{
-					sphere->AttachToComponent( owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform
+					sphere->AttachToComponent(
+					    owner->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform
 					);
 				}
 				sphere->RegisterComponent();
@@ -51,12 +53,17 @@ void UEnemyAggroComponent::BeginPlay()
 				OverlapSphereComponent = sphere;
 				UpdateOverlapSphereRadius();
 
-				UE_LOG( LogTemp, Log, TEXT( "EnemyAggroComponent: Created overlap sphere component on '%s' (Radius=%f)" ),
-				    *owner->GetName(), OverlapSphereComponent ? OverlapSphereComponent->GetUnscaledSphereRadius() : 0.f );
+				UE_LOG(
+				    LogTemp, Log, TEXT( "EnemyAggroComponent: Created overlap sphere component on '%s' (Radius=%f)" ),
+				    *owner->GetName(), OverlapSphereComponent ? OverlapSphereComponent->GetUnscaledSphereRadius() : 0.f
+				);
 			}
 			else
 			{
-				UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Failed to create OverlapSphereComponent on '%s'" ), *owner->GetName() );
+				UE_LOG(
+				    LogTemp, Warning, TEXT( "EnemyAggroComponent: Failed to create OverlapSphereComponent on '%s'" ),
+				    *owner->GetName()
+				);
 			}
 		}
 	}
@@ -87,14 +94,20 @@ bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& co
 
 	if ( bDebugDraw )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Candidate='%s' Class='%s'" ), *candidate->GetName(), *candidate->GetClass()->GetName() );
+		UE_LOG(
+		    LogTemp, Log, TEXT( "CandidatePassesFilters: Candidate='%s' Class='%s'" ), *candidate->GetName(),
+		    *candidate->GetClass()->GetName()
+		);
 	}
 
 	if ( candidate->IsDestroyed() )
 	{
 		if ( bDebugDraw )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is destroyed." ), *candidate->GetName() );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is destroyed." ),
+			    *candidate->GetName()
+			);
 		}
 		return false;
 	}
@@ -104,13 +117,24 @@ bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& co
 	{
 		const bool bIsResource = candidate->IsA( AResourceBuilding::StaticClass() );
 
-		if ( bDebugDraw ) {UE_LOG( LogTemp, VeryVerbose, TEXT( "CandidatePassesFilters: bIgnoreEconomyBuildings=1, IsResource=%d" ), bIsResource ? 1 : 0 ); }
-		
+		if ( bDebugDraw )
+		{
+			UE_LOG(
+			    LogTemp, VeryVerbose, TEXT( "CandidatePassesFilters: bIgnoreEconomyBuildings=1, IsResource=%d" ),
+			    bIsResource ? 1 : 0
+			);
+		}
+
 		if ( bIsResource )
 		{
 			if ( bDebugDraw )
 			{
-				UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a ResourceBuilding and config requests ignoring economy." ), *candidate->GetName() );
+				UE_LOG(
+				    LogTemp, Log,
+				    TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a ResourceBuilding and config requests "
+				          "ignoring economy." ),
+				    *candidate->GetName()
+				);
 			}
 			return false;
 		}
@@ -122,14 +146,22 @@ bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& co
 		const bool bIsDefensive = candidate->IsA( ADefensiveBuilding::StaticClass() );
 		if ( bDebugDraw )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: bIgnoreTowers=1, IsDefensive=%d" ), bIsDefensive ? 1 : 0 );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "CandidatePassesFilters: bIgnoreTowers=1, IsDefensive=%d" ), bIsDefensive ? 1 : 0
+			);
 		}
 		if ( bIsDefensive )
 		{
 			if ( bDebugDraw )
 			{
-				UE_LOG( LogTemp, Log, TEXT( "CandidatePassesFilters: Rejecting '%s' because it is a DefensiveBuilding and config requests "
-					"ignoring towers." ), *candidate->GetName() );
+				UE_LOG(
+				    LogTemp, Log,
+				    TEXT(
+				        "CandidatePassesFilters: Rejecting '%s' because it is a DefensiveBuilding and config requests "
+				        "ignoring towers."
+				    ),
+				    *candidate->GetName()
+				);
 			}
 			return false;
 		}
@@ -143,20 +175,29 @@ bool UEnemyAggroComponent::CandidatePassesFilters( const FAggroProfileConfig& co
 	return true;
 }
 
-int32 UEnemyAggroComponent::GetPriorityIndexForCandidate( const FAggroProfileConfig& config, ABuilding* candidate ) const
+int32 UEnemyAggroComponent::GetPriorityIndexForCandidate( const FAggroProfileConfig& config, ABuilding* candidate )
+    const
 {
 	if ( !candidate )
+	{
 		return INT32_MAX;
+	}
 	if ( config.PriorityClasses.Num() == 0 )
+	{
 		return 0;
+	}
 
 	for ( int32 i = 0; i < config.PriorityClasses.Num(); ++i )
 	{
 		const TSubclassOf<ABuilding>& cls = config.PriorityClasses[i];
 		if ( !cls )
+		{
 			continue;
+		}
 		if ( candidate->IsA( cls ) )
+		{
 			return i;
+		}
 	}
 	return INT32_MAX;
 }
@@ -164,11 +205,15 @@ int32 UEnemyAggroComponent::GetPriorityIndexForCandidate( const FAggroProfileCon
 void UEnemyAggroComponent::UpdateOverlapSphereRadius()
 {
 	if ( !OverlapSphereComponent )
+	{
 		return;
+	}
 
 	const FAggroProfileConfig* config = FindConfigForProfile( AggroProfile );
 	if ( !config )
+	{
 		return;
+	}
 
 	const float radiusCm = CellsToCm( config->AggroRadiusCells );
 	OverlapSphereComponent->SetSphereRadius( radiusCm, true );
@@ -183,13 +228,17 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 
 	AActor* owner = GetOwner();
 	if ( !owner )
+	{
 		return;
+	}
 
 	AUnit* ownerUnit = Cast<AUnit>( owner );
 	if ( !ownerUnit )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "EnemyAggroComponent: Owner is not AUnit, cannot set FollowedTarget (Owner=%s)" ), 
-			owner ? *owner->GetName() : TEXT( "NULL" ) );
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "EnemyAggroComponent: Owner is not AUnit, cannot set FollowedTarget (Owner=%s)" ),
+		    owner ? *owner->GetName() : TEXT( "NULL" )
+		);
 		return;
 	}
 
@@ -201,7 +250,8 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	}
 	if ( bDebugDraw )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "Aggro: Profile=%d AggroRadiusCells=%d IgnoreEconomy=%d IgnoreTowers=%d" ),
+		UE_LOG(
+		    LogTemp, Log, TEXT( "Aggro: Profile=%d AggroRadiusCells=%d IgnoreEconomy=%d IgnoreTowers=%d" ),
 		    static_cast<int32>( config->Profile ), static_cast<int32>( config->AggroRadiusCells ),
 		    config->bIgnoreEconomyBuildings ? 1 : 0, config->bIgnoreTowers ? 1 : 0
 		);
@@ -244,7 +294,10 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 
 	if ( bDebugDraw )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "Aggro: SphereOverlap found %d actors around '%s' (radius cm=%.1f)" ), overlappedActors.Num(), *owner->GetName(), radiusCm );
+		UE_LOG(
+		    LogTemp, Log, TEXT( "Aggro: SphereOverlap found %d actors around '%s' (radius cm=%.1f)" ),
+		    overlappedActors.Num(), *owner->GetName(), radiusCm
+		);
 	}
 
 	int32 bestPriority = INT32_MAX;
@@ -263,8 +316,10 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 		}
 		if ( bDebugDraw )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate actor name='%s' class='%s'" ), *actor->GetName(),
-			    actor->GetClass() ? *actor->GetClass()->GetName() : TEXT( "None" ) );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "Aggro: Candidate actor name='%s' class='%s'" ), *actor->GetName(),
+			    actor->GetClass() ? *actor->GetClass()->GetName() : TEXT( "None" )
+			);
 		}
 
 		ABuilding* building = Cast<ABuilding>( actor );
@@ -285,7 +340,8 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 		{
 			UE_LOG(
 			    LogTemp, Log, TEXT( "Aggro: Candidate '%s' IsResource=%d IsDefensive=%d" ), *building->GetName(),
-			    bIsResource ? 1 : 0, bIsDefensive ? 1 : 0 );
+			    bIsResource ? 1 : 0, bIsDefensive ? 1 : 0
+			);
 		}
 
 		// filter
@@ -294,7 +350,8 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 			if ( bDebugDraw )
 			{
 				UE_LOG(
-				    LogTemp, Log, TEXT( "Aggro: Candidate '%s' filtered out by CandidatePassesFilters" ), *building->GetName()
+				    LogTemp, Log, TEXT( "Aggro: Candidate '%s' filtered out by CandidatePassesFilters" ),
+				    *building->GetName()
 				);
 			}
 			continue;
@@ -306,7 +363,8 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 			if ( bDebugDraw )
 			{
 				UE_LOG(
-				    LogTemp, Log, TEXT( "Aggro: Candidate '%s' has no matching priority class - skip" ), *building->GetName()
+				    LogTemp, Log, TEXT( "Aggro: Candidate '%s' has no matching priority class - skip" ),
+				    *building->GetName()
 				);
 			}
 			continue;
@@ -316,7 +374,9 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 
 		if ( bDebugDraw )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: Candidate '%s' priority=%d distSq=%.1f" ), *building->GetName(), pri, distSq );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "Aggro: Candidate '%s' priority=%d distSq=%.1f" ), *building->GetName(), pri, distSq
+			);
 		}
 
 		if ( pri < bestPriority || ( pri == bestPriority && distSq < bestDistSq ) )
@@ -326,7 +386,10 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 			bestBuilding = building;
 			if ( bDebugDraw )
 			{
-				UE_LOG( LogTemp, Log, TEXT( "Aggro: New best candidate '%s' (priority=%d distSq=%.1f)" ), *building->GetName(), pri, distSq );
+				UE_LOG(
+				    LogTemp, Log, TEXT( "Aggro: New best candidate '%s' (priority=%d distSq=%.1f)" ),
+				    *building->GetName(), pri, distSq
+				);
 			}
 		}
 	}
@@ -335,9 +398,12 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	{
 		ownerUnit->SetFollowedTarget( bestBuilding );
 	}
-	else // ======= BASIC FALLBACK. DELETE THIS "else" BLOCK WHEN MORE COMPLEX BEHAVIOR IS IMPLEMENTED ====================
+	// ======= BASIC FALLBACK. DELETE THIS "else" BLOCK WHEN MORE COMPLEX BEHAVIOR IS IMPLEMENTED ====================
+	else if ( !ownerUnit->FollowedTarget().IsValid() )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "Aggro: FALLBACK TO MAINBASE" ));
+		// ownerUnit->FollowPath();
+
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: FALLBACK TO MAINBASE" ) );
 		AMainBase* mainBase = Cast<AMainBase>( UGameplayStatics::GetActorOfClass( world, AMainBase::StaticClass() ) );
 
 		if ( mainBase )
@@ -350,21 +416,30 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 			if ( mainBase )
 			{
 				DrawDebugSphere( world, mainBase->GetActorLocation(), 60.f, 8, FColor::Orange, false, 3.0f );
-				UE_LOG( LogTemp, Log, TEXT( "Aggro: Owner %s -> fallback target MainBase %s" ), *owner->GetName(), *mainBase->GetName() );
+				UE_LOG(
+				    LogTemp, Log, TEXT( "Aggro: Owner %s -> fallback target MainBase %s" ), *owner->GetName(),
+				    *mainBase->GetName()
+				);
 			}
 			else
 			{
-				UE_LOG( LogTemp, Warning, TEXT( "Aggro: Owner %s -> fallback MainBase not found (target = nullptr)" ), *owner->GetName() );
+				UE_LOG(
+				    LogTemp, Warning, TEXT( "Aggro: Owner %s -> fallback MainBase not found (target = nullptr)" ),
+				    *owner->GetName()
+				);
 			}
 		}
 	} // ============================================================================================================
-	
+
 	if ( bDebugDraw )
 	{
 		if ( bestBuilding )
 		{
 			DrawDebugSphere( world, bestBuilding->GetActorLocation(), 50.f, 8, FColor::Green, false, 3.0f );
-			UE_LOG( LogTemp, Log, TEXT( "Aggro: Owner %s -> new target %s (priority=%d)" ), *owner->GetName(), *bestBuilding->GetName(), bestPriority );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "Aggro: Owner %s -> new target %s (priority=%d)" ), *owner->GetName(),
+			    *bestBuilding->GetName(), bestPriority
+			);
 		}
 		else
 		{
