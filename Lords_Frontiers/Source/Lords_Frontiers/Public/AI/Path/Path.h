@@ -13,7 +13,6 @@ class AGridManager;
 class AUnit;
 
 
-
 /** (Gregory-hub)
  * Class that represents a path that is traveled by unit */
 UCLASS( NotBlueprintable )

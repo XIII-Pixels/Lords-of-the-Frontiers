@@ -12,6 +12,8 @@
 class AUnit;
 class AGridManager;
 
+/** (Gregory-hub)
+ * Key for sorting node entries in priority queue */
 USTRUCT()
 struct FDStarKey
 {
@@ -43,6 +45,8 @@ struct FDStarKey
 	}
 };
 
+/** (Gregory-hub)
+ * Represents grid cell */
 USTRUCT()
 struct FDStarNode
 {
@@ -62,6 +66,8 @@ struct FDStarNode
 	}
 };
 
+/** (Gregory-hub)
+* Priority queue entry - node and key */
 USTRUCT()
 struct FDStarQueueEntry
 {
@@ -81,6 +87,8 @@ struct FDStarQueueEntry
 	}
 };
 
+/** (Gregory-hub)
+* Comparator class for priority queue sorting */
 struct DStarQueueEntryCompare
 {
 	bool operator()( const FDStarQueueEntry& a, const FDStarQueueEntry& b ) const
@@ -89,6 +97,8 @@ struct DStarQueueEntryCompare
 	}
 };
 
+/** (Gregory-hub)
+* D*-lite algorithm configuration */
 USTRUCT()
 struct FDStarLiteConfig
 {
