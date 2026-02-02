@@ -1,5 +1,6 @@
 #include "Lords_Frontiers/Public/Components/Attack/EnemyAggroComponent.h"
 
+#include "Building/MainBase.h"
 #include "DrawDebugHelpers.h"
 #include "Lords_Frontiers/Public/Building/Building.h"
 #include "Lords_Frontiers/Public/Building/DefensiveBuilding.h"
@@ -10,6 +11,7 @@
 #include "Engine/EngineTypes.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 UEnemyAggroComponent::UEnemyAggroComponent()
@@ -396,10 +398,38 @@ void UEnemyAggroComponent::UpdateAggroTarget()
 	{
 		ownerUnit->SetFollowedTarget( bestBuilding );
 	}
-	else
+	// ======= BASIC FALLBACK. DELETE THIS "else" BLOCK WHEN MORE COMPLEX BEHAVIOR IS IMPLEMENTED ====================
+	else if ( !ownerUnit->FollowedTarget().IsValid() )
 	{
-		ownerUnit->FollowPath();
-	}
+		// ownerUnit->FollowPath();
+
+		UE_LOG( LogTemp, Log, TEXT( "Aggro: FALLBACK TO MAINBASE" ) );
+		AMainBase* mainBase = Cast<AMainBase>( UGameplayStatics::GetActorOfClass( world, AMainBase::StaticClass() ) );
+
+		if ( mainBase )
+		{
+			ownerUnit->SetFollowedTarget( mainBase );
+		}
+
+		if ( bDebugDraw )
+		{
+			if ( mainBase )
+			{
+				DrawDebugSphere( world, mainBase->GetActorLocation(), 60.f, 8, FColor::Orange, false, 3.0f );
+				UE_LOG(
+				    LogTemp, Log, TEXT( "Aggro: Owner %s -> fallback target MainBase %s" ), *owner->GetName(),
+				    *mainBase->GetName()
+				);
+			}
+			else
+			{
+				UE_LOG(
+				    LogTemp, Warning, TEXT( "Aggro: Owner %s -> fallback MainBase not found (target = nullptr)" ),
+				    *owner->GetName()
+				);
+			}
+		}
+	} // ============================================================================================================
 
 	if ( bDebugDraw )
 	{
