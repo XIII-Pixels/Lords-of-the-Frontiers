@@ -9,7 +9,7 @@
 #include "EntityStats.h"
 
 #include "Components/Attack/AttackComponent.h"
-#include "Components/Attack/EnemyAggroComponent.h"
+#include "Components/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 

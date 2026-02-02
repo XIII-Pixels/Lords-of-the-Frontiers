@@ -1,4 +1,4 @@
-#include "Lords_Frontiers/Public/Components/Attack/EnemyAggroComponent.h"
+#include "Lords_Frontiers/Public/Components/EnemyAggroComponent.h"
 
 #include "Building/MainBase.h"
 #include "DrawDebugHelpers.h"
