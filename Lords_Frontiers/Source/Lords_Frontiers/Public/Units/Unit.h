@@ -9,12 +9,14 @@
 #include "EntityStats.h"
 
 #include "Components/Attack/AttackComponent.h"
-#include "Components/Attack/EnemyAggroComponent.h"
+#include "Components/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
 #include "Unit.generated.h"
 
+class APathPointsManager;
+class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
 class UFollowComponent;
@@ -55,13 +57,28 @@ public:
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
-	TObjectPtr<AActor> FollowedTarget() const;
+	TWeakObjectPtr<AActor> FollowedTarget() const;
 
+	const TObjectPtr<UPath>& Path() const;
+
+	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
+
+	void SetPath( TObjectPtr<UPath> path );
+
+	void SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager );
+
+	void AdvancePathPointIndex();
+	void SetPathPointIndex( int pathPointIndex );
+
+	void FollowPath();
 
 	void SetFollowedTarget( AActor* newTarget );
 
 protected:
 	void OnDeath();
+
+	void FollowNextPathTarget();
+	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -73,7 +90,7 @@ protected:
 	FEntityStats Stats_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	TObjectPtr<AActor> FollowedTarget_;
+	TWeakObjectPtr<AActor> FollowedTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
@@ -83,6 +100,14 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;
+
+	UPROPERTY()
+	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
+
+	UPROPERTY()
+	TObjectPtr<UPath> Path_;
+
+	int PathPointIndex_ = -1;
 
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;

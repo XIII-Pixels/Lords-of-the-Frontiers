@@ -48,7 +48,7 @@ void UFollowComponent::BeginPlay()
 
 void UFollowComponent::StartFollowing()
 {
-	if ( Unit_ && Unit_->FollowedTarget() )
+	if ( Unit_ && Unit_->FollowedTarget().IsValid() )
 	{
 		bFollowTarget_ = true;
 	}
@@ -66,7 +66,7 @@ void UFollowComponent::SetMaxSpeed( float maxSpeed )
 
 void UFollowComponent::MoveTowardsTarget()
 {
-	if ( !Unit_ || !IsValid( Unit_->FollowedTarget() ) )
+	if ( !Unit_ || !Unit_->FollowedTarget().IsValid() )
 	{
 		return;
 	}
