@@ -37,7 +37,7 @@ AStrategyCamera::AStrategyCamera()
 
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>( TEXT( "MovementComponent" ) );
 
-	TargetZoom = 1500.0f;
+	TargetZoom_ = 1500.0f;
 
 }
 
@@ -46,28 +46,28 @@ void AStrategyCamera::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FVector StartingLocation = GetActorLocation();
-	StartingLocation.Z = 0.0f;
-	SetActorLocation( StartingLocation );
+	FVector startingLocation = GetActorLocation();
+	startingLocation.Z = 0.0f;
+	SetActorLocation( startingLocation );
 
-	MovementComponent->MaxSpeed = MoveSpeed;
-	MovementComponent->Acceleration = MoveAcceleration;
-	MovementComponent->Deceleration = MoveDeceleration;
+	MovementComponent->MaxSpeed = MoveSpeed_;
+	MovementComponent->Acceleration = MoveAcceleration_;
+	MovementComponent->Deceleration = MoveDeceleration_;
 
-	SpringArm->TargetArmLength = TargetZoom;
-	SpringArm->CameraLagSpeed = CameraLagSpeed;
-	SpringArm->SetRelativeRotation( FRotator( CameraPitch, CameraYaw, 0.0f ) );
+	SpringArm->TargetArmLength = TargetZoom_;
+	SpringArm->CameraLagSpeed = CameraLagSpeed_;
+	SpringArm->SetRelativeRotation( FRotator( CameraPitch_, CameraYaw_, 0.0f ) );
 
-	TArray<AActor*> FoundCameras;
-	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ACameraActor::StaticClass(), FoundCameras );
-	for ( AActor* Cam : FoundCameras )
+	TArray<AActor*> foundCameras;
+	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ACameraActor::StaticClass(), foundCameras );
+	for ( AActor* cam : foundCameras )
 	{
-		Cam->Destroy();
+		cam->Destroy();
 	}
 
-	FTimerHandle TimerHandle;
+	FTimerHandle timerHandle;
 	GetWorldTimerManager().SetTimer(
-	    TimerHandle,
+	    timerHandle,
 	    [this]()
 	    {
 		    if ( APlayerController* pc = Cast<APlayerController>( GetController() ) )
@@ -87,12 +87,12 @@ void AStrategyCamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	SpringArm->TargetArmLength = FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom, DeltaTime, ZoomInterpSpeed );
+	SpringArm->TargetArmLength = FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
 
-	FVector ClampedLocation = GetActorLocation();
-	ClampedLocation.X = FMath::Clamp( ClampedLocation.X, -MapBounds.X, MapBounds.X );
-	ClampedLocation.Y = FMath::Clamp( ClampedLocation.Y, -MapBounds.Y, MapBounds.Y );
-	SetActorLocation( ClampedLocation );
+	FVector clampedLocation = GetActorLocation();
+	clampedLocation.X = FMath::Clamp( clampedLocation.X, -MapBounds_.X, MapBounds_.X );
+	clampedLocation.Y = FMath::Clamp( clampedLocation.Y, -MapBounds_.Y, MapBounds_.Y );
+	SetActorLocation( clampedLocation );
 
 }
 
@@ -120,9 +120,9 @@ void AStrategyCamera::MoveRight( float value )
 
 void AStrategyCamera::ZoomIn()
 {
-	TargetZoom = FMath::Clamp( TargetZoom - ZoomSpeed, MinZoom, MaxZoom );
+	TargetZoom_ = FMath::Clamp( TargetZoom_ - ZoomSpeed_, MinZoom_, MaxZoom_ );
 }
 void AStrategyCamera::ZoomOut()
 {
-	TargetZoom = FMath::Clamp( TargetZoom + ZoomSpeed, MinZoom, MaxZoom );
+	TargetZoom_ = FMath::Clamp( TargetZoom_ + ZoomSpeed_, MinZoom_, MaxZoom_ );
 }

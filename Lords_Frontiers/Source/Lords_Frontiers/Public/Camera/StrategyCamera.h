@@ -26,51 +26,51 @@ protected:
 	virtual void BeginPlay() override;
 
 	// components
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Components" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Settings|Components" )
 	TObjectPtr<USpringArmComponent> SpringArm;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Components" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Settings|Components" )
 	TObjectPtr<UCameraComponent> Camera;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Components" )
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Settings|Components" )
 	TObjectPtr<UFloatingPawnMovement> MovementComponent;
 
 	// wasd
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Movement" )
-	float MoveSpeed = 2000.0f;
+	float MoveSpeed_ = 2000.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Movement" )
-	float MoveAcceleration = 8000.0f;
+	float MoveAcceleration_ = 8000.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Movement" )
-	float MoveDeceleration = 4000.0f;
+	float MoveDeceleration_ = 4000.0f;
 
 	// zoom
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
-	float ZoomSpeed = 500.0f;
+	float ZoomSpeed_ = 500.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
-	float MinZoom = 500.0f;
+	float MinZoom_ = 500.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
-	float MaxZoom = 5000.0f;
+	float MaxZoom_ = 5000.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
-	float ZoomInterpSpeed = 10.0f;
+	float ZoomInterpSpeed_ = 10.0f;
 
 	// izometric
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
-	float CameraPitch = -50.0f;
+	float CameraPitch_ = -50.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
-	float CameraYaw = 45.0f;
+	float CameraYaw_ = 45.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
-	float CameraLagSpeed = 5.0f;
+	float CameraLagSpeed_ = 5.0f;
 
 	// map restrictions
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
-	FVector2D MapBounds = FVector2D( 10000.0f, 10000.0f );
+	FVector2D MapBounds_ = FVector2D( 10000.0f, 10000.0f );
 
 
 public:	
@@ -86,5 +86,5 @@ private:
 	void ZoomIn();
 	void ZoomOut();
 
-	float TargetZoom;
+	float TargetZoom_;
 };
