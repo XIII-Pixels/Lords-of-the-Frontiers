@@ -57,9 +57,13 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingMagicHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
 	}
 
-	if ( ButtonBuildingWall )
+	if ( ButtonBuildingWoodWall )
 	{
-		ButtonBuildingWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWallClicked );
+		ButtonBuildingWoodWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
+	}
+	if ( ButtonBuildingStoneWall )
+	{
+		ButtonBuildingStoneWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
 	}
 	if ( ButtonBuildingTowerT0 )
 	{
@@ -126,8 +130,11 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingLawnHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
 	if ( ButtonBuildingMagicHouse )
 		ButtonBuildingMagicHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
-	if ( ButtonBuildingWall )
-		ButtonBuildingWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWallClicked );
+
+	if ( ButtonBuildingWoodWall )
+		ButtonBuildingWoodWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
+	if ( ButtonBuildingStoneWall )
+		ButtonBuildingStoneWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
 	if ( ButtonBuildingTowerT0 )
 		ButtonBuildingTowerT0->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
 	if ( ButtonBuildingTowerT1 )
@@ -217,10 +224,6 @@ void UGameHUDWidget::UpdateDayText()
 
 void UGameHUDWidget::UpdateStatusText()
 {
-	if ( !TextStatus )
-	{
-		return;
-	}
 
 	UCoreManager* core = UCoreManager::Get( this );
 	if ( !core )
@@ -234,39 +237,20 @@ void UGameHUDWidget::UpdateStatusText()
 		return;
 	}
 
-	FText status;
 	EGameLoopPhase phase = gL->GetCurrentPhase();
 
-	if ( phase == EGameLoopPhase::Building )
+	if ( Strokestatus )
 	{
-		int32 turn = gL->GetCurrentBuildTurn();
-		if ( turn == 1 )
+		if ( phase == EGameLoopPhase::Building )
 		{
-			status = FText::FromString( TEXT( "Утро" ) );
+			int32 turn = gL->GetCurrentBuildTurn();
+			UTexture2D* textureToUse = ( turn == 1 ) ? BackMorningTexture : BackEveningTexture;
+			if ( textureToUse )
+			{
+				Strokestatus->SetBrushFromTexture( textureToUse );
+			}
 		}
-		else
-		{
-			status = FText::FromString( TEXT( "Закат" ) );
-		}
 	}
-	else if ( phase == EGameLoopPhase::Combat )
-	{
-		status = FText::FromString( TEXT( "Бой" ) );
-	}
-	else if ( phase == EGameLoopPhase::Victory )
-	{
-		status = FText::FromString( TEXT( "Победа!" ) );
-	}
-	else if ( phase == EGameLoopPhase::Defeat )
-	{
-		status = FText::FromString( TEXT( "Поражение" ) );
-	}
-	else
-	{
-		status = FText::FromString( TEXT( "---" ) );
-	}
-
-	TextStatus->SetText( status );
 }
 
 void UGameHUDWidget::UpdateResources()
@@ -375,6 +359,8 @@ void UGameHUDWidget::ShowEconomyBuildings()
 	{
 		DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
 	}
+
+	UpdateCategoryButtonsVisual();
 }
 
 void UGameHUDWidget::ShowDefensiveBuildings()
@@ -390,6 +376,8 @@ void UGameHUDWidget::ShowDefensiveBuildings()
 	{
 		DefensiveCardBox->SetVisibility( ESlateVisibility::Visible );
 	}
+
+	UpdateCategoryButtonsVisual();
 }
 
 void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
@@ -441,9 +429,14 @@ void UGameHUDWidget::OnBuildMagicHouseClicked()
 	StartBuilding( MagicHouseClass );
 }
 
-void UGameHUDWidget::OnBuildWallClicked()
+void UGameHUDWidget::OnBuildWoodWallClicked()
 {
-	StartBuilding( WallClass );
+	StartBuilding( WoodWallClass );
+}
+
+void UGameHUDWidget::OnBuildStoneWallClicked()
+{
+	StartBuilding( StoneWallClass );
 }
 
 void UGameHUDWidget::OnBuildTowerT0Clicked()
@@ -478,33 +471,29 @@ void UGameHUDWidget::UpdateBuildingUIVisibility()
 	EGameLoopPhase phase = gL->GetCurrentPhase();
 	bool bShowBuildingUI = ( phase == EGameLoopPhase::Building );
 
-	ESlateVisibility NewVisibility = bShowBuildingUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	ESlateVisibility newVisibility = bShowBuildingUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 
-	// Кнопки категорий
+	if ( BackForButton )
+	{
+		BackForButton->SetVisibility( newVisibility );
+	}
+
 	if ( ButtonEconomyBuilding )
 	{
-		ButtonEconomyBuilding->SetVisibility( NewVisibility );
+		ButtonEconomyBuilding->SetVisibility( newVisibility );
 	}
 	if ( ButtonDefensiveBuildings )
 	{
-		ButtonDefensiveBuildings->SetVisibility( NewVisibility );
-	}
-	if ( ButtonClassBuilding3 )
-	{
-		ButtonClassBuilding3->SetVisibility( NewVisibility );
-	}
-	if ( ButtonClassBuilding4 )
-	{
-		ButtonClassBuilding4->SetVisibility( NewVisibility );
+		ButtonDefensiveBuildings->SetVisibility( newVisibility );
 	}
 
 	if ( ButtonRelocateBuilding )
 	{
-		ButtonRelocateBuilding->SetVisibility( NewVisibility );
+		ButtonRelocateBuilding->SetVisibility( newVisibility );
 	}
 	if ( ButtonRemoveBuilding )
 	{
-		ButtonRemoveBuilding->SetVisibility( NewVisibility );
+		ButtonRemoveBuilding->SetVisibility( newVisibility );
 	}
 
 	if ( bShowBuildingUI )
@@ -547,5 +536,20 @@ void UGameHUDWidget::CancelCurrentBuilding()
 	if ( bM->IsPlacing() )
 	{
 		bM->CancelPlacing();
+	}
+}
+
+void UGameHUDWidget::UpdateCategoryButtonsVisual()
+{
+	if ( ButtonEconomyBuilding )
+	{
+		float OffsetY = bShowingEconomyBuildings_ ? ActiveButtonLiftOffset : 0.0f;
+		ButtonEconomyBuilding->SetRenderTranslation( FVector2D( 0.0f, OffsetY ) );
+	}
+
+	if ( ButtonDefensiveBuildings )
+	{
+		float OffsetY = bShowingEconomyBuildings_ ? 0.0f : ActiveButtonLiftOffset;
+		ButtonDefensiveBuildings->SetRenderTranslation( FVector2D( 0.0f, OffsetY ) );
 	}
 }

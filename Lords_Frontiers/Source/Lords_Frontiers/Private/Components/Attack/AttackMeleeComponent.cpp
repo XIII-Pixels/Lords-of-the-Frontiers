@@ -41,7 +41,6 @@ void UAttackMeleeComponent::Look()
 				EnemyInSight_ = hitActor;
 				return;
 			}
-			return;
 		}
 	}
 

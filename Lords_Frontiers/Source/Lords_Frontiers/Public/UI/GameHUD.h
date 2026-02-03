@@ -8,6 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
+#include "Components/Image.h"
 #include "CoreMinimal.h"
 
 #include "GameHUD.generated.h"
@@ -19,6 +20,9 @@ class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UPROPERTY( meta = ( BindWidget ) )
+	UImage* BackForButton;
+
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonRelocateBuilding;
 
@@ -33,12 +37,6 @@ public:
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonDefensiveBuildings;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonClassBuilding3;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonClassBuilding4;
 
 	// ==== economic buildings ====
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
@@ -58,7 +56,10 @@ public:
 
 	// ==== defensive buildings ====
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingWall;
+	TObjectPtr<UButton> ButtonBuildingWoodWall;
+
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> ButtonBuildingStoneWall;
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonBuildingTowerT0;
@@ -80,19 +81,24 @@ public:
 	UHorizontalBox* DefensiveCardBox;
 
 	// Editable arrays of widget classes (card widgets) per category
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings|CardClasses" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings|CardClasses" )
 	TArray<TSubclassOf<UUserWidget>> EconomyBuildingCardClasses;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings|CardClasses" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings|CardClasses" )
 	TArray<TSubclassOf<UUserWidget>> DefensiveBuildingCardClasses;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UImage* Strokestatus;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Status" )
+	UTexture2D* BackMorningTexture;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Status" )
+	UTexture2D* BackEveningTexture;
 
 	// ==== text ====
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextDay;
-
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* TextStatus;
-
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* Text_Citizens;
 
@@ -105,32 +111,39 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextTimer;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> WoodenHouseClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> StrawHouseClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> FarmClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> LawnHouseClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> MagicHouseClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
-	TSubclassOf<ABuilding> WallClass;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
+	TSubclassOf<ABuilding> WoodWallClass;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
+	TSubclassOf<ABuilding> StoneWallClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT0Class;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT1Class;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Buildings" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT2Class;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
+	float ActiveButtonLiftOffset = -10.0f;
+
 
 protected:
 	virtual void NativeConstruct() override;
@@ -194,7 +207,10 @@ protected:
 	void OnBuildMagicHouseClicked();
 
 	UFUNCTION()
-	void OnBuildWallClicked();
+	void OnBuildWoodWallClicked();
+
+	UFUNCTION()
+	void OnBuildStoneWallClicked();
 
 	UFUNCTION()
 	void OnBuildTowerT0Clicked();
@@ -204,6 +220,8 @@ protected:
 
 	UFUNCTION()
 	void OnBuildTowerT2Clicked();
+
+	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
 };

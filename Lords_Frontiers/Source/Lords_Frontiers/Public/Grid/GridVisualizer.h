@@ -35,7 +35,7 @@ public:
 	}
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Grid" )
-	bool GetCellWorldCenter( const FIntPoint& CellCoords, FVector& OutLocation ) const;
+	bool GetCellWorldCenter( const FIntPoint& cellCoords, FVector& outLocation ) const;
 
 protected:
 	virtual void BeginPlay() override;
