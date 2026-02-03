@@ -208,7 +208,7 @@ USelectionManagerComponent* UCoreManager::GetSelectionManager() const
 
 UGameLoopManager* UCoreManager::GetGameLoop() const
 {
-	return GameLoopManager_;
+	return GameLoopManager_.Get();
 }
 
 UWorld* UCoreManager::GetWorldSafe() const
