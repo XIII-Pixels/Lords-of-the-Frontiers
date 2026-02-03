@@ -40,15 +40,15 @@ void AMainBase::OnDeath()
 
 	if ( core )
 	{
-		UGameLoopManager* GameLoop = core->GetGameLoop();
-		if ( GameLoop )
+		UGameLoopManager* gameLoop = core->GetGameLoop();
+		if ( gameLoop )
 		{
 			UE_LOG(
 			    LogTemp, Log,
 			    TEXT( "AMainBase::OnDeath - Found CoreManager (%p) and GameLoop (%p). Calling EnterDefeatPhase()." ),
-			    core, GameLoop
+			    core, gameLoop
 			);
-			GameLoop->EnterDefeatPhase();
+			gameLoop->EnterDefeatPhase();
 			return;
 		}
 		else
@@ -60,17 +60,4 @@ void AMainBase::OnDeath()
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "AMainBase::OnDeath - CoreManager not found via UCoreManager::Get(this)." ) );
 	}
-
-	/* 2) Fallback: if Core/GameLoop not found — open level from here.
-	UWorld* World = GetWorld();
-	if ( World )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "AMainBase::OnDeath - Falling back to OpenLevel(\"Lose\")." ) );
-		UGameplayStatics::OpenLevel( World, FName( TEXT( "Lose" ) ) );
-	}
-	else
-	{
-		UE_LOG( LogTemp, Error, TEXT( "AMainBase::OnDeath - No World available to open Lose level fallback." ) );
-	}
-	Super::OnDeath();*/
 }
