@@ -35,13 +35,11 @@ void ABuilding::OnDeath()
 {
 	if ( bIsRuined_ )
 		return;
-
 	bIsRuined_ = true;
 
 	if ( BuildingMesh_ && RuinedMesh_ )
 	{
 		BuildingMesh_->SetStaticMesh( RuinedMesh_ );
-
 		BuildingMesh_->SetRenderCustomDepth( false );
 	}
 
@@ -53,11 +51,25 @@ void ABuilding::OnDeath()
 		}
 	}
 
+	if ( CollisionComponent_ )
+	{
+		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	}
+
+	if ( BuildingMesh_ )
+	{
+		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	}
+
+	SetCanAffectNavigationGeneration( false );
 
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-		    -1, 3.0f, FColor::Orange, FString::Printf( TEXT( "Building %s is now in ruins." ), *GetName() )
+		    -1, 3.0f, FColor::Orange,
+		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
 }
