@@ -33,9 +33,48 @@ void ABuilding::BeginPlay()
 
 void ABuilding::OnDeath()
 {
-	// Do not destroy building
-	// Replace building with ruins
-	// Disable component ticks in children
+	if (bIsRuined_)
+	{
+		return;
+	}
+		
+	bIsRuined_ = true;
+
+	if ( BuildingMesh_ && RuinedMesh_ )
+	{
+		BuildingMesh_->SetStaticMesh( RuinedMesh_ );
+		BuildingMesh_->SetRenderCustomDepth( false );
+	}
+
+	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
+		{
+			eco->UnregisterBuilding( this );
+		}
+	}
+
+	if ( CollisionComponent_ )
+	{
+		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	}
+
+	if ( BuildingMesh_ )
+	{
+		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	}
+
+	SetCanAffectNavigationGeneration( false );
+
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 3.0f, FColor::Orange,
+		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
+		);
+	}
 }
 
 FEntityStats& ABuilding::Stats()

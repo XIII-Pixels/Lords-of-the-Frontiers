@@ -56,6 +56,12 @@ protected:
 
 	virtual void OnDeath();
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMesh> RuinedMesh_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|State" )
+	bool bIsRuined_ = false;
+
 	UPROPERTY()
 	TObjectPtr<UBoxComponent> CollisionComponent_;
 
