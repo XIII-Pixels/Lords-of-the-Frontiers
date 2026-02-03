@@ -13,7 +13,7 @@ void UResourceItemWidget::UpdateAmount( int32 newAmount, int32 maxAmount )
 {
 	if ( ResourceAmountText )
 	{
-		FString ResourceString = FString::Printf( TEXT( "%d / %d" ), FMath::Max( 0, newAmount ), maxAmount );
-		ResourceAmountText->SetText( FText::FromString( ResourceString ) );
+		FString resourceString = FString::Printf( TEXT( "%d" ), FMath::Max( 0, newAmount ) );
+		ResourceAmountText->SetText( FText::FromString( resourceString ) );
 	}
 }

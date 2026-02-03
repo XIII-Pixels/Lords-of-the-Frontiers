@@ -8,7 +8,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnResourceChanged, EResourceType, Type, int32, NewAmount );
 
-static constexpr int32 cDefaultMaxResource = 100;
+static constexpr int32 cDefaultMaxResource = 999999;
 
 // Component responsible for storing and managing the resources of the owner
 // (Player)

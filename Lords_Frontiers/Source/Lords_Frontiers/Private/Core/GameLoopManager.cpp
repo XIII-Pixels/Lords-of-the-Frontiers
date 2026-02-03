@@ -579,6 +579,9 @@ void UGameLoopManager::CollectBuildingIncome()
 	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
 	{
 		ec->CollectGlobalResources();
+
+		ec->ApplyMaintenanceCosts();
+
 		Log( TEXT( "Collected building income" ) );
 	}
 }
