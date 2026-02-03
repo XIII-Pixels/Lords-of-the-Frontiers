@@ -33,9 +33,33 @@ void ABuilding::BeginPlay()
 
 void ABuilding::OnDeath()
 {
-	// Do not destroy building
-	// Replace building with ruins
-	// Disable component ticks in children
+	if ( bIsRuined_ )
+		return;
+
+	bIsRuined_ = true;
+
+	if ( BuildingMesh_ && RuinedMesh_ )
+	{
+		BuildingMesh_->SetStaticMesh( RuinedMesh_ );
+
+		BuildingMesh_->SetRenderCustomDepth( false );
+	}
+
+	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
+		{
+			eco->UnregisterBuilding( this );
+		}
+	}
+
+
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 3.0f, FColor::Orange, FString::Printf( TEXT( "Building %s is now in ruins." ), *GetName() )
+		);
+	}
 }
 
 FEntityStats& ABuilding::Stats()
