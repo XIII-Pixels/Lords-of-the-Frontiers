@@ -74,7 +74,7 @@ void UEconomyComponent::CollectGlobalResources()
 {
 	if ( GEngine )
 	{
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Orange, TEXT( "Economy: Collecting..." ) );
+		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Orange, TEXT( "Economy: Collecting resources..." ) );
 	}
 
 	if ( !ResourceManager_ )
