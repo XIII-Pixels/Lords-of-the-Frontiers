@@ -302,6 +302,8 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
+	SpawnedUnits.Add( spawned );
+	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
 	// Set unit path
 	spawned->SetPath( enemyGroup.Path );
 	spawned->SetPathPointsManager( PathPointsManager );
@@ -384,6 +386,12 @@ void AWaveManager::AdvanceToNextWave()
 void AWaveManager::CancelCurrentWave()
 {
 	ClearActiveTimers();
+
+	int32 destroyedAmount = DestroyAllEnemies();
+	if ( bLogSpawning )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
+	}
 
 	bIsWaveActive_ = false;
 
@@ -588,5 +596,36 @@ void AWaveManager::BroadcastAllWavesCompleted()
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed (BroadcastAllWavesCompleted)" ) );
+	}
+}
+
+
+int32 AWaveManager::DestroyAllEnemies()
+{
+	int32 destroyed = 0;
+	for ( int32 i = SpawnedUnits.Num() - 1; i >= 0; --i )
+	{
+		AUnit* unit = SpawnedUnits[i].Get();
+		if ( unit )
+		{
+			unit->Destroy();
+			++destroyed;
+		}
+		SpawnedUnits.RemoveAtSwap( i );
+	}
+	return destroyed;
+
+}
+
+void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
+{
+	// Remove from SpawnedUnits
+	for ( int32 i = SpawnedUnits.Num() - 1; i >= 0; --i )
+	{
+		if ( SpawnedUnits[i].Get() == destroyedActor )
+		{
+			SpawnedUnits.RemoveAtSwap( i );
+			break;
+		}
 	}
 }
