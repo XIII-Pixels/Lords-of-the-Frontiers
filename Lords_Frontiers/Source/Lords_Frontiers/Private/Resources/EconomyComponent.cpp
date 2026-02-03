@@ -103,23 +103,24 @@ void UEconomyComponent::CollectGlobalResources()
 		return;
 	}
 
-	TMap<EResourceType, int32> CollectedTotals;
+	TMap<EResourceType, int32> collectedTotals;
 	int32 SuccessfullyProcessed = 0;
 
 	for ( auto It = RegisteredBuildings_.CreateIterator(); It; ++It )
 	{
 		if ( ABuilding* B = It->Get() )
 		{
-			if ( AResourceBuilding* ResBuilding = Cast<AResourceBuilding>( B ) )
+			if ( AResourceBuilding* resBuilding = Cast<AResourceBuilding>( B ) )
 			{
-				UResourceGenerator* Gen = ResBuilding->GetResourceGenerator();
-				if ( Gen )
+				if ( UResourceGenerator* gen = resBuilding->GetResourceGenerator() )
 				{
-					for ( const auto& Elem : Gen->GetTotalProduction() )
+					TMap<EResourceType, int32> productionMap = gen->GetTotalProduction();
+
+					for ( const auto& pair : productionMap )
 					{
-						if ( Elem.Key != EResourceType::None && Elem.Value > 0 )
+						if ( pair.Key != EResourceType::None && pair.Value > 0 )
 						{
-							CollectedTotals.FindOrAdd( Elem.Key ) += Elem.Value;
+							collectedTotals.FindOrAdd( pair.Key ) += pair.Value;
 						}
 					}
 				}
@@ -138,7 +139,7 @@ void UEconomyComponent::CollectGlobalResources()
 		);
 	}
 
-	for ( const auto& Elem : CollectedTotals )
+	for ( const auto& Elem : collectedTotals )
 	{
 		ResourceManager_->AddResource( Elem.Key, Elem.Value );
 		if ( GEngine )
