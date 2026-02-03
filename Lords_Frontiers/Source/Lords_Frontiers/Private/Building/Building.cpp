@@ -33,8 +33,11 @@ void ABuilding::BeginPlay()
 
 void ABuilding::OnDeath()
 {
-	if ( bIsRuined_ )
+	if (bIsRuined_)
+	{
 		return;
+	}
+		
 	bIsRuined_ = true;
 
 	if ( BuildingMesh_ && RuinedMesh_ )
