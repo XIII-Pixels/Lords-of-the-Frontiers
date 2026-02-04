@@ -165,5 +165,6 @@ protected:
 
 	int32 DestroyAllEnemies();
 
+	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
 };

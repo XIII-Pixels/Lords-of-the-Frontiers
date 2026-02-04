@@ -611,10 +611,10 @@ int32 AWaveManager::DestroyAllEnemies()
 			unit->Destroy();
 			++destroyed;
 		}
-		SpawnedUnits.RemoveAtSwap( i );
 	}
-	return destroyed;
+	SpawnedUnits.Empty();
 
+	return destroyed;
 }
 
 void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
