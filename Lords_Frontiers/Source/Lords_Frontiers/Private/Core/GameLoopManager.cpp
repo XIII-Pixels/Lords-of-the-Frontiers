@@ -474,7 +474,7 @@ void UGameLoopManager::EnterRewardPhase()
 	if ( UWorld* world = GetWorldSafe() )
 	{
 		world->GetTimerManager().SetTimer(
-		    BuildingRestoreTimerHandle_, this, &UGameLoopManager::HandleDelayedBuildingRestoration, 1.5f, false
+		    BuildingRestoreTimerHandle_, this, &UGameLoopManager::HandleDelayedBuildingRestoration, 3.5f, false
 		);
 	}
 
