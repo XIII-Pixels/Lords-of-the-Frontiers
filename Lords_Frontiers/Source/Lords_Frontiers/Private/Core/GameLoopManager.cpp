@@ -101,6 +101,7 @@ void UGameLoopManager::Cleanup()
 	if ( UWorld* world = GetWorldSafe() )
 	{
 		world->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
+		world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
 	}
 
 	CurrentPhase_ = EGameLoopPhase::None;
@@ -470,9 +471,11 @@ void UGameLoopManager::EnterRewardPhase()
 
 	GrantCombatReward();
 
-	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+	if ( UWorld* world = GetWorldSafe() )
 	{
-		ec->RestoreAllBuildings();
+		world->GetTimerManager().SetTimer(
+		    BuildingRestoreTimerHandle_, this, &UGameLoopManager::HandleDelayedBuildingRestoration, 1.5f, false
+		);
 	}
 
 	if ( IsLastWave() )
@@ -710,4 +713,13 @@ void UGameLoopManager::Log( const FString& message ) const
 #if !UE_BUILD_SHIPPING
 	UE_LOG( LogGameLoop, Log, TEXT( "[GameLoop] %s" ), *message );
 #endif
+}
+
+void UGameLoopManager::HandleDelayedBuildingRestoration()
+{
+	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+	{
+		ec->RestoreAllBuildings();
+		Log( TEXT( "Delayed building restoration executed." ) );
+	}
 }

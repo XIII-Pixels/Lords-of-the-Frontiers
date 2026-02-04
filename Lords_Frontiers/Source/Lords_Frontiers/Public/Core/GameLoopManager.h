@@ -429,6 +429,8 @@ protected:
 	/** Safely retrieves World pointer through outer chain. Returns null if unavailable. */
 	UWorld* GetWorldSafe() const;
 
+	void HandleDelayedBuildingRestoration();
+
 private:
 
 	/** Configuration data asset. Owned by this manager if created internally. */
@@ -491,4 +493,6 @@ private:
 
 	/** Unsubscribes from WaveManager events. Safe to call if not bound. */
 	void UnbindFromWaveManager();
+
+	FTimerHandle BuildingRestoreTimerHandle_;
 };
