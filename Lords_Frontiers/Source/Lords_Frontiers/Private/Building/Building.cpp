@@ -207,3 +207,32 @@ void ABuilding::RestoreFromRuins()
 		}
 	}
 }
+
+void ABuilding::FullRestore()
+{
+	if ( bIsRuined_ )
+	{
+		bIsRuined_ = false;
+		if ( BuildingMesh_ && DefaultMesh_ )
+		{
+			BuildingMesh_->SetStaticMesh( DefaultMesh_ );
+		}
+
+		if ( CollisionComponent_ )
+		{
+			CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
+			CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
+		}
+
+		if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+		{
+			if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
+			{
+				eco->RegisterBuilding( this );
+			}
+		}
+		SetCanAffectNavigationGeneration( true );
+	}
+
+	Stats_.SetHealth( Stats_.MaxHealth() );
+}

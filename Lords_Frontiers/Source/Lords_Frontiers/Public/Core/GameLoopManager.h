@@ -2,6 +2,7 @@
 
 #include "GameLoopConfig.h"
 #include "Tickable.h"
+#include "Building/Building.h" 
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
@@ -431,6 +432,8 @@ protected:
 
 	void HandleDelayedBuildingRestoration();
 
+	void ExecuteHealingPulse();
+
 private:
 
 	/** Configuration data asset. Owned by this manager if created internally. */
@@ -495,4 +498,6 @@ private:
 	void UnbindFromWaveManager();
 
 	FTimerHandle BuildingRestoreTimerHandle_;
+
+	int32 RemainingHealingPulses_ = 0;
 };

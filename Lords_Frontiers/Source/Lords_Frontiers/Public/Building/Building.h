@@ -23,6 +23,8 @@ public:
 
 	void RestoreFromRuins();
 
+	void FullRestore();
+
 	virtual FString GetNameBuild();
 
 	virtual FEntityStats& Stats() override;

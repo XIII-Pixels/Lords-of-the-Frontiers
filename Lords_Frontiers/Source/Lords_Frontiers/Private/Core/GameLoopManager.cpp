@@ -471,10 +471,12 @@ void UGameLoopManager::EnterRewardPhase()
 
 	GrantCombatReward();
 
+	RemainingHealingPulses_ = 5;
+
 	if ( UWorld* world = GetWorldSafe() )
 	{
 		world->GetTimerManager().SetTimer(
-		    BuildingRestoreTimerHandle_, this, &UGameLoopManager::HandleDelayedBuildingRestoration, 3.5f, false
+		    BuildingRestoreTimerHandle_, this, &UGameLoopManager::ExecuteHealingPulse, 0.2f, true, 1.0f
 		);
 	}
 
@@ -721,5 +723,31 @@ void UGameLoopManager::HandleDelayedBuildingRestoration()
 	{
 		ec->RestoreAllBuildings();
 		Log( TEXT( "Delayed building restoration executed." ) );
+	}
+}
+
+void UGameLoopManager::ExecuteHealingPulse()
+{
+	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+	{
+		TArray<AActor*> foundActors;
+		UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), foundActors );
+		for ( AActor* actor : foundActors )
+		{
+			if ( ABuilding* b = Cast<ABuilding>( actor ) )
+			{
+				b->FullRestore();
+			}
+		}
+	}
+
+	RemainingHealingPulses_--;
+
+	if ( RemainingHealingPulses_ <= 0 )
+	{
+		if ( UWorld* world = GetWorldSafe() )
+		{
+			world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
+		}
 	}
 }
