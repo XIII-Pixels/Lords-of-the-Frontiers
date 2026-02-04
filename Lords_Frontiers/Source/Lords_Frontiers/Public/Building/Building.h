@@ -21,6 +21,8 @@ public:
 
 	bool IsDestroyed() const;
 
+	void RestoreFromRuins();
+
 	virtual FString GetNameBuild();
 
 	virtual FEntityStats& Stats() override;
@@ -73,4 +75,7 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
 	FResourceProduction BuildingCost_;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> DefaultMesh_;
 };

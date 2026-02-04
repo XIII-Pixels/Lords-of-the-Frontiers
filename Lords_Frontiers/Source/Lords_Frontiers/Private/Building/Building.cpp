@@ -22,6 +22,12 @@ void ABuilding::BeginPlay()
 	Super::BeginPlay();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
+
+	if ( BuildingMesh_ )
+	{
+		DefaultMesh_ = BuildingMesh_->GetStaticMesh();
+	}
+
 	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
 	{
 		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
@@ -166,4 +172,38 @@ void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 		}
 	}
 	Super::EndPlay( EndPlayReason );
+}
+
+void ABuilding::RestoreFromRuins()
+{
+	if ( !bIsRuined_ )
+		return;
+
+	bIsRuined_ = false;
+
+	if ( BuildingMesh_ && DefaultMesh_ )
+	{
+		BuildingMesh_->SetStaticMesh( DefaultMesh_ );
+	}
+
+	Stats_.SetHealth( Stats_.MaxHealth() );
+
+	if ( CollisionComponent_ )
+	{
+		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
+		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
+	}
+	if ( BuildingMesh_ )
+	{
+		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
+		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Block );
+	}
+
+	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
+		{
+			eco->RegisterBuilding( this );
+		}
+	}
 }

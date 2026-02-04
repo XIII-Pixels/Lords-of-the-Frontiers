@@ -470,6 +470,11 @@ void UGameLoopManager::EnterRewardPhase()
 
 	GrantCombatReward();
 
+	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+	{
+		ec->RestoreAllBuildings();
+	}
+
 	if ( IsLastWave() )
 	{
 		EnterVictoryPhase();
