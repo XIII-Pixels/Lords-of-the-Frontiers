@@ -184,3 +184,17 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 		ResourceManager_->TrySpendResource( Pair.Key, Pair.Value );
 	}
 }
+
+void UEconomyComponent::RestoreAllBuildings()
+{
+	TArray<AActor*> foundActors;
+	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), foundActors );
+
+	for ( AActor* actor : foundActors )
+	{
+		if ( ABuilding* b = Cast<ABuilding>( actor ) )
+		{
+			b->RestoreFromRuins();
+		}
+	}
+}

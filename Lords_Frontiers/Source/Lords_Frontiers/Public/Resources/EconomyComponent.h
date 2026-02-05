@@ -39,6 +39,8 @@ public:
 
 	void PerformInitialScan();
 
+	void RestoreAllBuildings();
+
 private:
 	// url system
 	UPROPERTY()
