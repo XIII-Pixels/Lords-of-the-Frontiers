@@ -114,7 +114,15 @@ bool ABuilding::IsDestroyed() const
 
 FString ABuilding::GetNameBuild()
 {
-	return TEXT( "Build" );
+	if ( !BuildingDisplayName_.IsEmpty() )
+	{
+		return BuildingDisplayName_.ToString();
+	}
+	FString ClassName = GetClass()->GetName();
+	ClassName.RemoveFromEnd( TEXT( "_C" ) );
+	ClassName.RemoveFromStart( TEXT( "Default__" ) );
+
+	return ClassName;
 }
 
 void ABuilding::OnSelected_Implementation()

@@ -28,8 +28,6 @@ public:
 
 	virtual void OnConstruction(const FTransform& transform) override;
 
-	virtual FString GetNameBuild() override;
-
 	UFUNCTION( BlueprintCallable, BlueprintPure, Category = "Settings|Wall" )
 	const FWallMeshSet& GetWallMeshes() const
 	{

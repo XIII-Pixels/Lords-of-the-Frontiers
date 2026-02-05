@@ -31,6 +31,7 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
+
 	}
 	if ( ButtonRemoveBuilding )
 	{
@@ -52,43 +53,63 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonBuildingWoodenHouse )
 	{
 		ButtonBuildingWoodenHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
+		ButtonBuildingWoodenHouse->OnHovered.AddDynamic(this, &UGameHUDWidget::OnHoverWoodenHouse);
+		ButtonBuildingWoodenHouse->OnUnhovered.AddDynamic(this, &UGameHUDWidget::OnBuildingUnhovered);
 	}
 	if ( ButtonBuildingStrawHouse )
 	{
 		ButtonBuildingStrawHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
+		ButtonBuildingStrawHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverStrawHouse );
+		ButtonBuildingStrawHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingFarm )
 	{
 		ButtonBuildingFarm->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
+		ButtonBuildingFarm->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverFarm );
+		ButtonBuildingFarm->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingLawnHouse )
 	{
 		ButtonBuildingLawnHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
+		ButtonBuildingLawnHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverLawnHouse );
+		ButtonBuildingLawnHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingMagicHouse )
 	{
 		ButtonBuildingMagicHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
+		ButtonBuildingMagicHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverMagicHouse );
+		ButtonBuildingMagicHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 
 	if ( ButtonBuildingWoodWall )
 	{
 		ButtonBuildingWoodWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
+		ButtonBuildingWoodWall->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWoodWall );
+		ButtonBuildingWoodWall->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingStoneWall )
 	{
 		ButtonBuildingStoneWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
+		ButtonBuildingStoneWall->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverStoneWall );
+		ButtonBuildingStoneWall->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingTowerT0 )
 	{
 		ButtonBuildingTowerT0->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
+		ButtonBuildingTowerT0->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT0 );
+		ButtonBuildingTowerT0->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingTowerT1 )
 	{
 		ButtonBuildingTowerT1->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
+		ButtonBuildingTowerT1->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT1 );
+		ButtonBuildingTowerT1->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingTowerT2 )
 	{
 		ButtonBuildingTowerT2->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+		ButtonBuildingTowerT2->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
+		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -607,4 +628,53 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	button->SetRenderOpacity( bCanAfford ? 1.0f : 0.4f );
 
 	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
+}
+
+void UGameHUDWidget::StartTooltipTimer( TSubclassOf<ABuilding> buildingClass )
+{
+	PendingBuildingClass = buildingClass;
+	GetWorld()->GetTimerManager().SetTimer(
+	    TooltipTimerHandle, this, &UGameHUDWidget::ShowTooltipInternal, 0.5f, false
+	);
+}
+
+void UGameHUDWidget::OnBuildingUnhovered()
+{
+	GetWorld()->GetTimerManager().ClearTimer( TooltipTimerHandle );
+	if ( ActiveTooltip )
+		ActiveTooltip->SetVisibility( ESlateVisibility::Collapsed );
+	PendingBuildingClass = nullptr;
+}
+
+void UGameHUDWidget::ShowTooltipInternal()
+{
+	if ( !PendingBuildingClass || !TooltipClass )
+	{
+		return;
+	}
+
+	if ( !ActiveTooltip )
+	{
+		ActiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
+		ActiveTooltip->AddToViewport( 99 );
+	}
+
+	ActiveTooltip->UpdateTooltip( PendingBuildingClass->GetDefaultObject<ABuilding>() );
+	ActiveTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
+
+	FVector2D mousePos;
+	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	{
+		pc->GetMousePosition( mousePos.X, mousePos.Y );
+
+		FVector2D viewportSize;
+		if ( GEngine && GEngine->GameViewport )
+		{
+			GEngine->GameViewport->GetViewportSize( viewportSize );
+		}
+
+		float offsetYa = ( mousePos.Y > ( viewportSize.Y / 2.f ) ) ? -180.f : 25.f;
+
+		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
+	}
 }
