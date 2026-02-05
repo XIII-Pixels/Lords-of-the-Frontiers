@@ -21,62 +21,61 @@ public:
 	// Sets default values for this pawn's properties
 	AStrategyCamera();
 
+	// components
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<USpringArmComponent> SpringArm;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<UCameraComponent> Camera;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<UFloatingPawnMovement> MovementComponent;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	// components
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Settings|Components" )
-	TObjectPtr<USpringArmComponent> SpringArm;
-
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Settings|Components" )
-	TObjectPtr<UCameraComponent> Camera;
-
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Camera|Settings|Components" )
-	TObjectPtr<UFloatingPawnMovement> MovementComponent;
-
 	// wasd
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Movement" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
 	float MoveSpeed_ = 2000.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Movement" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
 	float MoveAcceleration_ = 8000.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Movement" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
 	float MoveDeceleration_ = 4000.0f;
 
 	// zoom
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
 	float ZoomSpeed_ = 500.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
 	float MinZoom_ = 500.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
 	float MaxZoom_ = 5000.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Zoom" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
 	float ZoomInterpSpeed_ = 10.0f;
 
 	// izometric
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
 	float CameraPitch_ = -50.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
 	float CameraYaw_ = 45.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
 	float CameraLagSpeed_ = 5.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	FVector2D MinMapBounds_ = FVector2D( 0.0f, 0.0f );
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	FVector2D MaxMapBounds_ = FVector2D( 5000.0f, 5000.0f );
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	bool bAutoCalculateBounds_ = true;
-
 
 public:	
 	// Called every frame
