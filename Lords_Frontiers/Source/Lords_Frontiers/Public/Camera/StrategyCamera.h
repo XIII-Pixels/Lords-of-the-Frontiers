@@ -68,9 +68,14 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Visual" )
 	float CameraLagSpeed_ = 5.0f;
 
-	// map restrictions
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
-	FVector2D MapBounds_ = FVector2D( 10000.0f, 10000.0f );
+	FVector2D MinMapBounds_ = FVector2D( 0.0f, 0.0f );
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
+	FVector2D MaxMapBounds_ = FVector2D( 5000.0f, 5000.0f );
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Camera|Settings|Bounds" )
+	bool bAutoCalculateBounds_ = true;
 
 
 public:	
