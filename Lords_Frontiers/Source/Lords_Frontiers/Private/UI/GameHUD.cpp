@@ -121,10 +121,6 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 		}
 
-		if ( UResourceManager* rM = core->GetResourceManager() )
-		{
-			rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
-		}
 	}
 
 	if ( TextTimer )

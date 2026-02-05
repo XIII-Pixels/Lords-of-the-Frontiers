@@ -7,16 +7,20 @@
 
 void UBuildingTooltipWidget::UpdateTooltip( ABuilding* buildingCDO )
 {
-	if ( !buildingCDO )
+	if (!buildingCDO)
+	{
 		return;
+	}
 
 	Text_BuildingName->SetText( FText::FromString( buildingCDO->GetNameBuild() ) );
 
-	FText CostVal = FormatResourceText( buildingCDO->GetBuildingCost() );
-	Text_Cost->SetText( FText::Format( FText::FromString( TEXT( "Cost: {0}" ) ), CostVal ) );
+	Text_Cost->SetText(
+	    FText::Format( FText::FromString( TEXT( "Cost | {0}" ) ), FormatResourceText( buildingCDO->GetBuildingCost() ) )
+	);
 
-	FText MaintVal = FormatResourceText( buildingCDO->GetMaintenanceCost() );
-	Text_Maintenance->SetText( FText::Format( FText::FromString( TEXT( "Rent: {0}" ) ), MaintVal ) );
+	Text_Maintenance->SetText( FText::Format(
+	    FText::FromString( TEXT( "Rent | {0}" ) ), FormatResourceText( buildingCDO->GetMaintenanceCost() )
+	) );
 
 	if ( AResourceBuilding* resB = Cast<AResourceBuilding>( buildingCDO ) )
 	{
@@ -25,28 +29,16 @@ void UBuildingTooltipWidget::UpdateTooltip( ABuilding* buildingCDO )
 		{
 			TMap<EResourceType, int32> prodMap = gen->GetTotalProduction();
 
-			bool bHasProduction = false;
-			for ( auto& pair : prodMap )
-			{
-				if ( pair.Value > 0 )
-					bHasProduction = true;
-			}
+			FResourceProduction prod;
+			prod.Gold = prodMap.Contains( EResourceType::Gold ) ? prodMap[EResourceType::Gold] : 0;
+			prod.Food = prodMap.Contains( EResourceType::Food ) ? prodMap[EResourceType::Food] : 0;
+			prod.Population = prodMap.Contains( EResourceType::Population ) ? prodMap[EResourceType::Population] : 0;
+			prod.Progress = prodMap.Contains( EResourceType::Progress ) ? prodMap[EResourceType::Progress] : 0;
 
-			if ( bHasProduction )
-			{
-				TArray<FString> parts;
-				if ( prodMap.Contains( EResourceType::Gold ) && prodMap[EResourceType::Gold] > 0 )
-					parts.Add( FString::Printf( TEXT( "Gold +%d" ), prodMap[EResourceType::Gold] ) );
-				if ( prodMap.Contains( EResourceType::Food ) && prodMap[EResourceType::Food] > 0 )
-					parts.Add( FString::Printf( TEXT( "Food +%d" ), prodMap[EResourceType::Food] ) );
-
-				Text_Production->SetText( FText::FromString( FString::Join( parts, TEXT( ", " ) ) ) );
-				Text_Production->SetVisibility( ESlateVisibility::Visible );
-			}
-			else
-			{
-				Text_Production->SetVisibility( ESlateVisibility::Collapsed );
-			}
+			Text_Production->SetText(
+			    FText::Format( FText::FromString( TEXT( "Income | {0}" ) ), FormatResourceText( prod ) )
+			);
+			Text_Production->SetVisibility( ESlateVisibility::Visible );
 		}
 	}
 	else
@@ -57,15 +49,8 @@ void UBuildingTooltipWidget::UpdateTooltip( ABuilding* buildingCDO )
 
 FText UBuildingTooltipWidget::FormatResourceText( const FResourceProduction& production )
 {
-	TArray<FString> lines;
-	if ( production.Gold > 0 )
-		lines.Add( FString::Printf( TEXT( "Gold: %d" ), production.Gold ) );
-	if ( production.Food > 0 )
-		lines.Add( FString::Printf( TEXT( "Food: %d" ), production.Food ) );
-	if ( production.Population > 0 )
-		lines.Add( FString::Printf( TEXT( "Population: %d" ), production.Population ) );
-
-	if ( lines.Num() == 0 )
-		return FText::FromString( TEXT( "Free" ) );
-	return FText::FromString( FString::Join( lines, TEXT( ", " ) ) );
+	return FText::Format(
+	    FText::FromString( TEXT( "Gold: {0}, Food: {1}, Population: {2}, Progress: {3}" ) ), production.Gold,
+	    production.Food, production.Population, production.Progress
+	);
 }
