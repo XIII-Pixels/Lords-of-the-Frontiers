@@ -17,7 +17,7 @@ struct FGridCell
 	GENERATED_BODY()
 
 	FGridCell()
-	    : GridCoords( FIntPoint::ZeroValue ), bIsOccupied( false ), bIsBuildable( true ),
+	    : GridCoords( FIntPoint::ZeroValue ), bIsOccupied( false ), bIsBuildable( true ), bIsWalkable( true ),
 	      BuildBonus( 0.0f ), Occupant( nullptr )
 	{
 	}
@@ -30,6 +30,9 @@ struct FGridCell
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Grid" )
 	bool bIsBuildable;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Grid" )
+	bool bIsWalkable;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Grid|Bonus" )
 	float BuildBonus;
