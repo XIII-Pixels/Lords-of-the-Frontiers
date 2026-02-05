@@ -7,7 +7,7 @@
 
 void UBuildingTooltipWidget::UpdateTooltip( ABuilding* buildingCDO )
 {
-	if (!buildingCDO)
+	if ( !buildingCDO )
 	{
 		return;
 	}
@@ -24,27 +24,32 @@ void UBuildingTooltipWidget::UpdateTooltip( ABuilding* buildingCDO )
 
 	if ( AResourceBuilding* resB = Cast<AResourceBuilding>( buildingCDO ) )
 	{
-		UResourceGenerator* gen = resB->GetResourceGenerator();
-		if ( gen )
-		{
-			TMap<EResourceType, int32> prodMap = gen->GetTotalProduction();
+		Text_Production->SetText( FText::Format(
+			FText::FromString( TEXT( "Income | {0}" ) ), FormatResourceText( resB->GetProductionConfig() )
+		) );
 
-			FResourceProduction prod;
-			prod.Gold = prodMap.Contains( EResourceType::Gold ) ? prodMap[EResourceType::Gold] : 0;
-			prod.Food = prodMap.Contains( EResourceType::Food ) ? prodMap[EResourceType::Food] : 0;
-			prod.Population = prodMap.Contains( EResourceType::Population ) ? prodMap[EResourceType::Population] : 0;
-			prod.Progress = prodMap.Contains( EResourceType::Progress ) ? prodMap[EResourceType::Progress] : 0;
-
-			Text_Production->SetText(
-			    FText::Format( FText::FromString( TEXT( "Income | {0}" ) ), FormatResourceText( prod ) )
-			);
-			Text_Production->SetVisibility( ESlateVisibility::Visible );
-		}
+		//
+		// UResourceGenerator* gen = resB->GetResourceGenerator();
+		// if ( gen )
+		// {
+		// 	TMap<EResourceType, int32> prodMap = gen->GetTotalProduction();
+		//
+		// 	FResourceProduction prod;
+		// 	prod.Gold = prodMap.Contains( EResourceType::Gold ) ? prodMap[EResourceType::Gold] : 0;
+		// 	prod.Food = prodMap.Contains( EResourceType::Food ) ? prodMap[EResourceType::Food] : 0;
+		// 	prod.Population = prodMap.Contains( EResourceType::Population ) ? prodMap[EResourceType::Population] : 0;
+		// 	prod.Progress = prodMap.Contains( EResourceType::Progress ) ? prodMap[EResourceType::Progress] : 0;
+		//
+		// 	Text_Production->SetText(
+		// 	    FText::Format( FText::FromString( TEXT( "Income | {0}" ) ), FormatResourceText( prod ) )
+		// 	);
+		// 	Text_Production->SetVisibility( ESlateVisibility::Visible );
 	}
-	else
-	{
-		Text_Production->SetVisibility( ESlateVisibility::Collapsed );
-	}
+// }
+// else
+// {
+// 	Text_Production->SetVisibility( ESlateVisibility::Collapsed );
+// }
 }
 
 FText UBuildingTooltipWidget::FormatResourceText( const FResourceProduction& production )
