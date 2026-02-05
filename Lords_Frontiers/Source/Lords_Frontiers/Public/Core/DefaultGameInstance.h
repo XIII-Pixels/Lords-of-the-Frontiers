@@ -21,7 +21,4 @@ public:
 protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
 	TObjectPtr<ULevelsDataAsset> Levels_;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	bool bLoadMenuOnGameStart_ = false;
 };
