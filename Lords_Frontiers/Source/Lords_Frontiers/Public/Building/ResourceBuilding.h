@@ -24,6 +24,8 @@ public:
 		return ResourceGenerator_;
 	}
 
+	const FResourceProduction& GetProductionConfig() const;
+
 protected:
 	virtual void BeginPlay() override;
 

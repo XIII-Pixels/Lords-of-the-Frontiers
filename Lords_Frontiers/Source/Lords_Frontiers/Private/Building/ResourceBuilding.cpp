@@ -17,6 +17,11 @@ AResourceBuilding::AResourceBuilding()
 	ResourceGenerator_ = CreateDefaultSubobject<UResourceGenerator>( TEXT( "ResourceGenerator" ) );
 }
 
+const FResourceProduction& AResourceBuilding::GetProductionConfig() const
+{
+	return ProductionConfig_;
+}
+
 void AResourceBuilding::BeginPlay()
 {
 	Super::BeginPlay();
