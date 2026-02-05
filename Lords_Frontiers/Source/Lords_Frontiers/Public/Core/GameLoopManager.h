@@ -2,18 +2,19 @@
 
 #include "GameLoopConfig.h"
 #include "Tickable.h"
-#include "Building/Building.h" 
+#include "Building/Building.h"
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 
 #include "GameLoopManager.generated.h"
 
-// Forward declarations - prefer these over #include to reduce compile times
+// Forward declarations
 class AWaveManager;
 class UResourceManager;
 class UEconomyComponent;
 class UGameInstance;
+class UCardSubsystem;
 
 /**
  * Default values used when config is not available.
@@ -42,7 +43,7 @@ namespace GameLoopDefaults
  * Transitions are managed by UGameLoopManager.
  *
  * State flow:
- *   None -> Startup -> Building <-> Combat -> Reward -> Building (loop)
+ *   None -> Startup -> Building <-> Combat -> Reward -> [CardSelection] -> Building (loop)
  *                                         \-> Victory (if last wave)
  *                         Combat -> Defeat (if base destroyed)
  *                         Any -> Paused -> (previous state)
@@ -54,7 +55,7 @@ enum class EGameLoopPhase : uint8
 	Startup UMETA( DisplayName = "Startup" ),   // Granting starting resources
 	Building UMETA( DisplayName = "Building" ), // Player building/upgrading towers
 	Combat UMETA( DisplayName = "Combat" ),     // Enemies spawning and attacking
-	Reward UMETA( DisplayName = "Reward" ),     // Post-combat, granting rewards
+	Reward UMETA( DisplayName = "Reward" ),     // Post-combat, granting rewards + card selection
 	Victory UMETA( DisplayName = "Victory" ),   // Player won the game
 	Defeat UMETA( DisplayName = "Defeat" ),     // Base destroyed, game over
 	Paused UMETA( DisplayName = "Paused" )      // Game paused by player
@@ -94,15 +95,17 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnGameLoopButtonState, FName, But
  * - Implements FTickableGameObject for frame-based timer updates
  * - Uses weak pointers to external systems to avoid preventing GC
  * - Communicates via delegates to maintain loose coupling
+ * - Integrates with UCardSubsystem for post-wave card selection
  *
  * Game Loop Cycle:
- *   Startup -> Building (N turns) -> Combat -> Reward -> Building -> ...
+ *   Startup -> Building (N turns) -> Combat -> Reward -> [Card Selection] -> Building -> ...
  *
  * Dependencies:
  * - UGameLoopConfig: Tunable parameters
  * - AWaveManager: Enemy spawning
  * - UResourceManager: Resource tracking
  * - UEconomyComponent: Building income collection
+ * - UCardSubsystem: Post-wave card selection (optional)
  *
  * Thread Safety: Not thread-safe. Must be called from game thread only.
  */
@@ -308,6 +311,13 @@ public:
 		return bIsPaused_;
 	}
 
+	/** True if waiting for player to select cards in Reward phase. */
+	UFUNCTION( BlueprintPure, Category = "GameLoop|State" )
+	bool IsWaitingForCardSelection() const
+	{
+		return bWaitingForCardSelection_;
+	}
+
 	/** Returns true if EndBuildTurn() can be called. For button enable state. */
 	UFUNCTION( BlueprintPure, Category = "GameLoop|UI" )
 	bool CanEndBuildTurn() const;
@@ -338,6 +348,14 @@ public:
 	 */
 	UFUNCTION( BlueprintCallable, Category = "GameLoop" )
 	void EnterDefeatPhase();
+
+	/**
+	 * Called after card selection is complete (by CardSubsystem or UI).
+	 * Proceeds to next wave and enters Building phase.
+	 * Also serves as a fallback if no card system is active.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "GameLoop|Actions" )
+	void ConfirmRewardPhase();
 
 	/** Broadcast when phase changes. Subscribe for UI updates. */
 	UPROPERTY( BlueprintAssignable, Category = "GameLoop|Events" )
@@ -384,7 +402,10 @@ protected:
 	/** Starts combat timer and schedules enemy spawning. */
 	void EnterCombatPhase();
 
-	/** Grants combat rewards and either loops to Building or ends in Victory. */
+	/**
+	 * Grants combat rewards, starts healing, and requests card selection.
+	 * Does NOT auto-transition to Building. Waits for ConfirmRewardPhase().
+	 */
 	void EnterRewardPhase();
 
 	/** Sets game as won and broadcasts OnGameEnded(true). */
@@ -433,6 +454,18 @@ protected:
 	void HandleDelayedBuildingRestoration();
 
 	void ExecuteHealingPulse();
+
+	/**
+	 * Checks if CardSubsystem has a valid pool and can offer cards.
+	 * Used to decide whether to wait for card selection in Reward phase.
+	 */
+	bool IsCardSelectionPending() const;
+
+	/**
+	 * Increments wave counter and transitions to Building phase.
+	 * Extracted from EnterRewardPhase to support async card selection.
+	 */
+	void ProceedToNextWave();
 
 private:
 
@@ -487,6 +520,9 @@ private:
 
 	/** True if base has taken no damage this wave. */
 	bool bPerfectWave_ = true;
+
+	/** True while waiting for player to select cards in Reward phase. */
+	bool bWaitingForCardSelection_ = false;
 
 	/** Timer handle for delayed wave start after combat begins. */
 	FTimerHandle CombatStartDelayHandle_;

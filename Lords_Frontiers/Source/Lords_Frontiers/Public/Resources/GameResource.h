@@ -28,17 +28,14 @@ struct FGameResource
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Resource", meta = ( ClampMin = "0" ) )
 	int32 Quantity;
 
-	// Default c-tor
 	FGameResource() : Type( EResourceType::None ), Quantity( 0 )
 	{
 	}
 
-	// C-tor with params. Params in lowerCamelCase
 	FGameResource( EResourceType type, int32 quantity ) : Type( type ), Quantity( quantity )
 	{
 	}
 
-	// Comparison operator. Param 'other' in lowerCamelCase
 	bool operator==( const FGameResource& other ) const
 	{
 		return Type == other.Type && Quantity == other.Quantity;
@@ -62,6 +59,51 @@ struct FResourceProduction
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Production" )
 	int32 Progress = 0;
+
+	/** Returns value for the given resource type. Returns 0 for None/Max. */
+	int32 GetByType( EResourceType type ) const
+	{
+		switch ( type )
+		{
+		case EResourceType::Gold:       return Gold;
+		case EResourceType::Food:       return Food;
+		case EResourceType::Population: return Population;
+		case EResourceType::Progress:   return Progress;
+		default:                        return 0;
+		}
+	}
+
+	/** Modifies value for the given resource type by delta. Result clamped to >= 0. */
+	void ModifyByType( EResourceType type, int32 delta )
+	{
+		switch ( type )
+		{
+		case EResourceType::Gold:       Gold       = FMath::Max( 0, Gold + delta );       break;
+		case EResourceType::Food:       Food       = FMath::Max( 0, Food + delta );       break;
+		case EResourceType::Population: Population = FMath::Max( 0, Population + delta ); break;
+		case EResourceType::Progress:   Progress   = FMath::Max( 0, Progress + delta );   break;
+		default: break;
+		}
+	}
+
+	/** Sets value for the given resource type directly. */
+	void SetByType( EResourceType type, int32 value )
+	{
+		switch ( type )
+		{
+		case EResourceType::Gold:       Gold       = value; break;
+		case EResourceType::Food:       Food       = value; break;
+		case EResourceType::Population: Population = value; break;
+		case EResourceType::Progress:   Progress   = value; break;
+		default: break;
+		}
+	}
+
+	/** Returns true if all values are zero */
+	bool IsZero() const
+	{
+		return Gold == 0 && Food == 0 && Population == 0 && Progress == 0;
+	}
 
 	TMap<EResourceType, int32> ToMap() const
 	{

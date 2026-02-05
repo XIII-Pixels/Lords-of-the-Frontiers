@@ -10,10 +10,7 @@ static constexpr int32 cDefaultResourceDamage = 0;
 
 AResourceBuilding::AResourceBuilding()
 {
-	// Init Stats
 	Stats_ = FEntityStats( cDefaultResourceHealth, cDefaultResourceDamage, 0.0f );
-
-	// Creating a Generator Component
 	ResourceGenerator_ = CreateDefaultSubobject<UResourceGenerator>( TEXT( "ResourceGenerator" ) );
 }
 
@@ -21,25 +18,57 @@ void AResourceBuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Save original production for card reset on game restart
+	OriginalProductionConfig_ = ProductionConfig_;
+
 	if ( IsValid( ResourceGenerator_ ) )
 	{
 		ResourceGenerator_->Initialize( FindResourceManager() );
-
 		ResourceGenerator_->SetProductionConfig( ProductionConfig_ );
 	}
 }
 
 UResourceManager* AResourceBuilding::FindResourceManager() const
 {
-	// Assume the ResourceManager is located on the Player Controller
 	AController* PlayerController = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
 
 	if ( IsValid( PlayerController ) )
 	{
-		// need to change if the ResourceManager is located in GameState or
-		// PlayerState
 		return PlayerController->FindComponentByClass<UResourceManager>();
 	}
 
 	return nullptr;
+}
+
+// =============================================================================
+// Direct card modifiers
+// =============================================================================
+
+void AResourceBuilding::ModifyProduction( EResourceType type, int32 delta )
+{
+	ProductionConfig_.ModifyByType( type, delta );
+	SyncGeneratorConfig();
+}
+
+void AResourceBuilding::ModifyProductionAll( int32 delta )
+{
+	for ( EResourceType resType : CardTypeHelpers::GetAllResourceTypes() )
+	{
+		ProductionConfig_.ModifyByType( resType, delta );
+	}
+	SyncGeneratorConfig();
+}
+
+void AResourceBuilding::ResetProductionToDefaults()
+{
+	ProductionConfig_ = OriginalProductionConfig_;
+	SyncGeneratorConfig();
+}
+
+void AResourceBuilding::SyncGeneratorConfig()
+{
+	if ( IsValid( ResourceGenerator_ ) )
+	{
+		ResourceGenerator_->SetProductionConfig( ProductionConfig_ );
+	}
 }

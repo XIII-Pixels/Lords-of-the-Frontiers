@@ -1,6 +1,8 @@
 // MainGameMode.cpp
 #include "Core/GameModes/MainGameMode.h"
 
+#include "Cards/CardPoolConfig.h"
+#include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "Grid/GridManager.h"
@@ -19,6 +21,7 @@ void AMainGameMode::StartPlay()
 
 	SetupCamera();
 	InitializeGameSystems();
+	InitializeCardSystem();
 	CreateHUD();
 }
 
@@ -50,6 +53,28 @@ void AMainGameMode::InitializeGameSystems()
 	}
 	GL->StartGame();
 	UE_LOG( LogTemp, Log, TEXT( "MainGameMode: Game started" ) );
+}
+
+void AMainGameMode::InitializeCardSystem()
+{
+	UCardSubsystem* cardSystem = UCardSubsystem::Get( this );
+	if ( !cardSystem )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "MainGameMode: CardSubsystem not found!" ) );
+		return;
+	}
+
+	if ( CardPoolConfig )
+	{
+		cardSystem->SetPoolConfig( CardPoolConfig );
+		UE_LOG(
+		    LogTemp, Log, TEXT( "MainGameMode: Card system initialized with %d cards" ), CardPoolConfig->GetPoolSize()
+		);
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "MainGameMode: CardPoolConfig not set!" ) );
+	}
 }
 
 void AMainGameMode::CreateHUD()

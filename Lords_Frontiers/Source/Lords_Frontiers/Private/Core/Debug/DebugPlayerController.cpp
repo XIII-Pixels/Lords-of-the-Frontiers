@@ -4,6 +4,7 @@
 
 #include "Building/Construction/BuildManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
+#include "UI/Cards/CardSelectionHUDComponent.h"
 
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,6 +16,8 @@ ADebugPlayerController::ADebugPlayerController()
 	bEnableMouseOverEvents = true;
 
 	SelectionManagerComponent_ = CreateDefaultSubobject<USelectionManagerComponent>( TEXT( "SelectionManager" ) );
+
+	CardSelectionHUDComponent_ = CreateDefaultSubobject<UCardSelectionHUDComponent>( TEXT( "CardSelectionHUD" ) );
 }
 
 USelectionManagerComponent* ADebugPlayerController::GetSelectionManager() const
@@ -76,8 +79,10 @@ void ADebugPlayerController::HandleLeftClick()
 		{
 			UE_LOG(
 			    LogTemp, Warning,
-			    TEXT( "HandleLeftClick: BuildManager_ became invalid before "
-			          "ConfirmPlacing" )
+			    TEXT(
+			        "HandleLeftClick: BuildManager_ became invalid before "
+			        "ConfirmPlacing"
+			    )
 			);
 		}
 		return;
