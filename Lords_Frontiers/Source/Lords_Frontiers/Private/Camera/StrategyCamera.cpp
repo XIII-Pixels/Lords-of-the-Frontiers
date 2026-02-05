@@ -11,7 +11,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraActor.h"
 
-#include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
 
 // Sets default values
@@ -39,7 +38,6 @@ AStrategyCamera::AStrategyCamera()
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>( TEXT( "MovementComponent" ) );
 
 	TargetZoom_ = 1500.0f;
-
 }
 
 // Called when the game starts or when spawned
@@ -107,13 +105,7 @@ void AStrategyCamera::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	SpringArm->TargetArmLength = FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
-
-	FVector clampedLocation = GetActorLocation();
-	clampedLocation.X = FMath::Clamp( clampedLocation.X, MinMapBounds_.X, MaxMapBounds_.X );
-	clampedLocation.Y = FMath::Clamp( clampedLocation.Y, MinMapBounds_.Y, MaxMapBounds_.Y );
-	SetActorLocation( clampedLocation );
-
+	Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
 }
 
 // Called to bind functionality to input
@@ -126,13 +118,13 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComp
 
 	playerInputComponent->BindAction( "ZoomIn", IE_Pressed, this, &AStrategyCamera::ZoomIn );
 	playerInputComponent->BindAction( "ZoomOut", IE_Pressed, this, &AStrategyCamera::ZoomOut );
-
 }
 
 void AStrategyCamera::MoveForward( float value )
 {
 	AddMovementInput( GetActorForwardVector(), value );
 }
+
 void AStrategyCamera::MoveRight( float value )
 {
 	AddMovementInput( GetActorRightVector(), value );
@@ -142,6 +134,7 @@ void AStrategyCamera::ZoomIn()
 {
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ZoomSpeed_, MinZoom_, MaxZoom_ );
 }
+
 void AStrategyCamera::ZoomOut()
 {
 	TargetZoom_ = FMath::Clamp( TargetZoom_ + ZoomSpeed_, MinZoom_, MaxZoom_ );
