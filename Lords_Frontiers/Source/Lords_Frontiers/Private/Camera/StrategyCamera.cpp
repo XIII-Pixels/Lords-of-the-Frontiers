@@ -2,7 +2,6 @@
 
 
 #include "Camera/StrategyCamera.h"
-#include "Grid/GridManager.h"
 
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -66,25 +65,6 @@ void AStrategyCamera::BeginPlay()
 		cam->Destroy();
 	}
 
-	if ( bAutoCalculateBounds_ )
-	{
-		if ( AGridManager* grid =
-		         Cast<AGridManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AGridManager::StaticClass() ) ) )
-		{
-			FVector gridOrigin = grid->GetActorLocation();
-			float gridWidth = grid->GetGridWidth() * grid->GetCellSize();
-			float gridHeight = grid->GetGridHeight() * grid->GetCellSize();
-
-			MinMapBounds_ = FVector2D( gridOrigin.X, gridOrigin.Y );
-			MaxMapBounds_ = FVector2D( gridOrigin.X + gridWidth, gridOrigin.Y + gridHeight );
-
-			UE_LOG(
-			    LogTemp, Warning, TEXT( "Camera: Bounds set from Grid! Min: %s, Max: %s" ), *MinMapBounds_.ToString(),
-			    *MaxMapBounds_.ToString()
-			);
-		}
-	}
-
 	FTimerHandle timerHandle;
 	GetWorldTimerManager().SetTimer(
 	    timerHandle,
@@ -110,8 +90,8 @@ void AStrategyCamera::Tick(float DeltaTime)
 	SpringArm->TargetArmLength = FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
 
 	FVector clampedLocation = GetActorLocation();
-	clampedLocation.X = FMath::Clamp( clampedLocation.X, MinMapBounds_.X, MaxMapBounds_.X );
-	clampedLocation.Y = FMath::Clamp( clampedLocation.Y, MinMapBounds_.Y, MaxMapBounds_.Y );
+	clampedLocation.X = FMath::Clamp( clampedLocation.X, -MapBounds_.X, MapBounds_.X );
+	clampedLocation.Y = FMath::Clamp( clampedLocation.Y, -MapBounds_.Y, MapBounds_.Y );
 	SetActorLocation( clampedLocation );
 
 }
@@ -131,17 +111,11 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComp
 
 void AStrategyCamera::MoveForward( float value )
 {
-	if ( value != 0.0f )
-	{
-		AddMovementInput( FVector::ForwardVector, value );
-	}
+	AddMovementInput( GetActorForwardVector(), value );
 }
 void AStrategyCamera::MoveRight( float value )
 {
-	if ( value != 0.0f )
-	{
-		AddMovementInput( FVector::RightVector, value );
-	}
+	AddMovementInput( GetActorRightVector(), value );
 }
 
 void AStrategyCamera::ZoomIn()
