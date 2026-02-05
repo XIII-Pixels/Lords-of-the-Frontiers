@@ -15,6 +15,19 @@ void UGameHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
+	if ( pc )
+	{
+		UResourceManager* rM = pc->FindComponentByClass<UResourceManager>();
+		if ( !rM )
+		{
+			rM = NewObject<UResourceManager>( pc, TEXT( "GlobalResourceManager" ) );
+			rM->RegisterComponent();
+		}
+		rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+		rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+	}
+
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
@@ -105,6 +118,9 @@ void UGameHUDWidget::NativeConstruct()
 	UpdateBuildingUIVisibility();
 
 	ShowEconomyBuildings();
+
+	UpdateResources();
+	UpdateAllBuildingButtons();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -178,6 +194,7 @@ void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount 
 {
 	UE_LOG( LogTemp, Warning, TEXT( "HandleResourceChanged: Type=%d, Amount=%d" ), (int32) Type, NewAmount );
 	UpdateResources();
+	UpdateAllBuildingButtons();
 }
 
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
@@ -552,4 +569,42 @@ void UGameHUDWidget::UpdateCategoryButtonsVisual()
 		float OffsetY = bShowingEconomyBuildings_ ? 0.0f : ActiveButtonLiftOffset;
 		ButtonDefensiveBuildings->SetRenderTranslation( FVector2D( 0.0f, OffsetY ) );
 	}
+}
+
+void UGameHUDWidget::UpdateAllBuildingButtons()
+{
+	UpdateButtonAvailability( ButtonBuildingWoodenHouse, WoodenHouseClass );
+	UpdateButtonAvailability( ButtonBuildingStrawHouse, StrawHouseClass );
+	UpdateButtonAvailability( ButtonBuildingFarm, FarmClass );
+	UpdateButtonAvailability( ButtonBuildingLawnHouse, LawnHouseClass );
+	UpdateButtonAvailability( ButtonBuildingMagicHouse, MagicHouseClass );
+
+	UpdateButtonAvailability( ButtonBuildingWoodWall, WoodWallClass );
+	UpdateButtonAvailability( ButtonBuildingStoneWall, StoneWallClass );
+	UpdateButtonAvailability( ButtonBuildingTowerT0, TowerT0Class );
+	UpdateButtonAvailability( ButtonBuildingTowerT1, TowerT1Class );
+	UpdateButtonAvailability( ButtonBuildingTowerT2, TowerT2Class );
+}
+
+void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
+{
+	if (!button || !buildingClass)
+	{
+		return;
+	}
+	UCoreManager* core = UCoreManager::Get( this );
+	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
+	if ( !rM )
+	{
+		return;
+	}	
+
+	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
+	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
+
+	button->SetIsEnabled( bCanAfford );
+
+	button->SetRenderOpacity( bCanAfford ? 1.0f : 0.4f );
+
+	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
 }
