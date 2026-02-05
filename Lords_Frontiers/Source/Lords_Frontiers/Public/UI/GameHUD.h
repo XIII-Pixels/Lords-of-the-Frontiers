@@ -224,4 +224,14 @@ protected:
 	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
+
+	void UpdateAllBuildingButtons();
+
+	void UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
+	FLinearColor AffordableColor = FLinearColor::White;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
+	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
 };
