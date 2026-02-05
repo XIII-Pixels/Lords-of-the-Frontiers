@@ -10,7 +10,6 @@ void UCardWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// Bind button events
 	if ( CardButton )
 	{
 		CardButton->OnClicked.AddDynamic( this, &UCardWidget::HandleButtonClicked );
@@ -18,7 +17,6 @@ void UCardWidget::NativeConstruct()
 		CardButton->OnUnhovered.AddDynamic( this, &UCardWidget::HandleButtonUnhovered );
 	}
 
-	// Set initial visuals
 	UpdateBorderVisual();
 
 	if ( BackgroundImage && CardBackgroundTexture )
@@ -29,7 +27,6 @@ void UCardWidget::NativeConstruct()
 
 void UCardWidget::NativeDestruct()
 {
-	// Unbind button events
 	if ( CardButton )
 	{
 		CardButton->OnClicked.RemoveDynamic( this, &UCardWidget::HandleButtonClicked );
@@ -49,7 +46,6 @@ void UCardWidget::SetCardData( UCardDataAsset* cardData )
 		UpdateCardVisuals();
 	}
 
-	// Notify Blueprint
 	OnCardDataSet();
 }
 
@@ -63,7 +59,6 @@ void UCardWidget::SetSelected( bool bSelected )
 	bIsSelected_ = bSelected;
 	UpdateBorderVisual();
 
-	// Notify Blueprint
 	OnSelectionChanged( bIsSelected_ );
 }
 
@@ -76,7 +71,6 @@ void UCardWidget::SetInteractionEnabled( bool bEnabled )
 		CardButton->SetIsEnabled( bEnabled );
 	}
 
-	// Update visual tint
 	if ( BorderImage )
 	{
 		BorderImage->SetColorAndOpacity( bEnabled ? NormalTint : DisabledTint );
@@ -90,7 +84,6 @@ void UCardWidget::HandleButtonClicked()
 		return;
 	}
 
-	// Broadcast click event - parent widget handles selection logic
 	OnCardClicked.Broadcast( this );
 }
 
@@ -101,7 +94,6 @@ void UCardWidget::HandleButtonHovered()
 		return;
 	}
 
-	// Apply hover tint (subtle brighten)
 	if ( BorderImage && !bIsSelected_ )
 	{
 		BorderImage->SetColorAndOpacity( HoveredTint );
@@ -112,7 +104,6 @@ void UCardWidget::HandleButtonHovered()
 
 void UCardWidget::HandleButtonUnhovered()
 {
-	// Restore normal tint
 	if ( BorderImage && !bIsSelected_ )
 	{
 		BorderImage->SetColorAndOpacity( NormalTint );
@@ -135,7 +126,6 @@ void UCardWidget::UpdateBorderVisual()
 		BorderImage->SetBrushFromTexture( textureToUse );
 	}
 
-	// Reset tint when changing selection state
 	BorderImage->SetColorAndOpacity( bIsInteractionEnabled_ ? NormalTint : DisabledTint );
 }
 
@@ -146,25 +136,21 @@ void UCardWidget::UpdateCardVisuals()
 		return;
 	}
 
-	// Set card name
 	if ( CardNameText )
 	{
 		CardNameText->SetText( CardData_->CardName );
 	}
 
-	// Set description with formatted values
 	if ( DescriptionText )
 	{
 		DescriptionText->SetText( CardData_->GetFormattedDescription() );
 	}
 
-	// Set target description
 	if ( TargetText )
 	{
 		TargetText->SetText( CardData_->GetTargetDescription() );
 	}
 
-	// Set icon
 	if ( IconImage && CardData_->Icon )
 	{
 		IconImage->SetBrushFromTexture( CardData_->Icon );

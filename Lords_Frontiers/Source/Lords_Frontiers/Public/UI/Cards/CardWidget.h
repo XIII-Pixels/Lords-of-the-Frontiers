@@ -124,10 +124,6 @@ protected:
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card" )
 	void OnCardUnhovered();
 
-	// ===========================================
-	// Bound UI Elements (set in Blueprint)
-	// ===========================================
-
 	/** Main clickable button covering the entire card */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> CardButton;
@@ -156,10 +152,6 @@ protected:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> TargetText;
 
-	// ===========================================
-	// Textures (set in Blueprint defaults)
-	// ===========================================
-
 	/** Border texture for normal (unselected) state */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
 	TObjectPtr<UTexture2D> NormalBorderTexture;
@@ -171,10 +163,6 @@ protected:
 	/** Background texture for the card */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
 	TObjectPtr<UTexture2D> CardBackgroundTexture;
-
-	// ===========================================
-	// Style Settings
-	// ===========================================
 
 	/** Color tint for normal state */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )

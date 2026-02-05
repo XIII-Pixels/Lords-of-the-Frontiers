@@ -74,10 +74,6 @@ protected:
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card Selection" )
 	void OnWidgetHiding();
 
-	// ===========================================
-	// Bound UI Elements
-	// ===========================================
-
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UHorizontalBox> CardsContainer;
 
@@ -95,10 +91,6 @@ protected:
 
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UImage> BackgroundOverlay;
-
-	// ===========================================
-	// Configuration
-	// ===========================================
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
 	TSubclassOf<UCardWidget> CardWidgetClass;

@@ -149,7 +149,6 @@ void UEconomyComponent::CollectGlobalResources()
 		}
 	}
 
-	// Apply global production bonuses from cards
 	UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this );
 	if ( cardSubsystem )
 	{
@@ -197,7 +196,6 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 	{
 		if ( ABuilding* B = It->Get() )
 		{
-			// Building's MaintenanceCost already includes direct card modifiers
 			TMap<EResourceType, int32> Costs = B->GetMaintenanceCost().ToMap();
 			for ( const auto& Pair : Costs )
 			{
@@ -213,7 +211,6 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 		}
 	}
 
-	// Apply global maintenance reduction from cards
 	UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this );
 	if ( cardSubsystem )
 	{
