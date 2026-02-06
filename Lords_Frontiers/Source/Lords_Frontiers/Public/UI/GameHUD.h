@@ -4,6 +4,7 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
@@ -234,4 +235,58 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
 	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
+	TSubclassOf<UBuildingTooltipWidget> TooltipClass;
+
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
+
+	FTimerHandle TooltipTimerHandle;
+	TSubclassOf<ABuilding> PendingBuildingClass;
+
+	UFUNCTION() void OnHoverWoodenHouse()
+	{
+		StartTooltipTimer( WoodenHouseClass );
+	}
+	UFUNCTION() void OnHoverStrawHouse()
+	{
+		StartTooltipTimer( StrawHouseClass );
+	}
+	UFUNCTION() void OnHoverFarm()
+	{
+		StartTooltipTimer( FarmClass );
+	}
+	UFUNCTION() void OnHoverLawnHouse()
+	{
+		StartTooltipTimer( LawnHouseClass );
+	}
+	UFUNCTION() void OnHoverMagicHouse()
+	{
+		StartTooltipTimer( MagicHouseClass );
+	}
+	UFUNCTION() void OnHoverWoodWall()
+	{
+		StartTooltipTimer( WoodWallClass );
+	}
+	UFUNCTION() void OnHoverStoneWall()
+	{
+		StartTooltipTimer( StoneWallClass );
+	}
+	UFUNCTION() void OnHoverTowerT0()
+	{
+		StartTooltipTimer( TowerT0Class );
+	}
+	UFUNCTION() void OnHoverTowerT1()
+	{
+		StartTooltipTimer( TowerT1Class );
+	}
+	UFUNCTION() void OnHoverTowerT2()
+	{
+		StartTooltipTimer( TowerT2Class );
+	}
+
+	UFUNCTION() void OnBuildingUnhovered();
+	UFUNCTION() void ShowTooltipInternal();
+
+	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
 };

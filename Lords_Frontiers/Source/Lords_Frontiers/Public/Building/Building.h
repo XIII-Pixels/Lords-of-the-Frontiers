@@ -104,4 +104,6 @@ protected:
 
 private:
 	FResourceProduction OriginalMaintenanceCost_;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	FText BuildingDisplayName_;
 };

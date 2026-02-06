@@ -40,10 +40,6 @@ UResourceManager* AResourceBuilding::FindResourceManager() const
 	return nullptr;
 }
 
-// =============================================================================
-// Direct card modifiers
-// =============================================================================
-
 void AResourceBuilding::ModifyProduction( EResourceType type, int32 delta )
 {
 	ProductionConfig_.ModifyByType( type, delta );

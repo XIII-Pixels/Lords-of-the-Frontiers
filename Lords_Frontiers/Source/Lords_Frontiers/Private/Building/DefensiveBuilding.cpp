@@ -71,8 +71,3 @@ void ADefensiveBuilding::OnDeath()
 		AttackComponent_->DeactivateSight();
 	}
 }
-
-FString ADefensiveBuilding::GetNameBuild()
-{
-	return TEXT( "DefensiveBuild" );
-}

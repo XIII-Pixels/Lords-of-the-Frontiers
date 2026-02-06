@@ -111,4 +111,18 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
+
+	//Wobble
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwaySpeed_ = 15.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwayAmplitude_ = 10.0f;
+
+	float SwayPhaseOffset_ = 0.0f;
+
+	float CurrentSwayRoll_ = 0.0f;
+
+	UPROPERTY()
+	TObjectPtr<USceneComponent> VisualMesh_;
 };
