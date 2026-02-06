@@ -1,12 +1,15 @@
 #include "Core/GameLoopManager.h"
 
+#include "Cards/CardPoolConfig.h"
+#include "Cards/CardSubsystem.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
-#include "Kismet/GameplayStatics.h"
+
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -95,6 +98,7 @@ void UGameLoopManager::Cleanup()
 
 	bIsGameStarted_ = false;
 	bIsPaused_ = false;
+	bWaitingForCardSelection_ = false;
 
 	UnbindFromWaveManager();
 
@@ -175,6 +179,7 @@ void UGameLoopManager::StartGame()
 
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
+	bWaitingForCardSelection_ = false;
 	CurrentWave_ = 1;
 	CurrentBuildTurn_ = 0;
 	bPerfectWave_ = true;
@@ -200,6 +205,7 @@ void UGameLoopManager::RestartGame()
 	bIsPaused_ = false;
 	bWaveCompleted_ = false;
 	bPerfectWave_ = true;
+	bWaitingForCardSelection_ = false;
 
 	if ( AWaveManager* wm = WaveManager_.Get() )
 	{
@@ -215,6 +221,12 @@ void UGameLoopManager::RestartGame()
 	if ( WaveManager_.IsValid() )
 	{
 		BindToWaveManager();
+	}
+
+	UCardSubsystem* cardSub = UCardSubsystem::Get( GetWorldSafe() );
+	if ( cardSub )
+	{
+		cardSub->ResetCardHistory();
 	}
 
 	StartGame();
@@ -472,7 +484,6 @@ void UGameLoopManager::EnterRewardPhase()
 	GrantCombatReward();
 
 	RemainingHealingPulses_ = 5;
-
 	if ( UWorld* world = GetWorldSafe() )
 	{
 		world->GetTimerManager().SetTimer(
@@ -486,6 +497,45 @@ void UGameLoopManager::EnterRewardPhase()
 		return;
 	}
 
+	if ( IsCardSelectionPending() )
+	{
+		bWaitingForCardSelection_ = true;
+		Log( TEXT( "Waiting for card selection..." ) );
+		return;
+	}
+
+	ProceedToNextWave();
+}
+
+void UGameLoopManager::ConfirmRewardPhase()
+{
+	if ( CurrentPhase_ != EGameLoopPhase::Reward )
+	{
+		Log( TEXT( "WARNING: ConfirmRewardPhase called outside Reward phase, ignoring" ) );
+		return;
+	}
+
+	bWaitingForCardSelection_ = false;
+
+	Log( TEXT( "Card selection confirmed, proceeding to next wave" ) );
+
+	ProceedToNextWave();
+}
+
+bool UGameLoopManager::IsCardSelectionPending() const
+{
+	UCardSubsystem* cardSub = UCardSubsystem::Get( GetWorldSafe() );
+	if ( !cardSub )
+	{
+		return false;
+	}
+
+	UCardPoolConfig* poolConfig = cardSub->GetPoolConfig();
+	return poolConfig && poolConfig->HasEnoughCards();
+}
+
+void UGameLoopManager::ProceedToNextWave()
+{
 	CurrentWave_++;
 	OnWaveChanged.Broadcast( CurrentWave_, GetTotalWaves() );
 	EnterBuildingPhase();
@@ -495,15 +545,14 @@ void UGameLoopManager::EnterVictoryPhase()
 {
 	SetPhase( EGameLoopPhase::Victory );
 	bIsGameStarted_ = false;
+	bWaitingForCardSelection_ = false;
 
 	OnGameEnded.Broadcast( true );
 
 	Log( TEXT( "=== VICTORY! ===" ) );
 
 	const FName levelName = FName( TEXT( "Win" ) );
-
 	UWorld* world = GetWorldSafe();
-
 	UGameplayStatics::OpenLevel( world, levelName );
 }
 
@@ -511,6 +560,7 @@ void UGameLoopManager::EnterDefeatPhase()
 {
 	SetPhase( EGameLoopPhase::Defeat );
 	bIsGameStarted_ = false;
+	bWaitingForCardSelection_ = false;
 	UWorld* world = GetWorldSafe();
 
 	if ( world )
@@ -523,7 +573,6 @@ void UGameLoopManager::EnterDefeatPhase()
 	Log( TEXT( "=== DEFEAT ===" ) );
 
 	const FName levelName = FName( TEXT( "Lose" ) );
-
 	UGameplayStatics::OpenLevel( world, levelName );
 }
 

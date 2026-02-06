@@ -1,10 +1,12 @@
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
 #include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "Cards/CardSubsystem.h"
+
+#include "Kismet/GameplayStatics.h"
 
 UEconomyComponent::UEconomyComponent()
 {
@@ -21,10 +23,10 @@ void UEconomyComponent::BeginPlay()
 
 void UEconomyComponent::FindSystems()
 {
-	// find GridManager in world
-	GridManager_ = Cast<AGridManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AGridManager::StaticClass() ) );
+	GridManager_ = Cast<AGridManager>(
+		UGameplayStatics::GetActorOfClass( GetWorld(), AGridManager::StaticClass() )
+	);
 
-	// find ResourceManager
 	AActor* Owner = GetOwner();
 	if ( Owner )
 	{
@@ -32,15 +34,21 @@ void UEconomyComponent::FindSystems()
 	}
 
 	if ( !GridManager_ )
+	{
 		UE_LOG( LogTemp, Warning, TEXT( "EconomyComponent: GridManager not found!" ) );
+	}
 	if ( !ResourceManager_ )
+	{
 		UE_LOG( LogTemp, Warning, TEXT( "EconomyComponent: ResourceManager not found on owner!" ) );
+	}
 }
 
 void UEconomyComponent::RegisterBuilding( ABuilding* building )
 {
 	if ( building )
+	{
 		RegisteredBuildings_.AddUnique( building );
+	}
 }
 
 void UEconomyComponent::UnregisterBuilding( ABuilding* building )
@@ -51,10 +59,14 @@ void UEconomyComponent::UnregisterBuilding( ABuilding* building )
 void UEconomyComponent::PerformInitialScan()
 {
 	if ( bInitialScanDone )
+	{
 		return;
+	}
 
 	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), FoundActors );
+	UGameplayStatics::GetAllActorsOfClass(
+		GetWorld(), ABuilding::StaticClass(), FoundActors
+	);
 
 	for ( AActor* Actor : FoundActors )
 	{
@@ -65,8 +77,9 @@ void UEconomyComponent::PerformInitialScan()
 	}
 
 	bInitialScanDone = true;
-	UE_LOG(
-	    LogTemp, Warning, TEXT( "Economy: Initial Scan completed. Found %d buildings." ), RegisteredBuildings_.Num()
+	UE_LOG( LogTemp, Warning,
+		TEXT( "Economy: Initial Scan completed. Found %d buildings." ),
+		RegisteredBuildings_.Num()
 	);
 }
 
@@ -74,7 +87,9 @@ void UEconomyComponent::CollectGlobalResources()
 {
 	if ( GEngine )
 	{
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Orange, TEXT( "Economy: Collecting resources..." ) );
+		GEngine->AddOnScreenDebugMessage(
+			-1, 5.f, FColor::Orange, TEXT( "Economy: Collecting resources..." )
+		);
 	}
 
 	if ( !ResourceManager_ )
@@ -84,7 +99,9 @@ void UEconomyComponent::CollectGlobalResources()
 		{
 			if ( GEngine )
 			{
-				GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, TEXT( "Error: ResourceManager is NULL" ) );
+				GEngine->AddOnScreenDebugMessage(
+					-1, 5.f, FColor::Red, TEXT( "Error: ResourceManager is NULL" )
+				);
 			}
 			return;
 		}
@@ -97,14 +114,14 @@ void UEconomyComponent::CollectGlobalResources()
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-			    -1, 5.f, FColor::Red, TEXT( "Error: No buildings registered even after discovery!" )
+				-1, 5.f, FColor::Red,
+				TEXT( "Error: No buildings registered even after discovery!" )
 			);
 		}
 		return;
 	}
 
 	TMap<EResourceType, int32> collectedTotals;
-	int32 SuccessfullyProcessed = 0;
 
 	for ( auto It = RegisteredBuildings_.CreateIterator(); It; ++It )
 	{
@@ -132,11 +149,23 @@ void UEconomyComponent::CollectGlobalResources()
 		}
 	}
 
-	if ( GEngine )
+	UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this );
+	if ( cardSubsystem )
 	{
-		GEngine->AddOnScreenDebugMessage(
-		    -1, 5.f, FColor::Yellow, FString::Printf( TEXT( "Processed: %d buildings" ), SuccessfullyProcessed )
-		);
+		const FEconomyBonuses& bonuses = cardSubsystem->GetEconomyBonuses();
+
+		auto addBonus = [&]( EResourceType type, int32 bonus )
+		{
+			if ( bonus > 0 )
+			{
+				collectedTotals.FindOrAdd( type ) += bonus;
+			}
+		};
+
+		addBonus( EResourceType::Gold, bonuses.GoldProductionBonus );
+		addBonus( EResourceType::Food, bonuses.FoodProductionBonus );
+		addBonus( EResourceType::Population, bonuses.PopulationProductionBonus );
+		addBonus( EResourceType::Progress, bonuses.ProgressProductionBonus );
 	}
 
 	for ( const auto& Elem : collectedTotals )
@@ -145,7 +174,8 @@ void UEconomyComponent::CollectGlobalResources()
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-			    -1, 5.f, FColor::Green, FString::Printf( TEXT( "Added %d of type %d" ), Elem.Value, (uint8) Elem.Key )
+				-1, 5.f, FColor::Green,
+				FString::Printf( TEXT( "Added %d of type %d" ), Elem.Value, (uint8) Elem.Key )
 			);
 		}
 	}
@@ -154,7 +184,9 @@ void UEconomyComponent::CollectGlobalResources()
 void UEconomyComponent::ApplyMaintenanceCosts()
 {
 	if ( !ResourceManager_ )
+	{
 		return;
+	}
 
 	PerformInitialScan();
 
@@ -179,16 +211,40 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 		}
 	}
 
+	UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this );
+	if ( cardSubsystem )
+	{
+		const FEconomyBonuses& bonuses = cardSubsystem->GetEconomyBonuses();
+
+		auto applyReduction = [&]( EResourceType type, int32 reduction )
+		{
+			if ( reduction > 0 && TotalCosts.Contains( type ) )
+			{
+				TotalCosts[type] = FMath::Max( 0, TotalCosts[type] - reduction );
+			}
+		};
+
+		applyReduction( EResourceType::Gold, bonuses.GoldMaintenanceReduction );
+		applyReduction( EResourceType::Food, bonuses.FoodMaintenanceReduction );
+		applyReduction( EResourceType::Population, bonuses.PopulationMaintenanceReduction );
+		applyReduction( EResourceType::Progress, bonuses.ProgressMaintenanceReduction );
+	}
+
 	for ( const auto& Pair : TotalCosts )
 	{
-		ResourceManager_->TrySpendResource( Pair.Key, Pair.Value );
+		if ( Pair.Value > 0 )
+		{
+			ResourceManager_->TrySpendResource( Pair.Key, Pair.Value );
+		}
 	}
 }
 
 void UEconomyComponent::RestoreAllBuildings()
 {
 	TArray<AActor*> foundActors;
-	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), foundActors );
+	UGameplayStatics::GetAllActorsOfClass(
+		GetWorld(), ABuilding::StaticClass(), foundActors
+	);
 
 	for ( AActor* actor : foundActors )
 	{

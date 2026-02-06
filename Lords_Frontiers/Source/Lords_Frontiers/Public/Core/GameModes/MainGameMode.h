@@ -8,6 +8,7 @@
 
 class UGameLoopConfig;
 class UUserWidget;
+class UCardPoolConfig;
 
 UCLASS()
 class LORDS_FRONTIERS_API AMainGameMode : public AGameModeBase
@@ -23,6 +24,9 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Config" )
 	TObjectPtr<UGameLoopConfig> GameLoopConfig;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Cards" )
+	TObjectPtr<UCardPoolConfig> CardPoolConfig;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI" )
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 
@@ -31,6 +35,7 @@ protected:
 
 private:
 	void InitializeGameSystems();
+	void InitializeCardSystem();
 	void CreateHUD();
 	void SetupCamera();
 };

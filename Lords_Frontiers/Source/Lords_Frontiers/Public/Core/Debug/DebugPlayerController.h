@@ -9,6 +9,7 @@
 
 class USelectionManagerComponent;
 class ABuildManager;
+class UCardSelectionHUDComponent;
 
 /**
  *
@@ -27,6 +28,9 @@ public:
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Cards" )
+	TObjectPtr<UCardSelectionHUDComponent> CardSelectionHUDComponent_ = nullptr;
 
 	virtual void SetupInputComponent() override;
 

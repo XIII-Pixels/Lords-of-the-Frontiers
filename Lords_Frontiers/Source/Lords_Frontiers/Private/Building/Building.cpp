@@ -1,6 +1,7 @@
 #include "Building/Building.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Cards/CardSubsystem.h"
 
 #include "Components/BoxComponent.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -23,6 +24,9 @@ void ABuilding::BeginPlay()
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
+	// Save original maintenance for card reset on game restart
+	OriginalMaintenanceCost_ = MaintenanceCost;
+
 	if ( BuildingMesh_ )
 	{
 		DefaultMesh_ = BuildingMesh_->GetStaticMesh();
@@ -35,15 +39,20 @@ void ABuilding::BeginPlay()
 			Eco->RegisterBuilding( this );
 		}
 	}
+
+	if ( UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this ) )
+	{
+		cardSubsystem->OnBuildingPlaced( this );
+	}
 }
 
 void ABuilding::OnDeath()
 {
-	if (bIsRuined_)
+	if ( bIsRuined_ )
 	{
 		return;
 	}
-		
+
 	bIsRuined_ = true;
 
 	if ( BuildingMesh_ && RuinedMesh_ )
@@ -77,8 +86,8 @@ void ABuilding::OnDeath()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-		    -1, 3.0f, FColor::Orange,
-		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
+			-1, 3.0f, FColor::Orange,
+			FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
 }
@@ -130,7 +139,7 @@ void ABuilding::OnSelected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-		    -1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
+			-1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
 		);
 	}
 
@@ -145,7 +154,7 @@ void ABuilding::OnDeselected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-		    -1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
+			-1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
 		);
 	}
 
@@ -185,7 +194,9 @@ void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 void ABuilding::RestoreFromRuins()
 {
 	if ( !bIsRuined_ )
+	{
 		return;
+	}
 
 	bIsRuined_ = false;
 
@@ -243,4 +254,26 @@ void ABuilding::FullRestore()
 	}
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
+}
+
+// =============================================================================
+// Direct card modifiers
+// =============================================================================
+
+void ABuilding::ModifyMaintenanceCost( EResourceType type, int32 delta )
+{
+	MaintenanceCost.ModifyByType( type, delta );
+}
+
+void ABuilding::ModifyMaintenanceCostAll( int32 delta )
+{
+	for ( EResourceType type : CardTypeHelpers::GetAllResourceTypes() )
+	{
+		MaintenanceCost.ModifyByType( type, delta );
+	}
+}
+
+void ABuilding::ResetMaintenanceCostToDefaults()
+{
+	MaintenanceCost = OriginalMaintenanceCost_;
 }

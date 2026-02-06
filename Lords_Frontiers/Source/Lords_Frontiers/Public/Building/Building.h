@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
-#include "Selectable.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
+#include "Selectable.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
@@ -31,7 +33,7 @@ public:
 
 	virtual ETeam Team() override;
 
-	virtual void TakeDamage(float damage) override;
+	virtual void TakeDamage( float damage ) override;
 
 	virtual void OnSelected_Implementation() override;
 
@@ -50,6 +52,25 @@ public:
 	{
 		return BuildingCost_;
 	}
+
+	/**
+	 * Modifies MaintenanceCost for a specific resource type.
+	 * @param type - Which resource to modify
+	 * @param delta - Value to add (negative = cheaper maintenance)
+	 */
+	void ModifyMaintenanceCost( EResourceType type, int32 delta );
+
+	/**
+	 * Modifies MaintenanceCost for all resource types at once.
+	 * @param delta - Value to add to each resource
+	 */
+	void ModifyMaintenanceCostAll( int32 delta );
+
+	/**
+	 * Resets MaintenanceCost to original values from CDO.
+	 * Call on game restart to undo all card modifications.
+	 */
+	void ResetMaintenanceCostToDefaults();
 
 protected:
 	virtual void BeginPlay() override;
@@ -81,6 +102,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> DefaultMesh_;
 
+private:
+	FResourceProduction OriginalMaintenanceCost_;
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;
 };
