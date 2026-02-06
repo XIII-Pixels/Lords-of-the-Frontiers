@@ -8,6 +8,7 @@
 #include "Waves/WaveManager.h"
 
 #include "Engine/GameInstance.h"
+#include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -277,6 +278,7 @@ void UGameLoopManager::EndBuildTurn()
 	{
 		CollectBuildingIncome();
 		CurrentBuildTurn_++;
+		UpdatePostProcessVolume( EGameLoopPhase::Combat );
 		OnBuildTurnChanged.Broadcast( CurrentBuildTurn_, GetMaxBuildTurns() );
 		BroadcastButtonStates();
 
@@ -295,6 +297,29 @@ void UGameLoopManager::StartCombatEarly()
 	Log( TEXT( "Starting combat EARLY" ) );
 
 	EnterCombatPhase();
+}
+
+void UGameLoopManager::UpdatePostProcessVolume( EGameLoopPhase phase )
+{
+	UWorld* world = GetWorldSafe();
+	if ( !world )
+	{
+		return;
+	}
+
+	TArray<AActor*> foundActors;
+	UGameplayStatics::GetAllActorsWithTag( world, FName( "PPV_Night" ), foundActors );
+
+
+	const bool bNight = !( phase == EGameLoopPhase::Building || phase == EGameLoopPhase::Startup );
+
+	for ( AActor* actor : foundActors )
+	{
+		if ( APostProcessVolume* ppv = Cast<APostProcessVolume>( actor ) )
+		{
+			ppv->BlendWeight = bNight ? 0.0f : 1.0f;
+		}
+	}
 }
 
 void UGameLoopManager::ReportDamageTaken( float damageAmount )
@@ -414,6 +439,8 @@ void UGameLoopManager::SetPhase( EGameLoopPhase newPhase )
 
 	OnPhaseChanged.Broadcast( oldPhase, newPhase );
 	BroadcastButtonStates();
+
+	UpdatePostProcessVolume( newPhase );
 
 	Log( FString::Printf(
 	    TEXT( "Phase: %s -> %s" ), *UEnum::GetValueAsString( oldPhase ), *UEnum::GetValueAsString( newPhase )

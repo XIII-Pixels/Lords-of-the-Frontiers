@@ -402,6 +402,7 @@ protected:
 	/** Starts combat timer and schedules enemy spawning. */
 	void EnterCombatPhase();
 
+	void UpdatePostProcessVolume( EGameLoopPhase phase );
 	/**
 	 * Grants combat rewards, starts healing, and requests card selection.
 	 * Does NOT auto-transition to Building. Waits for ConfirmRewardPhase().
