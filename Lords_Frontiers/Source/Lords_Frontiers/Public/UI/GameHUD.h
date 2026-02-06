@@ -109,6 +109,24 @@ public:
 	UTextBlock* Text_Food;
 
 	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Food_diff;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Gold_diff;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Citizens_diff;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Food_Per_Turn;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Gold_Per_Turn;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Citizens_Per_Turn;
+
+	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextTimer;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
@@ -185,6 +203,14 @@ protected:
 	UFUNCTION()
 	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
 
+	UFUNCTION()
+	void HandleResourcePerTurnChanged( EResourceType ResourceType, int32 NewPerTurn );
+
+	void ShowPerTurnDiff( EResourceType Type, int32 Value );
+
+	UFUNCTION()
+	void HandleResourcesCollected();
+
 	// Update methods
 	void UpdateDayText();
 	void UpdateStatusText();
@@ -224,4 +250,31 @@ protected:
 	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
+
+	void UpdateAllBuildingButtons();
+
+	void UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
+	FLinearColor AffordableColor = FLinearColor::White;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
+	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+
+	UFUNCTION()
+	void HandleResourceChangedDelta( EResourceType ResourceType, int32 Delta, int32 NewTotal );
+
+	// Clear by timer
+	UFUNCTION()
+	void ClearResourceDiffInt( int32 ResourceTypeInt );
+
+	// map handles so each resource type can have its own timer (prevents duplicate timers)
+	UPROPERTY()
+	TMap<EResourceType, FTimerHandle> ResourceDiffClearTimerHandles;
+
+	void ScheduleClearResourceDiff( EResourceType Type, float DelaySeconds /*= 3.0f*/ );
+
+private:
+	// timers to hide resource diff
+	TMap<EResourceType, FTimerHandle> ResourceDiffTimers_;
 };

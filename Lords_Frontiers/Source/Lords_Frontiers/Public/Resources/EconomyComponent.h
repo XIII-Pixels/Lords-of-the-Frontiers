@@ -2,8 +2,12 @@
 
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
+#include "GameResource.h"
 
 #include "EconomyComponent.generated.h"
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnResourcesCollected );
 
 class ABuilding;
 class AGridManager;
@@ -40,6 +44,14 @@ public:
 	void PerformInitialScan();
 
 	void RestoreAllBuildings();
+
+	TMap<EResourceType, int32> ComputePerTurnTotals() const;
+
+	UFUNCTION( BlueprintCallable, Category = "Economy" )
+	void UpdatePerTurnEstimates();
+
+	UPROPERTY( BlueprintAssignable, Category = "Resources|Events" )
+	FOnResourcesCollected OnResourcesCollected;
 
 private:
 	// url system

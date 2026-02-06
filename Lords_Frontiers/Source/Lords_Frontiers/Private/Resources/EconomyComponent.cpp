@@ -5,6 +5,7 @@
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
 #include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "Lords_Frontiers/Public/Core/CoreManager.h"
 
 UEconomyComponent::UEconomyComponent()
 {
@@ -123,6 +124,7 @@ void UEconomyComponent::CollectGlobalResources()
 							collectedTotals.FindOrAdd( pair.Key ) += pair.Value;
 						}
 					}
+					++SuccessfullyProcessed;
 				}
 			}
 		}
@@ -149,6 +151,7 @@ void UEconomyComponent::CollectGlobalResources()
 			);
 		}
 	}
+	OnResourcesCollected.Broadcast();
 }
 
 void UEconomyComponent::ApplyMaintenanceCosts()
@@ -197,4 +200,92 @@ void UEconomyComponent::RestoreAllBuildings()
 			b->RestoreFromRuins();
 		}
 	}
+}
+TMap<EResourceType, int32> UEconomyComponent::ComputePerTurnTotals() const
+{
+	TMap<EResourceType, int32> PerTurnTotals;
+
+	for ( auto It = RegisteredBuildings_.CreateConstIterator(); It; ++It )
+	{
+		ABuilding* B = It->Get();
+		if ( !B )
+		{
+			continue;
+		}
+
+		if ( AResourceBuilding* RB = Cast<AResourceBuilding>( B ) )
+		{
+			if ( UResourceGenerator* Gen = RB->GetResourceGenerator() )
+			{
+				const TMap<EResourceType, int32> Production = Gen->GetTotalProduction();
+				for ( const auto& Pair : Production )
+				{
+					if ( Pair.Key == EResourceType::None )
+						continue;
+					if ( Pair.Value == 0 )
+						continue;
+
+					PerTurnTotals.FindOrAdd( Pair.Key ) += Pair.Value; // add positive or negative
+				}
+			}
+		}
+
+		{
+			const TMap<EResourceType, int32> Costs = B->GetMaintenanceCost().ToMap();
+			for ( const auto& Cost : Costs )
+			{
+				if ( Cost.Key == EResourceType::None )
+					continue;
+				if ( Cost.Value == 0 )
+					continue;
+
+				PerTurnTotals.FindOrAdd( Cost.Key ) -= Cost.Value;
+			}
+		}
+	}
+
+	return PerTurnTotals;
+}
+
+void UEconomyComponent::UpdatePerTurnEstimates()
+{
+	if ( !ResourceManager_ )
+	{
+		FindSystems();
+		if ( !ResourceManager_ )
+		{
+			UE_LOG( LogTemp, Warning, TEXT( "Economy: UpdatePerTurnEstimates: ResourceManager is NULL" ) );
+			return;
+		}
+	}
+
+	PerformInitialScan();
+
+	for ( int32 i = RegisteredBuildings_.Num() - 1; i >= 0; --i )
+	{
+		if ( !RegisteredBuildings_[i].IsValid() )
+		{
+			RegisteredBuildings_.RemoveAtSwap( i );
+		}
+	}
+
+	const TMap<EResourceType, int32> NewPerTurn = ComputePerTurnTotals();
+
+	for ( uint8 t = (uint8) EResourceType::None + 1; t < (uint8) EResourceType::Max; ++t )
+	{
+		const EResourceType Type = static_cast<EResourceType>( t );
+		const int32* Found = NewPerTurn.Find( Type );
+		const int32 NewValue = Found ? *Found : 0;
+		ResourceManager_->SetResourcePerTurn( Type, NewValue );
+	}
+
+#if WITH_EDITOR || UE_BUILD_DEBUG
+	// Debug
+	FString DebugStr = TEXT( "Economy: Per-turn totals:" );
+	for ( const auto& Elem : NewPerTurn )
+	{
+		DebugStr += FString::Printf( TEXT( " [%d:%+d]" ), (int) Elem.Key, Elem.Value );
+	}
+	UE_LOG( LogTemp, Log, TEXT( "%s" ), *DebugStr );
+#endif
 }

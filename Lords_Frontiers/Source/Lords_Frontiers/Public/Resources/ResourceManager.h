@@ -7,8 +7,13 @@
 #include "ResourceManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnResourceChanged, EResourceType, Type, int32, NewAmount );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnResourcePerTurnChanged, EResourceType, ResourceType, int32, NewPerTurn );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FOnResourceChangedDelta, EResourceType, ResourceType, int32, Delta, int32, NewTotal);
+
 
 static constexpr int32 cDefaultMaxResource = 999999;
+
+
 
 // Component responsible for storing and managing the resources of the owner
 // (Player)
@@ -50,6 +55,22 @@ public:
 
 	void SpendResources( const FResourceProduction& cost );
 
+	// Set per-turn value (will broadcast if changed)
+	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )
+	void SetResourcePerTurn( EResourceType Type, int32 NewPerTurn );
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Resource Management" )
+	int32 GetResourcePerTurn( EResourceType Type ) const;
+
+	// Event when per-turn changes
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Resource Management|Events" )
+	FOnResourcePerTurnChanged OnResourcePerTurnChanged;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Resource Management|Events" )
+	FOnResourceChangedDelta OnResourceChangedDelta;
+
+
+
 private:
 	// Resource Storage: Key - Type, Value - Quantity
 	UPROPERTY( VisibleAnywhere, Category = "Settings|Resources" )
@@ -57,4 +78,8 @@ private:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Resources" )
 	TMap<EResourceType, int32> MaxResources_;
+
+	// How much added or consumed per turn
+	UPROPERTY( VisibleAnywhere, Category = "Settings|Resources" )
+	TMap<EResourceType, int32> ResourcePerTurn_;
 };

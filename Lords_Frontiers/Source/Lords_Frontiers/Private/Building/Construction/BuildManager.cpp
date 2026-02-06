@@ -7,7 +7,8 @@
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
-
+#include "Core/CoreManager.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 
 #include "Components/StaticMeshComponent.h" // <-- новое
@@ -287,6 +288,13 @@ void ABuildManager::ConfirmPlacing()
 
 		// В обычном режиме остаёмся в билде, чтобы можно было ставить несколько
 		// зданий подряд.
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		{
+			if ( UEconomyComponent* econ = core->GetEconomyComponent() )
+			{
+				econ->UpdatePerTurnEstimates();
+			}
+		}
 		return;
 	}
 
@@ -324,6 +332,14 @@ void ABuildManager::ConfirmPlacing()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building relocated" ) );
+	}
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UEconomyComponent* econ = core->GetEconomyComponent() )
+		{
+			econ->UpdatePerTurnEstimates();
+		}
 	}
 
 	// 5) Выключаем режим строительства и переноса, прячем превью

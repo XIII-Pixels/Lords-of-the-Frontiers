@@ -5,6 +5,7 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "Resources/ResourceManager.h"
+#include "Resources/EconomyComponent.h"
 
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
@@ -80,6 +81,10 @@ void UGameHUDWidget::NativeConstruct()
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
+		if ( UEconomyComponent* econ = core->GetEconomyComponent() )
+		{
+			econ->OnResourcesCollected.AddDynamic( this, &UGameHUDWidget::HandleResourcesCollected );
+		}
 		if ( UGameLoopManager* gL = core->GetGameLoop() )
 		{
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
@@ -90,12 +95,28 @@ void UGameHUDWidget::NativeConstruct()
 		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
 			rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+			rM->OnResourceChangedDelta.AddDynamic( this, &UGameHUDWidget::HandleResourceChangedDelta );
+			rM->OnResourcePerTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleResourcePerTurnChanged );
+			
 		}
 	}
 
 	if ( TextTimer )
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
+	}
+
+	if ( Text_Food_diff )
+	{
+		Text_Food_diff->SetText( FText::GetEmpty() );
+	}
+	if ( Text_Gold_diff )
+	{
+		Text_Gold_diff->SetText( FText::GetEmpty() );
+	}
+	if ( Text_Citizens_diff )
+	{
+		Text_Citizens_diff->SetText( FText::GetEmpty() );
 	}
 
 	UpdateDayText();
@@ -144,6 +165,10 @@ void UGameHUDWidget::NativeDestruct()
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
+		if ( UEconomyComponent* econ = core->GetEconomyComponent() )
+		{
+			econ->OnResourcesCollected.RemoveDynamic( this, &UGameHUDWidget::HandleResourcesCollected );
+		}
 		if ( UGameLoopManager* gL = core->GetGameLoop() )
 		{
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
@@ -154,6 +179,8 @@ void UGameHUDWidget::NativeDestruct()
 		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+			rM->OnResourceChangedDelta.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChangedDelta );
+			rM->OnResourcePerTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourcePerTurnChanged );
 		}
 	}
 
@@ -178,6 +205,76 @@ void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount 
 {
 	UE_LOG( LogTemp, Warning, TEXT( "HandleResourceChanged: Type=%d, Amount=%d" ), (int32) Type, NewAmount );
 	UpdateResources();
+	UpdateAllBuildingButtons();
+}
+
+void UGameHUDWidget::HandleResourceChangedDelta( EResourceType type, int32 delta, int32 newTotal )
+{
+	UTextBlock* Target = nullptr;
+
+	switch ( type )
+	{
+	case EResourceType::Gold:
+		Target = Text_Gold_diff;
+		break;
+	case EResourceType::Food:
+		Target = Text_Food_diff;
+		break;
+	case EResourceType::Population:
+		Target = Text_Citizens_diff;
+		break;
+	default:
+		return;
+	}
+
+	Target->SetText( FText::FromString( FString::Printf( TEXT( "%+d" ), delta ) ) );
+
+	if ( delta > 0 )
+	{
+		Target->SetColorAndOpacity( FSlateColor( FLinearColor::Green ) );
+	}
+	else if ( delta < 0 )
+	{
+		Target->SetColorAndOpacity( FSlateColor( FLinearColor::Red ) );
+	}
+	else
+	{
+		Target->SetColorAndOpacity( FSlateColor( FLinearColor::White ) );
+	}
+}
+
+
+void UGameHUDWidget::HandleResourcePerTurnChanged( EResourceType type, int32 newPerTurn )
+{
+	UTextBlock* Target = nullptr;
+
+	switch ( type )
+	{
+	case EResourceType::Gold:
+		Target = Text_Gold_Per_Turn;
+		break;
+	case EResourceType::Food:
+		Target = Text_Food_Per_Turn;
+		break;
+	case EResourceType::Population:
+		Target = Text_Citizens_Per_Turn;
+		break;
+	default:
+		return;
+	}
+
+	if ( !Target )
+		return;
+
+	const FString s = ( newPerTurn >= 0 ) ? FString::Printf( TEXT( "+%d" ), newPerTurn )
+	                                      : FString::Printf( TEXT( "%d" ), newPerTurn );
+	Target->SetText( FText::FromString( s ) );
+
+	FLinearColor color =
+	    ( newPerTurn > 0 ) ? FLinearColor::Green : ( newPerTurn < 0 ? FLinearColor::Red : FLinearColor::White );
+	Target->SetColorAndOpacity( FSlateColor( color ) );
+
+	ScheduleClearResourceDiff( type, 3.0f );
 }
 
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
@@ -551,5 +648,144 @@ void UGameHUDWidget::UpdateCategoryButtonsVisual()
 	{
 		float OffsetY = bShowingEconomyBuildings_ ? 0.0f : ActiveButtonLiftOffset;
 		ButtonDefensiveBuildings->SetRenderTranslation( FVector2D( 0.0f, OffsetY ) );
+	}
+}
+void UGameHUDWidget::UpdateAllBuildingButtons()
+{
+	UpdateButtonAvailability( ButtonBuildingWoodenHouse, WoodenHouseClass );
+	UpdateButtonAvailability( ButtonBuildingStrawHouse, StrawHouseClass );
+	UpdateButtonAvailability( ButtonBuildingFarm, FarmClass );
+	UpdateButtonAvailability( ButtonBuildingLawnHouse, LawnHouseClass );
+	UpdateButtonAvailability( ButtonBuildingMagicHouse, MagicHouseClass );
+
+	UpdateButtonAvailability( ButtonBuildingWoodWall, WoodWallClass );
+	UpdateButtonAvailability( ButtonBuildingStoneWall, StoneWallClass );
+	UpdateButtonAvailability( ButtonBuildingTowerT0, TowerT0Class );
+	UpdateButtonAvailability( ButtonBuildingTowerT1, TowerT1Class );
+	UpdateButtonAvailability( ButtonBuildingTowerT2, TowerT2Class );
+}
+
+void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !button || !buildingClass )
+	{
+		return;
+	}
+	UCoreManager* core = UCoreManager::Get( this );
+	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
+	if ( !rM )
+	{
+		return;
+	}
+
+	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
+	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
+
+	button->SetIsEnabled( bCanAfford );
+
+	button->SetRenderOpacity( bCanAfford ? 1.0f : 0.4f );
+
+	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
+}
+
+void UGameHUDWidget::ClearResourceDiffInt( int32 ResourceTypeInt )
+{
+	const FSlateColor DefaultColor( FLinearColor::White );
+
+	const EResourceType Type = static_cast<EResourceType>( ResourceTypeInt );
+
+	switch ( Type )
+	{
+	case EResourceType::Gold:
+		if ( Text_Gold_diff )
+		{
+			Text_Gold_diff->SetText( FText::GetEmpty() );
+			Text_Gold_diff->SetColorAndOpacity( DefaultColor );
+		}
+		break;
+
+	case EResourceType::Food:
+		if ( Text_Food_diff )
+		{
+			Text_Food_diff->SetText( FText::GetEmpty() );
+			Text_Food_diff->SetColorAndOpacity( DefaultColor );
+		}
+		break;
+
+	case EResourceType::Population:
+		if ( Text_Citizens_diff )
+		{
+			Text_Citizens_diff->SetText( FText::GetEmpty() );
+			Text_Citizens_diff->SetColorAndOpacity( DefaultColor );
+		}
+		break;
+
+	default:
+		// If enum contains other values, ignore them.
+		break;
+	}
+
+	UE_LOG( LogTemp, VeryVerbose, TEXT( "GameHUD: Cleared resource diff for type=%d" ), ResourceTypeInt );
+}
+
+void UGameHUDWidget::ScheduleClearResourceDiff( EResourceType Type, float DelaySeconds /*= 3.0f*/ )
+{
+	if ( !GetWorld() )
+		return;
+
+	// Clear previous timer for this type, if any
+	FTimerHandle& Handle = ResourceDiffClearTimerHandles.FindOrAdd( Type );
+	if ( Handle.IsValid() )
+	{
+		GetWorld()->GetTimerManager().ClearTimer( Handle );
+		Handle.Invalidate();
+	}
+
+	FTimerDelegate Del;
+	Del.BindUFunction( this, FName( "ClearResourceDiffInt" ), static_cast<int32>( Type ) );
+	GetWorld()->GetTimerManager().SetTimer( Handle, Del, DelaySeconds, false );
+}
+
+void UGameHUDWidget::ShowPerTurnDiff( EResourceType Type, int32 Value )
+{
+	UTextBlock* Target = nullptr;
+
+	switch ( Type )
+	{
+	case EResourceType::Gold:
+		Target = Text_Gold_diff;
+		break;
+	case EResourceType::Food:
+		Target = Text_Food_diff;
+		break;
+	case EResourceType::Population:
+		Target = Text_Citizens_diff;
+		break;
+	default:
+		return;
+	}
+
+	if ( !Target )
+		return;
+
+	Target->SetText( FText::FromString( FString::Printf( TEXT( "%+d" ), Value ) ) );
+
+	const FLinearColor Color = Value > 0 ? FLinearColor::Green : Value < 0 ? FLinearColor::Red : FLinearColor::White;
+
+	Target->SetColorAndOpacity( FSlateColor( Color ) );
+}
+
+void UGameHUDWidget::HandleResourcesCollected()
+{
+	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	{
+		if ( UResourceManager* RM = Core->GetResourceManager() )
+		{
+			ShowPerTurnDiff( EResourceType::Gold, RM->GetResourcePerTurn( EResourceType::Gold ) );
+
+			ShowPerTurnDiff( EResourceType::Food, RM->GetResourcePerTurn( EResourceType::Food ) );
+
+			ShowPerTurnDiff( EResourceType::Population, RM->GetResourcePerTurn( EResourceType::Population ) );
+		}
 	}
 }

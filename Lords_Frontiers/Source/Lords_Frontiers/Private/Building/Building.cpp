@@ -1,6 +1,7 @@
 #include "Building/Building.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Core/CoreManager.h"
 
 #include "Components/BoxComponent.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -80,6 +81,13 @@ void ABuilding::OnDeath()
 		    -1, 3.0f, FColor::Orange,
 		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
+	}
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UEconomyComponent* econ = core->GetEconomyComponent() )
+		{
+			econ->UpdatePerTurnEstimates();
+		}
 	}
 }
 
