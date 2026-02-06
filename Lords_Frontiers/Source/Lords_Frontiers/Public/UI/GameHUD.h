@@ -112,6 +112,18 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextTimer;
 
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Gold_Net;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Food_Net; 
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Citizens_Net;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	UTextBlock* Text_Progress_Net; 
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> WoodenHouseClass;
 
@@ -185,6 +197,13 @@ protected:
 
 	UFUNCTION()
 	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
+
+
+	UFUNCTION()
+	void HandleEconomyBalanceChanged( const FResourceProduction& NetIncome ); 
+
+
+	void UpdateNetDisplay( UTextBlock* TextBlock, int32 Value );
 
 	// Update methods
 	void UpdateDayText();

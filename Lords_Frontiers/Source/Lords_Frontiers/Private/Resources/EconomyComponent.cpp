@@ -1,10 +1,11 @@
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 
+#include "Building/ResourceBuilding.h"
+#include "Cards/CardSubsystem.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
 #include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
-#include "Cards/CardSubsystem.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -23,9 +24,7 @@ void UEconomyComponent::BeginPlay()
 
 void UEconomyComponent::FindSystems()
 {
-	GridManager_ = Cast<AGridManager>(
-		UGameplayStatics::GetActorOfClass( GetWorld(), AGridManager::StaticClass() )
-	);
+	GridManager_ = Cast<AGridManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AGridManager::StaticClass() ) );
 
 	AActor* Owner = GetOwner();
 	if ( Owner )
@@ -49,11 +48,14 @@ void UEconomyComponent::RegisterBuilding( ABuilding* building )
 	{
 		RegisteredBuildings_.AddUnique( building );
 	}
+	MarkEconomyDirty();
 }
 
 void UEconomyComponent::UnregisterBuilding( ABuilding* building )
 {
 	RegisteredBuildings_.Remove( building );
+
+	MarkEconomyDirty();
 }
 
 void UEconomyComponent::PerformInitialScan()
@@ -64,9 +66,7 @@ void UEconomyComponent::PerformInitialScan()
 	}
 
 	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(
-		GetWorld(), ABuilding::StaticClass(), FoundActors
-	);
+	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), FoundActors );
 
 	for ( AActor* Actor : FoundActors )
 	{
@@ -77,19 +77,18 @@ void UEconomyComponent::PerformInitialScan()
 	}
 
 	bInitialScanDone = true;
-	UE_LOG( LogTemp, Warning,
-		TEXT( "Economy: Initial Scan completed. Found %d buildings." ),
-		RegisteredBuildings_.Num()
+	UE_LOG(
+	    LogTemp, Warning, TEXT( "Economy: Initial Scan completed. Found %d buildings." ), RegisteredBuildings_.Num()
 	);
+
+	MarkEconomyDirty();
 }
 
 void UEconomyComponent::CollectGlobalResources()
 {
 	if ( GEngine )
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1, 5.f, FColor::Orange, TEXT( "Economy: Collecting resources..." )
-		);
+		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Orange, TEXT( "Economy: Collecting resources..." ) );
 	}
 
 	if ( !ResourceManager_ )
@@ -99,9 +98,7 @@ void UEconomyComponent::CollectGlobalResources()
 		{
 			if ( GEngine )
 			{
-				GEngine->AddOnScreenDebugMessage(
-					-1, 5.f, FColor::Red, TEXT( "Error: ResourceManager is NULL" )
-				);
+				GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, TEXT( "Error: ResourceManager is NULL" ) );
 			}
 			return;
 		}
@@ -114,8 +111,7 @@ void UEconomyComponent::CollectGlobalResources()
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-				-1, 5.f, FColor::Red,
-				TEXT( "Error: No buildings registered even after discovery!" )
+			    -1, 5.f, FColor::Red, TEXT( "Error: No buildings registered even after discovery!" )
 			);
 		}
 		return;
@@ -174,8 +170,7 @@ void UEconomyComponent::CollectGlobalResources()
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-				-1, 5.f, FColor::Green,
-				FString::Printf( TEXT( "Added %d of type %d" ), Elem.Value, (uint8) Elem.Key )
+			    -1, 5.f, FColor::Green, FString::Printf( TEXT( "Added %d of type %d" ), Elem.Value, (uint8) Elem.Key )
 			);
 		}
 	}
@@ -242,9 +237,7 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 void UEconomyComponent::RestoreAllBuildings()
 {
 	TArray<AActor*> foundActors;
-	UGameplayStatics::GetAllActorsOfClass(
-		GetWorld(), ABuilding::StaticClass(), foundActors
-	);
+	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), foundActors );
 
 	for ( AActor* actor : foundActors )
 	{
@@ -252,5 +245,99 @@ void UEconomyComponent::RestoreAllBuildings()
 		{
 			b->RestoreFromRuins();
 		}
+	}
+}
+
+FResourceProduction UEconomyComponent::GetTotalProduction()
+{
+	RecalculateIfDirty();
+	return CachedTotalProduction_;
+}
+
+FResourceProduction UEconomyComponent::GetTotalMaintenance()
+{
+	RecalculateIfDirty();
+	return CachedTotalMaintenance_;
+}
+
+FResourceProduction UEconomyComponent::GetNetIncome()
+{
+	RecalculateIfDirty();
+	return CachedNetIncome_;
+}
+
+int32 UEconomyComponent::GetNetIncomeForType( EResourceType Type )
+{
+	RecalculateIfDirty();
+	return CachedNetIncome_.GetByType( Type );
+}
+
+void UEconomyComponent::MarkEconomyDirty()
+{
+	bEconomyDirty_ = true;
+	RecalculateIfDirty();
+}
+
+void UEconomyComponent::RecalculateIfDirty()
+{
+	if ( bEconomyDirty_ )
+	{
+		RecalculateEconomyBalance();
+		bEconomyDirty_ = false;
+	}
+}
+
+void UEconomyComponent::RecalculateEconomyBalance()
+{
+	const FResourceProduction PreviousNet = CachedNetIncome_;
+
+	CachedTotalProduction_ = FResourceProduction();
+	CachedTotalMaintenance_ = FResourceProduction();
+	CachedNetIncome_ = FResourceProduction();
+
+	for ( int32 i = RegisteredBuildings_.Num() - 1; i >= 0; --i )
+	{
+		if ( !RegisteredBuildings_[i].IsValid() )
+		{
+			RegisteredBuildings_.RemoveAtSwap( i );
+		}
+	}
+
+	for ( const TWeakObjectPtr<ABuilding>& WeakBuilding : RegisteredBuildings_ )
+	{
+		ABuilding* Building = WeakBuilding.Get();
+		if ( !Building || Building->IsDestroyed() )
+		{
+			continue;
+		}
+
+		const FResourceProduction& Maint = Building->GetMaintenanceCost();
+		CachedTotalMaintenance_.Gold += Maint.Gold;
+		CachedTotalMaintenance_.Food += Maint.Food;
+		CachedTotalMaintenance_.Population += Maint.Population;
+		CachedTotalMaintenance_.Progress += Maint.Progress;
+
+		if ( AResourceBuilding* ResBuild = Cast<AResourceBuilding>( Building ) )
+		{
+			const FResourceProduction& Prod = ResBuild->GetProductionConfig();
+			CachedTotalProduction_.Gold += Prod.Gold;
+			CachedTotalProduction_.Food += Prod.Food;
+			CachedTotalProduction_.Population += Prod.Population;
+			CachedTotalProduction_.Progress += Prod.Progress;
+		}
+	}
+
+	CachedNetIncome_.Gold = CachedTotalProduction_.Gold - CachedTotalMaintenance_.Gold;
+	CachedNetIncome_.Food = CachedTotalProduction_.Food - CachedTotalMaintenance_.Food;
+	CachedNetIncome_.Population = CachedTotalProduction_.Population - CachedTotalMaintenance_.Population;
+	CachedNetIncome_.Progress = CachedTotalProduction_.Progress - CachedTotalMaintenance_.Progress;
+
+	const bool bChanged = PreviousNet.Gold != CachedNetIncome_.Gold || PreviousNet.Food != CachedNetIncome_.Food ||
+	                      PreviousNet.Population != CachedNetIncome_.Population ||
+	                      PreviousNet.Progress != CachedNetIncome_.Progress;
+
+	if ( bChanged )
+	{
+		OnEconomyBalanceChanged.Broadcast( CachedNetIncome_ );
 	}
 }

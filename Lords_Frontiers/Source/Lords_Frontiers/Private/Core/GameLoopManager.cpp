@@ -679,6 +679,8 @@ void UGameLoopManager::CollectBuildingIncome()
 
 		ec->ApplyMaintenanceCosts();
 
+		ec->MarkEconomyDirty();
+
 		Log( TEXT( "Collected building income" ) );
 	}
 }

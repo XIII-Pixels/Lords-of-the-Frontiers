@@ -4,6 +4,7 @@
 #include "Building/Construction/BuildManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
+#include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 
 #include "Components/GridPanel.h"
@@ -31,7 +32,6 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
-
 	}
 	if ( ButtonRemoveBuilding )
 	{
@@ -53,8 +53,8 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonBuildingWoodenHouse )
 	{
 		ButtonBuildingWoodenHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
-		ButtonBuildingWoodenHouse->OnHovered.AddDynamic(this, &UGameHUDWidget::OnHoverWoodenHouse);
-		ButtonBuildingWoodenHouse->OnUnhovered.AddDynamic(this, &UGameHUDWidget::OnBuildingUnhovered);
+		ButtonBuildingWoodenHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWoodenHouse );
+		ButtonBuildingWoodenHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingStrawHouse )
 	{
@@ -121,6 +121,11 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 		}
 
+		if ( UEconomyComponent* eco = core->GetEconomyComponent() )
+		{
+			eco->OnEconomyBalanceChanged.AddDynamic( this, &UGameHUDWidget::HandleEconomyBalanceChanged );
+			HandleEconomyBalanceChanged( eco->GetNetIncome() );
+		}
 	}
 
 	if ( TextTimer )
@@ -605,7 +610,7 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
 {
-	if (!button || !buildingClass)
+	if ( !button || !buildingClass )
 	{
 		return;
 	}
@@ -614,7 +619,7 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	if ( !rM )
 	{
 		return;
-	}	
+	}
 
 	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
 	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
@@ -663,7 +668,7 @@ void UGameHUDWidget::ShowTooltipInternal()
 	{
 		pc->GetMousePosition( mousePos.X, mousePos.Y );
 
-		FVector2D viewportSize;
+		FVector2D viewportSize( 1920.0, 1080.0 );
 		if ( GEngine && GEngine->GameViewport )
 		{
 			GEngine->GameViewport->GetViewportSize( viewportSize );
@@ -673,4 +678,42 @@ void UGameHUDWidget::ShowTooltipInternal()
 
 		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
 	}
+}
+
+void UGameHUDWidget::HandleEconomyBalanceChanged( const FResourceProduction& NetIncome )
+{
+	UpdateNetDisplay( Text_Gold_Net, NetIncome.Gold );
+	UpdateNetDisplay( Text_Food_Net, NetIncome.Food );
+	UpdateNetDisplay( Text_Citizens_Net, NetIncome.Population );
+	UpdateNetDisplay( Text_Progress_Net, NetIncome.Progress );
+}
+
+void UGameHUDWidget::UpdateNetDisplay( UTextBlock* TextBlock, int32 Value )
+{
+	if ( !TextBlock )
+	{
+		return;
+	}
+
+	FString DisplayStr;
+	FSlateColor Color;
+
+	if ( Value > 0 )
+	{
+		DisplayStr = FString::Printf( TEXT( "+%d" ), Value );
+		Color = FSlateColor( FLinearColor( 0.15f, 0.55f, 0.15f ) );
+	}
+	else if ( Value < 0 )
+	{
+		DisplayStr = FString::Printf( TEXT( "%d" ), Value );
+		Color = FSlateColor( FLinearColor( 0.75f, 0.1f, 0.1f ) );
+	}
+	else
+	{
+		DisplayStr = TEXT( "0" );
+		Color = FSlateColor( FLinearColor( 0.4f, 0.38f, 0.35f ) );
+	}
+
+	TextBlock->SetText( FText::FromString( DisplayStr ) );
+	TextBlock->SetColorAndOpacity( Color );
 }

@@ -114,4 +114,14 @@ struct FResourceProduction
 		Map.Add( EResourceType::Progress, Progress );
 		return Map;
 	}
+
+	bool operator==( const FResourceProduction& Other ) const
+	{
+		return Gold == Other.Gold && Food == Other.Food && Population == Other.Population && Progress == Other.Progress;
+	}
+
+	bool operator!=( const FResourceProduction& Other ) const
+	{
+		return !( *this == Other );
+	}
 };
