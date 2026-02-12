@@ -1,18 +1,13 @@
-// GridManager.cpp
 
 #include "Grid/GridManager.h"
 
 #include "DrawDebugHelpers.h"
 
-// Grid manager constructor.
-// Tick is disabled because the grid does not need per-frame updates.
 AGridManager::AGridManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-// Called when the game starts.
-// Prepares the grid for use.
 void AGridManager::BeginPlay()
 {
 	Super::BeginPlay();
@@ -20,25 +15,38 @@ void AGridManager::BeginPlay()
 	InitializeGrid();
 }
 
-// Returns grid height (number of rows).
 int32 AGridManager::GetGridHeight() const
 {
 	return GridRows_.Num();
 }
 
-// Returns grid width (number of columns).
-// If there are no rows, width is considered zero.
-int32 AGridManager::GetGridWidth() const
+int32 AGridManager::GetRowWidth( const int32 y ) const
 {
-	if ( GridRows_.Num() == 0 )
+	if ( y < 0 || y >= GridRows_.Num() )
 	{
 		return 0;
 	}
 
-	return GridRows_[0].Cells.Num();
+	return GridRows_[y].Cells.Num();
 }
 
-// Enable or disable visual grid debug rendering.
+int32 AGridManager::GetMaxWidth() const
+{
+	int32 MaxWidth = 0;
+
+	for ( const FGridRow& Row : GridRows_ )
+	{
+		MaxWidth = FMath::Max( MaxWidth, Row.Cells.Num() );
+	}
+
+	return MaxWidth;
+}
+
+int32 AGridManager::GetGridWidth() const
+{
+	return GetMaxWidth();
+}
+
 void AGridManager::SetGridVisible( const bool bVisible )
 {
 	if ( bGridVisible_ == bVisible )
@@ -54,27 +62,20 @@ void AGridManager::SetGridVisible( const bool bVisible )
 		return;
 	}
 
-	// Currently we only clear persistent debug lines when toggling the flag.
-	// This is a temporary solution for tests.
 	FlushPersistentDebugLines( world );
 }
 
-// Checks whether the given coordinates are within the grid bounds.
 bool AGridManager::IsValidCoords( const int32 x, const int32 y ) const
 {
-	const int32 width = GetGridWidth();
-	const int32 height = GetGridHeight();
-
-	if ( width <= 0 || height <= 0 )
+	if ( y < 0 || y >= GridRows_.Num() )
 	{
 		return false;
 	}
 
-	return x >= 0 && x < width && y >= 0 && y < height;
+	const int32 rowWidth = GridRows_[y].Cells.Num();
+	return x >= 0 && x < rowWidth;
 }
 
-// Returns a pointer to the cell at coordinates (x, y).
-// Returns nullptr if the coordinates are out of bounds.
 FGridCell* AGridManager::GetCell( const int32 x, const int32 y )
 {
 	if ( !IsValidCoords( x, y ) )
@@ -86,8 +87,6 @@ FGridCell* AGridManager::GetCell( const int32 x, const int32 y )
 	return &GridRows_[y].Cells[x];
 }
 
-// Const version of GetCell.
-// Returns nullptr if the coordinates are out of bounds.
 const FGridCell* AGridManager::GetCell( const int32 x, const int32 y ) const
 {
 	if ( !IsValidCoords( x, y ) )
@@ -101,39 +100,46 @@ const FGridCell* AGridManager::GetCell( const int32 x, const int32 y ) const
 
 bool AGridManager::GetCellWorldCenter( const FIntPoint& coords, FVector& outLocation ) const
 {
-	const int32 width = GetGridWidth();
-	const int32 height = GetGridHeight();
-
-	if ( coords.X < 0 || coords.X >= width || coords.Y < 0 || coords.Y >= height )
+	if ( !IsValidCoords( coords.X, coords.Y ) )
 	{
 		return false;
 	}
 
 	const float cellSize = GetCellSize();
 	const FVector origin = GetActorLocation();
-	const float z = origin.Z;
 
 	const float centerX = origin.X + ( static_cast<float>( coords.X ) + 0.5f ) * cellSize;
 	const float centerY = origin.Y + ( static_cast<float>( coords.Y ) + 0.5f ) * cellSize;
 
-	outLocation = FVector( centerX, centerY, z );
+	outLocation = FVector( centerX, centerY, origin.Z );
 	return true;
 }
 
 FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 {
-	location -= GetActorLocation();	// location is relative to grid location
+	const int32 height = GetGridHeight();
+	if ( height == 0 )
+	{
+		return FIntPoint::ZeroValue;
+	}
 
-	FIntPoint cellCoords = FIntPoint( location.X / CellSize_, location.Y / CellSize_ );
-	cellCoords.X = FMath::Clamp(cellCoords.X, 0, GetGridWidth() - 1);
-	cellCoords.Y = FMath::Clamp(cellCoords.Y, 0, GetGridHeight() - 1);
-	return cellCoords;
+	location -= GetActorLocation();
+
+	int32 y = static_cast<int32>( location.Y / CellSize_ );
+	y = FMath::Clamp( y, 0, height - 1 );
+
+	const int32 rowWidth = GetRowWidth( y );
+	if ( rowWidth == 0 )
+	{
+		return FIntPoint( 0, y );
+	}
+
+	int32 x = static_cast<int32>( location.X / CellSize_ );
+	x = FMath::Clamp( x, 0, rowWidth - 1 );
+
+	return FIntPoint( x, y );
 }
 
-// Initializes the grid:
-//  - sets GridCoords;
-//  - resets runtime state (occupancy and actor);
-//  - validates basic matrix consistency.
 void AGridManager::InitializeGrid()
 {
 	const int32 height = GetGridHeight();
@@ -144,39 +150,29 @@ void AGridManager::InitializeGrid()
 		return;
 	}
 
-	const int32 width = GetGridWidth();
-
-	if ( width == 0 )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "GridManager: first row has no cells" ) );
-		return;
-	}
-
 	for ( int32 y = 0; y < height; ++y )
 	{
 		const int32 rowWidth = GridRows_[y].Cells.Num();
 
-		if ( rowWidth != width )
-		{
-			UE_LOG(
-			    LogTemp, Warning,
-			    TEXT( "GridManager: row %d has different width (%d) than first row "
-			          "(%d)" ),
-			    y, rowWidth, width
-			);
-		}
-
-		const int32 maxX = FMath::Min( width, rowWidth );
-
-		for ( int32 x = 0; x < maxX; ++x )
+		for ( int32 x = 0; x < rowWidth; ++x )
 		{
 			FGridCell& cell = GridRows_[y].Cells[x];
 
-			// Set cell coordinates.
 			cell.SetCoords( x, y );
 
-			// Reset only runtime state (occupancy and occupant).
-			cell.ResetRuntimeState();
+			if ( cell.Occupant.IsValid() )
+			{
+				FVector center;
+				if ( GetCellWorldCenter( cell.GridCoords, center ) )
+				{
+					cell.Occupant->SetActorLocation( center );
+				}
+				cell.bIsOccupied = true;
+			}
+			else
+			{
+				cell.ResetRuntimeState();
+			}
 		}
 	}
 }

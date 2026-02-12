@@ -108,10 +108,9 @@ void AGridVisualizer::RefreshGrid()
 		return;
 	}
 
-	const int32 width = GridManager_->GetGridWidth();
 	const int32 height = GridManager_->GetGridHeight();
 
-	if ( width <= 0 || height <= 0 )
+	if ( height <= 0 )
 	{
 		return;
 	}
@@ -131,7 +130,9 @@ void AGridVisualizer::RefreshGrid()
 
 	for ( int32 y = 0; y < height; ++y )
 	{
-		for ( int32 x = 0; x < width; ++x )
+		const int32 rowWidth = GridManager_->GetRowWidth( y );
+
+		for ( int32 x = 0; x < rowWidth; ++x )
 		{
 			const FGridCell* cell = GridManager_->GetCell( x, y );
 			if ( !cell )
@@ -172,5 +173,5 @@ bool AGridVisualizer::GetCellWorldCenter( const FIntPoint& cellCoords, FVector& 
 
 	bool success = GridManager_->GetCellWorldCenter( cellCoords, outLocation );
 	outLocation.Z += ZOffset_;
-	return true;
+	return success;
 }
