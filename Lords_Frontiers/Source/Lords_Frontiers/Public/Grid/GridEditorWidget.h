@@ -69,6 +69,8 @@ protected:
 	TObjectPtr<UVerticalBox> PropertiesPanel_ = nullptr;
 
 private:
+	bool bUpdatingUI_ = false;
+
 	FIntPoint SelectedCoords_ = FIntPoint( -1, -1 );
 
 	UPROPERTY()

@@ -1,3 +1,5 @@
+// GridEditorWidget.cpp
+
 #if WITH_EDITOR
 
 #include "Grid/GridEditorWidget.h"
@@ -24,6 +26,7 @@
 
 namespace GridColors
 {
+
 	static const FLinearColor Buildable( 0.15f, 0.75f, 0.3f, 1.0f );
 	static const FLinearColor Blocked( 0.85f, 0.18f, 0.18f, 1.0f );
 	static const FLinearColor Occupied( 0.2f, 0.45f, 0.95f, 1.0f );
@@ -34,7 +37,7 @@ namespace GridColors
 	static const FLinearColor LabelColor( 0.75f, 0.75f, 0.78f, 1.0f );
 	static const FLinearColor HeaderColor( 0.95f, 0.95f, 0.97f, 1.0f );
 	static const FLinearColor ButtonBg( 0.22f, 0.22f, 0.26f, 1.0f );
-} 
+} // namespace GridColors
 
 void UGridCellClickHandler::OnClicked()
 {
@@ -173,8 +176,43 @@ void UGridEditorWidget::RefreshBuildingList()
 		return;
 	}
 
+	bUpdatingUI_ = true;
+
 	OccupantComboBox_->ClearOptions();
-	OccupantComboBox_->AddOption( TEXT( "\u2014 \u041D\u0435\u0442 \u2014" ) ); // "— Нет —"
+	OccupantComboBox_->AddOption( TEXT( "\u2014 \u041D\u0435\u0442 \u2014" ) );
+
+	TSet<ABuilding*> assignedBuildings;
+
+	if ( GridManager_ )
+	{
+		const int32 height = GridManager_->GetGridHeight();
+
+		for ( int32 y = 0; y < height; ++y )
+		{
+			const int32 rowWidth = GridManager_->GetRowWidth( y );
+
+			for ( int32 x = 0; x < rowWidth; ++x )
+			{
+				const FGridCell* cell = GridManager_->GetCell( x, y );
+				if ( cell && cell->Occupant.IsValid() )
+				{
+					assignedBuildings.Add( cell->Occupant.Get() );
+				}
+			}
+		}
+	}
+
+	ABuilding* selectedCellOccupant = nullptr;
+
+	if ( GridManager_ && SelectedCoords_.X >= 0 && SelectedCoords_.Y >= 0 )
+	{
+		const FGridCell* selectedCell = GridManager_->GetCell( SelectedCoords_.X, SelectedCoords_.Y );
+
+		if ( selectedCell && selectedCell->Occupant.IsValid() )
+		{
+			selectedCellOccupant = selectedCell->Occupant.Get();
+		}
+	}
 
 	TArray<UWorld*> worldsToSearch;
 
@@ -210,6 +248,11 @@ void UGridEditorWidget::RefreshBuildingList()
 				continue;
 			}
 
+			if ( assignedBuildings.Contains( building ) && building != selectedCellOccupant )
+			{
+				continue;
+			}
+
 			FString displayName = building->GetActorNameOrLabel();
 
 			if ( BuildingMap_.Contains( displayName ) )
@@ -222,7 +265,9 @@ void UGridEditorWidget::RefreshBuildingList()
 		}
 	}
 
-	UE_LOG( LogTemp, Log, TEXT( "GridEditorWidget: Found %d placed buildings" ), BuildingMap_.Num() );
+	UE_LOG( LogTemp, Log, TEXT( "GridEditorWidget: Found %d available buildings" ), BuildingMap_.Num() );
+
+	bUpdatingUI_ = false;
 }
 
 void UGridEditorWidget::BuildGrid()
@@ -370,7 +415,7 @@ void UGridEditorWidget::BuildPropertiesPanel()
 		        "\u2699  \u0420\u0435\u0434\u0430\u043A\u0442\u043E\u0440 "
 		        "\u0441\u0435\u0442\u043A\u0438"
 		    ) )
-		); 
+		);
 		title->SetColorAndOpacity( FSlateColor( GridColors::HeaderColor ) );
 
 		FSlateFontInfo titleFont = title->GetFont();
@@ -388,9 +433,7 @@ void UGridEditorWidget::BuildPropertiesPanel()
 		RefreshButton_->OnClicked.AddDynamic( this, &UGridEditorWidget::OnRefreshClicked );
 
 		UTextBlock* btnText = NewObject<UTextBlock>( this );
-		btnText->SetText(
-		    FText::FromString( TEXT( "\U0001F504  \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C" ) )
-		); 
+		btnText->SetText( FText::FromString( TEXT( "\U0001F504  \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C" ) ) );
 		btnText->SetColorAndOpacity( FSlateColor( GridColors::HeaderColor ) );
 
 		FSlateFontInfo btnFont = btnText->GetFont();
@@ -428,32 +471,28 @@ void UGridEditorWidget::BuildPropertiesPanel()
 		auto* headerSlot = PropertiesPanel_->AddChildToVerticalBox( MakeSectionHeader( TEXT(
 		    "\u0421\u0432\u043E\u0439\u0441\u0442\u0432\u0430 "
 		    "\u043A\u043B\u0435\u0442\u043A\u0438"
-		) ) ); 
+		) ) );
 		headerSlot->SetPadding( FMargin( 8.f, 8.f, 8.f, 4.f ) );
 	}
-
 
 	{
 		BuildableCheck_ = NewObject<UCheckBox>( this );
 		BuildableCheck_->OnCheckStateChanged.AddDynamic( this, &UGridEditorWidget::OnBuildableChanged );
 
 		UHorizontalBox* row = MakeLabeledRow(
-		    TEXT( "\u041C\u043E\u0436\u043D\u043E \u0441\u0442\u0440\u043E\u0438\u0442\u044C:" ),
-		    BuildableCheck_
+		    TEXT( "\u041C\u043E\u0436\u043D\u043E \u0441\u0442\u0440\u043E\u0438\u0442\u044C:" ), BuildableCheck_
 		);
+
 		auto* rowSlot = PropertiesPanel_->AddChildToVerticalBox( row );
 		rowSlot->SetPadding( FMargin( 12.f, 4.f ) );
 	}
-
 
 	{
 		WalkableCheck_ = NewObject<UCheckBox>( this );
 		WalkableCheck_->OnCheckStateChanged.AddDynamic( this, &UGridEditorWidget::OnWalkableChanged );
 
-		UHorizontalBox* row = MakeLabeledRow(
-		    TEXT( "\u041F\u0440\u043E\u0445\u043E\u0434\u0438\u043C\u0430\u044F:" ),
-		    WalkableCheck_
-		);
+		UHorizontalBox* row =
+		    MakeLabeledRow( TEXT( "\u041F\u0440\u043E\u0445\u043E\u0434\u0438\u043C\u0430\u044F:" ), WalkableCheck_ );
 		auto* rowSlot = PropertiesPanel_->AddChildToVerticalBox( row );
 		rowSlot->SetPadding( FMargin( 12.f, 4.f ) );
 	}
@@ -465,10 +504,7 @@ void UGridEditorWidget::BuildPropertiesPanel()
 		BonusSpinBox_->SetDelta( 0.1f );
 		BonusSpinBox_->OnValueChanged.AddDynamic( this, &UGridEditorWidget::OnBonusValueChanged );
 
-		UHorizontalBox* row = MakeLabeledRow(
-		    TEXT( "\u0411\u043E\u043D\u0443\u0441:" ), 
-		    BonusSpinBox_
-		);
+		UHorizontalBox* row = MakeLabeledRow( TEXT( "\u0411\u043E\u043D\u0443\u0441:" ), BonusSpinBox_ );
 		auto* rowSlot = PropertiesPanel_->AddChildToVerticalBox( row );
 		rowSlot->SetPadding( FMargin( 12.f, 4.f ) );
 	}
@@ -479,7 +515,7 @@ void UGridEditorWidget::BuildPropertiesPanel()
 		auto* headerSlot = PropertiesPanel_->AddChildToVerticalBox( MakeSectionHeader( TEXT(
 		    "\u0417\u0434\u0430\u043D\u0438\u0435 \u0432 "
 		    "\u043A\u043B\u0435\u0442\u043A\u0435"
-		) ) ); 
+		) ) );
 		headerSlot->SetPadding( FMargin( 8.f, 8.f, 8.f, 4.f ) );
 	}
 
@@ -499,13 +535,11 @@ void UGridEditorWidget::BuildPropertiesPanel()
 
 	{
 		OccupantComboBox_ = NewObject<UComboBoxString>( this );
-		OccupantComboBox_->AddOption( TEXT( "\u2014 \u041D\u0435\u0442 \u2014" ) ); 
+		OccupantComboBox_->AddOption( TEXT( "\u2014 \u041D\u0435\u0442 \u2014" ) );
 		OccupantComboBox_->OnSelectionChanged.AddDynamic( this, &UGridEditorWidget::OnOccupantSelected );
 
-		UHorizontalBox* row = MakeLabeledRow(
-		    TEXT( "\u041D\u0430\u0437\u043D\u0430\u0447\u0438\u0442\u044C:" ), 
-		    OccupantComboBox_
-		);
+		UHorizontalBox* row =
+		    MakeLabeledRow( TEXT( "\u041D\u0430\u0437\u043D\u0430\u0447\u0438\u0442\u044C:" ), OccupantComboBox_ );
 		auto* rowSlot = PropertiesPanel_->AddChildToVerticalBox( row );
 		rowSlot->SetPadding( FMargin( 12.f, 4.f ) );
 	}
@@ -539,7 +573,7 @@ void UGridEditorWidget::BuildPropertiesPanel()
 	{
 		auto* headerSlot = PropertiesPanel_->AddChildToVerticalBox(
 		    MakeSectionHeader( TEXT( "\u041B\u0435\u0433\u0435\u043D\u0434\u0430" ) )
-		); 
+		);
 		headerSlot->SetPadding( FMargin( 8.f, 8.f, 8.f, 2.f ) );
 	}
 
@@ -575,19 +609,15 @@ void UGridEditorWidget::BuildPropertiesPanel()
 	};
 
 	addLegendItem(
-	    TEXT( "\u041C\u043E\u0436\u043D\u043E \u0441\u0442\u0440\u043E\u0438\u0442\u044C" ),
-	    GridColors::Buildable
-	); 
-	addLegendItem(
-	    TEXT( "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u0430" ),
-	    GridColors::Blocked
-	); 
-	addLegendItem(
-	    TEXT( "\u0417\u0430\u043D\u044F\u0442\u0430 \u0437\u0434\u0430\u043D\u0438\u0435\u043C" ),
-	    GridColors::Occupied
+	    TEXT( "\u041C\u043E\u0436\u043D\u043E \u0441\u0442\u0440\u043E\u0438\u0442\u044C" ), GridColors::Buildable
 	);
-	addLegendItem( TEXT( "\u0412\u044B\u0431\u0440\u0430\u043D\u0430" ),
-	               GridColors::Selected );
+	addLegendItem(
+	    TEXT( "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u0430" ), GridColors::Blocked
+	);
+	addLegendItem(
+	    TEXT( "\u0417\u0430\u043D\u044F\u0442\u0430 \u0437\u0434\u0430\u043D\u0438\u0435\u043C" ), GridColors::Occupied
+	);
+	addLegendItem( TEXT( "\u0412\u044B\u0431\u0440\u0430\u043D\u0430" ), GridColors::Selected );
 }
 
 FLinearColor UGridEditorWidget::GetColorForCell( const FGridCell& cell, const bool bIsSelected ) const
@@ -656,6 +686,7 @@ void UGridEditorWidget::UpdateAllCellColors()
 
 void UGridEditorWidget::UpdatePropertiesPanel()
 {
+	bUpdatingUI_ = true;
 	const FString noneOption = TEXT( "\u2014 \u041D\u0435\u0442 \u2014" );
 
 	if ( !GridManager_ || SelectedCoords_.X < 0 || SelectedCoords_.Y < 0 )
@@ -685,6 +716,7 @@ void UGridEditorWidget::UpdatePropertiesPanel()
 	const FGridCell* cell = GridManager_->GetCell( SelectedCoords_.X, SelectedCoords_.Y );
 	if ( !cell )
 	{
+		bUpdatingUI_ = false;
 		return;
 	}
 
@@ -693,8 +725,8 @@ void UGridEditorWidget::UpdatePropertiesPanel()
 		CoordsText_->SetText(
 		    FText::FromString(
 		        FString::Printf(
-		            TEXT( "\U0001F4CD  \u041A\u043B\u0435\u0442\u043A\u0430 (%d, %d)" ),
-		            SelectedCoords_.X, SelectedCoords_.Y
+		            TEXT( "\U0001F4CD  \u041A\u043B\u0435\u0442\u043A\u0430 (%d, %d)" ), SelectedCoords_.X,
+		            SelectedCoords_.Y
 		        )
 		    )
 		);
@@ -722,8 +754,7 @@ void UGridEditorWidget::UpdatePropertiesPanel()
 			OccupantText_->SetText(
 			    FText::FromString(
 			        FString::Printf(
-			            TEXT( "\u0422\u0435\u043A\u0443\u0449\u0435\u0435: %s" ), // "Текущее: %s"
-			            *cell->Occupant->GetActorNameOrLabel()
+			            TEXT( "\u0422\u0435\u043A\u0443\u0449\u0435\u0435: %s" ), *cell->Occupant->GetActorNameOrLabel()
 			        )
 			    )
 			);
@@ -756,6 +787,7 @@ void UGridEditorWidget::UpdatePropertiesPanel()
 			OccupantComboBox_->SetSelectedOption( noneOption );
 		}
 	}
+	bUpdatingUI_ = false;
 }
 
 void UGridEditorWidget::OnBuildableChanged( const bool bIsChecked )
@@ -807,6 +839,10 @@ void UGridEditorWidget::OnBonusValueChanged( const float inValue )
 
 void UGridEditorWidget::OnOccupantSelected( FString selectedItem, ESelectInfo::Type selectionType )
 {
+	if ( bUpdatingUI_ )
+	{
+		return;
+	}
 	const FString noneOption = TEXT( "\u2014 \u041D\u0435\u0442 \u2014" );
 
 	if ( !GridManager_ || SelectedCoords_.X < 0 || SelectedCoords_.Y < 0 )
@@ -843,6 +879,7 @@ void UGridEditorWidget::OnOccupantSelected( FString selectedItem, ESelectInfo::T
 
 	GridManager_->MarkPackageDirty();
 	UpdateCellColor( SelectedCoords_.X, SelectedCoords_.Y );
+	RefreshBuildingList();
 	UpdatePropertiesPanel();
 }
 
@@ -864,6 +901,7 @@ void UGridEditorWidget::OnClearOccupantClicked()
 
 	GridManager_->MarkPackageDirty();
 	UpdateCellColor( SelectedCoords_.X, SelectedCoords_.Y );
+	RefreshBuildingList();
 	UpdatePropertiesPanel();
 }
 
@@ -877,4 +915,4 @@ void UGridEditorWidget::OnRefreshClicked()
 	RefreshGrid();
 }
 
-#endif 
+#endif
