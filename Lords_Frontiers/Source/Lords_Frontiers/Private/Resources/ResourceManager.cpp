@@ -93,3 +93,22 @@ void UResourceManager::SpendResources( const FResourceProduction& cost )
 		}
 	}
 }
+
+int32 UResourceManager::ForceSpendResource( EResourceType type, int32 quantity )
+{
+	if ( type == EResourceType::None || quantity <= 0 )
+		return 0;
+	if ( !Resources_.Contains( type ) )
+		return 0;
+
+	int32& CurrentAmount = Resources_.FindOrAdd( type );
+	int32 AmountToSpend = FMath::Min( CurrentAmount, quantity );
+
+	CurrentAmount -= AmountToSpend;
+
+	if ( AmountToSpend > 0 )
+	{
+		OnResourceChanged.Broadcast( type, CurrentAmount );
+	}
+	return AmountToSpend;
+}
