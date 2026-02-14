@@ -86,6 +86,9 @@ private:
 	TObjectPtr<UTextBlock> CoordsText_ = nullptr;
 
 	UPROPERTY()
+	TObjectPtr<UTextBlock> WorldCenterText_ = nullptr;
+
+	UPROPERTY()
 	TObjectPtr<UCheckBox> BuildableCheck_ = nullptr;
 
 	UPROPERTY()

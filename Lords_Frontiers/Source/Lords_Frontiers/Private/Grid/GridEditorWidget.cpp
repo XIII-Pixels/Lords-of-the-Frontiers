@@ -465,6 +465,18 @@ void UGridEditorWidget::BuildPropertiesPanel()
 	auto* coordsSlot = PropertiesPanel_->AddChildToVerticalBox( CoordsText_ );
 	coordsSlot->SetPadding( FMargin( 8.f, 8.f, 8.f, 4.f ) );
 
+	WorldCenterText_ = NewObject<UTextBlock>( this );
+	WorldCenterText_->SetText( FText::FromString( TEXT( "" ) ) );
+	WorldCenterText_->SetColorAndOpacity( FSlateColor( GridColors::LabelColor ) );
+	{
+		FSlateFontInfo font = WorldCenterText_->GetFont();
+		font.Size = 10;
+		WorldCenterText_->SetFont( font );
+	}
+
+	auto* centerSlot = PropertiesPanel_->AddChildToVerticalBox( WorldCenterText_ );
+	centerSlot->SetPadding( FMargin( 8.f, 0.f, 8.f, 4.f ) );
+
 	PropertiesPanel_->AddChild( MakeSeparator() );
 
 	{
@@ -706,6 +718,10 @@ void UGridEditorWidget::UpdatePropertiesPanel()
 			    FText::FromString( TEXT( "\u0422\u0435\u043A\u0443\u0449\u0435\u0435: \u043D\u0435\u0442" ) )
 			);
 		}
+		if ( WorldCenterText_ )
+		{
+			WorldCenterText_->SetText( FText::GetEmpty() );
+		}
 		if ( OccupantComboBox_ )
 		{
 			OccupantComboBox_->SetSelectedOption( noneOption );
@@ -730,6 +746,26 @@ void UGridEditorWidget::UpdatePropertiesPanel()
 		        )
 		    )
 		);
+	}
+
+	if ( WorldCenterText_ && GridManager_ )
+	{
+		FVector center;
+		if ( GridManager_->GetCellWorldCenter( SelectedCoords_, center ) )
+		{
+			WorldCenterText_->SetText(
+			    FText::FromString(
+			        FString::Printf(
+			            TEXT( "\u0426\u0435\u043D\u0442\u0440: X=%.0f  Y=%.0f  Z=%.0f" ), // "Центр: X=... Y=... Z=..."
+			            center.X, center.Y, center.Z
+			        )
+			    )
+			);
+		}
+		else
+		{
+			WorldCenterText_->SetText( FText::GetEmpty() );
+		}
 	}
 
 	if ( BuildableCheck_ )
