@@ -29,7 +29,7 @@ void UResourceManager::AddResource( EResourceType type, int32 quantity )
 
 bool UResourceManager::TrySpendResource( EResourceType type, int32 quantity )
 {
-	if ( ( type == EResourceType::None ) || ( quantity <= 0 ) )
+	if ( ( type == EResourceType::None ) )
 	{
 		return false;
 	}
@@ -87,9 +87,6 @@ void UResourceManager::SpendResources( const FResourceProduction& cost )
 {
 	for ( const auto& Pair : cost.ToMap() )
 	{
-		if ( Pair.Value > 0 )
-		{
-			TrySpendResource( Pair.Key, Pair.Value );
-		}
+		TrySpendResource( Pair.Key, Pair.Value );
 	}
 }
