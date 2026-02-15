@@ -44,6 +44,8 @@ AStrategyCamera::AStrategyCamera()
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>( TEXT( "MovementComponent" ) );
 
 	TargetZoom_ = 2048.0f;
+	TargetYaw_ = CameraYaw_;
+	CurrentYaw_ = CameraYaw_;
 }
 
 // Called when the game starts or when spawned
@@ -131,16 +133,25 @@ void AStrategyCamera::Tick(float DeltaTime)
 
 	Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
 
+	 FRotator CurrentRot = SpringArm->GetRelativeRotation();
+
+	FRotator TargetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
+
+	FRotator NewRot = FMath::RInterpTo( CurrentRot, TargetRot, DeltaTime, RotationSpeed_ * 0.1f );
+	SpringArm->SetRelativeRotation( NewRot );
+
+	if ( bEnableEdgeScrolling_ )
+	{
+		HandleEdgeScrolling( DeltaTime );
+	}
+
 	FVector currentLoc = GetActorLocation();
 	FVector clampedLoc = currentLoc;
-
 	clampedLoc.X = FMath::Clamp( clampedLoc.X, MinMapBounds_.X, MaxMapBounds_.X );
 	clampedLoc.Y = FMath::Clamp( clampedLoc.Y, MinMapBounds_.Y, MaxMapBounds_.Y );
 
 	if ( !currentLoc.Equals( clampedLoc, 0.1f ) )
-	{
 		SetActorLocation( clampedLoc );
-	}
 }
 
 // Called to bind functionality to input
@@ -153,6 +164,7 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComp
 	{
 		EnhancedInputComponent->BindAction( MoveAction, ETriggerEvent::Triggered, this, &AStrategyCamera::Move );
 		EnhancedInputComponent->BindAction( ZoomAction, ETriggerEvent::Triggered, this, &AStrategyCamera::Zoom );
+		EnhancedInputComponent->BindAction( RotateAction, ETriggerEvent::Started, this, &AStrategyCamera::Rotate );
 	}
 }
 
@@ -175,4 +187,58 @@ void AStrategyCamera::Zoom( const FInputActionValue& Value )
 	float zoomDirection = Value.Get<float>();
 
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
+}
+
+void AStrategyCamera::Rotate( const FInputActionValue& Value )
+{
+	//Value = 1 (E) -1 (Q)
+	float direction = Value.Get<float>();
+
+	if ( direction != 0.0f )
+	{
+		TargetYaw_ += direction * 90.0f;
+
+		TargetYaw_ = FRotator::NormalizeAxis( TargetYaw_ );
+
+		if ( GEngine )
+			GEngine->AddOnScreenDebugMessage(
+			    -1, 2.f, FColor::Cyan, FString::Printf( TEXT( "New Target Yaw: %f" ), TargetYaw_ )
+			);
+	}
+}
+
+void AStrategyCamera::HandleEdgeScrolling( float DeltaTime )
+{
+	if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
+	{
+		float MouseX, MouseY;
+		if ( PC->GetMousePosition( MouseX, MouseY ) )
+		{
+			int32 ViewportX, ViewportY;
+			PC->GetViewportSize( ViewportX, ViewportY );
+
+			FVector2D MovementInput( 0.f, 0.f );
+
+			if ( MouseX <= EdgeScrollThreshold_ )
+				MovementInput.X = -1.f;
+			else if ( MouseX >= ViewportX - EdgeScrollThreshold_ )
+				MovementInput.X = 1.f;
+
+			if ( MouseY <= EdgeScrollThreshold_ )
+				MovementInput.Y = 1.f;
+			else if ( MouseY >= ViewportY - EdgeScrollThreshold_ )
+				MovementInput.Y = -1.f;
+
+			if ( !MovementInput.IsZero() )
+			{
+				const float CurrentYaw = SpringArm->GetComponentRotation().Yaw;
+				const FRotator YawRotation( 0, CurrentYaw, 0 );
+				const FVector ForwardDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::X );
+				const FVector RightDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::Y );
+
+				AddMovementInput( ForwardDir, MovementInput.Y );
+				AddMovementInput( RightDir, MovementInput.X );
+			}
+		}
+	}
 }
