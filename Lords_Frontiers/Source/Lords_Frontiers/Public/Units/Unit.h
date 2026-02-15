@@ -7,7 +7,6 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
-
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
@@ -20,6 +19,7 @@ class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
 class UFollowComponent;
+struct FEnemyBuff;
 
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
@@ -73,6 +73,8 @@ public:
 	void FollowPath();
 
 	void SetFollowedTarget( AActor* newTarget );
+
+	void ChangeStats( FEnemyBuff* buff );
 
 protected:
 	void OnDeath();
