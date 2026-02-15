@@ -13,6 +13,9 @@
 
 #include "GameFramework/FloatingPawnMovement.h"
 
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+
 // Sets default values
 AStrategyCamera::AStrategyCamera()
 {
@@ -35,15 +38,34 @@ AStrategyCamera::AStrategyCamera()
 	Camera->SetupAttachment( SpringArm );
 	Camera->bUsePawnControlRotation = false;
 
+	Camera->ProjectionMode = ECameraProjectionMode::Orthographic;
+	Camera->OrthoWidth = 2048.0f;
+
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>( TEXT( "MovementComponent" ) );
 
-	TargetZoom_ = 1500.0f;
+	TargetZoom_ = 2048.0f;
 }
 
 // Called when the game starts or when spawned
 void AStrategyCamera::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if ( APlayerController* pc = Cast<APlayerController>( GetController() ) )
+	{
+		if ( UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		         ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( pc->GetLocalPlayer() ) )
+		{
+			if ( DefaultMappingContext )
+			{
+				Subsystem->AddMappingContext( DefaultMappingContext, 0 );
+			}
+		}
+
+		pc->SetViewTarget( this );
+		pc->bShowMouseCursor = true;
+		pc->SetInputMode( FInputModeGameAndUI() );
+	}
 
 	FVector startingLocation = GetActorLocation();
 	startingLocation.Z = 0.0f;
@@ -53,9 +75,11 @@ void AStrategyCamera::BeginPlay()
 	MovementComponent->Acceleration = MoveAcceleration_;
 	MovementComponent->Deceleration = MoveDeceleration_;
 
-	SpringArm->TargetArmLength = TargetZoom_;
+	SpringArm->TargetArmLength = 2000.0f;
 	SpringArm->CameraLagSpeed = CameraLagSpeed_;
 	SpringArm->SetRelativeRotation( FRotator( CameraPitch_, CameraYaw_, 0.0f ) );
+
+	Camera->OrthoWidth = TargetZoom_;
 
 	TArray<AActor*> foundCameras;
 	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ACameraActor::StaticClass(), foundCameras );
@@ -106,36 +130,49 @@ void AStrategyCamera::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
+
+	FVector currentLoc = GetActorLocation();
+	FVector clampedLoc = currentLoc;
+
+	clampedLoc.X = FMath::Clamp( clampedLoc.X, MinMapBounds_.X, MaxMapBounds_.X );
+	clampedLoc.Y = FMath::Clamp( clampedLoc.Y, MinMapBounds_.Y, MaxMapBounds_.Y );
+
+	if ( !currentLoc.Equals( clampedLoc, 0.1f ) )
+	{
+		SetActorLocation( clampedLoc );
+	}
 }
 
 // Called to bind functionality to input
 void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
-	Super::SetupPlayerInputComponent(playerInputComponent);
+	Super::SetupPlayerInputComponent( playerInputComponent );
 
-	playerInputComponent->BindAxis( "MoveForward", this, &AStrategyCamera::MoveForward );
-	playerInputComponent->BindAxis( "MoveRight", this, &AStrategyCamera::MoveRight );
-
-	playerInputComponent->BindAction( "ZoomIn", IE_Pressed, this, &AStrategyCamera::ZoomIn );
-	playerInputComponent->BindAction( "ZoomOut", IE_Pressed, this, &AStrategyCamera::ZoomOut );
+	if ( UEnhancedInputComponent* EnhancedInputComponent =
+	         CastChecked<UEnhancedInputComponent>( playerInputComponent ) )
+	{
+		EnhancedInputComponent->BindAction( MoveAction, ETriggerEvent::Triggered, this, &AStrategyCamera::Move );
+		EnhancedInputComponent->BindAction( ZoomAction, ETriggerEvent::Triggered, this, &AStrategyCamera::Zoom );
+	}
 }
 
-void AStrategyCamera::MoveForward( float value )
+void AStrategyCamera::Move( const FInputActionValue& Value )
 {
-	AddMovementInput( GetActorForwardVector(), value );
+	FVector2D MovementVector = Value.Get<FVector2D>();
+
+	const float CameraYaw = SpringArm->GetComponentRotation().Yaw;
+	const FRotator YawRotation( 0, CameraYaw, 0 );
+
+	const FVector ForwardDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::X );
+	const FVector RightDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::Y );
+
+	AddMovementInput( ForwardDir, MovementVector.Y );
+	AddMovementInput( RightDir, MovementVector.X );
 }
 
-void AStrategyCamera::MoveRight( float value )
+void AStrategyCamera::Zoom( const FInputActionValue& Value )
 {
-	AddMovementInput( GetActorRightVector(), value );
-}
+	float zoomDirection = Value.Get<float>();
 
-void AStrategyCamera::ZoomIn()
-{
-	TargetZoom_ = FMath::Clamp( TargetZoom_ - ZoomSpeed_, MinZoom_, MaxZoom_ );
-}
-
-void AStrategyCamera::ZoomOut()
-{
-	TargetZoom_ = FMath::Clamp( TargetZoom_ + ZoomSpeed_, MinZoom_, MaxZoom_ );
+	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
 }
