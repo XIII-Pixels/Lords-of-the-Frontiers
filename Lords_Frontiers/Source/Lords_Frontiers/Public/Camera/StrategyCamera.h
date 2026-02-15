@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "InputActionValue.h"
 
 #include "StrategyCamera.generated.h"
 
@@ -11,6 +12,8 @@ class USpringArmComponent;
 class UCameraComponent;
 class UFloatingPawnMovement;
 class UInputComponent;
+class UInputMappingContext;
+class UInputAction;
 
 UCLASS()
 class LORDS_FRONTIERS_API AStrategyCamera : public APawn
@@ -30,6 +33,15 @@ public:
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UFloatingPawnMovement> MovementComponent;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> ZoomAction;
 
 protected:
 	// Called when the game starts or when spawned
@@ -85,10 +97,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 private:
-	void MoveForward(float value);
-	void MoveRight(float value);
-	void ZoomIn();
-	void ZoomOut();
+	void Move( const FInputActionValue& Value );
+	void Zoom( const FInputActionValue& Value );
 
 	float TargetZoom_;
 };
