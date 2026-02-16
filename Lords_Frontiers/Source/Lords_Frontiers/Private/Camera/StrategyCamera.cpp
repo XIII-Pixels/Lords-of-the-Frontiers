@@ -142,7 +142,7 @@ void AStrategyCamera::Tick(float DeltaTime)
 
 	if ( bEnableEdgeScrolling_ )
 	{
-		HandleEdgeScrolling( DeltaTime );
+		HandleEdgeScrolling();
 	}
 
 	FVector currentLoc = GetActorLocation();
@@ -168,9 +168,9 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComp
 	}
 }
 
-void AStrategyCamera::Move( const FInputActionValue& Value )
+void AStrategyCamera::Move( const FInputActionValue& value )
 {
-	FVector2D MovementVector = Value.Get<FVector2D>();
+	FVector2D MovementVector = value.Get<FVector2D>();
 
 	const float CameraYaw = SpringArm->GetComponentRotation().Yaw;
 	const FRotator YawRotation( 0, CameraYaw, 0 );
@@ -182,17 +182,17 @@ void AStrategyCamera::Move( const FInputActionValue& Value )
 	AddMovementInput( RightDir, MovementVector.X );
 }
 
-void AStrategyCamera::Zoom( const FInputActionValue& Value )
+void AStrategyCamera::Zoom( const FInputActionValue& value )
 {
-	float zoomDirection = Value.Get<float>();
+	float zoomDirection = value.Get<float>();
 
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
 }
 
-void AStrategyCamera::Rotate( const FInputActionValue& Value )
+void AStrategyCamera::Rotate( const FInputActionValue& value )
 {
 	//Value = 1 (E) -1 (Q)
-	float direction = Value.Get<float>();
+	float direction = value.Get<float>();
 
 	if ( direction != 0.0f )
 	{
@@ -207,7 +207,7 @@ void AStrategyCamera::Rotate( const FInputActionValue& Value )
 	}
 }
 
-void AStrategyCamera::HandleEdgeScrolling( float DeltaTime )
+void AStrategyCamera::HandleEdgeScrolling()
 {
 	if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
 	{

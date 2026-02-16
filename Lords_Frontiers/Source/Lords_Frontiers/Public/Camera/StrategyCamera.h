@@ -113,11 +113,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 private:
-	void Move( const FInputActionValue& Value );
-	void Zoom( const FInputActionValue& Value );
+	void Move( const FInputActionValue& value );
+	void Zoom( const FInputActionValue& value );
 
-	void Rotate( const FInputActionValue& Value );
-	void HandleEdgeScrolling( float DeltaTime );
+	void Rotate( const FInputActionValue& value );
+	void HandleEdgeScrolling();
 
 	float TargetZoom_;
 	float TargetYaw_;
