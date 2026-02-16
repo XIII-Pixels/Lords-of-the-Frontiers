@@ -27,6 +27,9 @@ public:
 	void Remove( const FIntPoint& point );
 	void Empty();
 
+	void ShowAll();
+	void HideAll();
+
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	TWeakObjectPtr<AGridManager> Grid;
 

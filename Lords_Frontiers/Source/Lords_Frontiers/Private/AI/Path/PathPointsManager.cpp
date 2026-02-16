@@ -105,3 +105,25 @@ void APathPointsManager::Empty()
 	}
 	PathPoints_.Empty();
 }
+
+void APathPointsManager::ShowAll()
+{
+	for ( auto [_, pathPoint] : PathPoints_ )
+	{
+		if ( pathPoint )
+		{
+			pathPoint->Show();
+		}
+	}
+}
+
+void APathPointsManager::HideAll()
+{
+	for ( auto [_, pathPoint] : PathPoints_ )
+	{
+		if ( pathPoint )
+		{
+			pathPoint->Hide();
+		}
+	}
+}
