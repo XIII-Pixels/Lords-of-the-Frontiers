@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/WidgetComponent.h"
 
 #include "DebugPlayerController.generated.h"
 
@@ -34,6 +35,9 @@ protected:
 
 	virtual void SetupInputComponent() override;
 
+	void OnShowAllHP_Pressed();
+	void OnShowAllHP_Released();
+
 private:
 	UPROPERTY()
 	TObjectPtr<ABuildManager> BuildManager_ = nullptr;
@@ -43,4 +47,10 @@ private:
 	void HandleEscape();
 
 	void EnsureBuildManager();
+
+	// Map to remember previous visibility of WidgetComponents touched
+	TMap<TWeakObjectPtr<UWidgetComponent>, bool> ChangedWidgetPrevVisibility_;
+
+	// stack counter (protects against duplicate events / reentrant)
+	int32 AltHoldCount_ = 0;
 };

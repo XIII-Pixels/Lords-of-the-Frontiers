@@ -10,7 +10,10 @@
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Components/FollowComponent.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/Widgets/HealthBarWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 AUnit::AUnit()
@@ -41,6 +44,17 @@ void AUnit::BeginPlay()
 	{
 		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
+	}
+
+	if ( UWidgetComponent* wc = FindComponentByClass<UWidgetComponent>() )
+	{
+		if ( UUserWidget* uw = wc->GetUserWidgetObject() )
+		{
+			if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( uw ) )
+			{
+				hbw->BindToActor( this );
+			}
+		}
 	}
 
 	TArray<UAttackComponent*> attackComponents;
@@ -123,10 +137,13 @@ void AUnit::TakeDamage( float damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+
+	OnUnitHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
 	}
+
 }
 
 FEntityStats& AUnit::Stats()
@@ -262,4 +279,13 @@ void AUnit::FollowPath()
 void AUnit::SetFollowedTarget( AActor* newTarget )
 {
 	FollowedTarget_ = newTarget;
+}
+
+int AUnit::GetCurrentHealth() const
+{
+	return Stats_.Health();
+}
+int AUnit::GetMaxHealth() const
+{
+	return Stats_.MaxHealth();
 }

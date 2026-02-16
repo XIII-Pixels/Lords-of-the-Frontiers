@@ -10,8 +10,12 @@
 
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggroComponent.h"
+//#include "Lords_Frontiers/Public/Utilities/HealthDelegates.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+
+
+
 
 #include "Unit.generated.h"
 
@@ -20,11 +24,13 @@ class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
 class UFollowComponent;
-
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnUnitHealthChanged, int32, CurrentHealth, int32, MaxHealth );
+
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity, public IAttacker, public IControlledByTree
 {
@@ -73,6 +79,13 @@ public:
 	void FollowPath();
 
 	void SetFollowedTarget( AActor* newTarget );
+
+    UPROPERTY( BlueprintAssignable, Category = "Stats|Events" )
+	FOnUnitHealthChanged OnUnitHealthChanged;
+
+	int GetCurrentHealth() const;
+
+	int GetMaxHealth() const;
 
 protected:
 	void OnDeath();

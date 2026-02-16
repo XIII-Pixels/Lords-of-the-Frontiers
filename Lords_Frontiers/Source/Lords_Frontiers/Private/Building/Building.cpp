@@ -2,8 +2,10 @@
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Cards/CardSubsystem.h"
+#include "UI/Widgets/HealthBarWidget.h"
 
 #include "Components/BoxComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Utilities/TraceChannelMappings.h"
 
 ABuilding::ABuilding()
@@ -39,7 +41,16 @@ void ABuilding::BeginPlay()
 			Eco->RegisterBuilding( this );
 		}
 	}
-
+	if ( UWidgetComponent* wc = FindComponentByClass<UWidgetComponent>() )
+	{
+		if ( UUserWidget* uw = wc->GetUserWidgetObject() )
+		{
+			if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( uw ) )
+			{
+				hbw->BindToActor( this );
+			}
+		}
+	}
 	if ( UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this ) )
 	{
 		cardSubsystem->OnBuildingPlaced( this );
@@ -97,6 +108,16 @@ FEntityStats& ABuilding::Stats()
 	return Stats_;
 }
 
+int ABuilding::GetCurrentHealth() const
+{
+	return Stats_.Health();
+}
+int ABuilding::GetMaxHealth() const
+{
+	return Stats_.MaxHealth();
+}
+
+
 ETeam ABuilding::Team()
 {
 	return Stats_.Team();
@@ -110,6 +131,9 @@ void ABuilding::TakeDamage( float damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+
+	OnBuildingHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
+
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
@@ -207,6 +231,8 @@ void ABuilding::RestoreFromRuins()
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
+	OnBuildingHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
+
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
@@ -254,6 +280,8 @@ void ABuilding::FullRestore()
 	}
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
+
+	OnBuildingHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
 }
 
 // =============================================================================

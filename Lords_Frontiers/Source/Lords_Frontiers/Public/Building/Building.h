@@ -5,6 +5,7 @@
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
+//#include "Lords_Frontiers/Public/Utilities/HealthDelegates.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -12,6 +13,8 @@
 #include "Building.generated.h"
 
 class UBoxComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingHealthChanged, int32, CurrentHealth, int32, MaxHealth );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -71,6 +74,13 @@ public:
 	 * Call on game restart to undo all card modifications.
 	 */
 	void ResetMaintenanceCostToDefaults();
+
+    UPROPERTY( BlueprintAssignable, Category = "Stats|Events" )
+	FOnBuildingHealthChanged OnBuildingHealthChanged;
+
+	int GetCurrentHealth() const;
+
+	int GetMaxHealth() const;
 
 protected:
 	virtual void BeginPlay() override;

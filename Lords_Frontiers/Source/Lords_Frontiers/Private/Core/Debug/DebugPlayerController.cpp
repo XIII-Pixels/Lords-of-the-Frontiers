@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Core/Debug/DebugPlayerController.h"
-
+#include "Lords_Frontiers/Public/UI/Widgets/HealthBarWidget.h"
 #include "Building/Construction/BuildManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Cards/CardSelectionHUDComponent.h"
@@ -35,6 +35,10 @@ void ADebugPlayerController::SetupInputComponent()
 		return;
 	}
 
+	// В Project Settings -> Input -> Action Mappings добавь "ShowAllHP" на LeftAlt/RightAlt
+	InputComponent->BindAction( "ShowAllHP", IE_Pressed, this, &ADebugPlayerController::OnShowAllHP_Pressed );
+	InputComponent->BindAction( "ShowAllHP", IE_Released, this, &ADebugPlayerController::OnShowAllHP_Released );
+
 	// ����������� ���������� ������� ���.
 	// ����� ���� ������� Action Mapping, �� ��� ������� ���������� �������� ��
 	// �����.
@@ -43,6 +47,7 @@ void ADebugPlayerController::SetupInputComponent()
 	InputComponent->BindKey( EKeys::RightMouseButton, IE_Pressed, this, &ADebugPlayerController::HandleRightClick );
 
 	InputComponent->BindKey( EKeys::Escape, IE_Pressed, this, &ADebugPlayerController::HandleEscape );
+	UE_LOG( LogTemp, Log, TEXT( "ADebugPlayerController::BINDED" ));
 }
 
 void ADebugPlayerController::EnsureBuildManager()
@@ -149,4 +154,109 @@ void ADebugPlayerController::HandleEscape()
 	{
 		BuildManager_->CancelPlacing();
 	}
+}
+void ADebugPlayerController::OnShowAllHP_Pressed()
+{
+	AltHoldCount_ = FMath::Max( 0, AltHoldCount_ ) + 1;
+	UE_LOG( LogTemp, Log, TEXT( "OnShowAllHP_Pressed (count=%d)" ), AltHoldCount_ );
+
+	if ( AltHoldCount_ != 1 )
+		return;
+
+	ChangedWidgetPrevVisibility_.Empty();
+
+	UWorld* world = GetWorld();
+	if ( !world )
+		return;
+
+	TArray<AActor*> found;
+	UGameplayStatics::GetAllActorsOfClass( world, ABuilding::StaticClass(), found );
+
+	for ( AActor* actor : found )
+	{
+		if ( !actor )
+			continue;
+
+		TArray<UWidgetComponent*> comps;
+		actor->GetComponents<UWidgetComponent>( comps );
+
+		for ( UWidgetComponent* wc : comps )
+		{
+			if ( !wc )
+				continue;
+
+			UUserWidget* inner = Cast<UUserWidget>( wc->GetUserWidgetObject() );
+			const bool prevVisible = ( inner && inner->GetVisibility() == ESlateVisibility::Visible && !wc->bHiddenInGame );
+
+			if ( !ChangedWidgetPrevVisibility_.Contains( wc ) )
+			{
+				ChangedWidgetPrevVisibility_.Add( wc, prevVisible );
+			}
+
+			wc->SetHiddenInGame( false );
+			wc->SetVisibility( true );
+
+			if ( inner )
+			{
+				inner->SetVisibility( ESlateVisibility::Visible );
+
+				if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( inner ) )
+				{
+					hbw->SuspendAutoHide( true );
+					hbw->UpdateFromActor();
+				}
+			}
+		}
+	}
+}
+
+void ADebugPlayerController::OnShowAllHP_Released()
+{
+	AltHoldCount_ = FMath::Max( 0, AltHoldCount_ - 1 );
+
+	if ( AltHoldCount_ != 0 )
+		return;
+
+	for ( auto it = ChangedWidgetPrevVisibility_.CreateIterator(); it; ++it )
+	{
+		UWidgetComponent* wc = it->Key.Get();
+		const bool prevVisible = it->Value;
+
+		if ( !wc )
+			continue;
+
+		UUserWidget* inner = Cast<UUserWidget>( wc->GetUserWidgetObject() );
+
+		if ( prevVisible )
+		{
+			// restore condition before "ALT"
+			wc->SetHiddenInGame( false );
+			wc->SetVisibility( true );
+			if ( inner )
+			{
+				inner->SetVisibility( ESlateVisibility::Visible );
+				if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( inner ) )
+				{
+					hbw->SuspendAutoHide( false );
+					hbw->UpdateFromActor();
+				}
+			}
+		}
+		else
+		{
+			wc->SetHiddenInGame( false );
+			wc->SetVisibility( true );
+
+			if ( inner )
+			{
+				inner->SetVisibility( ESlateVisibility::Collapsed );
+				if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( inner ) )
+				{
+					hbw->SuspendAutoHide( false );
+				}
+			}
+		}
+	}
+
+	ChangedWidgetPrevVisibility_.Empty();
 }
