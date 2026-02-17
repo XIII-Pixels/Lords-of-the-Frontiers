@@ -85,7 +85,8 @@ void APathPointsManager::Remove( const FIntPoint& point )
 {
 	if ( TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
 	{
-		if ( const TObjectPtr<APathTargetPoint> pathPoint = *found )
+		const TObjectPtr<APathTargetPoint> pathPoint = *found;
+		if ( IsValid( pathPoint ) )
 		{
 			pathPoint->Destroy();
 		}
@@ -98,7 +99,7 @@ void APathPointsManager::Empty()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{
-		if ( pathPoint )
+		if ( IsValid( pathPoint ) )
 		{
 			pathPoint->Destroy();
 		}
@@ -110,7 +111,7 @@ void APathPointsManager::ShowAll()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{
-		if ( pathPoint )
+		if ( IsValid( pathPoint ) )
 		{
 			pathPoint->Show();
 		}
@@ -121,7 +122,7 @@ void APathPointsManager::HideAll()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{
-		if ( pathPoint )
+		if ( IsValid( pathPoint ) )
 		{
 			pathPoint->Hide();
 		}
