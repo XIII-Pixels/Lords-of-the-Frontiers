@@ -15,6 +15,9 @@ class LORDS_FRONTIERS_API APathTargetPoint : public AActor
 public:
 	APathTargetPoint();
 
+	void Show();
+	void Hide();
+
 private:
 	UPROPERTY( EditAnywhere )
 	TObjectPtr<UStaticMeshComponent> Mesh_;
