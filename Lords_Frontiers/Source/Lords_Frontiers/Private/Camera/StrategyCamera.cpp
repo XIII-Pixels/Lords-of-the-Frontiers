@@ -127,18 +127,18 @@ void AStrategyCamera::BeginPlay()
 }
 
 // Called every frame
-void AStrategyCamera::Tick(float DeltaTime)
+void AStrategyCamera::Tick(float deltaTime)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(deltaTime);
 
-	Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, DeltaTime, ZoomInterpSpeed_ );
+	Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, deltaTime, ZoomInterpSpeed_ );
 
-	 FRotator CurrentRot = SpringArm->GetRelativeRotation();
+	FRotator currentRot = SpringArm->GetRelativeRotation();
 
-	FRotator TargetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
+	FRotator targetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
 
-	FRotator NewRot = FMath::RInterpTo( CurrentRot, TargetRot, DeltaTime, RotationSpeed_ * 0.1f );
-	SpringArm->SetRelativeRotation( NewRot );
+	FRotator newRot = FMath::RInterpTo( currentRot, targetRot, deltaTime, RotationSpeed_ * 0.1f );
+	SpringArm->SetRelativeRotation( newRot );
 
 	if ( bEnableEdgeScrolling_ )
 	{
@@ -170,16 +170,16 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComp
 
 void AStrategyCamera::Move( const FInputActionValue& value )
 {
-	FVector2D MovementVector = value.Get<FVector2D>();
+	FVector2D movementVector = value.Get<FVector2D>();
 
-	const float CameraYaw = SpringArm->GetComponentRotation().Yaw;
-	const FRotator YawRotation( 0, CameraYaw, 0 );
+	const float cCameraYaw = SpringArm->GetComponentRotation().Yaw;
+	const FRotator cYawRotation( 0, cCameraYaw, 0 );
 
-	const FVector ForwardDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::X );
-	const FVector RightDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::Y );
+	const FVector cForwardDir = FRotationMatrix( cYawRotation ).GetUnitAxis( EAxis::X );
+	const FVector cRightDir = FRotationMatrix( cYawRotation ).GetUnitAxis( EAxis::Y );
 
-	AddMovementInput( ForwardDir, MovementVector.Y );
-	AddMovementInput( RightDir, MovementVector.X );
+	AddMovementInput( cForwardDir, movementVector.Y );
+	AddMovementInput( cRightDir, movementVector.X );
 }
 
 void AStrategyCamera::Zoom( const FInputActionValue& value )
@@ -211,33 +211,39 @@ void AStrategyCamera::HandleEdgeScrolling()
 {
 	if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
 	{
-		float MouseX, MouseY;
-		if ( PC->GetMousePosition( MouseX, MouseY ) )
+		float mouseX, mouseY;
+		if ( PC->GetMousePosition( mouseX, mouseY ) )
 		{
-			int32 ViewportX, ViewportY;
-			PC->GetViewportSize( ViewportX, ViewportY );
+			int32 viewportX, viewportY;
+			PC->GetViewportSize( viewportX, viewportY );
 
-			FVector2D MovementInput( 0.f, 0.f );
+			FVector2D movementInput( 0.f, 0.f );
 
-			if ( MouseX <= EdgeScrollThreshold_ )
-				MovementInput.X = -1.f;
-			else if ( MouseX >= ViewportX - EdgeScrollThreshold_ )
-				MovementInput.X = 1.f;
-
-			if ( MouseY <= EdgeScrollThreshold_ )
-				MovementInput.Y = 1.f;
-			else if ( MouseY >= ViewportY - EdgeScrollThreshold_ )
-				MovementInput.Y = -1.f;
-
-			if ( !MovementInput.IsZero() )
+			if ( mouseX <= EdgeScrollThreshold_ )
 			{
-				const float CurrentYaw = SpringArm->GetComponentRotation().Yaw;
-				const FRotator YawRotation( 0, CurrentYaw, 0 );
-				const FVector ForwardDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::X );
-				const FVector RightDir = FRotationMatrix( YawRotation ).GetUnitAxis( EAxis::Y );
+				movementInput.X = -1.f;
+			}	
+			else if ( mouseX >= viewportX - EdgeScrollThreshold_ )
+			{
+				movementInput.X = 1.f;
+			}
+			if ( mouseY <= EdgeScrollThreshold_ )
+			{
+				movementInput.Y = 1.f;
+			}
+			else if ( mouseY >= viewportY - EdgeScrollThreshold_ )
+			{
+				movementInput.Y = -1.f;
+			}
+			if ( !movementInput.IsZero() )
+			{
+				const float cCurrentYaw = SpringArm->GetComponentRotation().Yaw;
+				const FRotator cYawRotation( 0, cCurrentYaw, 0 );
+				const FVector cForwardDir = FRotationMatrix( cYawRotation ).GetUnitAxis( EAxis::X );
+				const FVector cRightDir = FRotationMatrix( cYawRotation ).GetUnitAxis( EAxis::Y );
 
-				AddMovementInput( ForwardDir, MovementInput.Y );
-				AddMovementInput( RightDir, MovementInput.X );
+				AddMovementInput( cForwardDir, movementInput.Y );
+				AddMovementInput( cRightDir, movementInput.X );
 			}
 		}
 	}
