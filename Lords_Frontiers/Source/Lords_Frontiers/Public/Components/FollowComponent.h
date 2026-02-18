@@ -12,8 +12,7 @@ class AUnit;
 /** (Gregory-hub)
  * Makes actor chase target */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
-class LORDS_FRONTIERS_API UFollowComponent : public UFloatingPawnMovement
-{
+class LORDS_FRONTIERS_API UFollowComponent : public UFloatingPawnMovement {
 	GENERATED_BODY()
 
 public:
@@ -42,6 +41,17 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float SnapToGroundDistance_ = 500.0f;
+
+	// Wobble
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwaySpeed_ = 15.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwayAmplitude_ = 10.0f;
+
+	float SwayPhaseOffset_ = 0.0f;
+
+	float CurrentSwayRoll_ = 0.0f;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CapsuleComponent_;

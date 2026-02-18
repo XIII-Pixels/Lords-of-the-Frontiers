@@ -9,6 +9,7 @@
 
 UFollowComponent::UFollowComponent()
 {
+	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 2.0f * PI );
 }
 
 void UFollowComponent::TickComponent(
@@ -25,6 +26,24 @@ void UFollowComponent::TickComponent(
 	if ( bFollowTarget_ )
 	{
 		MoveTowardsTarget();
+
+		if ( IsValid(Unit_) && Unit_.Get()->VisualMesh() )
+		{
+			float targetRoll = 0.0f;
+
+			if ( Unit_.Get()->GetVelocity().Size() > 10.0f )
+			{
+				float time = GetWorld()->GetTimeSeconds();
+				targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
+			}
+
+			CurrentSwayRoll_ = FMath::FInterpTo( CurrentSwayRoll_, targetRoll, deltaTime, 10.0f );
+
+			FRotator currentRot = Unit_.Get()->VisualMesh()->GetRelativeRotation();
+			currentRot.Pitch = CurrentSwayRoll_;
+			currentRot.Roll = 0.0f;
+			Unit_.Get()->VisualMesh()->SetRelativeRotation( currentRot );
+		}
 	}
 
 	if ( !Velocity.IsNearlyZero() )
