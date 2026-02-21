@@ -232,10 +232,7 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 
 	for ( const auto& Pair : TotalCosts )
 	{
-		if ( Pair.Value > 0 )
-		{
-			ResourceManager_->TrySpendResource( Pair.Key, Pair.Value );
-		}
+		ResourceManager_->ForceSpendResource( Pair.Key, Pair.Value );
 	}
 }
 

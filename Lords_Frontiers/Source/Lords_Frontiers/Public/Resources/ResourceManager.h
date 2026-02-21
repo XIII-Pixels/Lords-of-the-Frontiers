@@ -50,6 +50,8 @@ public:
 
 	void SpendResources( const FResourceProduction& cost );
 
+	int32 ForceSpendResource( EResourceType type, int32 quantity );
+
 private:
 	// Resource Storage: Key - Type, Value - Quantity
 	UPROPERTY( VisibleAnywhere, Category = "Settings|Resources" )

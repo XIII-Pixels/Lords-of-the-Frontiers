@@ -14,3 +14,13 @@ APathTargetPoint::APathTargetPoint()
 	Mesh_->CastShadow = false;
 	Mesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 }
+
+void APathTargetPoint::Show()
+{
+	Mesh_->SetVisibility( true );
+}
+
+void APathTargetPoint::Hide()
+{
+	Mesh_->SetVisibility( false );
+}

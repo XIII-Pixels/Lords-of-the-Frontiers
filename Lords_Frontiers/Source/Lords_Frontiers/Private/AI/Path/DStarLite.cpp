@@ -238,7 +238,7 @@ TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
 			continue;
 		}
 
-		if ( !Grid_->GetCell( next.X, next.Y )->bIsBuildable )
+		if ( !Grid_->GetCell( next.X, next.Y )->bIsWalkable )
 		{
 			continue;
 		}
@@ -268,7 +268,7 @@ float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 	float timeToDestroy = 0.0f;
 	if ( const FGridCell* cell = Grid_->GetCell( b.X, b.Y ) )
 	{
-		const TWeakObjectPtr<ABuilding> occupant = cell->Occupant;
+		const TWeakObjectPtr<ABuilding> occupant = cell->bIsBuildable && cell->bIsOccupied ? cell->Occupant : nullptr;
 		if ( occupant.IsValid() && UnitDps_ != -1.0f )
 		{
 			timeToDestroy = occupant->Stats().Health() / UnitDps_;
