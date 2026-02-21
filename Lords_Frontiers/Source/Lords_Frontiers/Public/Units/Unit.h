@@ -7,7 +7,6 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
-
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggroComponent.h"
 #include "Components/WidgetComponent.h"
@@ -24,6 +23,8 @@ class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
 class UFollowComponent;
+struct FEnemyBuff;
+
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
  * Can move, attack and be attacked
@@ -87,6 +88,7 @@ public:
 	int GetCurrentHealth() const;
 
 	int GetMaxHealth() const;
+	void ChangeStats( FEnemyBuff* buff );
 
 protected:
 	void OnDeath();
@@ -126,7 +128,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 
-	// Widget component (можно поставить этот компонент в BP или создать на BeginPlay)
+	// Widget component (пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ BP пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ BeginPlay)
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "UI" )
 	TObjectPtr<UWidgetComponent> HealthWidgetComponent = nullptr;
 

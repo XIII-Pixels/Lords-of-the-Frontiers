@@ -1,5 +1,6 @@
 #include "Core/GameLoopManager.h"
 
+#include "Building/Building.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Resources/EconomyComponent.h"
@@ -25,7 +26,7 @@ UGameLoopManager::~UGameLoopManager()
 
 void UGameLoopManager::Initialize(
     UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-    UEconomyComponent* inEconomyComponent
+    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
 )
 {
 	if ( inConfig )
@@ -41,6 +42,7 @@ void UGameLoopManager::Initialize(
 	WaveManager_ = inWaveManager;
 	ResourceManager_ = inResourceManager;
 	EconomyComponent_ = inEconomyComponent;
+	PathPointsManager_ = inPathPointsManager;
 
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{

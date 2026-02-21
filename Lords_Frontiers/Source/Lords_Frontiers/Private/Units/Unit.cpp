@@ -9,6 +9,7 @@
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "Lords_Frontiers/Public/UI/HealthBarManager.h"
+#include "Waves/EnemyBuff.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
@@ -47,13 +48,13 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-// Попробуем найти уже существующий компонент (если добавлен в BP)
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ BP)
 	if ( !HealthWidgetComponent )
 	{
 		HealthWidgetComponent = FindComponentByClass<UWidgetComponent>();
 	}
 
-	// Если нет — создаём динамически
+	// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	if ( !HealthWidgetComponent )
 	{
 		HealthWidgetComponent = NewObject<UWidgetComponent>( this, TEXT( "HealthWidgetComponent" ) );
@@ -68,34 +69,34 @@ void AUnit::BeginPlay()
 
 	if ( HealthWidgetComponent )
 	{
-		// Настройки: Screen space, draw size, pivot bottom-center
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ: Screen space, draw size, pivot bottom-center
 		HealthWidgetComponent->SetWidgetSpace( EWidgetSpace::Screen );      // <-- screen-space widget
-		HealthWidgetComponent->SetRelativeLocation( HealthBarWorldOffset ); // позиция привязки в мире
+		HealthWidgetComponent->SetRelativeLocation( HealthBarWorldOffset ); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ
 		HealthWidgetComponent->SetPivot( FVector2D( 0.5f, 1.0f ) );         // bottom-center
-		HealthWidgetComponent->SetDrawSize( FIntPoint( 220, 28 ) );         // подберите под дизайн
+		HealthWidgetComponent->SetDrawSize( FIntPoint( 220, 28 ) );         // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
-		// Назначаем класс виджета. Предпочтительнее задавать это в BP через свойство HealthBarWidgetClass
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅ BP пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ HealthBarWidgetClass
 		if ( HealthBarWidgetClass )
 		{
 			HealthWidgetComponent->SetWidgetClass( HealthBarWidgetClass );
 		}
 		else
 		{
-			// опция: попытаться загрузить по пути (если нужно)
+			// пїЅпїЅпїЅпїЅпїЅ: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ)
 			// static ConstructorHelpers::FClassFinder<UUserWidget> WidgetBPClass(TEXT("/Game/UI/WBP_HealthBar"));
 			// if (WidgetBPClass.Succeeded()) HealthWidgetComponent->SetWidgetClass(WidgetBPClass.Class);
 		}
 
-		// Принудительно инициализируем виджет внутри компонента (создаёт инстанс)
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ)
 		HealthWidgetComponent->InitWidget();
 
-		// Получаем созданный UUserWidget и кастим к UHealthBarWidget чтобы привязаться
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ UUserWidget пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ UHealthBarWidget пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 		if ( UUserWidget* UW = HealthWidgetComponent->GetUserWidgetObject() )
 		{
 			if ( UHealthBarWidget* HBW = Cast<UHealthBarWidget>( UW ) )
 			{
-				HBW->BindToActor( this ); // подпишем виджет на события актора (hp changes)
-				// По желанию сразу скрыть, если не хотим показывать пока не нанесут урон
+				HBW->BindToActor( this ); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (hp changes)
+				// пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 				HBW->SetVisibility( ESlateVisibility::Collapsed );
 			}
 		}
@@ -356,4 +357,20 @@ void AUnit::EndPlay( const EEndPlayReason::Type EndPlayReason )
 	}
 
 	Super::EndPlay( EndPlayReason );
+}
+void AUnit::ChangeStats( FEnemyBuff* buff )
+{
+	Stats_.SetMaxHealth(
+	    FMath::FloorToInt( Stats_.MaxHealth() * FMath::Pow( buff->HealthMultiplier, buff->SpawnCount ) )
+	);
+	Stats_.SetAttackRange( Stats_.AttackRange() * FMath::Pow( buff->AttackRangeMultiplier, buff->SpawnCount ) );
+	Stats_.SetAttackDamage(
+	    FMath::FloorToInt( Stats_.AttackDamage() * FMath::Pow( buff->AttackDamageMultiplier, buff->SpawnCount ) )
+	);
+	Stats_.SetAttackCooldown(
+	    Stats_.AttackCooldown() * FMath::Pow( buff->AttackCooldownMultiplier, buff->SpawnCount )
+	);
+	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
+	Stats_.Heal( Stats_.MaxHealth() );
+
 }

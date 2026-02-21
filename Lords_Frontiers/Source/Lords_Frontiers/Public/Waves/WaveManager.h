@@ -2,7 +2,7 @@
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Wave.h"
-
+#include "EnemyBuff.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
@@ -61,6 +61,10 @@ public:
 		return bHasRequestedFirstWave_;
 	}
 
+	
+	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Buffs" )
+	TMap<TSubclassOf<AUnit>, FEnemyBuff> EnemyBuffs;
+
 	// Current wave index (0-based)
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	int32 CurrentWaveIndex = 0;
@@ -114,6 +118,8 @@ protected:
 	// Internal helper to schedule all spawn timers for a wave
 	void ScheduleWaveSpawns( const FWave& wave, int32 waveIndex );
 
+	UFUNCTION( BlueprintCallable )
+	void UpdateSpawnCounts( int32 waveIndex );
 	// Schedules spawn for a single enemy (called via timer)
 	UFUNCTION()
 	void SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyIndex );
@@ -167,4 +173,5 @@ protected:
 
 	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
+
 };

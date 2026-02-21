@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "InputActionValue.h"
 
 #include "StrategyCamera.generated.h"
 
@@ -11,6 +12,8 @@ class USpringArmComponent;
 class UCameraComponent;
 class UFloatingPawnMovement;
 class UInputComponent;
+class UInputMappingContext;
+class UInputAction;
 
 UCLASS()
 class LORDS_FRONTIERS_API AStrategyCamera : public APawn
@@ -30,6 +33,18 @@ public:
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UFloatingPawnMovement> MovementComponent;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> ZoomAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> RotateAction; // Q/E (Axis1D)
 
 protected:
 	// Called when the game starts or when spawned
@@ -77,18 +92,34 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	bool bAutoCalculateBounds_ = true;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
+	float RotationSpeed_ = 45.0f;
+
+	//Edge Scrolling
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
+	bool bEnableEdgeScrolling_ = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
+	float EdgeScrollSpeed_ = 2000.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
+	float EdgeScrollThreshold_ = 20.0f;
+
 public:	
 	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float deltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 private:
-	void MoveForward(float value);
-	void MoveRight(float value);
-	void ZoomIn();
-	void ZoomOut();
+	void Move( const FInputActionValue& value );
+	void Zoom( const FInputActionValue& value );
+
+	void Rotate( const FInputActionValue& value );
+	void HandleEdgeScrolling();
 
 	float TargetZoom_;
+	float TargetYaw_;
+	float CurrentYaw_;
 };

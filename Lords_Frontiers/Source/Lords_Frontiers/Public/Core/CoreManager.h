@@ -6,6 +6,7 @@
 
 #include "CoreManager.generated.h"
 
+class APathPointsManager;
 // Forward declarations - minimizes header dependencies and compile times
 class AWaveManager;
 class ABuildManager;
@@ -170,6 +171,10 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	USelectionManagerComponent* GetSelectionManager() const;
 
+	/** Returns PathPointsManager component. Optional - may be null. */
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
+	APathPointsManager* GetPathPointsManager() const;
+
 	/** Returns GameLoopManager. Always created internally. */
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	UGameLoopManager* GetGameLoop() const;
@@ -285,6 +290,10 @@ protected:
 	/** Weak reference to SelectionManager on PlayerController. Optional. */
 	UPROPERTY()
 	TWeakObjectPtr<USelectionManagerComponent> SelectionManager_;
+
+	/** Weak ref to path points manager. */
+	UPROPERTY()
+	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
 
 	/**
 	 * Strong reference to GameLoopManager.
