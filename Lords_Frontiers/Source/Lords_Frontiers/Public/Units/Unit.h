@@ -10,7 +10,7 @@
 
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggroComponent.h"
-//#include "Lords_Frontiers/Public/Utilities/HealthDelegates.h"
+#include "Components/WidgetComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
@@ -42,6 +42,7 @@ public:
 	virtual void OnConstruction( const FTransform& transform ) override;
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
 
 	virtual void Tick( float deltaSeconds ) override;
 
@@ -124,6 +125,18 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
+
+	// Widget component (можно поставить этот компонент в BP или создать на BeginPlay)
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "UI" )
+	TObjectPtr<UWidgetComponent> HealthWidgetComponent = nullptr;
+
+	// Widget class to use for the health bar. Assign in BP or via manager.
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
+	TSubclassOf<UUserWidget> HealthBarWidgetClass;
+
+	// World offset used when computing widget attach point (relative to actor origin)
+	UPROPERTY( EditAnywhere, Category = "UI" )
+	FVector HealthBarWorldOffset = FVector( 0.f, 0.f, 200.f );
 
 	//Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )

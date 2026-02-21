@@ -3,6 +3,7 @@
 #include "Core/Debug/DebugPlayerController.h"
 #include "Lords_Frontiers/Public/UI/Widgets/HealthBarWidget.h"
 #include "Building/Construction/BuildManager.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Cards/CardSelectionHUDComponent.h"
 
@@ -157,106 +158,53 @@ void ADebugPlayerController::HandleEscape()
 }
 void ADebugPlayerController::OnShowAllHP_Pressed()
 {
+	// увеличиваем счётчик удержаний (защита от повторных Pressed)
 	AltHoldCount_ = FMath::Max( 0, AltHoldCount_ ) + 1;
 	UE_LOG( LogTemp, Log, TEXT( "OnShowAllHP_Pressed (count=%d)" ), AltHoldCount_ );
 
+	// делаем действие только при переходе 0 -> 1
 	if ( AltHoldCount_ != 1 )
 		return;
 
-	ChangedWidgetPrevVisibility_.Empty();
-
-	UWorld* world = GetWorld();
-	if ( !world )
+	UWorld* World = GetWorld();
+	if ( !World )
 		return;
 
-	TArray<AActor*> found;
-	UGameplayStatics::GetAllActorsOfClass( world, ABuilding::StaticClass(), found );
+	// Найти менеджер и попросить показать все его виджеты
+	AHealthBarManager* Mgr =
+	    Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() ) );
 
-	for ( AActor* actor : found )
+	if ( !Mgr )
 	{
-		if ( !actor )
-			continue;
-
-		TArray<UWidgetComponent*> comps;
-		actor->GetComponents<UWidgetComponent>( comps );
-
-		for ( UWidgetComponent* wc : comps )
-		{
-			if ( !wc )
-				continue;
-
-			UUserWidget* inner = Cast<UUserWidget>( wc->GetUserWidgetObject() );
-			const bool prevVisible = ( inner && inner->GetVisibility() == ESlateVisibility::Visible && !wc->bHiddenInGame );
-
-			if ( !ChangedWidgetPrevVisibility_.Contains( wc ) )
-			{
-				ChangedWidgetPrevVisibility_.Add( wc, prevVisible );
-			}
-
-			wc->SetHiddenInGame( false );
-			wc->SetVisibility( true );
-
-			if ( inner )
-			{
-				inner->SetVisibility( ESlateVisibility::Visible );
-
-				if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( inner ) )
-				{
-					hbw->SuspendAutoHide( true );
-					hbw->UpdateFromActor();
-				}
-			}
-		}
+		UE_LOG( LogTemp, Warning, TEXT( "OnShowAllHP_Pressed: HealthBarManager not found in level" ) );
+		return;
 	}
+
+	Mgr->ShowActiveWidgets();
 }
 
 void ADebugPlayerController::OnShowAllHP_Released()
 {
+	// уменьшаем счётчик удержаний
 	AltHoldCount_ = FMath::Max( 0, AltHoldCount_ - 1 );
+	UE_LOG( LogTemp, Log, TEXT( "OnShowAllHP_Released (count=%d)" ), AltHoldCount_ );
 
+	// действуем только на окончательное отпускание
 	if ( AltHoldCount_ != 0 )
 		return;
 
-	for ( auto it = ChangedWidgetPrevVisibility_.CreateIterator(); it; ++it )
+	UWorld* World = GetWorld();
+	if ( !World )
+		return;
+
+	AHealthBarManager* Mgr =
+	    Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() ) );
+
+	if ( !Mgr )
 	{
-		UWidgetComponent* wc = it->Key.Get();
-		const bool prevVisible = it->Value;
-
-		if ( !wc )
-			continue;
-
-		UUserWidget* inner = Cast<UUserWidget>( wc->GetUserWidgetObject() );
-
-		if ( prevVisible )
-		{
-			// restore condition before "ALT"
-			wc->SetHiddenInGame( false );
-			wc->SetVisibility( true );
-			if ( inner )
-			{
-				inner->SetVisibility( ESlateVisibility::Visible );
-				if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( inner ) )
-				{
-					hbw->SuspendAutoHide( false );
-					hbw->UpdateFromActor();
-				}
-			}
-		}
-		else
-		{
-			wc->SetHiddenInGame( false );
-			wc->SetVisibility( true );
-
-			if ( inner )
-			{
-				inner->SetVisibility( ESlateVisibility::Collapsed );
-				if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( inner ) )
-				{
-					hbw->SuspendAutoHide( false );
-				}
-			}
-		}
+		UE_LOG( LogTemp, Warning, TEXT( "OnShowAllHP_Released: HealthBarManager not found in level" ) );
+		return;
 	}
 
-	ChangedWidgetPrevVisibility_.Empty();
+	Mgr->HideActiveWidgets();
 }

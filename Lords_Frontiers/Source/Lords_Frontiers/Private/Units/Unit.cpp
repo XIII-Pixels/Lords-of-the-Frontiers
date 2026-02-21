@@ -8,6 +8,7 @@
 #include "AI/Path/PathTargetPoint.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
@@ -46,13 +47,56 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-	if ( UWidgetComponent* wc = FindComponentByClass<UWidgetComponent>() )
+// Попробуем найти уже существующий компонент (если добавлен в BP)
+	if ( !HealthWidgetComponent )
 	{
-		if ( UUserWidget* uw = wc->GetUserWidgetObject() )
+		HealthWidgetComponent = FindComponentByClass<UWidgetComponent>();
+	}
+
+	// Если нет — создаём динамически
+	if ( !HealthWidgetComponent )
+	{
+		HealthWidgetComponent = NewObject<UWidgetComponent>( this, TEXT( "HealthWidgetComponent" ) );
+		if ( HealthWidgetComponent )
 		{
-			if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( uw ) )
+			HealthWidgetComponent->RegisterComponent();
+			HealthWidgetComponent->AttachToComponent(
+			    GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform
+			);
+		}
+	}
+
+	if ( HealthWidgetComponent )
+	{
+		// Настройки: Screen space, draw size, pivot bottom-center
+		HealthWidgetComponent->SetWidgetSpace( EWidgetSpace::Screen );      // <-- screen-space widget
+		HealthWidgetComponent->SetRelativeLocation( HealthBarWorldOffset ); // позиция привязки в мире
+		HealthWidgetComponent->SetPivot( FVector2D( 0.5f, 1.0f ) );         // bottom-center
+		HealthWidgetComponent->SetDrawSize( FIntPoint( 220, 28 ) );         // подберите под дизайн
+
+		// Назначаем класс виджета. Предпочтительнее задавать это в BP через свойство HealthBarWidgetClass
+		if ( HealthBarWidgetClass )
+		{
+			HealthWidgetComponent->SetWidgetClass( HealthBarWidgetClass );
+		}
+		else
+		{
+			// опция: попытаться загрузить по пути (если нужно)
+			// static ConstructorHelpers::FClassFinder<UUserWidget> WidgetBPClass(TEXT("/Game/UI/WBP_HealthBar"));
+			// if (WidgetBPClass.Succeeded()) HealthWidgetComponent->SetWidgetClass(WidgetBPClass.Class);
+		}
+
+		// Принудительно инициализируем виджет внутри компонента (создаёт инстанс)
+		HealthWidgetComponent->InitWidget();
+
+		// Получаем созданный UUserWidget и кастим к UHealthBarWidget чтобы привязаться
+		if ( UUserWidget* UW = HealthWidgetComponent->GetUserWidgetObject() )
+		{
+			if ( UHealthBarWidget* HBW = Cast<UHealthBarWidget>( UW ) )
 			{
-				hbw->BindToActor( this );
+				HBW->BindToActor( this ); // подпишем виджет на события актора (hp changes)
+				// По желанию сразу скрыть, если не хотим показывать пока не нанесут урон
+				HBW->SetVisibility( ESlateVisibility::Collapsed );
 			}
 		}
 	}
@@ -137,8 +181,15 @@ void AUnit::TakeDamage( float damage )
 	}
 
 	Stats_.ApplyDamage( damage );
-
-	OnUnitHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
+	if ( AHealthBarManager* manager = Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AHealthBarManager::StaticClass() ) ) )
+	{
+		manager->OnActorHealthChanged( this, this->GetCurrentHealth(), this->GetMaxHealth() );
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "AUnit::TakeDamage: HealthBarManager NOT FOUND!" ) );
+	}
+	//OnUnitHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
@@ -288,4 +339,21 @@ int AUnit::GetCurrentHealth() const
 int AUnit::GetMaxHealth() const
 {
 	return Stats_.MaxHealth();
+}
+
+
+void AUnit::EndPlay( const EEndPlayReason::Type EndPlayReason )
+{
+	if ( HealthWidgetComponent )
+	{
+		if ( UUserWidget* UW = HealthWidgetComponent->GetUserWidgetObject() )
+		{
+			if ( UHealthBarWidget* HBW = Cast<UHealthBarWidget>( UW ) )
+			{
+				HBW->Unbind( nullptr );
+			}
+		}
+	}
+
+	Super::EndPlay( EndPlayReason );
 }

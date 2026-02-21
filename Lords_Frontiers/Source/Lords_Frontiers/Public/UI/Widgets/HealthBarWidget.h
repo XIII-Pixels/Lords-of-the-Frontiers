@@ -1,20 +1,18 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Components/ProgressBar.h"
 #include "CoreMinimal.h"
 
 #include "HealthBarWidget.generated.h"
 
-class UProgressBar;
-class UTextBlock;
 class AActor;
-
-class UProgressBar;
+class AUnit;
+class ABuilding;
 
 /**
- * (Artyom)
- * Health bar widget attached to actors (units / buildings).
- * Shows only a progress bar. Appears on damage and hides after timeout.
+* (Artyom)
+ * UHealthBarWidget
  */
 UCLASS()
 class LORDS_FRONTIERS_API UHealthBarWidget : public UUserWidget
@@ -23,54 +21,58 @@ class LORDS_FRONTIERS_API UHealthBarWidget : public UUserWidget
 
 public:
 	UFUNCTION( BlueprintCallable, Category = "Health" )
-	void BindToActor( AActor* actor );
+	void BindToActor( AActor* Actor );
 
 	UFUNCTION()
-	void Unbind( AActor* destroyedActor = nullptr );
+	void Unbind( AActor* DestroyedActor = nullptr );
 
 	UFUNCTION( BlueprintCallable, Category = "Health" )
 	void UpdateFromActor();
 
-	UFUNCTION( BlueprintCallable )
+	UFUNCTION( BlueprintCallable, Category = "Health" )
 	void SuspendAutoHide( bool bSuspend );
-
-protected:
-	virtual void NativeConstruct() override; 
-	virtual void NativeDestruct() override;
-
-	// Health change handler
-	UFUNCTION()
-	void OnActorHealthInt( int32 current, int32 max );
-
-	// Update progress bar
-	void UpdateVisuals( int32 current, int32 max );
-
-	// Show widget for VisibleOnDamageDuration seconds 
+	
+	// show temporarily (and restart timer)
 	void ShowTemporary();
 
-	// hide widget if idle long enough
+protected:
+	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
+
+	// Bound handler signature — must match delegate on AUnit/ABuilding
+	UFUNCTION()
+	void OnActorHealthInt( int32 Current, int32 Max );
+
+	// update visuals
+	void UpdateVisuals( int32 Current, int32 Max );
+
+	// called by timer to attempt hide
 	void HideIfIdle();
 
-	// Widget bind (progress bar )
+	// widgets from UMG (must exist in the UMG widget)
 	UPROPERTY( meta = ( BindWidget ) )
 	UProgressBar* HealthBar;
 
+	// how long to keep visible after receiving damage
 	UPROPERTY( EditAnywhere, Category = "Settings|Health" )
 	float VisibleOnDamageDuration = 3.0f;
 
 private:
-	// Timer handle for hide timer
+	// timer handle for auto-hide
 	FTimerHandle HideTimerHandle_;
 
-	// Time of last damage (world seconds)
+	// time of last damage (world seconds)
 	float LastDamageTimeSeconds_ = 0.0f;
 
-	// last known health to detect damage. -1 = uninitialized
+	// last known health to detect damage; -1 uninitialized
 	int32 LastKnownHealth_ = -1;
 
+	// bound actor
 	TWeakObjectPtr<AActor> BoundActor;
 
+	// is actor dead (health <= 0)
 	bool bIsDead_ = false;
 
+	// if true, don't auto-hide (e.g. Alt is held)
 	bool bAutoHideSuspended_ = false;
 };

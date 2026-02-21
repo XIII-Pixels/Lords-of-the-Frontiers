@@ -1,5 +1,5 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
-
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "DrawDebugHelpers.h"
@@ -385,20 +385,33 @@ void AWaveManager::AdvanceToNextWave()
 
 void AWaveManager::CancelCurrentWave()
 {
-	ClearActiveTimers();
+    ClearActiveTimers();
 
-	int32 destroyedAmount = DestroyAllEnemies();
-	if ( bLogSpawning )
-	{
-		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
-	}
+    int32 destroyedAmount = DestroyAllEnemies();
+    if ( bLogSpawning )
+    {
+        UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
+    }
 
-	bIsWaveActive_ = false;
+    bIsWaveActive_ = false;
 
-	if ( bLogSpawning )
-	{
-		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
-	}
+    if ( UWorld* world = GetWorld() )
+    {
+        if ( AHealthBarManager* mgr = Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( world, AHealthBarManager::StaticClass() ) ) )
+        {
+            UE_LOG( LogTemp, Verbose, TEXT( "WaveManager: asking HealthBarManager to remove all widgets." ) );
+			mgr->HideAllRegistered();
+        }
+        else
+        {
+            UE_LOG( LogTemp, Warning, TEXT( "WaveManager: HealthBarManager not found to clear widgets." ) );
+        }
+    }
+
+    if ( bLogSpawning )
+    {
+        UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
+    }
 }
 
 void AWaveManager::RestartWaves()

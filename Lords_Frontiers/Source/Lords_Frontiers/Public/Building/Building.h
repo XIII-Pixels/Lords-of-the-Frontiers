@@ -5,7 +5,6 @@
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
-//#include "Lords_Frontiers/Public/Utilities/HealthDelegates.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"

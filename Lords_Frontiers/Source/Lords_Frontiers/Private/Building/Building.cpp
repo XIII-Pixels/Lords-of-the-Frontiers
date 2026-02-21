@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Cards/CardSubsystem.h"
 #include "UI/Widgets/HealthBarWidget.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
@@ -41,8 +42,11 @@ void ABuilding::BeginPlay()
 			Eco->RegisterBuilding( this );
 		}
 	}
+
 	if ( UWidgetComponent* wc = FindComponentByClass<UWidgetComponent>() )
 	{
+		wc->SetVisibility( false );
+		wc->SetHiddenInGame( true );
 		if ( UUserWidget* uw = wc->GetUserWidgetObject() )
 		{
 			if ( UHealthBarWidget* hbw = Cast<UHealthBarWidget>( uw ) )
@@ -131,8 +135,16 @@ void ABuilding::TakeDamage( float damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+	if ( AHealthBarManager* manager = Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AHealthBarManager::StaticClass() ) ) )
+	{
+		manager->OnActorHealthChanged( this, this->GetCurrentHealth(), this->GetMaxHealth() );
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "ABuilding::TakeDamage: HealthBarManager NOT FOUND!" ) );
+	}
 
-	OnBuildingHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
+	//OnBuildingHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
 
 	if ( !Stats_.IsAlive() )
 	{
