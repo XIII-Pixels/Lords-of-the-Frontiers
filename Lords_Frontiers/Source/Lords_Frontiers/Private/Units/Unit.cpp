@@ -47,13 +47,11 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-// Попробуем найти уже существующий компонент (если добавлен в BP)
 	if ( !HealthWidgetComponent )
 	{
 		HealthWidgetComponent = FindComponentByClass<UWidgetComponent>();
 	}
 
-	// Если нет — создаём динамически
 	if ( !HealthWidgetComponent )
 	{
 		HealthWidgetComponent = NewObject<UWidgetComponent>( this, TEXT( "HealthWidgetComponent" ) );
@@ -68,34 +66,23 @@ void AUnit::BeginPlay()
 
 	if ( HealthWidgetComponent )
 	{
-		// Настройки: Screen space, draw size, pivot bottom-center
-		HealthWidgetComponent->SetWidgetSpace( EWidgetSpace::Screen );      // <-- screen-space widget
-		HealthWidgetComponent->SetRelativeLocation( HealthBarWorldOffset ); // позиция привязки в мире
-		HealthWidgetComponent->SetPivot( FVector2D( 0.5f, 1.0f ) );         // bottom-center
-		HealthWidgetComponent->SetDrawSize( FIntPoint( 220, 28 ) );         // подберите под дизайн
+		HealthWidgetComponent->SetWidgetSpace( EWidgetSpace::Screen );
+		HealthWidgetComponent->SetRelativeLocation( HealthBarWorldOffset );
+		HealthWidgetComponent->SetPivot( FVector2D( 0.5f, 1.0f ) );       
+		HealthWidgetComponent->SetDrawSize( FIntPoint( 220, 28 ) );     
 
-		// Назначаем класс виджета. Предпочтительнее задавать это в BP через свойство HealthBarWidgetClass
 		if ( HealthBarWidgetClass )
 		{
 			HealthWidgetComponent->SetWidgetClass( HealthBarWidgetClass );
 		}
-		else
-		{
-			// опция: попытаться загрузить по пути (если нужно)
-			// static ConstructorHelpers::FClassFinder<UUserWidget> WidgetBPClass(TEXT("/Game/UI/WBP_HealthBar"));
-			// if (WidgetBPClass.Succeeded()) HealthWidgetComponent->SetWidgetClass(WidgetBPClass.Class);
-		}
 
-		// Принудительно инициализируем виджет внутри компонента (создаёт инстанс)
 		HealthWidgetComponent->InitWidget();
 
-		// Получаем созданный UUserWidget и кастим к UHealthBarWidget чтобы привязаться
 		if ( UUserWidget* UW = HealthWidgetComponent->GetUserWidgetObject() )
 		{
 			if ( UHealthBarWidget* HBW = Cast<UHealthBarWidget>( UW ) )
 			{
-				HBW->BindToActor( this ); // подпишем виджет на события актора (hp changes)
-				// По желанию сразу скрыть, если не хотим показывать пока не нанесут урон
+				HBW->BindToActor( this );
 				HBW->SetVisibility( ESlateVisibility::Collapsed );
 			}
 		}

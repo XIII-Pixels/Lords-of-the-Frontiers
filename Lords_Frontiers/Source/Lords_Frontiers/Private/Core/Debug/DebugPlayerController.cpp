@@ -36,7 +36,6 @@ void ADebugPlayerController::SetupInputComponent()
 		return;
 	}
 
-	// В Project Settings -> Input -> Action Mappings добавь "ShowAllHP" на LeftAlt/RightAlt
 	InputComponent->BindAction( "ShowAllHP", IE_Pressed, this, &ADebugPlayerController::OnShowAllHP_Pressed );
 	InputComponent->BindAction( "ShowAllHP", IE_Released, this, &ADebugPlayerController::OnShowAllHP_Released );
 
@@ -158,11 +157,9 @@ void ADebugPlayerController::HandleEscape()
 }
 void ADebugPlayerController::OnShowAllHP_Pressed()
 {
-	// увеличиваем счётчик удержаний (защита от повторных Pressed)
 	AltHoldCount_ = FMath::Max( 0, AltHoldCount_ ) + 1;
 	UE_LOG( LogTemp, Log, TEXT( "OnShowAllHP_Pressed (count=%d)" ), AltHoldCount_ );
 
-	// делаем действие только при переходе 0 -> 1
 	if ( AltHoldCount_ != 1 )
 		return;
 
@@ -170,7 +167,6 @@ void ADebugPlayerController::OnShowAllHP_Pressed()
 	if ( !World )
 		return;
 
-	// Найти менеджер и попросить показать все его виджеты
 	AHealthBarManager* Mgr =
 	    Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() ) );
 
@@ -185,11 +181,9 @@ void ADebugPlayerController::OnShowAllHP_Pressed()
 
 void ADebugPlayerController::OnShowAllHP_Released()
 {
-	// уменьшаем счётчик удержаний
 	AltHoldCount_ = FMath::Max( 0, AltHoldCount_ - 1 );
 	UE_LOG( LogTemp, Log, TEXT( "OnShowAllHP_Released (count=%d)" ), AltHoldCount_ );
 
-	// действуем только на окончательное отпускание
 	if ( AltHoldCount_ != 0 )
 		return;
 

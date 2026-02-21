@@ -126,15 +126,13 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 
-	// Widget component (можно поставить этот компонент в BP или создать на BeginPlay)
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "UI" )
 	TObjectPtr<UWidgetComponent> HealthWidgetComponent = nullptr;
 
-	// Widget class to use for the health bar. Assign in BP or via manager.
+	// Widget class to use for the health bar. Assign in BP
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
 	TSubclassOf<UUserWidget> HealthBarWidgetClass;
 
-	// World offset used when computing widget attach point (relative to actor origin)
 	UPROPERTY( EditAnywhere, Category = "UI" )
 	FVector HealthBarWorldOffset = FVector( 0.f, 0.f, 200.f );
 

@@ -44,24 +44,18 @@ void UHealthBarWidget::BindToActor( AActor* actor )
 	bIsDead_ = false;
 	LastKnownHealth_ = -1;
 
-	// subscribe to actor health delegates if actor exposes them
 	if ( AUnit* unit = Cast<AUnit>( actor ) )
 	{
-		// assuming AUnit has: UPROPERTY(BlueprintAssignable) FOnUnitHealthChanged OnUnitHealthChanged;
-		// and signature (int32 current, int32 max)
 		unit->OnUnitHealthChanged.AddDynamic( this, &UHealthBarWidget::OnActorHealthInt );
 
-		// cleanup on actor destroy
 		actor->OnDestroyed.AddDynamic( this, &UHealthBarWidget::Unbind );
 
-		// initialize immediately
 		UpdateFromActor();
 		return;
 	}
 
 	if ( ABuilding* building = Cast<ABuilding>( actor ) )
 	{
-		// assuming ABuilding has OnBuildingHealthChanged
 		building->OnBuildingHealthChanged.AddDynamic( this, &UHealthBarWidget::OnActorHealthInt );
 		actor->OnDestroyed.AddDynamic( this, &UHealthBarWidget::Unbind );
 
@@ -69,14 +63,12 @@ void UHealthBarWidget::BindToActor( AActor* actor )
 		return;
 	}
 
-	// otherwise not supported actor — hide
 	BoundActor.Reset();
 	SetVisibility( ESlateVisibility::Collapsed );
 }
 
 void UHealthBarWidget::Unbind( AActor* destroyedActor )
 {
-	// stop timer
 	if ( GetWorld() )
 	{
 		GetWorld()->GetTimerManager().ClearTimer( HideTimerHandle_ );
@@ -92,7 +84,6 @@ void UHealthBarWidget::Unbind( AActor* destroyedActor )
 
 	if ( AUnit* unit = Cast<AUnit>( actor ) )
 	{
-		// remove delegate (if bound)
 		unit->OnUnitHealthChanged.RemoveDynamic( this, &UHealthBarWidget::OnActorHealthInt );
 		actor->OnDestroyed.RemoveDynamic( this, &UHealthBarWidget::Unbind );
 	}
@@ -137,13 +128,11 @@ void UHealthBarWidget::UpdateFromActor()
 
 	UpdateVisuals( cur, max );
 
-	// Initialize LastKnownHealth_ if wasn't initialized yet
 	if ( LastKnownHealth_ == -1 )
 	{
 		LastKnownHealth_ = cur;
 	}
 
-	// if dead, ensure hidden
 	if ( cur <= 0 )
 	{
 		bIsDead_ = true;
@@ -157,7 +146,6 @@ void UHealthBarWidget::SuspendAutoHide( bool bSuspend )
 
 	if ( bAutoHideSuspended_ )
 	{
-		// if suspending, clear any hide timer and ensure visible if actor is valid
 		if ( GetWorld() )
 		{
 			GetWorld()->GetTimerManager().ClearTimer( HideTimerHandle_ );
@@ -165,7 +153,6 @@ void UHealthBarWidget::SuspendAutoHide( bool bSuspend )
 	}
 	else
 	{
-		// resumed: if there was recent damage, schedule hide accordingly
 		if ( BoundActor.IsValid() && LastDamageTimeSeconds_ > 0.f && GetWorld() )
 		{
 			const float now = GetWorld()->GetTimeSeconds();
@@ -188,24 +175,14 @@ void UHealthBarWidget::SuspendAutoHide( bool bSuspend )
 
 void UHealthBarWidget::OnActorHealthInt( int32 current, int32 max )
 {
-	// Debug log (optional)
-	UE_LOG(
-	    LogTemp, Verbose,
-	    TEXT( "HealthBarWidget::OnActorHealthInt Actor=%s Current=%d Max=%d LastKnown=%d bIsDead=%d" ),
-	    *GetNameSafe( BoundActor.Get() ), current, max, LastKnownHealth_, bIsDead_ ? 1 : 0
-	);
-
-	// Update visuals always
 	UpdateVisuals( current, max );
 
-	// Initialize LastKnownHealth_ if uninitialized
 	if ( LastKnownHealth_ == -1 )
 	{
 		LastKnownHealth_ = current;
 		return;
 	}
 
-	// If we've taken damage (current < last known)
 	if ( current < LastKnownHealth_ )
 	{
 		LastKnownHealth_ = current;
@@ -214,16 +191,14 @@ void UHealthBarWidget::OnActorHealthInt( int32 current, int32 max )
 			LastDamageTimeSeconds_ = GetWorld()->GetTimeSeconds();
 		}
 
-		// show bar temporarily (unless suspended)
 		ShowTemporary();
 	}
 	else
 	{
-		// no damage (healing or same) - update cache
 		LastKnownHealth_ = current;
 	}
 
-	// If actor died, hide immediately and cancel timers
+	// If actor died, hide and cancel timers
 	if ( current <= 0 )
 	{
 		bIsDead_ = true;
@@ -248,7 +223,6 @@ void UHealthBarWidget::ShowTemporary()
 {
 	if ( bAutoHideSuspended_ )
 	{
-		// show but don't start hide timer
 		SetVisibility( ESlateVisibility::Visible );
 		return;
 	}
@@ -257,9 +231,7 @@ void UHealthBarWidget::ShowTemporary()
 
 	if ( GetWorld() )
 	{
-		// clear previous timer
 		GetWorld()->GetTimerManager().ClearTimer( HideTimerHandle_ );
-		// schedule hide
 		GetWorld()->GetTimerManager().SetTimer(
 		    HideTimerHandle_, this, &UHealthBarWidget::HideIfIdle, VisibleOnDamageDuration, false
 		);
@@ -282,7 +254,7 @@ void UHealthBarWidget::HideIfIdle()
 	}
 	else
 	{
-		// schedule again for remaining time
+		// schedule again
 		const float remaining = VisibleOnDamageDuration - ( now - LastDamageTimeSeconds_ );
 		GetWorld()->GetTimerManager().SetTimer(
 		    HideTimerHandle_, this, &UHealthBarWidget::HideIfIdle, remaining, false

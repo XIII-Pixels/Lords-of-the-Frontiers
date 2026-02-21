@@ -144,7 +144,6 @@ void ABuilding::TakeDamage( float damage )
 		UE_LOG( LogTemp, Warning, TEXT( "ABuilding::TakeDamage: HealthBarManager NOT FOUND!" ) );
 	}
 
-	//OnBuildingHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
 
 	if ( !Stats_.IsAlive() )
 	{
