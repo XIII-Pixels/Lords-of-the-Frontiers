@@ -6,6 +6,7 @@
 #include "Core/GameLoopManager.h"
 #include "Resources/ResourceManager.h"
 
+#include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -31,7 +32,6 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
-
 	}
 	if ( ButtonRemoveBuilding )
 	{
@@ -53,8 +53,8 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonBuildingWoodenHouse )
 	{
 		ButtonBuildingWoodenHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
-		ButtonBuildingWoodenHouse->OnHovered.AddDynamic(this, &UGameHUDWidget::OnHoverWoodenHouse);
-		ButtonBuildingWoodenHouse->OnUnhovered.AddDynamic(this, &UGameHUDWidget::OnBuildingUnhovered);
+		ButtonBuildingWoodenHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWoodenHouse );
+		ButtonBuildingWoodenHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 	if ( ButtonBuildingStrawHouse )
 	{
@@ -112,6 +112,13 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 
+	ABuildManager* buildManager =
+	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
+	if ( buildManager )
+	{
+		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+	}
+
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		if ( UGameLoopManager* gL = core->GetGameLoop() )
@@ -120,7 +127,6 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 		}
-
 	}
 
 	if ( TextTimer )
@@ -231,6 +237,153 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	{
 		CancelCurrentBuilding();
 	}
+}
+
+void UGameHUDWidget::HandleBonusPreviewUpdated( const TArray<FBonusIconData>& BonusIcons )
+{
+	ClearBonusIcons();
+	CachedBonusData_ = BonusIcons;
+
+	if ( !BonusIconCanvas || !BonusIconWidgetClass )
+	{
+		return;
+	}
+
+	APlayerController* pc = GetOwningPlayer();
+	if ( !pc )
+	{
+		return;
+	}
+
+	TMap<FString, TArray<FBonusIconData>> grouped;
+	for ( const FBonusIconData& bonus : BonusIcons )
+	{
+		FString key = bonus.WorldLocation.ToString();
+		grouped.FindOrAdd( key ).Add( bonus );
+	}
+
+	for ( auto& kvp : grouped )
+	{
+		const TArray<FBonusIconData>& bonuses = kvp.Value;
+		if ( bonuses.IsEmpty() )
+		{
+			continue;
+		}
+
+		UBonusIconWidget* iconWidget = CreateWidget<UBonusIconWidget>( pc, BonusIconWidgetClass );
+		if ( !iconWidget )
+		{
+			continue;
+		}
+		
+
+		for ( const FBonusIconData& bonus : bonuses )
+		{
+			iconWidget->AddEntry( bonus );
+		}
+		iconWidget->SetBuildingIcon( bonuses[0].BuildingIcon );
+		UCanvasPanelSlot* slot = BonusIconCanvas->AddChildToCanvas( iconWidget );
+
+		if ( slot )
+		{
+			slot->SetAutoSize( true );
+			slot->SetAlignment( FVector2D( 0.5f, 1.0f ) );
+		}
+
+		ActiveBonusIcons_.Add( iconWidget );
+		ActiveBonusWorldPositions_.Add( bonuses[0].WorldLocation );
+	}
+	UpdateBonusIconPositions();
+}
+
+void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime )
+{
+	Super::NativeTick( MyGeometry, InDeltaTime );
+
+	if ( ActiveBonusIcons_.Num() > 0 )
+	{
+		UpdateBonusIconPositions();
+	}
+}
+
+void UGameHUDWidget::UpdateBonusIconPositions()
+{
+	APlayerController* pc = GetOwningPlayer();
+	if ( !pc )
+	{
+		return;
+	}
+
+	const float viewportScale = UWidgetLayoutLibrary::GetViewportScale( this );
+	if ( viewportScale <= 0.0f )
+	{
+		return;
+	}
+
+	float orthoWidth = 2048.0f;
+	if ( pc->PlayerCameraManager )
+	{
+		AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget();
+		if ( viewTarget )
+		{
+			UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>();
+			if ( cam )
+			{
+				orthoWidth = cam->OrthoWidth;
+			}
+		}
+	}
+
+	const float baseOrthoWidth = 1048.0f;
+	const float baseScale = 0.7f;
+	const float scale = FMath::Clamp( ( baseOrthoWidth / orthoWidth ) * baseScale, 0.3f, 2.0f );
+
+	for ( int32 i = 0; i < ActiveBonusIcons_.Num(); ++i )
+	{
+		if ( !ActiveBonusIcons_[i] )
+		{
+			continue;
+		}
+		if ( !ActiveBonusWorldPositions_.IsValidIndex( i ) )
+		{
+			continue;
+		}
+
+		FVector iconWorldPos = ActiveBonusWorldPositions_[i] + FVector( 0.0f, 0.0f, 40.0f );
+
+		FVector2D screenPos;
+		if ( !pc->ProjectWorldLocationToScreen( iconWorldPos, screenPos ) )
+		{
+			ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::Collapsed );
+			continue;
+		}
+
+		screenPos /= viewportScale;
+
+		ActiveBonusIcons_[i]->SetRenderScale( FVector2D( scale, scale ) );
+
+		UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>( ActiveBonusIcons_[i]->Slot.Get() );
+		if ( !slot )
+		{
+			continue;
+		}
+
+		slot->SetPosition( screenPos );
+		ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::HitTestInvisible );
+	}
+}
+
+void UGameHUDWidget::ClearBonusIcons()
+{
+	for ( UBonusIconWidget* icon : ActiveBonusIcons_ )
+	{
+		if ( icon )
+		{
+			icon->RemoveFromParent();
+		}
+	}
+	ActiveBonusIcons_.Empty();
+	ActiveBonusWorldPositions_.Empty();
 }
 
 void UGameHUDWidget::UpdateDayText()
@@ -605,7 +758,7 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
 {
-	if (!button || !buildingClass)
+	if ( !button || !buildingClass )
 	{
 		return;
 	}
@@ -614,7 +767,7 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	if ( !rM )
 	{
 		return;
-	}	
+	}
 
 	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
 	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );

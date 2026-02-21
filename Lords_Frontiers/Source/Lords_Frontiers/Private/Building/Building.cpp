@@ -277,3 +277,17 @@ void ABuilding::ResetMaintenanceCostToDefaults()
 {
 	MaintenanceCost = OriginalMaintenanceCost_;
 }
+
+UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !buildingClass )
+	{
+		return nullptr;
+	}
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	if ( cdo )
+	{
+		return cdo->BuildingIcon;
+	}
+	return nullptr;
+}

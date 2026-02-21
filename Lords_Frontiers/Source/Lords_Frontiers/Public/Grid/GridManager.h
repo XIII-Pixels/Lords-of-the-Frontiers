@@ -99,6 +99,14 @@ public:
 	/// For non-rectangular grids, clamps X to the actual row width.
 	FIntPoint GetClosestCellCoords( FVector location ) const;
 
+	/// @brief Get array the cell's neighbors
+	/// @param[in] FGridCell 
+	/// @param[in] radius how many cells to look at.
+	/// @return Array of cells TArray<FGridCell*>
+	TArray<FGridCell*> GetCellsInRadius( const FGridCell* cell, const int32 radius );
+
+	TArray<FGridCell*> GetCellsInRadius( const FIntPoint& myCell, const int32 radius );
+
 protected:
 	/// @brief Called when the game starts or when spawned.
 	virtual void BeginPlay() override;

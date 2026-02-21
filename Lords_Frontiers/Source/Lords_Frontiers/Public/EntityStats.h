@@ -11,6 +11,16 @@ enum class ETeam : uint8
 	Cat
 };
 
+UENUM( BlueprintType )
+enum class EStatsType : uint8
+{
+	MaxHealth,
+	AttackRange,
+	AttackDamage,
+	AttackCooldown,
+	MaxSpeed
+};
+
 // (Artyom)
 // entity stats struct (health, damage, damage radius, speed)
 USTRUCT( BlueprintType )
@@ -52,7 +62,18 @@ struct FEntityStats
 
 	void SetTeam( ETeam team );
 
-	// functionality
+
+	void AddStat( EStatsType statType, float value );
+
+	void AddMaxHealth( int maxHealth );
+
+	void AddAttackRange( float attackRange );
+
+	void AddAttackDamage( int attackDamage );
+
+	void AddAttackCooldown( float attackCooldown );
+
+	void AddMaxSpeed( float maxSpeed );
 
 	// returns applied damage
 	int ApplyDamage( int damage );

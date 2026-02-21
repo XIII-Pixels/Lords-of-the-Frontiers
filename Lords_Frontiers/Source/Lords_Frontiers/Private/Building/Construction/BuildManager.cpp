@@ -4,13 +4,14 @@
 #include "Building/Construction/BuildPreviewActor.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
+#include "Core/CoreManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
-
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "UI/BonusNeighborhood/BonusIconsData.h"
 
-#include "Components/StaticMeshComponent.h" // <-- новое
+#include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/StaticMesh.h"
@@ -29,7 +30,6 @@ void ABuildManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Если ссылки не заданы в редакторе — найдём акторы по классу.
 	if ( !GridVisualizer_ )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -46,6 +46,26 @@ void ABuildManager::BeginPlay()
 			GridManager_ =
 			    Cast<AGridManager>( UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() ) );
 		}
+	}
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( core->IsInitialized() )
+		{
+			OnCoreSystemsReady();
+		}
+		else
+		{
+			core->OnSystemsReady.AddDynamic( this, &ABuildManager::OnCoreSystemsReady );
+		}
+	}
+}
+
+void ABuildManager::OnCoreSystemsReady()
+{
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		CachedResourceManager_ = core->GetResourceManager();
 	}
 }
 
@@ -157,6 +177,10 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 	{
 		GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Green, TEXT( "Building mode started" ) );
 	}
+
+	CurrentBuildingClass_ = buildingClass;
+
+	ShowBonusHighlightForBuilding( buildingClass );
 }
 
 void ABuildManager::CancelPlacing()
@@ -207,19 +231,28 @@ void ABuildManager::CancelPlacing()
 	{
 		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Yellow, TEXT( "Building / relocating mode cancelled" ) );
 	}
+
+	CachedBonusIcons_.Empty();
+	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
+	GridVisualizer_->HideBonusHighlight();
 }
 
-void ABuildManager::ConfirmPlacing()
+bool ABuildManager::ValidatePlacement( FVector& outCellWorldLocation ) const
 {
-	// Если режим строительства не активен — ничего не делаем
 	if ( !bIsPlacing_ )
 	{
-		return;
+		return false;
 	}
 
 	if ( !GridVisualizer_ || !GridManager_ )
 	{
-		return;
+		return false;
+	}
+
+	if ( !CurrentBuildingClass_ )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "ValidatePlacement: CurrentBuildingClass_ is null" ) );
+		return false;
 	}
 
 	if ( !bHasValidCell_ || !bCanBuildHere_ )
@@ -229,105 +262,97 @@ void ABuildManager::ConfirmPlacing()
 
 		if ( !bAllowOriginalCell )
 		{
-			return;
+			return false;
 		}
 	}
-	// 2) Находим мировую позицию центра клетки
-	FVector cellWorldLocation;
-	if ( !GridVisualizer_->GetCellWorldCenter( CurrentCellCoords_, cellWorldLocation ) )
+
+	if ( !GridVisualizer_->GetCellWorldCenter( CurrentCellCoords_, outCellWorldLocation ) )
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
+{
+	UWorld* world = GetWorld();
+	if ( !world )
+	{
+		return false;
+	}
+
+	UResourceManager* resManager = CachedResourceManager_.Get();
+
+	const ABuilding* cdo = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
+	check( cdo );
+
+	if ( resManager && !resManager->CanAfford( cdo->GetBuildingCost() ) )
+	{
+		DebugMessage( FColor::Red, TEXT( "Resources ran out!" ), 2.f );
+		return false;
+	}
+
+	ABuilding* newBuilding = BuildingPlacementUtils::PlaceBuilding(
+	    world, CurrentBuildingClass_, cellWorldLocation, GridManager_, CurrentCellCoords_
+	);
+
+	if ( !newBuilding )
+	{
+		DebugMessage( FColor::Red, TEXT( "Failed to place building" ) );
+		return false;
+	}
+
+	if ( resManager )
+	{
+		resManager->SpendResources( cdo->GetBuildingCost() );
+	}
+	RecalculateBonusesAroundBuilding( newBuilding, CurrentCellCoords_ );
+	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
+	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
+	return true;
+}
+
+void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
+{
+	if ( !RelocatedBuilding_ || !GridManager_ )
 	{
 		return;
 	}
 
-	// 3) Если НЕ перенос — ведём себя как раньше: спавним новое здание
-	if ( !bIsRelocating_ || !RelocatedBuilding_ )
-	{
-		UWorld* world = GetWorld();
-		if ( !world )
-		{
-			return;
-		}
-
-		APlayerController* pc = GetWorld()->GetFirstPlayerController();
-		UResourceManager* ResManager = pc ? pc->FindComponentByClass<UResourceManager>() : nullptr;
-
-		const ABuilding* CDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
-
-		if ( ResManager && !ResManager->CanAfford( CDO->GetBuildingCost() ) )
-		{
-			if ( GEngine )
-				GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Red, TEXT( "Resources ran out!" ) );
-			return;
-		}
-
-		ABuilding* newBuilding = BuildingPlacementUtils::PlaceBuilding(
-		    world, CurrentBuildingClass_, cellWorldLocation, GridManager_, CurrentCellCoords_
-		);
-
-		if ( newBuilding )
-		{
-			if ( ResManager ) ResManager->SpendResources( CDO->GetBuildingCost() );
-
-			if ( GEngine ) GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building placed & Resources deducted" ) );
-		}
-
-		if ( !newBuilding )
-		{
-			if ( GEngine )
-			{
-				GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Red, TEXT( "Failed to place building" ) );
-			}
-			return;
-		}
-
-		if ( GEngine )
-		{
-			GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building placed" ) );
-		}
-
-		// В обычном режиме остаёмся в билде, чтобы можно было ставить несколько
-		// зданий подряд.
-		return;
-	}
-
-	// 4) РЕЖИМ ПЕРЕНОСА: двигаем уже существующее здание
-
-	// Ячейки старого и нового места
-	FGridCell* oldCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y );
 	FGridCell* newCell = GridManager_->GetCell( CurrentCellCoords_.X, CurrentCellCoords_.Y );
-
 	if ( !newCell )
 	{
 		return;
 	}
 
-	// Перемещаем актор
 	RelocatedBuilding_->SetActorLocation( cellWorldLocation );
 	RelocatedBuilding_->SetActorHiddenInGame( false );
 	RelocatedBuilding_->SetActorEnableCollision( true );
 
-	// Обновляем новую клетку
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
-	// Очищаем старую клетку, если она отличается от новой
-	if ( oldCell && ( CurrentCellCoords_ != OriginalCellCoords_ ) )
+	if ( CurrentCellCoords_ != OriginalCellCoords_ )
 	{
-		// На всякий случай проверяем, что там всё ещё наше же здание
-		if ( oldCell->Occupant.Get() == RelocatedBuilding_ )
+
+		FGridCell* oldCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y );
+
+		if ( oldCell && oldCell->Occupant.Get() == RelocatedBuilding_ )
 		{
 			oldCell->bIsOccupied = false;
 			oldCell->Occupant.Reset();
 		}
+		constexpr int32 MaxBonusRadius = 5;
+		RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
+		RecalculateBonusesFromNeighbors( MaxBonusRadius, OriginalCellCoords_ );
 	}
 
-	if ( GEngine )
-	{
-		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Green, TEXT( "Building relocated" ) );
-	}
+	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
+}
 
-	// 5) Выключаем режим строительства и переноса, прячем превью
-
+void ABuildManager::ResetPlacementState()
+{
 	bIsPlacing_ = false;
 	bHasValidCell_ = false;
 	bCanBuildHere_ = false;
@@ -347,6 +372,24 @@ void ABuildManager::ConfirmPlacing()
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
+}
+
+void ABuildManager::ConfirmPlacing()
+{
+	FVector cellWorldLocation;
+	if ( !ValidatePlacement( cellWorldLocation ) )
+	{
+		return;
+	}
+
+	if ( !bIsRelocating_ || !RelocatedBuilding_ )
+	{
+		TryPlaceNewBuilding( cellWorldLocation );
+		return;
+	}
+
+	RelocateExistingBuilding( cellWorldLocation );
+	ResetPlacementState();
 }
 
 void ABuildManager::UpdateHoveredCell()
@@ -384,11 +427,24 @@ void ABuildManager::UpdateHoveredCell()
 		return;
 	}
 
+	const bool bCellChanged = ( CurrentCellCoords_ != placementResult.CellCoords );
 	CurrentCellCoords_ = placementResult.CellCoords;
 	bCanBuildHere_ = BuildingPlacementUtils::CanBuildAtCell( GridManager_, CurrentCellCoords_ );
-
 	UpdatePreviewVisual( placementResult.CellWorldLocation, bCanBuildHere_ );
 
+	if ( bCellChanged )
+	{
+		if ( bCanBuildHere_ )
+		{
+			TArray<FBonusIconData> rawIcons = CollectBonusPreview( CurrentBuildingClass_, CurrentCellCoords_ );
+			CachedBonusIcons_ = AggregateBonusIcons( rawIcons );
+		}
+		else
+		{
+			CachedBonusIcons_.Empty();
+		}
+		OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
+	}
 	// UpdateWallPreviews( CurrentCellCoords_, placementResult.CellWorldLocation
 	// );
 }
@@ -565,4 +621,278 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	{
 		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Cyan, TEXT( "Relocate mode started" ) );
 	}
+}
+
+void ABuildManager::RecalculateBonusesAroundBuilding( ABuilding* building, const FIntPoint& cellCoords )
+{
+	if ( !building || !GridManager_ )
+	{
+		return;
+	}
+
+	UBuildingBonusComponent* bonusComponent = building->FindComponentByClass<UBuildingBonusComponent>();
+	if ( bonusComponent )
+	{
+		bonusComponent->RecalculateBonuses( GridManager_, cellCoords );
+	}
+
+	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, cellCoords );
+}
+
+void ABuildManager::RecalculateBonusesFromNeighbors( const int32 MaxBonusRadius, const FIntPoint& cellCoords )
+{
+	TArray<FGridCell*> neighbors = GridManager_->GetCellsInRadius( cellCoords, MaxBonusRadius );
+	for ( FGridCell* cell : neighbors )
+	{
+		if ( !cell || !cell->Occupant.IsValid() )
+		{
+			continue;
+		}
+
+		ABuilding* neighbor = Cast<ABuilding>( cell->Occupant.Get() );
+		if ( !neighbor )
+		{
+			continue;
+		}
+
+		UBuildingBonusComponent* neighborBonus = neighbor->FindComponentByClass<UBuildingBonusComponent>();
+
+		if ( neighborBonus )
+		{
+			neighborBonus->RecalculateBonuses( GridManager_, cell->GridCoords );
+		}
+	}
+}
+// USTRUCT( BlueprintType )
+// struct FBonusIconData
+//{
+//	GENERATED_BODY()
+//
+//	UPROPERTY()
+//	FVector WorldLocation = FVector::ZeroVector;
+//
+//	UPROPERTY()
+//	TObjectPtr<UTexture2D> Icon = nullptr;
+//
+//	UPROPERTY()
+//	float Value = 0.0f;
+//
+//	UPROPERTY()
+//	EBonusCategory Category = EBonusCategory::Production;
+// };
+
+TArray<FBonusIconData>
+ABuildManager::CollectBonusPreview( TSubclassOf<ABuilding> buildingClass, const FIntPoint& cellCoords )
+{
+	TArray<FBonusIconData> result;
+
+	if ( !buildingClass || !GridManager_ )
+	{
+		return result;
+	}
+
+	FVector worldLocation;
+	if ( !GridManager_->GetCellWorldCenter( cellCoords, worldLocation ) )
+	{
+		return result;
+	}
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	UBuildingBonusComponent* bonusComp = UBuildingBonusComponent::FindInBlueprintClass( buildingClass );
+
+	UE_LOG( LogTemp, Warning, TEXT( "=== CollectBonusPreview ===" ) );
+	UE_LOG( LogTemp, Warning, TEXT( "Building class: %s" ), *buildingClass->GetName() );
+	UE_LOG( LogTemp, Warning, TEXT( "BonusComp found: %s" ), bonusComp ? TEXT( "YES" ) : TEXT( "NO" ) );
+
+	if ( bonusComp )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Part 1: entries count: %d" ), bonusComp->GetBonusEntries().Num() );
+		const TArray<FBuildingBonusEntry>& entries = bonusComp->GetBonusEntries();
+
+		for ( int32 i = 0; i < entries.Num(); ++i )
+		{
+			TArray<FGridCell*> neighbors = GridManager_->GetCellsInRadius( cellCoords, entries[i].Radius );
+
+			for ( const FGridCell* cell : neighbors )
+			{
+				ABuilding* occupant = Cast<ABuilding>( cell->Occupant.Get() );
+				if ( occupant && occupant->IsA( entries[i].SourceBuildingClass ) )
+				{
+					FBonusIconData iconData = bonusComp->GetInfoSingleBonus( i, worldLocation );
+					iconData.BuildingIcon = cdo->BuildingIcon;
+					iconData.CellCoords = cellCoords;
+					result.Add( iconData );
+				}
+			}
+		}
+	}
+	UE_LOG( LogTemp, Warning, TEXT( "Part 1 result count: %d" ), result.Num() );
+	CollectBonusFromNeighbors( cellCoords, result, cdo );
+	UE_LOG( LogTemp, Warning, TEXT( "After Part 2 total count: %d" ), result.Num() );
+
+	return result;
+};
+
+void ABuildManager::CollectBonusFromNeighbors(
+    const FIntPoint& myCellCoords, TArray<FBonusIconData>& result, const ABuilding* cdo
+)
+{
+	if ( !GridManager_ || !cdo )
+	{
+		return;
+	}
+
+	TArray<FGridCell*> neighborsCells =
+	    GridManager_->GetCellsInRadius( myCellCoords, UBuildingBonusComponent::MaxPossibleBonusRadius );
+
+	if ( neighborsCells.IsEmpty() )
+	{
+		return;
+	}
+
+	UE_LOG( LogTemp, Warning, TEXT( "=== CollectBonusFromNeighbors ===" ) );
+	UE_LOG( LogTemp, Warning, TEXT( "Neighbors found: %d" ), neighborsCells.Num() );
+
+	for ( const FGridCell* cell : neighborsCells )
+	{
+		if ( !cell || !cell->bIsOccupied )
+		{
+			continue;
+		}
+
+		ABuilding* neighbor = Cast<ABuilding>( cell->Occupant.Get() );
+		if ( !neighbor )
+		{
+			continue;
+		}
+
+		UBuildingBonusComponent* bonusComp = neighbor->FindComponentByClass<UBuildingBonusComponent>();
+		if ( !bonusComp )
+		{
+			continue;
+		}
+
+		const TArray<FBuildingBonusEntry>& entries = bonusComp->GetBonusEntries();
+
+		for ( int32 i = 0; i < entries.Num(); ++i )
+		{
+
+			const int32 dx = FMath::Abs( myCellCoords.X - cell->GridCoords.X );
+			const int32 dy = FMath::Abs( myCellCoords.Y - cell->GridCoords.Y );
+			const int32 distance = FMath::Max( dx, dy );
+
+			if ( distance > entries[i].Radius )
+			{
+				continue;
+			}
+			UE_LOG(
+			    LogTemp, Warning, TEXT( "Neighbor: %s, has BonusComp: %s, entries: %d" ), *neighbor->GetName(),
+			    bonusComp ? TEXT( "YES" ) : TEXT( "NO" ), bonusComp ? bonusComp->GetBonusEntries().Num() : 0
+			);
+
+			if ( cdo->IsA( entries[i].SourceBuildingClass ) )
+			{
+				UE_LOG(
+				    LogTemp, Warning, TEXT( "  Entry %d: SourceClass=%s, CDO IsA=%s" ), i,
+				    entries[i].SourceBuildingClass ? *entries[i].SourceBuildingClass->GetName() : TEXT( "None" ),
+				    cdo->IsA( entries[i].SourceBuildingClass ) ? TEXT( "YES" ) : TEXT( "NO" )
+				);
+				FVector neighborWorldLocation;
+				if ( GridManager_->GetCellWorldCenter( cell->GridCoords, neighborWorldLocation ) )
+				{
+					FBonusIconData iconData = bonusComp->GetInfoSingleBonus( i, neighborWorldLocation );
+					iconData.BuildingIcon = neighbor->BuildingIcon;
+					iconData.CellCoords = cell->GridCoords;
+					result.Add( iconData );
+				}
+			}
+		}
+	}
+}
+
+void ABuildManager::AppendMatchingBonuses(
+    UBuildingBonusComponent* bonusComp, TSubclassOf<ABuilding> matchClass, const FVector& iconWorldLocation,
+    TArray<FBonusIconData>& OutResult
+)
+{
+	if ( !bonusComp || !matchClass )
+	{
+		return;
+	}
+	const TArray<FBuildingBonusEntry>& Entries = bonusComp->GetBonusEntries();
+	for ( int32 i = 0; i < Entries.Num(); ++i )
+	{
+		if ( matchClass->IsChildOf( Entries[i].SourceBuildingClass ) )
+		{
+			OutResult.Add( bonusComp->GetInfoSingleBonus( i, iconWorldLocation ) );
+		}
+	}
+}
+
+TArray<FBonusIconData> ABuildManager::AggregateBonusIcons( const TArray<FBonusIconData>& rawIcons )
+{
+	TMap<FString, FBonusIconData> grouped;
+
+	for ( const FBonusIconData& icon : rawIcons )
+	{
+		FString key = FString::Printf(
+		    TEXT( "%d_%d_%d_%d" ), icon.CellCoords.X, icon.CellCoords.Y, static_cast<uint8>( icon.ResourceType ),
+		    static_cast<uint8>( icon.StatType )
+		);
+
+		if ( FBonusIconData* existing = grouped.Find( key ) )
+		{
+			float signedValue = ( icon.Category == EBonusCategory::Maintenance ) ? -icon.Value : icon.Value;
+			existing->Value += signedValue;
+		}
+		else
+		{
+			FBonusIconData newIcon = icon;
+			if ( icon.Category == EBonusCategory::Maintenance )
+			{
+				newIcon.Value = -icon.Value;
+			}
+			grouped.Add( key, newIcon );
+		}
+	}
+
+	TArray<FBonusIconData> result;
+	for ( auto& kvp : grouped )
+	{
+		if ( !FMath::IsNearlyZero( kvp.Value.Value ) )
+		{
+			result.Add( kvp.Value );
+		}
+	}
+	return result;
+}
+
+void ABuildManager::ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !GridVisualizer_ || !GridManager_ || !buildingClass )
+	{
+		return;
+	}
+
+	TArray<FIntPoint> cells = UBuildingBonusComponent::FindBonusCells( buildingClass, GridManager_ );
+
+	UMaterialInterface* highlightMat = BonusIconsData ? BonusIconsData->HighlightMaterial : nullptr;
+
+	if ( cells.Num() > 0 && highlightMat )
+	{
+		GridVisualizer_->ShowBonusHighlight( cells, highlightMat );
+	}
+	else
+	{
+		GridVisualizer_->HideBonusHighlight();
+	}
+}
+
+void ABuildManager::DebugMessage( const FColor& color, const FString& message, float duration )
+{
+#if !UE_BUILD_SHIPPING
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage( -1, duration, color, message );
+	}
+#endif
 }
