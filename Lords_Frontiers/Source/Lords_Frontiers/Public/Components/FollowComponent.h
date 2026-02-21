@@ -12,7 +12,8 @@ class AUnit;
 /** (Gregory-hub)
  * Makes actor chase target */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
-class LORDS_FRONTIERS_API UFollowComponent : public UFloatingPawnMovement {
+class LORDS_FRONTIERS_API UFollowComponent : public UFloatingPawnMovement
+{
 	GENERATED_BODY()
 
 public:
@@ -27,14 +28,15 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void
-	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
+	virtual void TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
-	void MoveTowardsTarget();
+	void MoveTowardsTarget( float deltaTime );
 
 	void RotateForward( float deltaTime );
 
-	void SnapToNavMeshGround();
+	void SnapToGround();
+
+	void Sway( float deltaTime );
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float RotationSpeed_ = 300.0f;
@@ -49,6 +51,13 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	float SwayAmplitude_ = 10.0f;
 
+	// Deviate from going forward
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
+	float MaxDeviationAngle_ = 5.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
+	float DeviationMaxRate_ = 1.0f;
+
 	float SwayPhaseOffset_ = 0.0f;
 
 	float CurrentSwayRoll_ = 0.0f;
@@ -58,6 +67,12 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<AUnit> Unit_;
+
+	FRandomStream StreamRandom_;
+
+	float CurrentDeviationYawSpeed_ = 0.0f;
+
+	float CurrentDeviationYaw_ = 0.0f;
 
 	bool bFollowTarget_ = false;
 };

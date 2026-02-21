@@ -10,6 +10,7 @@
 UFollowComponent::UFollowComponent()
 {
 	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 2.0f * PI );
+	StreamRandom_ = FRandomStream( FPlatformTime::Cycles64() );
 }
 
 void UFollowComponent::TickComponent(
@@ -25,31 +26,14 @@ void UFollowComponent::TickComponent(
 
 	if ( bFollowTarget_ )
 	{
-		MoveTowardsTarget();
-
-		if ( IsValid(Unit_) && Unit_.Get()->VisualMesh() )
-		{
-			float targetRoll = 0.0f;
-
-			if ( Unit_.Get()->GetVelocity().Size() > 10.0f )
-			{
-				float time = GetWorld()->GetTimeSeconds();
-				targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
-			}
-
-			CurrentSwayRoll_ = FMath::FInterpTo( CurrentSwayRoll_, targetRoll, deltaTime, 10.0f );
-
-			FRotator currentRot = Unit_.Get()->VisualMesh()->GetRelativeRotation();
-			currentRot.Pitch = CurrentSwayRoll_;
-			currentRot.Roll = 0.0f;
-			Unit_.Get()->VisualMesh()->SetRelativeRotation( currentRot );
-		}
+		MoveTowardsTarget( deltaTime );
+		Sway( deltaTime );
 	}
 
 	if ( !Velocity.IsNearlyZero() )
 	{
 		RotateForward( deltaTime );
-		SnapToNavMeshGround();
+		SnapToGround();
 	}
 }
 
@@ -83,22 +67,28 @@ void UFollowComponent::SetMaxSpeed( float maxSpeed )
 	MaxSpeed = maxSpeed;
 }
 
-void UFollowComponent::MoveTowardsTarget()
+void UFollowComponent::MoveTowardsTarget( float deltaTime )
 {
 	if ( !Unit_ || !Unit_->FollowedTarget().IsValid() )
 	{
 		return;
 	}
 
-	FVector targetLocation = Unit_->FollowedTarget()->GetActorLocation();
-	FVector actorLocation = GetActorLocation();
+	const FVector targetLocation = Unit_->FollowedTarget()->GetActorLocation();
+	const FVector actorLocation = GetActorLocation();
 	FVector direction = ( targetLocation - actorLocation ).GetSafeNormal();
 	direction.Z = 0.0f;
+
+	CurrentDeviationYawSpeed_ += StreamRandom_.FRandRange( -1.0f, 1.0f ) * DeviationMaxRate_ * deltaTime;
+	CurrentDeviationYaw_ += CurrentDeviationYawSpeed_ * deltaTime;
+	CurrentDeviationYaw_ = FMath::Clamp( CurrentDeviationYaw_, -MaxDeviationAngle_, MaxDeviationAngle_ );
+	const FRotator rot( 0, CurrentDeviationYaw_, 0 );
+	direction = rot.RotateVector( direction );
 
 	AddInputVector( direction );
 }
 
-void UFollowComponent::SnapToNavMeshGround()
+void UFollowComponent::SnapToGround()
 {
 	if ( !PawnOwner || !CapsuleComponent_ )
 	{
@@ -121,6 +111,27 @@ void UFollowComponent::SnapToNavMeshGround()
 		FVector groundLocation = hit.ImpactPoint;
 		location.Z = groundLocation.Z + halfHeight;
 		PawnOwner->SetActorLocation( location );
+	}
+}
+
+void UFollowComponent::Sway( float deltaTime )
+{
+	if ( IsValid( Unit_ ) && Unit_.Get()->VisualMesh() )
+	{
+		float targetRoll = 0.0f;
+
+		if ( Unit_.Get()->GetVelocity().Size() > 10.0f )
+		{
+			float time = GetWorld()->GetTimeSeconds();
+			targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
+		}
+
+		CurrentSwayRoll_ = FMath::FInterpTo( CurrentSwayRoll_, targetRoll, deltaTime, 10.0f );
+
+		FRotator currentRot = Unit_.Get()->VisualMesh()->GetRelativeRotation();
+		currentRot.Pitch = CurrentSwayRoll_;
+		currentRot.Roll = 0.0f;
+		Unit_.Get()->VisualMesh()->SetRelativeRotation( currentRot );
 	}
 }
 
