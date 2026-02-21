@@ -40,7 +40,7 @@ public:
 	TSubclassOf<APathTargetPoint> PathTargetPointClass;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	float PointReachRadius = 100.0f;
+	float PointReachRadius = 200.0f;
 
 private:
 	UPROPERTY()

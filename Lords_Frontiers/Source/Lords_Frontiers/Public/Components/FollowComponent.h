@@ -53,10 +53,10 @@ protected:
 
 	// Deviate from going forward
 	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
-	float MaxDeviationAngle_ = 5.0f;
+	float MaxDeviationAngle_ = 10.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
-	float DeviationMaxRate_ = 1.0f;
+	float DeviationMaxRate_ = 20.0f;
 
 	float SwayPhaseOffset_ = 0.0f;
 
