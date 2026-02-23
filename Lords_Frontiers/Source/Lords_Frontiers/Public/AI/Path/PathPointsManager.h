@@ -61,8 +61,10 @@ public:
 		PointReachRadius_ = pointReachRadius;
 	}
 
-	UPROPERTY( EditAnywhere, Category = "Settings" )
-	float PointReachRadius = 200.0f;
+	void SetPathPoints( const TMap<FIntPoint, TObjectPtr<APathTargetPoint>>& pathPoints )
+	{
+		PathPoints_ = pathPoints;
+	}
 
 	float PointReachRadius() const
 	{
