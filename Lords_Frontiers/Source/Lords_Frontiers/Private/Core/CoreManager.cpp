@@ -207,7 +207,7 @@ USelectionManagerComponent* UCoreManager::GetSelectionManager() const
 	return SelectionManager_.Get();
 }
 
-APathPointsManager* UCoreManager::GetPathPointsManager() const
+UPathPointsManager* UCoreManager::GetPathPointsManager() const
 {
 	return PathPointsManager_.Get();
 }
@@ -375,8 +375,8 @@ void UCoreManager::FindWorldActors()
 
 	if ( !PathPointsManager_.IsValid() )
 	{
-		AActor* found = UGameplayStatics::GetActorOfClass( world, APathPointsManager::StaticClass() );
-		PathPointsManager_ = Cast<APathPointsManager>( found );
+		AActor* found = UGameplayStatics::GetActorOfClass( world, UPathPointsManager::StaticClass() );
+		PathPointsManager_ = Cast<UPathPointsManager>( found );
 	}
 }
 

@@ -31,25 +31,25 @@ struct FAggroProfileConfig
 {
 	GENERATED_BODY()
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	EEnemyAggroProfile Profile = EEnemyAggroProfile::WolfGoblin;
 
 	// Aggro radius in cells. It will be multiplied by CellSizeCm
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro", meta = ( ClampMin = "0.0" ) )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro", meta = ( ClampMin = "0.0" ) )
 	float AggroRadiusCells = 5.0f;
 
 	// Priority list of building classes. Earlier entries = higher priority (index 0 = top priority).
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	TArray<TSubclassOf<ABuilding>> PriorityClasses;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	bool bIgnoreEconomyBuildings = false;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	bool bIgnoreTowers = false;
 };
 
-UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
+UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UEnemyAggroComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -58,30 +58,30 @@ public:
 	UEnemyAggroComponent();
 
 	// Which profile this component uses (choose in BP)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	EEnemyAggroProfile AggroProfile = EEnemyAggroProfile::WolfGoblin;
 
 	// Size of one grid cell in cm.
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	float CellSizeCm = 100.0f;
 
-	// Configs for profiles — GD fills one element per profile needed
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro" )
+	// Configs for profiles ï¿½ GD fills one element per profile needed
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
 	TArray<FAggroProfileConfig> ProfileConfigs;
 
 	// Draw debug spheres / found target 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro|Debug" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro|Debug" )
 	bool bDebugDraw = false;
 
 	// If true, component will create a USphereComponent
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Aggro|Debug" )
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro|Debug" )
 	bool bUseOverlapComponent = false;
 
 	UPROPERTY( Transient )
 	TObjectPtr<USphereComponent> OverlapSphereComponent = nullptr;
 
 	// find best target and apply it to unit (AUnit::SetFollowedTarget).
-	UFUNCTION( BlueprintCallable, Category = "Aggro" )
+	UFUNCTION( BlueprintCallable, Category = "Settings|Aggro" )
 	void UpdateAggroTarget();
 
 protected:

@@ -273,7 +273,7 @@ bool AUnit::IsCloseToTarget() const
 	}
 
 	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	const float radiusSq = PathPointsManager_->PointReachRadius * PathPointsManager_->PointReachRadius;
+	const float radiusSq = PathPointsManager_->PointReachRadius_ * PathPointsManager_->PointReachRadius_;
 	return distanceSq < radiusSq;
 }
 
@@ -283,7 +283,7 @@ void AUnit::SetPath( TObjectPtr<UPath> path )
 	PathPointIndex_ = 0;
 }
 
-void AUnit::SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager )
+void AUnit::SetPathPointsManager( TWeakObjectPtr<UPathPointsManager> pathPointsManager )
 {
 	PathPointsManager_ = pathPointsManager;
 }
@@ -317,9 +317,9 @@ void AUnit::FollowPath()
 	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
 	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
 	{
-		if ( PathPointsManager_->GoalActor.IsValid() )
+		if ( PathPointsManager_->GoalActor_.IsValid() )
 		{
-			FollowedTarget_ = PathPointsManager_->GoalActor;
+			FollowedTarget_ = PathPointsManager_->GoalActor_;
 		}
 		else
 		{
