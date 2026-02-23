@@ -61,14 +61,6 @@ void ABuilding::OnDeath()
 		BuildingMesh_->SetRenderCustomDepth( false );
 	}
 
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
-		{
-			eco->UnregisterBuilding( this );
-		}
-	}
-
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
@@ -216,14 +208,6 @@ void ABuilding::RestoreFromRuins()
 	{
 		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
 		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Block );
-	}
-
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
-		{
-			eco->RegisterBuilding( this );
-		}
 	}
 }
 

@@ -77,6 +77,11 @@ public:
 	TObjectPtr<UTexture2D> BuildingIcon;
 
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
+	UFUNCTION( BlueprintPure, Category = "Settings|State" )
+	bool IsRuined() const
+	{
+		return bIsRuined_;
+	}
 
 protected:
 	virtual void BeginPlay() override;

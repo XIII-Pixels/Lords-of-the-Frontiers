@@ -43,6 +43,9 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
 	TObjectPtr<UInputAction> ZoomAction;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> RotateAction; // Q/E (Axis1D)
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -89,16 +92,34 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	bool bAutoCalculateBounds_ = true;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
+	float RotationSpeed_ = 45.0f;
+
+	//Edge Scrolling
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
+	bool bEnableEdgeScrolling_ = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
+	float EdgeScrollSpeed_ = 2000.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
+	float EdgeScrollThreshold_ = 20.0f;
+
 public:	
 	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float deltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 private:
-	void Move( const FInputActionValue& Value );
-	void Zoom( const FInputActionValue& Value );
+	void Move( const FInputActionValue& value );
+	void Zoom( const FInputActionValue& value );
+
+	void Rotate( const FInputActionValue& value );
+	void HandleEdgeScrolling();
 
 	float TargetZoom_;
+	float TargetYaw_;
+	float CurrentYaw_;
 };

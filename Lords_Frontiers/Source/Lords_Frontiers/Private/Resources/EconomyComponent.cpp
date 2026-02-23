@@ -127,6 +127,10 @@ void UEconomyComponent::CollectGlobalResources()
 	{
 		if ( ABuilding* B = It->Get() )
 		{
+			if ( B->IsRuined() )
+			{
+				continue;
+			}	 
 			if ( AResourceBuilding* resBuilding = Cast<AResourceBuilding>( B ) )
 			{
 				if ( UResourceGenerator* gen = resBuilding->GetResourceGenerator() )

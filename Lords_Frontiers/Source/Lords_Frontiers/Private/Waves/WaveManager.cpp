@@ -415,6 +415,8 @@ void AWaveManager::CancelCurrentWave()
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
 	}
 
+	PathPointsManager->Empty();
+
 	bIsWaveActive_ = false;
 
 	if ( bLogSpawning )

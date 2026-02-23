@@ -1,8 +1,8 @@
 #pragma once
 
+#include "AI/Path/PathPointsManager.h"
 #include "GameLoopConfig.h"
 #include "Tickable.h"
-#include "Building/Building.h"
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
@@ -15,6 +15,7 @@ class UResourceManager;
 class UEconomyComponent;
 class UGameInstance;
 class UCardSubsystem;
+class APathPointsManager;
 
 /**
  * Default values used when config is not available.
@@ -130,7 +131,7 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
 	void Initialize(
 	    UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-	    UEconomyComponent* inEconomyComponent
+	    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
 	);
 
 	/**
@@ -485,6 +486,10 @@ private:
 	/** Weak ref to economy system for building income. Optional. */
 	UPROPERTY()
 	TWeakObjectPtr<UEconomyComponent> EconomyComponent_;
+
+	/** Weak ref to path points manager. */
+	UPROPERTY()
+	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
 
 	/** Current state machine phase. */
 	EGameLoopPhase CurrentPhase_ = EGameLoopPhase::None;

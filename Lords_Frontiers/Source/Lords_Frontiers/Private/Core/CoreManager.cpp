@@ -206,6 +206,11 @@ USelectionManagerComponent* UCoreManager::GetSelectionManager() const
 	return SelectionManager_.Get();
 }
 
+APathPointsManager* UCoreManager::GetPathPointsManager() const
+{
+	return PathPointsManager_.Get();
+}
+
 UGameLoopManager* UCoreManager::GetGameLoop() const
 {
 	return GameLoopManager_.Get();
@@ -356,6 +361,12 @@ void UCoreManager::FindWorldActors()
 		AActor* found = UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() );
 		GridManager_ = Cast<AGridManager>( found );
 	}
+
+	if ( !PathPointsManager_.IsValid() )
+	{
+		AActor* found = UGameplayStatics::GetActorOfClass( world, APathPointsManager::StaticClass() );
+		PathPointsManager_ = Cast<APathPointsManager>( found );
+	}
 }
 
 void UCoreManager::FindPlayerControllerComponents()
@@ -435,7 +446,10 @@ void UCoreManager::SetupManagerConnections()
 
 	if ( GameLoopManager_ )
 	{
-		GameLoopManager_->Initialize( nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get() );
+		GameLoopManager_->Initialize(
+		    nullptr, WaveManager_.Get(), ResourceManager_.Get(),
+		    EconomyComponent_.Get(), PathPointsManager_.Get()
+		);
 		UE_LOG( LogCoreManager, Log, TEXT( "GameLoopManager initialized (default config)" ) );
 	}
 	else
