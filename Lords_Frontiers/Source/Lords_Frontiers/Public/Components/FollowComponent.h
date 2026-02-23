@@ -39,7 +39,7 @@ protected:
 	void Sway( float deltaTime );
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
-	float RotationSpeed_ = 300.0f;
+	float RotationSpeed_ = 5.0f;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float SnapToGroundDistance_ = 500.0f;
@@ -69,6 +69,8 @@ protected:
 	TObjectPtr<AUnit> Unit_;
 
 	FRandomStream StreamRandom_;
+
+	FVector CurrentDirection_;
 
 	float CurrentDeviationYawSpeed_ = 0.0f;
 

@@ -76,16 +76,16 @@ void UFollowComponent::MoveTowardsTarget( float deltaTime )
 
 	const FVector targetLocation = Unit_->FollowedTarget()->GetActorLocation();
 	const FVector actorLocation = GetActorLocation();
-	FVector direction = ( targetLocation - actorLocation ).GetSafeNormal();
-	direction.Z = 0.0f;
+	CurrentDirection_ = ( targetLocation - actorLocation ).GetSafeNormal();
+	CurrentDirection_.Z = 0.0f;
 
 	CurrentDeviationYawSpeed_ += StreamRandom_.FRandRange( -1.0f, 1.0f ) * DeviationMaxRate_ * deltaTime;
 	CurrentDeviationYaw_ += CurrentDeviationYawSpeed_ * deltaTime;
 	CurrentDeviationYaw_ = FMath::Clamp( CurrentDeviationYaw_, -MaxDeviationAngle_, MaxDeviationAngle_ );
 	const FRotator rot( 0, CurrentDeviationYaw_, 0 );
-	direction = rot.RotateVector( direction );
+	CurrentDirection_ = rot.RotateVector( CurrentDirection_ );
 
-	AddInputVector( direction );
+	AddInputVector( CurrentDirection_ );
 }
 
 void UFollowComponent::SnapToGround()
@@ -137,10 +137,10 @@ void UFollowComponent::Sway( float deltaTime )
 
 void UFollowComponent::RotateForward( float deltaTime )
 {
-	FRotator targetRotation = Velocity.Rotation();
+	FRotator targetRotation = CurrentDirection_.Rotation();
 	FRotator currentRotation = PawnOwner->GetActorRotation();
 
-	FRotator newRotation = FMath::RInterpConstantTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
+	FRotator newRotation = FMath::RInterpTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
 	newRotation.Pitch = 0.0f;
 
 	PawnOwner->SetActorRotation( newRotation );
