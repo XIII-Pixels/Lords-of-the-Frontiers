@@ -140,71 +140,72 @@ FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 	return FIntPoint( x, y );
 }
 
-TArray<FGridCell*> AGridManager::GetCellsInRadius( const FGridCell* cell, const int32 radius )
-{
-	if ( !cell )
-	{
-		return {};
-	}
-	return GetCellsInRadius( cell->GridCoords, radius );
-}
-
-// oxo
-// xox
-// oxo
-TArray<FGridCell*> AGridManager::GetCellsInRadius( const FIntPoint& myCell, const int32 radius )
+TArray<FGridCell*> AGridManager::GetCellsInCross( const FIntPoint& myCell, const int32 radius )
 {
 	TArray<FGridCell*> cellNeighbors;
+
 	const int32 cx = myCell.X;
 	const int32 cy = myCell.Y;
 
 	for ( int32 i = 1; i <= radius; ++i )
 	{
 		if ( IsValidCoords( cx + i, cy ) )
+		{
 			cellNeighbors.Add( GetCell( cx + i, cy ) );
-
+		}
 		if ( IsValidCoords( cx - i, cy ) )
+		{
 			cellNeighbors.Add( GetCell( cx - i, cy ) );
-
+		}
 		if ( IsValidCoords( cx, cy + i ) )
+		{
 			cellNeighbors.Add( GetCell( cx, cy + i ) );
-
+		}
 		if ( IsValidCoords( cx, cy - i ) )
+		{
 			cellNeighbors.Add( GetCell( cx, cy - i ) );
+		}
 	}
-
 	return cellNeighbors;
 }
-//xxx
-//xox
-//xxx
-//TArray<FGridCell*> AGridManager::GetCellsInRadius( const FIntPoint& myCell, const int32 radius )
-//{
-//	const FIntPoint center = myCell;
-//
-//	TArray<FGridCell*> cellNeighbors;
-//
-//	for ( int32 dy = -radius; dy <= radius; ++dy )
-//	{
-//		for ( int32 dx = -radius; dx <= radius; ++dx )
-//		{
-//			if ( dx == 0 && dy == 0 )
-//			{
-//				continue;
-//			}
-//
-//			const int32 x = center.X + dx;
-//			const int32 y = center.Y + dy;
-//
-//			if ( IsValidCoords( x, y ) )
-//			{
-//				cellNeighbors.Add( GetCell( x, y ) );
-//			}
-//		}
-//	}
-//
-//	return cellNeighbors;
-//}
+
+TArray<FGridCell*> AGridManager::GetCellsInSquare( const FIntPoint& myCell, const int32 radius )
+{
+	TArray<FGridCell*> cellNeighbors;
+	const int32 cx = myCell.X;
+	const int32 cy = myCell.Y;
+	for ( int32 dy = -radius; dy <= radius; ++dy )
+	{
+		for ( int32 dx = -radius; dx <= radius; ++dx )
+		{
+			if ( dx == 0 && dy == 0 )
+			{
+				continue;
+			}
+			const int32 x = cx + dx;
+			const int32 y = cy + dy;
+			if ( IsValidCoords( x, y ) )
+			{
+				cellNeighbors.Add( GetCell( x, y ) );
+			}
+		}
+	}
+	return cellNeighbors;
+}
+
+TArray<FGridCell*> AGridManager::GetCellsByShape( const FIntPoint& myCell, const int32 radius, EBonusShape shape )
+{
+	switch ( shape )
+	{
+	case EBonusShape::Cross:
+		return GetCellsInCross( myCell, radius );
+	case EBonusShape::Square:
+		return GetCellsInSquare( myCell, radius );
+	default:
+		return GetCellsInCross( myCell, radius );
+	}
+}
+
 
 void AGridManager::InitializeGrid()
 {

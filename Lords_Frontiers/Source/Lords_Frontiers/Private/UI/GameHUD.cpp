@@ -181,6 +181,13 @@ void UGameHUDWidget::NativeDestruct()
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
 
+	ABuildManager* buildManager =
+	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
+	if ( buildManager )
+	{
+		buildManager->OnBonusPreviewUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+	}
+
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		if ( UGameLoopManager* gL = core->GetGameLoop() )
@@ -275,7 +282,6 @@ void UGameHUDWidget::HandleBonusPreviewUpdated( const TArray<FBonusIconData>& Bo
 		{
 			continue;
 		}
-		
 
 		for ( const FBonusIconData& bonus : bonuses )
 		{
@@ -309,6 +315,7 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 void UGameHUDWidget::UpdateBonusIconPositions()
 {
 	APlayerController* pc = GetOwningPlayer();
+
 	if ( !pc )
 	{
 		return;
@@ -334,13 +341,18 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		}
 	}
 
-	const float baseOrthoWidth = 1048.0f;
-	const float baseScale = 0.7f;
-	const float scale = FMath::Clamp( ( baseOrthoWidth / orthoWidth ) * baseScale, 0.3f, 2.0f );
+
+	const float baseOrthoWigth = 2048.0f;
+	const float baseScale = 0.5f;
+	const float scale =
+	    FMath::Clamp( ( baseOrthoWigth / orthoWidth ) * BaseBonusIconScale, MinBonusIconScale, MaxBonusIconScale );
+	const float buildingHeight = 80.0f;
+
+	const float worldPadding = -15.0f;
 
 	for ( int32 i = 0; i < ActiveBonusIcons_.Num(); ++i )
 	{
-		if ( !ActiveBonusIcons_[i] )
+		if ( !IsValid( ActiveBonusIcons_[i] ) )
 		{
 			continue;
 		}
@@ -349,10 +361,16 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			continue;
 		}
 
-		FVector iconWorldPos = ActiveBonusWorldPositions_[i] + FVector( 0.0f, 0.0f, 40.0f );
+		if ( scale <= MinBonusIconScale + 0.01f )
+		{
+			ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::Collapsed );
+			continue;
+		}
+
+		FVector topWorldPos = ActiveBonusWorldPositions_[i] + FVector( 0.0f, 0.0f, buildingHeight + worldPadding );
 
 		FVector2D screenPos;
-		if ( !pc->ProjectWorldLocationToScreen( iconWorldPos, screenPos ) )
+		if ( !pc->ProjectWorldLocationToScreen( topWorldPos, screenPos ) )
 		{
 			ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::Collapsed );
 			continue;
@@ -360,7 +378,7 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 
 		screenPos /= viewportScale;
 
-		ActiveBonusIcons_[i]->SetRenderScale( FVector2D( scale, scale ) );
+		ActiveBonusIcons_[i]->SetRenderTransformPivot( FVector2D( 0.5f, 1.0f ) );
 
 		UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>( ActiveBonusIcons_[i]->Slot.Get() );
 		if ( !slot )
@@ -368,7 +386,10 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			continue;
 		}
 
+		slot->SetAlignment( FVector2D( 0.5f, 1.0f ) );
 		slot->SetPosition( screenPos );
+
+		ActiveBonusIcons_[i]->SetRenderScale( FVector2D( scale, scale ) );
 		ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::HitTestInvisible );
 	}
 }

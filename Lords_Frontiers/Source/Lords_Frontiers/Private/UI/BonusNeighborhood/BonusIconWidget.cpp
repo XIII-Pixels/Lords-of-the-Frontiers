@@ -33,15 +33,21 @@ void UBonusIconWidget::AddEntry( const FBonusIconData& data )
 	{
 		return;
 	}
+
 	UBonusSingleEntry* entry = CreateWidget<UBonusSingleEntry>( GetOwningPlayer(), EntryWidgetClass );
+
 	if ( !entry )
 	{
 		return;
 	}
+
 	UTexture2D* icon = IconsData ? IconsData->GetIconForBonus( data ) : data.Icon.Get();
+
 	bool bIsNegative = ( data.Value < 0.0f );
 	entry->SetData( icon, data.Value, bIsNegative );
+
 	UVerticalBoxSlot* slot = BonusContainer_->AddChildToVerticalBox( entry );
+
 	if ( slot )
 	{
 		slot->SetPadding( FMargin( 0.0f, 1.0f ) );

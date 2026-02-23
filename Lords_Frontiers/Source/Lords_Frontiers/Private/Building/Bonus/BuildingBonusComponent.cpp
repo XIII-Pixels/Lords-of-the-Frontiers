@@ -14,7 +14,7 @@ UBuildingBonusComponent::UBuildingBonusComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-// GetBonusCellsWithColors
+
 void UBuildingBonusComponent::RecalculateBonuses( AGridManager* gridManager, const FIntPoint& myCellCoordinate )
 {
 	RemoveAppliedBonuses();
@@ -33,7 +33,8 @@ void UBuildingBonusComponent::RecalculateBonuses( AGridManager* gridManager, con
 
 	for ( int32 i = 0; i < BonusEntries_.Num(); ++i )
 	{
-		TArray<FGridCell*> neighborsCells = gridManager->GetCellsInRadius( myCell, BonusEntries_[i].Radius );
+		TArray<FGridCell*> neighborsCells =
+		    gridManager->GetCellsByShape( myCellCoordinate, BonusEntries_[i].Radius, BonusEntries_[i].Shape );
 		for ( const FGridCell* cell : neighborsCells )
 		{
 			ABuilding* occupant = Cast<ABuilding>( cell->Occupant.Get() );
@@ -105,12 +106,13 @@ FBonusIconData UBuildingBonusComponent::GetInfoSingleBonus( int32 entryIndex, co
 	}
 
 	const FBuildingBonusEntry& entry = BonusEntries_[entryIndex];
+
 	data.WorldLocation = displayLocation;
-	data.Icon = entry.BonusIcon;
 	data.Value = entry.Value;
 	data.Category = entry.Category;
 	data.ResourceType = entry.ResourceType;
 	data.StatType = entry.StatType;
+
 	return data;
 }
 
@@ -181,7 +183,7 @@ UBuildingBonusComponent::FindBonusCells( TSubclassOf<ABuilding> buildingClass, A
 {
 	TArray<FIntPoint> result;
 
-	if ( !buildingClass || !gridManager )
+	if ( !buildingClass || !IsValid( gridManager ) )
 	{
 		return result;
 	}
@@ -266,7 +268,7 @@ bool UBuildingBonusComponent::HasMatchingNeighbor(
 
 	for ( const FBuildingBonusEntry& entry : entries )
 	{
-		TArray<FGridCell*> neighbors = gridManager->GetCellsInRadius( candidate, entry.Radius );
+		TArray<FGridCell*> neighbors = gridManager->GetCellsByShape( candidate, entry.Radius, entry.Shape );
 
 		for ( const FGridCell* cell : neighbors )
 		{
@@ -300,7 +302,7 @@ void UBuildingBonusComponent::CollectRadiusCells(
 			continue;
 		}
 
-		TArray<FGridCell*> cells = gridManager->GetCellsInRadius( buildingCell, entry.Radius );
+		TArray<FGridCell*> cells = gridManager->GetCellsByShape( buildingCell, entry.Radius, entry.Shape );
 
 		for ( const FGridCell* cell : cells )
 		{

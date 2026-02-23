@@ -37,7 +37,7 @@ static FLinearColor GetDefaultColorForBonusType( EBonusCategory category )
 	}
 }
 
-UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
+UCLASS( ClassGroup = ( BonusBuild ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UBuildingBonusComponent : public UActorComponent
 {
 	GENERATED_BODY()

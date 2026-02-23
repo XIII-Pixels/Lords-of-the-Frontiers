@@ -641,7 +641,7 @@ void ABuildManager::RecalculateBonusesAroundBuilding( ABuilding* building, const
 
 void ABuildManager::RecalculateBonusesFromNeighbors( const int32 MaxBonusRadius, const FIntPoint& cellCoords )
 {
-	TArray<FGridCell*> neighbors = GridManager_->GetCellsInRadius( cellCoords, MaxBonusRadius );
+	TArray<FGridCell*> neighbors = GridManager_->GetCellsInSquare( cellCoords, MaxBonusRadius );
 	for ( FGridCell* cell : neighbors )
 	{
 		if ( !cell || !cell->Occupant.IsValid() )
@@ -663,23 +663,6 @@ void ABuildManager::RecalculateBonusesFromNeighbors( const int32 MaxBonusRadius,
 		}
 	}
 }
-// USTRUCT( BlueprintType )
-// struct FBonusIconData
-//{
-//	GENERATED_BODY()
-//
-//	UPROPERTY()
-//	FVector WorldLocation = FVector::ZeroVector;
-//
-//	UPROPERTY()
-//	TObjectPtr<UTexture2D> Icon = nullptr;
-//
-//	UPROPERTY()
-//	float Value = 0.0f;
-//
-//	UPROPERTY()
-//	EBonusCategory Category = EBonusCategory::Production;
-// };
 
 TArray<FBonusIconData>
 ABuildManager::CollectBonusPreview( TSubclassOf<ABuilding> buildingClass, const FIntPoint& cellCoords )
@@ -710,7 +693,8 @@ ABuildManager::CollectBonusPreview( TSubclassOf<ABuilding> buildingClass, const 
 
 		for ( int32 i = 0; i < entries.Num(); ++i )
 		{
-			TArray<FGridCell*> neighbors = GridManager_->GetCellsInRadius( cellCoords, entries[i].Radius );
+			TArray<FGridCell*> neighbors =
+			    GridManager_->GetCellsByShape( cellCoords, entries[i].Radius, entries[i].Shape );
 
 			for ( const FGridCell* cell : neighbors )
 			{
@@ -725,9 +709,8 @@ ABuildManager::CollectBonusPreview( TSubclassOf<ABuilding> buildingClass, const 
 			}
 		}
 	}
-	UE_LOG( LogTemp, Warning, TEXT( "Part 1 result count: %d" ), result.Num() );
+
 	CollectBonusFromNeighbors( cellCoords, result, cdo );
-	UE_LOG( LogTemp, Warning, TEXT( "After Part 2 total count: %d" ), result.Num() );
 
 	return result;
 };
@@ -742,15 +725,12 @@ void ABuildManager::CollectBonusFromNeighbors(
 	}
 
 	TArray<FGridCell*> neighborsCells =
-	    GridManager_->GetCellsInRadius( myCellCoords, UBuildingBonusComponent::MaxPossibleBonusRadius );
+	    GridManager_->GetCellsInSquare( myCellCoords, UBuildingBonusComponent::MaxPossibleBonusRadius );
 
 	if ( neighborsCells.IsEmpty() )
 	{
 		return;
 	}
-
-	UE_LOG( LogTemp, Warning, TEXT( "=== CollectBonusFromNeighbors ===" ) );
-	UE_LOG( LogTemp, Warning, TEXT( "Neighbors found: %d" ), neighborsCells.Num() );
 
 	for ( const FGridCell* cell : neighborsCells )
 	{
@@ -778,24 +758,23 @@ void ABuildManager::CollectBonusFromNeighbors(
 
 			const int32 dx = FMath::Abs( myCellCoords.X - cell->GridCoords.X );
 			const int32 dy = FMath::Abs( myCellCoords.Y - cell->GridCoords.Y );
-			const int32 distance = FMath::Max( dx, dy );
+			bool bInRange = false;
 
-			if ( distance > entries[i].Radius )
+			if ( entries[i].Shape == EBonusShape::Cross )
+			{
+				bInRange = ( dx == 0 || dy == 0 ) && FMath::Max( dx, dy ) <= entries[i].Radius;
+			}
+			else
+			{
+				bInRange = FMath::Max( dx, dy ) <= entries[i].Radius;
+			}
+
+			if ( !bInRange )
 			{
 				continue;
 			}
-			UE_LOG(
-			    LogTemp, Warning, TEXT( "Neighbor: %s, has BonusComp: %s, entries: %d" ), *neighbor->GetName(),
-			    bonusComp ? TEXT( "YES" ) : TEXT( "NO" ), bonusComp ? bonusComp->GetBonusEntries().Num() : 0
-			);
-
 			if ( cdo->IsA( entries[i].SourceBuildingClass ) )
 			{
-				UE_LOG(
-				    LogTemp, Warning, TEXT( "  Entry %d: SourceClass=%s, CDO IsA=%s" ), i,
-				    entries[i].SourceBuildingClass ? *entries[i].SourceBuildingClass->GetName() : TEXT( "None" ),
-				    cdo->IsA( entries[i].SourceBuildingClass ) ? TEXT( "YES" ) : TEXT( "NO" )
-				);
 				FVector neighborWorldLocation;
 				if ( GridManager_->GetCellWorldCenter( cell->GridCoords, neighborWorldLocation ) )
 				{

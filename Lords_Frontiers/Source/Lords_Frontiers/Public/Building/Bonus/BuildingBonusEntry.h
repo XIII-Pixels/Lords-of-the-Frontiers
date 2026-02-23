@@ -11,7 +11,6 @@ struct FEntityStats;
 enum class EStatsType : uint8;
 enum class EResourceType : uint8;
 
-
 /** (Maxim)
  */
 UENUM( BlueprintType )
@@ -20,6 +19,13 @@ enum class EBonusCategory : uint8
 	Production,
 	Maintenance,
 	Stats
+};
+
+UENUM( BlueprintType )
+enum class EBonusShape : uint8
+{
+	Cross,
+	Square
 };
 
 USTRUCT( BlueprintType )
@@ -73,11 +79,8 @@ struct FBuildingBonusEntry
 	float Value;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Bonus" )
+	EBonusShape Shape = EBonusShape::Cross;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Bonus" )
 	int32 Radius = 1;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Bonus" )
-	TObjectPtr<UTexture2D> BonusIcon;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Bonus" )
-	FLinearColor GridHighlightColor;
 };
