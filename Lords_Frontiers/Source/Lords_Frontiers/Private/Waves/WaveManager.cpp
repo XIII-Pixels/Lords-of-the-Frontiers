@@ -224,7 +224,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	    *spawnTransform.GetLocation().ToString()
 	);
 
-	if ( PathPointsManager.IsValid() && PathPointsManager->GoalActor.IsValid() )
+	if ( PathPointsManager.IsValid() && PathPointsManager->GoalActor_.IsValid() )
 	{
 		// Calculate path if not calculated
 		if ( !enemyGroup.Path )
@@ -234,7 +234,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 			if ( enemyGroup.Path )
 			{
 				FIntPoint startCoords = Grid->GetClosestCellCoords( spawnTransform.GetLocation() );
-				FIntPoint goalCoords = Grid->GetClosestCellCoords( PathPointsManager->GoalActor->GetActorLocation() );
+				FIntPoint goalCoords = Grid->GetClosestCellCoords( PathPointsManager->GoalActor_->GetActorLocation() );
 
 				AUnit* defaultUnit = enemyGroup.EnemyClass.GetDefaultObject();
 

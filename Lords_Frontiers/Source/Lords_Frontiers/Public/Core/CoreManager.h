@@ -6,7 +6,7 @@
 
 #include "CoreManager.generated.h"
 
-class APathPointsManager;
+class UPathPointsManager;
 // Forward declarations - minimizes header dependencies and compile times
 class AWaveManager;
 class ABuildManager;
@@ -173,7 +173,7 @@ public:
 
 	/** Returns PathPointsManager component. Optional - may be null. */
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
-	APathPointsManager* GetPathPointsManager() const;
+	UPathPointsManager* GetPathPointsManager() const;
 
 	/** Returns GameLoopManager. Always created internally. */
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
@@ -293,7 +293,7 @@ protected:
 
 	/** Weak ref to path points manager. */
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<UPathPointsManager> PathPointsManager_;
 
 	/**
 	 * Strong reference to GameLoopManager.

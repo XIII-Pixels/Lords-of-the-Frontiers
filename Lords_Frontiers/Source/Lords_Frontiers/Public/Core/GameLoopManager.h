@@ -15,7 +15,7 @@ class UResourceManager;
 class UEconomyComponent;
 class UGameInstance;
 class UCardSubsystem;
-class APathPointsManager;
+class UPathPointsManager;
 
 /**
  * Default values used when config is not available.
@@ -131,7 +131,7 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
 	void Initialize(
 	    UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-	    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
+	    UEconomyComponent* inEconomyComponent, UPathPointsManager* inPathPointsManager
 	);
 
 	/**
@@ -489,7 +489,7 @@ private:
 
 	/** Weak ref to path points manager. */
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<UPathPointsManager> PathPointsManager_;
 
 	/** Current state machine phase. */
 	EGameLoopPhase CurrentPhase_ = EGameLoopPhase::None;

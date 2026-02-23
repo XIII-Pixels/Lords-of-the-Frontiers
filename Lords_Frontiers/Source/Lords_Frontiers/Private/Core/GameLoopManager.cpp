@@ -26,7 +26,7 @@ UGameLoopManager::~UGameLoopManager()
 
 void UGameLoopManager::Initialize(
     UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
+    UEconomyComponent* inEconomyComponent, UPathPointsManager* inPathPointsManager
 )
 {
 	if ( inConfig )

@@ -12,7 +12,7 @@
 
 class AWaveManager;
 class APathTargetPoint;
-class APathPointsManager;
+class UPathPointsManager;
 class UButton;
 
 UCLASS( Abstract, Blueprintable )
