@@ -87,7 +87,7 @@ public:
 	TWeakObjectPtr<AGridManager> Grid;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Spawn" )
-	TWeakObjectPtr<APathPointsManager> PathPointsManager;
+	TWeakObjectPtr<UPathPointsManager> PathPointsManager;
 
 	// Delegate: broadcast when a wave starts
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )

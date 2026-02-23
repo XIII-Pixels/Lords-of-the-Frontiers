@@ -15,7 +15,7 @@
 
 #include "Unit.generated.h"
 
-class APathPointsManager;
+class UPathPointsManager;
 class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
@@ -73,7 +73,7 @@ public:
 	const TObjectPtr<UPath>& Path() const;
 	void SetPath( TObjectPtr<UPath> path );
 
-	void SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager );
+	void SetPathPointsManager( TWeakObjectPtr<UPathPointsManager> pathPointsManager );
 
 	void SetFollowedTarget( AActor* newTarget );
 
@@ -125,7 +125,7 @@ protected:
 	TObjectPtr<UAttackComponent> AttackComponent_;
 
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<UPathPointsManager> PathPointsManager_;
 
 	UPROPERTY()
 	TObjectPtr<UPath> Path_;
