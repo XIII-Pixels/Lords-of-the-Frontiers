@@ -19,9 +19,13 @@ class LORDS_FRONTIERS_API UChooseAttackTargetComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	const TSet<TSubclassOf<ABuilding>>& TargetBuildingClasses() const
+	{
+		return TargetBuildingClasses_;
+	}
 
 protected:
 	// Priority list of building classes
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Aggro" )
-	TArray<TSubclassOf<ABuilding>> PriorityClasses_;
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings" )
+	TSet<TSubclassOf<ABuilding>> TargetBuildingClasses_;
 };
