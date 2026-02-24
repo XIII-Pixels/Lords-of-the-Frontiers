@@ -138,6 +138,8 @@ void UGameHUDWidget::NativeConstruct()
 
 	UpdateResources();
 	UpdateAllBuildingButtons();
+
+	UpdateNextWaveInfo();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -220,6 +222,8 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
+
+	UpdateNextWaveInfo();
 
 	if ( TextTimer )
 	{
@@ -672,5 +676,33 @@ void UGameHUDWidget::ShowTooltipInternal()
 		float offsetYa = ( mousePos.Y > ( viewportSize.Y / 2.f ) ) ? -180.f : 25.f;
 
 		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
+	}
+}
+
+void UGameHUDWidget::UpdateNextWaveInfo()
+{
+	if (!Text_NextWaveInfo)
+	{
+		return;
+	}
+		
+
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+
+	AWaveManager* waveManager =
+	    Cast<AWaveManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AWaveManager::StaticClass() ) );
+
+	if ( waveManager )
+	{
+		FString info = waveManager->GetNextWaveInfoText();
+		Text_NextWaveInfo->SetText( FText::FromString( info ) );
+	}
+	else
+	{
+		Text_NextWaveInfo->SetText( FText::FromString( TEXT( "Intelligence gathering..." ) ) );
 	}
 }

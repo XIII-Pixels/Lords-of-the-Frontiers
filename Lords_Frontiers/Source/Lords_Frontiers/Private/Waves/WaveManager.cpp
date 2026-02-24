@@ -679,3 +679,49 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 		}
 	}
 }
+
+FString AWaveManager::GetNextWaveInfoText() const
+{
+
+	int32 nextWaveIndex = CurrentWaveIndex + 1;
+
+	if ( !Waves.IsValidIndex( nextWaveIndex ) )
+	{
+		return TEXT( "The final wave has passed!" );
+	}
+
+	const FWave& nextWave = Waves[nextWaveIndex];
+
+	if ( !nextWave.IsValid() )
+	{
+		return TEXT( "No threats detected" );
+	}
+
+	TMap<FString, int32> enemyCounts;
+
+	for ( const FEnemyGroup& group : nextWave.EnemyGroups )
+	{
+		if ( group.IsValid() && group.EnemyClass.Get() )
+		{
+			FString className = group.EnemyClass.Get()->GetName();
+
+			className.RemoveFromEnd( TEXT( "_C" ) );
+			className.RemoveFromStart( TEXT( "Default__" ) );
+			className.RemoveFromStart( TEXT( "BP_" ) );
+			enemyCounts.FindOrAdd( className ) += group.Count;
+		}
+	}
+
+	TArray<FString> infoLines;
+	for ( const auto& pair : enemyCounts )
+	{
+		infoLines.Add( FString::Printf( TEXT( "%s: %d" ), *pair.Key, pair.Value ) );
+	}
+
+	if ( infoLines.Num() == 0 )
+	{
+		return TEXT( "Unknown opponents" );
+	}
+
+	return FString::Join( infoLines, TEXT( "\n" ) );
+}
