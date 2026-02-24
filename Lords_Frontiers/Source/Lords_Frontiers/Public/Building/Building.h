@@ -5,6 +5,7 @@
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
+#include "Building/Bonus/BuildingBonusComponent.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -72,6 +73,10 @@ public:
 	 */
 	void ResetMaintenanceCostToDefaults();
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
+	TObjectPtr<UTexture2D> BuildingIcon;
+
+	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
 	bool IsRuined() const
 	{

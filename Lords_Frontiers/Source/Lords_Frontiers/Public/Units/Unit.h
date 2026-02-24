@@ -47,6 +47,14 @@ public:
 
 	virtual void TakeDamage( float damage ) override;
 
+	void AdvancePathPointIndex();
+
+	void SetPathPointIndex( int pathPointIndex );
+
+	void FollowPath();
+
+	void ChangeStats( FEnemyBuff* buff );
+
 	// Getters and setters
 
 	virtual FEntityStats& Stats() override;
@@ -58,28 +66,22 @@ public:
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
-
-	const TObjectPtr<UPath>& Path() const;
-
 	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
 
+	const TObjectPtr<UPath>& Path() const;
 	void SetPath( TObjectPtr<UPath> path );
 
 	void SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager );
 
-	void AdvancePathPointIndex();
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
-
 	void SetFollowedTarget( AActor* newTarget );
 
-	void ChangeStats( FEnemyBuff* buff );
+	TObjectPtr<USceneComponent> VisualMesh();
 
 protected:
 	void OnDeath();
 
 	void FollowNextPathTarget();
+
 	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
@@ -109,22 +111,11 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UPath> Path_;
 
-	int PathPointIndex_ = -1;
-
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 
-	//Wobble
-	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
-	float SwaySpeed_ = 15.0f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
-	float SwayAmplitude_ = 10.0f;
-
-	float SwayPhaseOffset_ = 0.0f;
-
-	float CurrentSwayRoll_ = 0.0f;
-
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
+
+	int PathPointIndex_ = -1;
 };
