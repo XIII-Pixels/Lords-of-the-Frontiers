@@ -145,9 +145,6 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	UTextBlock* Text_NextWaveInfo;
-
 
 protected:
 	virtual void NativeConstruct() override;
@@ -292,6 +289,4 @@ protected:
 	UFUNCTION() void ShowTooltipInternal();
 
 	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
-
-	void UpdateNextWaveInfo();
 };

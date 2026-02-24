@@ -112,9 +112,6 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
 	void BroadcastAllWavesCompleted();
 
-	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
-	FString GetNextWaveInfoText() const;
-
 protected:
 	virtual void BeginPlay() override;
 
