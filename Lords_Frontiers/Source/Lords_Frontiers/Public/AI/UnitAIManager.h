@@ -7,6 +7,7 @@
 
 #include "UnitAIManager.generated.h"
 
+class AUnit;
 class APathTargetPoint;
 class UTargetBuildingTracker;
 class UPathPointsManager;
@@ -32,6 +33,9 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	float PathPointReachRadius = 200.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|BuildingTracker" )
+	TSet<TSubclassOf<AUnit>> UnitClasses;
 
 	// Managers
 

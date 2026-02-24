@@ -44,5 +44,5 @@ void AUnitAIManager::BeginPlay()
 	PathPointsManager->SetPointReachRadius( PathPointReachRadius );
 
 	// TargetBuildingTracker settings
-
+	TargetBuildingTracker->SetUnitClasses( UnitClasses );
 }

@@ -2,9 +2,19 @@
 
 #include "AI/TargetBuildingTracker.h"
 
+#include "Building/Building.h"
+#include "Units/Unit.h"
+
+#include "Components/ChooseAttackTargetComponent.h"
+#include "Kismet/GameplayStatics.h"
+
 void UTargetBuildingTracker::OnWaveStart()
 {
 	ScanLevelForBuildings();
+}
+
+void UTargetBuildingTracker::OnBuildingDestroyed( ABuilding* building )
+{
 }
 
 void UTargetBuildingTracker::ScanLevelForBuildings()
@@ -21,14 +31,26 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 
 	for ( AActor* buildingActor : buildingActors )
 	{
-		for ( const TSubclassOf<ABuilding> priorityClass : PriorityClasses_ )
+		for ( const auto& [unitClass, _] : TargetBuildings_ )
 		{
-			if ( buildingActor->IsA( priorityClass ) )
+			TSet<TSubclassOf<ABuilding>> targetClasses;
+			if ( const AUnit* cdo = unitClass->GetDefaultObject<AUnit>() )
 			{
-				if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
+				if ( const auto* comp = cdo->FindComponentByClass<UChooseAttackTargetComponent>() )
 				{
-					PriorityBuildings_.Add( building );
-					break;
+					targetClasses = comp->TargetBuildingClasses();
+				}
+			}
+
+			for ( const TSubclassOf<ABuilding>& targetClass : targetClasses )
+			{
+				if ( buildingActor->IsA( targetClass ) )
+				{
+					if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
+					{
+						TargetBuildings_[unitClass].Buildings.Add( building );
+						break;
+					}
 				}
 			}
 		}
