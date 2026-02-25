@@ -18,7 +18,8 @@ enum class EStatsType : uint8
 	AttackRange,
 	AttackDamage,
 	AttackCooldown,
-	MaxSpeed
+	MaxSpeed,
+	SplashRadius
 };
 
 // (Artyom)
@@ -47,6 +48,8 @@ struct FEntityStats
 
 	ETeam Team() const;
 
+	float SplashRadius() const;
+
 	// setters
 	void SetMaxHealth( int maxHealth ); // min = 1
 
@@ -62,6 +65,9 @@ struct FEntityStats
 
 	void SetTeam( ETeam team );
 
+	void SetSplashRadius( float splashRadius );
+
+	void AddSplashRadius( float splashRadius );
 
 	void AddStat( EStatsType statType, float value );
 
@@ -110,6 +116,9 @@ private:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	float MaxSpeed_ = 300.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
+	float SplashRadius_ = 0.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	ETeam Team_;

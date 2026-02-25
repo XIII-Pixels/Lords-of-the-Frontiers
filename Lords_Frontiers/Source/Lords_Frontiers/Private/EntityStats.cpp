@@ -45,6 +45,11 @@ float FEntityStats::AttackRange() const
 	return AttackRange_;
 }
 
+float FEntityStats::SplashRadius() const
+{
+	return SplashRadius_;
+}
+
 // setters
 
 // (Artyom)
@@ -93,6 +98,16 @@ void FEntityStats::SetMaxSpeed( float maxSpeed )
 	MaxSpeed_ = FMath::Max( maxSpeed, 0.0f );
 }
 
+void FEntityStats::SetSplashRadius( float splashRadius )
+{
+	SplashRadius_ = FMath::Max( splashRadius, 0.0f );
+}
+
+void FEntityStats::AddSplashRadius( float splashRadius )
+{
+	SetSplashRadius( SplashRadius_ + splashRadius );
+}
+
 void FEntityStats::AddStat( EStatsType statType, float value )
 {
 	switch ( statType )
@@ -110,6 +125,9 @@ void FEntityStats::AddStat( EStatsType statType, float value )
 		AddAttackCooldown( value );
 		break;
 	case EStatsType::MaxSpeed:
+		break;
+	case EStatsType::SplashRadius:
+		AddSplashRadius( value );
 		break;
 	default:
 		break;

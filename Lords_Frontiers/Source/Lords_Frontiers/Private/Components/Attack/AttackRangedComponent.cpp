@@ -2,8 +2,9 @@
 
 #include "Components/Attack/AttackRangedComponent.h"
 
+#include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "Entity.h"
-#include "Projectiles/Projectile.h"
+#include "Projectiles/BaseProjectile.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/SphereComponent.h"
@@ -48,29 +49,38 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	{
 		return;
 	}
-
 	if ( OwnerEntity_->Stats().OnCooldown() )
 	{
 		return;
 	}
-
 	UWorld* world = GetOwner()->GetWorld();
 	if ( !world )
 	{
 		return;
 	}
-
-	FTransform spawnTransform = GetOwner()->GetTransform();
-	spawnTransform.AddToTranslation( ProjectileSpawnPosition_ );
-
-	if ( EnemyInSight_ && ProjectileClass_ )
+	if ( !EnemyInSight_ || !ProjectileClass_ )
 	{
-		const FActorSpawnParameters spawnParams;
-		const auto projectile = world->SpawnActor<AProjectile>( ProjectileClass_, spawnTransform, spawnParams );
-		projectile->Initialize( EnemyInSight(), OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_ );
-		projectile->Launch();
-		OwnerEntity_->Stats().StartCooldown();
+		return;
 	}
+
+	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
+	if ( !pool )
+	{
+		return;
+	}
+
+	ABaseProjectile* projectile = pool->AcquireProjectile( ProjectileClass_ );
+	if ( !projectile )
+	{
+		return;
+	}
+
+	projectile->InitializeProjectile(
+	    GetOwner(), EnemyInSight_, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
+	    OwnerEntity_->Stats().SplashRadius()
+	);
+
+	OwnerEntity_->Stats().StartCooldown();
 }
 
 TObjectPtr<AActor> UAttackRangedComponent::EnemyInSight() const
