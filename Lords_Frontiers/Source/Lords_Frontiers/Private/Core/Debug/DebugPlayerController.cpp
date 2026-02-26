@@ -21,6 +21,36 @@ ADebugPlayerController::ADebugPlayerController()
 	CardSelectionHUDComponent_ = CreateDefaultSubobject<UCardSelectionHUDComponent>( TEXT( "CardSelectionHUD" ) );
 }
 
+void ADebugPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UWorld* World = GetWorld();
+
+	World->GetTimerManager().SetTimerForNextTick( FTimerDelegate::CreateLambda(
+	    [this]()
+	    {
+		    AHealthBarManager* Found = this->CacheHealthBarManager();
+
+		    if ( IsValid( Found ) )
+		    {
+			    UE_LOG(
+			        LogTemp, Log,
+			        TEXT( "ADebugPlayerController::BeginPlay: HealthBarManager cached successfully for %s -> %s (ptr=%p)" ),
+			        *GetNameSafe( this ), *GetNameSafe( Found ), Found
+			    );
+		    }
+		    else
+		    {
+			    UE_LOG(
+			        LogTemp, Warning,
+			        TEXT( "ADebugPlayerController::BeginPlay: HealthBarManager NOT found / NOT cached yet for %s" ),
+			        *GetNameSafe( this )
+			    );
+		    }
+	    }
+	) );
+}
 USelectionManagerComponent* ADebugPlayerController::GetSelectionManager() const
 {
 	return SelectionManagerComponent_;
@@ -163,20 +193,29 @@ void ADebugPlayerController::OnShowAllHP_Pressed()
 	if ( AltHoldCount_ != 1 )
 		return;
 
-	UWorld* World = GetWorld();
-	if ( !World )
+	UWorld* world = GetWorld();
+	if ( !world )
 		return;
 
-	AHealthBarManager* Mgr =
-	    Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() ) );
+	AHealthBarManager* manager = CachedHealthBarManager_.Get();
 
-	if ( !Mgr )
+	if ( !IsValid( manager ) )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "OnShowAllHP_Pressed: HealthBarManager not found in level" ) );
-		return;
+		manager = CacheHealthBarManager();
 	}
 
-	Mgr->ShowActiveWidgets();
+	if ( IsValid( manager ) )
+	{
+		manager->ShowActiveWidgets();
+	}
+	else
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "ADebugPlayerController::OnShowAllHP_Pressed: HealthBarManager not available for actor %s — skipping UI update" ),
+		    *GetNameSafe( this )
+		);
+	}
 }
 
 void ADebugPlayerController::OnShowAllHP_Released()
@@ -187,18 +226,86 @@ void ADebugPlayerController::OnShowAllHP_Released()
 	if ( AltHoldCount_ != 0 )
 		return;
 
+		UWorld* world = GetWorld();
+	if ( !world )
+		return;
+
+	AHealthBarManager* manager = CachedHealthBarManager_.Get();
+
+	if ( !IsValid( manager ) )
+	{
+		manager = CacheHealthBarManager();
+	}
+	if ( IsValid( manager ) )
+	{
+		manager->HideActiveWidgets();
+	}
+	else
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "ADebugPlayerController::OnShowAllHP_Released: HealthBarManager not available for actor %s — skipping "
+		          "UI update" ),
+		    *GetNameSafe( this )
+		);
+	}
+}
+
+AHealthBarManager* ADebugPlayerController::CacheHealthBarManager()
+{
+	CachedHealthBarManager_.Reset();
+
 	UWorld* World = GetWorld();
 	if ( !World )
-		return;
-
-	AHealthBarManager* Mgr =
-	    Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() ) );
-
-	if ( !Mgr )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "OnShowAllHP_Released: HealthBarManager not found in level" ) );
-		return;
+		UE_LOG(
+		    LogTemp, Error, TEXT( "CacheHealthBarManager: GetWorld() == nullptr (Actor=%s)" ), *GetNameSafe( this )
+		);
+		return nullptr;
 	}
 
-	Mgr->HideActiveWidgets();
+	AActor* Found = UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() );
+
+	UE_LOG(
+	    LogTemp, Verbose, TEXT( "CacheHealthBarManager: GetActorOfClass -> ptr=%p name=%s class=%s" ), Found,
+	    *GetNameSafe( Found ), Found ? *Found->GetClass()->GetName() : TEXT( "null" )
+	);
+
+	if ( !Found )
+	{
+		return nullptr;
+	}
+
+	if ( Found->HasAnyFlags( RF_ClassDefaultObject ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: GetActorOfClass returned CDO (Default__), ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	if ( !Found->IsA( AHealthBarManager::StaticClass() ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: Found actor is NOT AHealthBarManager: ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	AHealthBarManager* Mgr = Cast<AHealthBarManager>( Found );
+	if ( !IsValid( Mgr ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "CacheHealthBarManager: Cast succeeded but object is invalid (ptr=%p)" ), Found );
+		return nullptr;
+	}
+
+	CachedHealthBarManager_ = Mgr;
+	UE_LOG(
+	    LogTemp, Log, TEXT( "CacheHealthBarManager: cached HealthBarManager = %s (ptr=%p)" ), *GetNameSafe( Mgr ), Mgr
+	);
+	return Mgr;
 }

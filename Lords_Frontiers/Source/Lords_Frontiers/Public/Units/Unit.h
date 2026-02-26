@@ -8,6 +8,7 @@
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Components/Attack/AttackComponent.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Components/EnemyAggroComponent.h"
 #include "Components/WidgetComponent.h"
 #include "CoreMinimal.h"
@@ -151,4 +152,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
+
+	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_;
 };

@@ -47,7 +47,41 @@ void AUnit::BeginPlay()
 		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
+	CachedHealthBarManager_.Reset();
 
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "AUnit::BeginPlay: GetWorld() == nullptr" ) );
+		return;
+	}
+
+	AActor* Found = UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() );
+	UE_LOG(
+	    LogTemp, Log, TEXT( "AUnit::BeginPlay: GetActorOfClass(AHealthBarManager) -> ptr=%p name=%s class=%s" ), Found,
+	    *GetNameSafe( Found ), Found ? *Found->GetClass()->GetName() : TEXT( "null" )
+	);
+
+	if ( Found )
+	{
+		if ( AHealthBarManager* Mgr = Cast<AHealthBarManager>( Found ) )
+		{
+			CachedHealthBarManager_ = Mgr;
+			UE_LOG( LogTemp, Log, TEXT( "AUnit::BeginPlay: Cached HealthBarManager = %s" ), *GetNameSafe( Mgr ) );
+		}
+		else
+		{
+			UE_LOG(
+			    LogTemp, Error,
+			    TEXT( "AUnit::BeginPlay: Found actor is NOT AHealthBarManager, ptr=%p class=%s name=%s" ), Found,
+			    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+			);
+		}
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "AUnit::BeginPlay: HealthBarManager not found in level" ) );
+	}
 	if ( !HealthWidgetComponent )
 	{
 		HealthWidgetComponent = FindComponentByClass<UWidgetComponent>();

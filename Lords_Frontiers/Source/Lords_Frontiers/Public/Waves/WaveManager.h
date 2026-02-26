@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Wave.h"
 #include "EnemyBuff.h"
 #include "CoreMinimal.h"
@@ -173,5 +174,11 @@ protected:
 
 	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
+
+	UFUNCTION()
+	AHealthBarManager* CacheHealthBarManager();
+
+private:
+	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_ = nullptr;
 
 };

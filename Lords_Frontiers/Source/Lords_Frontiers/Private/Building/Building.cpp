@@ -4,7 +4,9 @@
 #include "Cards/CardSubsystem.h"
 #include "UI/Widgets/HealthBarWidget.h"
 #include "Lords_Frontiers/Public/UI/HealthBarManager.h"
-
+#include "EngineUtils.h"
+#include "TimerManager.h"
+#include "UObject/UObjectGlobals.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -59,8 +61,33 @@ void ABuilding::BeginPlay()
 	{
 		cardSubsystem->OnBuildingPlaced( this );
 	}
-}
 
+	UWorld* World = GetWorld();
+
+	World->GetTimerManager().SetTimerForNextTick( FTimerDelegate::CreateLambda(
+	    [this]()
+	    {
+		    AHealthBarManager* Found = this->CacheHealthBarManager();
+
+		    if ( IsValid( Found ) )
+		    {
+			    UE_LOG(
+			        LogTemp, Log,
+			        TEXT( "ABuilding::BeginPlay: HealthBarManager cached successfully for %s -> %s (ptr=%p)" ),
+			        *GetNameSafe( this ), *GetNameSafe( Found ), Found
+			    );
+		    }
+		    else
+		    {
+			    UE_LOG(
+			        LogTemp, Warning,
+			        TEXT( "ABuilding::BeginPlay: HealthBarManager NOT found / NOT cached yet for %s" ),
+			        *GetNameSafe( this )
+			    );
+		    }
+	    }
+	) );
+}
 void ABuilding::OnDeath()
 {
 	if ( bIsRuined_ )
@@ -135,15 +162,30 @@ void ABuilding::TakeDamage( float damage )
 	}
 
 	Stats_.ApplyDamage( damage );
-	if ( AHealthBarManager* manager = Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AHealthBarManager::StaticClass() ) ) )
+
+
+	AHealthBarManager* Mgr = CachedHealthBarManager_.Get();
+
+	// ≈сли кеша нет или он невалиден Ч попробуем закешировать заново (фоллбэк)
+	if ( !IsValid( Mgr ) )
 	{
-		manager->OnActorHealthChanged( this, this->GetCurrentHealth(), this->GetMaxHealth() );
+		Mgr = CacheHealthBarManager();
+	}
+
+	if ( IsValid( Mgr ) )
+	{
+		Mgr->OnActorHealthChanged(
+		    this, static_cast<int32>( GetCurrentHealth() ), static_cast<int32>( GetMaxHealth() )
+		);
 	}
 	else
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "ABuilding::TakeDamage: HealthBarManager NOT FOUND!" ) );
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "ABuilding::TakeDamage: HealthBarManager not available for actor %s Ч skipping UI update" ),
+		    *GetNameSafe( this )
+		);
 	}
-
 
 	if ( !Stats_.IsAlive() )
 	{
@@ -315,4 +357,63 @@ void ABuilding::ModifyMaintenanceCostAll( int32 delta )
 void ABuilding::ResetMaintenanceCostToDefaults()
 {
 	MaintenanceCost = OriginalMaintenanceCost_;
+}
+
+AHealthBarManager* ABuilding::CacheHealthBarManager()
+{
+	CachedHealthBarManager_.Reset();
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		UE_LOG(
+		    LogTemp, Error, TEXT( "CacheHealthBarManager: GetWorld() == nullptr (Actor=%s)" ), *GetNameSafe( this )
+		);
+		return nullptr;
+	}
+
+	AActor* Found = UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() );
+
+	UE_LOG(
+	    LogTemp, Verbose, TEXT( "CacheHealthBarManager: GetActorOfClass -> ptr=%p name=%s class=%s" ), Found,
+	    *GetNameSafe( Found ), Found ? *Found->GetClass()->GetName() : TEXT( "null" )
+	);
+
+	if ( !Found )
+	{
+		return nullptr;
+	}
+
+	if ( Found->HasAnyFlags( RF_ClassDefaultObject ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: GetActorOfClass returned CDO (Default__), ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	if ( !Found->IsA( AHealthBarManager::StaticClass() ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: Found actor is NOT AHealthBarManager: ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	AHealthBarManager* Mgr = Cast<AHealthBarManager>( Found );
+	if ( !IsValid( Mgr ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "CacheHealthBarManager: Cast succeeded but object is invalid (ptr=%p)" ), Found );
+		return nullptr;
+	}
+
+	CachedHealthBarManager_ = Mgr;
+	UE_LOG(
+	    LogTemp, Log, TEXT( "CacheHealthBarManager: cached HealthBarManager = %s (ptr=%p)" ), *GetNameSafe( Mgr ), Mgr
+	);
+	return Mgr;
 }

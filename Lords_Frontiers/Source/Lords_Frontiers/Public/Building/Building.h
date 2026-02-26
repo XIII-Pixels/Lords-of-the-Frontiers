@@ -3,6 +3,7 @@
 #include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
 
@@ -111,8 +112,14 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> DefaultMesh_;
 
+	UFUNCTION()
+	AHealthBarManager* CacheHealthBarManager();
+
 private:
 	FResourceProduction OriginalMaintenanceCost_;
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;
+
+	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_ = nullptr;
+
 };
