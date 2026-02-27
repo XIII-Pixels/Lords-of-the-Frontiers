@@ -82,6 +82,9 @@ public:
 
 	int GetMaxHealth() const;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
+	FVector HealthBarWorldOffset = FVector::ZeroVector;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;

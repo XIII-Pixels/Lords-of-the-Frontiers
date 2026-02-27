@@ -48,19 +48,26 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 	
-	UWorld* World = GetWorld();
+	UWorld* world = GetWorld();
 
-	World->GetTimerManager().SetTimerForNextTick( FTimerDelegate::CreateLambda(
+	world->GetTimerManager().SetTimerForNextTick( FTimerDelegate::CreateLambda(
 	    [this]()
 	    {
-		    AHealthBarManager* Found = this->CacheHealthBarManager();
+		    AHealthBarManager* found = this->CacheHealthBarManager();
 
-		    if ( IsValid( Found ) )
+		    if ( IsValid( found ) )
 		    {
 			    UE_LOG(
 			        LogTemp, Log,
 			        TEXT( "ABuilding::BeginPlay: HealthBarManager cached successfully for %s -> %s (ptr=%p)" ),
-			        *GetNameSafe( this ), *GetNameSafe( Found ), Found
+			        *GetNameSafe( this ), *GetNameSafe( found ), found
+			    );
+
+				found->RegisterActor( this, this->HealthBarWorldOffset );
+
+			    UE_LOG(
+			        LogTemp, Verbose, TEXT( "ABuilding::BeginPlay: Registered offset %s for %s" ),
+			        *HealthBarWorldOffset.ToString(), *GetNameSafe( this )
 			    );
 		    }
 		    else
@@ -377,6 +384,13 @@ void AUnit::EndPlay( const EEndPlayReason::Type EndPlayReason )
 			{
 				HBW->Unbind( nullptr );
 			}
+		}
+	}
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( AHealthBarManager* manager = Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( world, AHealthBarManager::StaticClass() ) ) )
+		{
+			manager->UnregisterActor( this );
 		}
 	}
 

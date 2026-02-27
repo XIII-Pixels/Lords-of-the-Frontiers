@@ -4,6 +4,7 @@
 #include "Camera/CameraComponent.h"
 #include "Engine/World.h"
 #include "Building/Building.h"
+#include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Components/ProgressBar.h"
 #include "GameFramework/PlayerController.h" 
 #include "Kismet/GameplayStatics.h"
@@ -274,48 +275,74 @@ void AHealthBarManager::ReleaseWidget( UHealthBarWidget* widget )
 	WidgetPool_.Add( widget );
 }
 
-FVector AHealthBarManager::GetOffsetForActor( AActor* Actor ) const
+FVector AHealthBarManager::GetOffsetForActor( AActor* actor ) const
 {
-	if ( !Actor )
-	{
+	if ( !actor )
 		return DefaultWorldOffset;
-	}
-	if ( const FVector* found = ActorOffsets_.Find( Actor ) )
+
+
+	if ( const FVector* override = ActorOffsets_.Find( actor ) )
 	{
-		return *found;
+		if ( !override->IsNearlyZero() )
+			return *override;
 	}
+
+	if ( const ABuilding* building = Cast<ABuilding>( actor ) )
+	{
+		if ( !building->HealthBarWorldOffset.IsNearlyZero() )
+			return building->HealthBarWorldOffset;
+	}
+	else if ( const AUnit* unit = Cast<AUnit>( actor ) )
+	{
+		if ( !unit->HealthBarWorldOffset.IsNearlyZero() )
+			return unit->HealthBarWorldOffset;
+	}
+
+	FBox bounds = actor->GetComponentsBoundingBox( false );
+	const float height = bounds.GetExtent().Z;
+	if ( height > KINDA_SMALL_NUMBER )
+	{
+		FVector Result = DefaultWorldOffset;
+		Result.Z += height; // above actor
+		return Result;
+	}
+
 	return DefaultWorldOffset;
 }
 
-void AHealthBarManager::RegisterActor( AActor* Actor, FVector WorldOffset )
+void AHealthBarManager::RegisterActor( AActor* actor, const FVector& worldOffset /*=FVector::ZeroVector*/ )
 {
-	if ( !Actor )
+	if ( !IsValid( actor ) )
 		return;
-	ActorOffsets_.FindOrAdd( Actor ) = WorldOffset;
+
+	ActorOffsets_.FindOrAdd( actor ) = worldOffset;
+
+	UE_LOG(
+	    LogTemp, Verbose, TEXT( "HealthBarManager: RegisterActor offset for %s = %s" ), *GetNameSafe( actor ),
+	    *worldOffset.ToString()
+	);
 }
 
-void AHealthBarManager::UnregisterActor( AActor* Actor )
+void AHealthBarManager::UnregisterActor( AActor* actor )
 {
-	if ( !Actor )
+	if ( !actor )
 		return;
 
-	ActorOffsets_.Remove( Actor );
+	ActorOffsets_.Remove( actor );
 
-	if ( UHealthBarWidget** wPtr = ActiveWidgets_.Find( Actor ) )
+	if ( UHealthBarWidget** wPtr = ActiveWidgets_.Find( actor ) )
 	{
-		if ( UHealthBarWidget* w = *wPtr )
+		if ( UHealthBarWidget* widget = *wPtr )
 		{
-			ReleaseWidget( w );
+			ReleaseWidget( widget );
 		}
-		ActiveWidgets_.Remove( Actor );
+		ActiveWidgets_.Remove( actor );
 	}
 
-	if ( FTimerHandle* th = ReleaseTimers_.Find( Actor ) )
-	{
-		if ( GetWorld() )
-			GetWorld()->GetTimerManager().ClearTimer( *th );
-		ReleaseTimers_.Remove( Actor );
-	}
+	ActiveWidgetLastWorldPos_.Remove( actor );
+	ReleaseTimers_.Remove( actor );
+
+	UE_LOG( LogTemp, Verbose, TEXT( "HealthBarManager: UnregisterActor %s" ), *GetNameSafe( actor ) );
 }
 
 void AHealthBarManager::OnActorHealthChanged( AActor* actor, int32 current, int32 max )

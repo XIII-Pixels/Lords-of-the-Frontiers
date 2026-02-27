@@ -91,6 +91,9 @@ public:
 	int GetMaxHealth() const;
 	void ChangeStats( FEnemyBuff* buff );
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
+	FVector HealthBarWorldOffset = FVector::ZeroVector;
+
 protected:
 	void OnDeath();
 
@@ -136,9 +139,6 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
 	TSubclassOf<UUserWidget> HealthBarWidgetClass;
 
-	UPROPERTY( EditAnywhere, Category = "UI" )
-	FVector HealthBarWorldOffset = FVector( 0.f, 0.f, 200.f );
-
 	//Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	float SwaySpeed_ = 15.0f;
@@ -157,4 +157,5 @@ protected:
 
 	UFUNCTION()
 	AHealthBarManager* CacheHealthBarManager();
+
 };

@@ -44,7 +44,7 @@ public:
 	float CameraFOVThreshold = 0.25f; // degrees
 
 	UFUNCTION( BlueprintCallable, Category = "HealthBar" )
-	void RegisterActor( AActor* Actor, FVector WorldOffset = FVector::ZeroVector );
+	void RegisterActor( AActor* Actor, const FVector& WorldOffset = FVector::ZeroVector );
 
 	UFUNCTION( BlueprintCallable, Category = "HealthBar" )
 	void UnregisterActor( AActor* Actor );
