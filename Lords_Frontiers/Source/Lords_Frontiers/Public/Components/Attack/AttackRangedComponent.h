@@ -11,6 +11,7 @@
 class IEntity;
 class USphereComponent;
 class AProjectile;
+class ABaseProjectile;
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
@@ -51,7 +52,7 @@ protected:
 	bool bCanAttackBackward_ = true;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	TSubclassOf<AProjectile> ProjectileClass_;
+	TSubclassOf<ABaseProjectile> ProjectileClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float ProjectileSpeed_ = 1500.0f;

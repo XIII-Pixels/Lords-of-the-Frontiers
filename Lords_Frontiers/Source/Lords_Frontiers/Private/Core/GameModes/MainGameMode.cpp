@@ -23,6 +23,11 @@ void AMainGameMode::StartPlay()
 	InitializeGameSystems();
 	InitializeCardSystem();
 	CreateHUD();
+
+	if ( UProjectilePoolSubsystem* Pool = GetWorld()->GetSubsystem<UProjectilePoolSubsystem>() )
+	{
+		Pool->PreWarmPools( ProjectilePoolConfigs );
+	}
 }
 
 void AMainGameMode::InitializeGameSystems()
