@@ -154,4 +154,7 @@ protected:
 	TObjectPtr<USceneComponent> VisualMesh_;
 
 	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_;
+
+	UFUNCTION()
+	AHealthBarManager* CacheHealthBarManager();
 };

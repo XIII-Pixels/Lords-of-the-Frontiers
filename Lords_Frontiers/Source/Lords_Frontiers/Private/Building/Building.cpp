@@ -166,7 +166,6 @@ void ABuilding::TakeDamage( float damage )
 
 	AHealthBarManager* Mgr = CachedHealthBarManager_.Get();
 
-	// Если кеша нет или он невалиден — попробуем закешировать заново (фоллбэк)
 	if ( !IsValid( Mgr ) )
 	{
 		Mgr = CacheHealthBarManager();

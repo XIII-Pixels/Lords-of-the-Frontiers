@@ -47,41 +47,32 @@ void AUnit::BeginPlay()
 		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
-	CachedHealthBarManager_.Reset();
-
+	
 	UWorld* World = GetWorld();
-	if ( !World )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "AUnit::BeginPlay: GetWorld() == nullptr" ) );
-		return;
-	}
 
-	AActor* Found = UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() );
-	UE_LOG(
-	    LogTemp, Log, TEXT( "AUnit::BeginPlay: GetActorOfClass(AHealthBarManager) -> ptr=%p name=%s class=%s" ), Found,
-	    *GetNameSafe( Found ), Found ? *Found->GetClass()->GetName() : TEXT( "null" )
-	);
+	World->GetTimerManager().SetTimerForNextTick( FTimerDelegate::CreateLambda(
+	    [this]()
+	    {
+		    AHealthBarManager* Found = this->CacheHealthBarManager();
 
-	if ( Found )
-	{
-		if ( AHealthBarManager* Mgr = Cast<AHealthBarManager>( Found ) )
-		{
-			CachedHealthBarManager_ = Mgr;
-			UE_LOG( LogTemp, Log, TEXT( "AUnit::BeginPlay: Cached HealthBarManager = %s" ), *GetNameSafe( Mgr ) );
-		}
-		else
-		{
-			UE_LOG(
-			    LogTemp, Error,
-			    TEXT( "AUnit::BeginPlay: Found actor is NOT AHealthBarManager, ptr=%p class=%s name=%s" ), Found,
-			    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
-			);
-		}
-	}
-	else
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "AUnit::BeginPlay: HealthBarManager not found in level" ) );
-	}
+		    if ( IsValid( Found ) )
+		    {
+			    UE_LOG(
+			        LogTemp, Log,
+			        TEXT( "ABuilding::BeginPlay: HealthBarManager cached successfully for %s -> %s (ptr=%p)" ),
+			        *GetNameSafe( this ), *GetNameSafe( Found ), Found
+			    );
+		    }
+		    else
+		    {
+			    UE_LOG(
+			        LogTemp, Warning,
+			        TEXT( "ABuilding::BeginPlay: HealthBarManager NOT found / NOT cached yet for %s" ),
+			        *GetNameSafe( this )
+			    );
+		    }
+	    }
+	) );
 	if ( !HealthWidgetComponent )
 	{
 		HealthWidgetComponent = FindComponentByClass<UWidgetComponent>();
@@ -202,16 +193,26 @@ void AUnit::TakeDamage( float damage )
 		return;
 	}
 
-	Stats_.ApplyDamage( damage );
-	if ( AHealthBarManager* manager = Cast<AHealthBarManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AHealthBarManager::StaticClass() ) ) )
+AHealthBarManager* Mgr = CachedHealthBarManager_.Get();
+
+	if ( !IsValid( Mgr ) )
 	{
-		manager->OnActorHealthChanged( this, this->GetCurrentHealth(), this->GetMaxHealth() );
+		Mgr = CacheHealthBarManager();
+	}
+	if ( IsValid( Mgr ) )
+	{
+		Mgr->OnActorHealthChanged(
+		    this, static_cast<int32>( GetCurrentHealth() ), static_cast<int32>( GetMaxHealth() )
+		);
 	}
 	else
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "AUnit::TakeDamage: HealthBarManager NOT FOUND!" ) );
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "ABuilding::TakeDamage: HealthBarManager not available for actor %s — skipping UI update" ),
+		    *GetNameSafe( this )
+		);
 	}
-	//OnUnitHealthChanged.Broadcast( this->GetCurrentHealth(), this->GetMaxHealth() );
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
@@ -394,4 +395,63 @@ void AUnit::ChangeStats( FEnemyBuff* buff )
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
 	Stats_.Heal( Stats_.MaxHealth() );
 
+}
+
+AHealthBarManager* AUnit::CacheHealthBarManager()
+{
+	CachedHealthBarManager_.Reset();
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		UE_LOG(
+		    LogTemp, Error, TEXT( "CacheHealthBarManager: GetWorld() == nullptr (Actor=%s)" ), *GetNameSafe( this )
+		);
+		return nullptr;
+	}
+
+	AActor* Found = UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() );
+
+	UE_LOG(
+	    LogTemp, Verbose, TEXT( "CacheHealthBarManager: GetActorOfClass -> ptr=%p name=%s class=%s" ), Found,
+	    *GetNameSafe( Found ), Found ? *Found->GetClass()->GetName() : TEXT( "null" )
+	);
+
+	if ( !Found )
+	{
+		return nullptr;
+	}
+
+	if ( Found->HasAnyFlags( RF_ClassDefaultObject ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: GetActorOfClass returned CDO (Default__), ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	if ( !Found->IsA( AHealthBarManager::StaticClass() ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: Found actor is NOT AHealthBarManager: ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	AHealthBarManager* Mgr = Cast<AHealthBarManager>( Found );
+	if ( !IsValid( Mgr ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "CacheHealthBarManager: Cast succeeded but object is invalid (ptr=%p)" ), Found );
+		return nullptr;
+	}
+
+	CachedHealthBarManager_ = Mgr;
+	UE_LOG(
+	    LogTemp, Log, TEXT( "CacheHealthBarManager: cached HealthBarManager = %s (ptr=%p)" ), *GetNameSafe( Mgr ), Mgr
+	);
+	return Mgr;
 }
