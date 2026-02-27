@@ -20,7 +20,8 @@ enum class EProjectileType : uint8
 	MagicProjectile,
 	Fireball_Enemy,
 	Melee_Single,
-	Melee_AoE
+	Melee_AoE,
+	Catapult
 };
 
 /**
