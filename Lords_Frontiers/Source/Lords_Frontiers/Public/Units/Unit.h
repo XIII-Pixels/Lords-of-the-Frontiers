@@ -90,7 +90,7 @@ public:
 	int GetCurrentHealth() const;
 
 	int GetMaxHealth() const;
-	void ChangeStats( FEnemyBuff* buff );
+
 	TObjectPtr<USceneComponent> VisualMesh();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
