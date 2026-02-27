@@ -179,6 +179,8 @@ public:
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	UTextBlock* Text_NextWaveInfo;
 
 protected:
 	virtual void NativeConstruct() override;
@@ -323,4 +325,6 @@ protected:
 	UFUNCTION() void ShowTooltipInternal();
 
 	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
+
+	void UpdateNextWaveInfo();
 };
