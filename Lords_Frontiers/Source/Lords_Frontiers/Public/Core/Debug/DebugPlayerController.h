@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/WidgetComponent.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 
 #include "DebugPlayerController.generated.h"
 
@@ -26,6 +28,8 @@ public:
 	USelectionManagerComponent* GetSelectionManager() const;
 
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;
 
@@ -33,6 +37,12 @@ protected:
 	TObjectPtr<UCardSelectionHUDComponent> CardSelectionHUDComponent_ = nullptr;
 
 	virtual void SetupInputComponent() override;
+
+	void OnShowAllHP_Pressed();
+	void OnShowAllHP_Released();
+
+	UFUNCTION()
+	AHealthBarManager* CacheHealthBarManager();
 
 private:
 	UPROPERTY()
@@ -43,4 +53,12 @@ private:
 	void HandleEscape();
 
 	void EnsureBuildManager();
+
+	// Map to remember previous visibility of WidgetComponents touched
+	TMap<TWeakObjectPtr<UWidgetComponent>, bool> ChangedWidgetPrevVisibility_;
+
+	// stack counter (protects against duplicate events / reentrant)
+	int32 AltHoldCount_ = 0;
+
+	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_ = nullptr;
 };

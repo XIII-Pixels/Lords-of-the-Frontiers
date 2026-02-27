@@ -8,9 +8,14 @@
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Components/Attack/AttackComponent.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Components/EnemyAggroComponent.h"
+#include "Components/WidgetComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+
+
+
 
 #include "Unit.generated.h"
 
@@ -25,6 +30,9 @@ struct FEnemyBuff;
  * Base class for all units in a game (implement units in blueprints)
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnUnitHealthChanged, int32, CurrentHealth, int32, MaxHealth );
+
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity, public IAttacker, public IControlledByTree
 {
@@ -36,6 +44,7 @@ public:
 	virtual void OnConstruction( const FTransform& transform ) override;
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
 
 	virtual void Tick( float deltaSeconds ) override;
 
@@ -75,7 +84,17 @@ public:
 
 	void SetFollowedTarget( AActor* newTarget );
 
+    UPROPERTY( BlueprintAssignable, Category = "Stats|Events" )
+	FOnUnitHealthChanged OnUnitHealthChanged;
+
+	int GetCurrentHealth() const;
+
+	int GetMaxHealth() const;
+
 	TObjectPtr<USceneComponent> VisualMesh();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
+	FVector HealthBarWorldOffset = FVector::ZeroVector;
 
 protected:
 	void OnDeath();
@@ -113,6 +132,29 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "UI" )
+	TObjectPtr<UWidgetComponent> HealthWidgetComponent = nullptr;
+
+	// Widget class to use for the health bar. Assign in BP
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
+	TSubclassOf<UUserWidget> HealthBarWidgetClass;
+
+	//Wobble
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwaySpeed_ = 15.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwayAmplitude_ = 10.0f;
+
+	float SwayPhaseOffset_ = 0.0f;
+
+	float CurrentSwayRoll_ = 0.0f;
+
+	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_;
+
+	UFUNCTION()
+	AHealthBarManager* CacheHealthBarManager();
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
