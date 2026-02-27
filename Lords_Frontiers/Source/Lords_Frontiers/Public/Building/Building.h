@@ -6,6 +6,7 @@
 #include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
+#include "Building/Bonus/BuildingBonusComponent.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -84,6 +85,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
 	FVector HealthBarWorldOffset = FVector::ZeroVector;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
+	TObjectPtr<UTexture2D> BuildingIcon;
+
+	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
+	UFUNCTION( BlueprintPure, Category = "Settings|State" )
+	bool IsRuined() const
+	{
+		return bIsRuined_;
+	}
 
 protected:
 	virtual void BeginPlay() override;

@@ -5,9 +5,13 @@
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/BonusNeighborhood/BonusIconWidget.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
@@ -145,10 +149,41 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons", meta = ( ClampMin = "0.1", ClampMax = "3.0" )
+	)
+	float BaseBonusIconScale = 0.5f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|BonusIcons" )
+	float MinBonusIconScale = 0.1f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|BonusIcons" )
+	float MaxBonusIconScale = 2.0f;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UCanvasPanel> BonusIconCanvas;
+
+	UFUNCTION()
+	void HandleBonusPreviewUpdated( const TArray<FBonusIconData>& BonusIcons );
+
+	void ClearBonusIcons();
+
+	TArray<FBonusIconData> CachedBonusData_;
+
+
+	void UpdateBonusIconPositions();
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
+	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
+
+	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
+	TArray<FVector> ActiveBonusWorldPositions_;
+
 
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
 
 	void UpdateBuildingUIVisibility();
 	void CancelCurrentBuilding();
@@ -172,7 +207,6 @@ protected:
 
 	void ShowEconomyBuildings();
 	void ShowDefensiveBuildings();
-
 	// GameLoop handlers
 	UFUNCTION()
 	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );

@@ -136,8 +136,6 @@ void AUnit::BeginPlay()
 		);
 	}
 
-	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 6.28f );
-
 	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
 }
 
@@ -145,27 +143,9 @@ void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
 
-	if ( FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
+	if ( FollowedTarget_.Get() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
 	{
 		FollowNextPathTarget();
-	}
-
-	if ( VisualMesh_ )
-	{
-		float targetRoll = 0.0f;
-
-		if ( GetVelocity().Size() > 10.0f )
-		{
-			float time = GetWorld()->GetTimeSeconds();
-			targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
-		}
-
-		CurrentSwayRoll_ = FMath::FInterpTo( CurrentSwayRoll_, targetRoll, deltaSeconds, 10.0f );
-
-		FRotator currentRot = VisualMesh_->GetRelativeRotation();
-		currentRot.Pitch = CurrentSwayRoll_;
-		currentRot.Roll = 0.0f;
-		VisualMesh_->SetRelativeRotation( currentRot );
 	}
 }
 
@@ -218,7 +198,7 @@ void AUnit::TakeDamage( float damage )
 	{
 		UE_LOG(
 		    LogTemp, Warning,
-		    TEXT( "ABuilding::TakeDamage: HealthBarManager not available for actor %s — skipping UI update" ),
+		    TEXT( "ABuilding::TakeDamage: HealthBarManager not available for actor %s ï¿½ skipping UI update" ),
 		    *GetNameSafe( this )
 		);
 	}
@@ -396,6 +376,11 @@ void AUnit::EndPlay( const EEndPlayReason::Type EndPlayReason )
 
 	Super::EndPlay( EndPlayReason );
 }
+TObjectPtr<USceneComponent> AUnit::VisualMesh()
+{
+	return VisualMesh_;
+}
+
 void AUnit::ChangeStats( FEnemyBuff* buff )
 {
 	Stats_.SetMaxHealth(

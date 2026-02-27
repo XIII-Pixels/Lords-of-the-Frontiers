@@ -28,6 +28,11 @@ AGridVisualizer::AGridVisualizer()
 
 	BuildableMesh_->SetCollisionResponseToChannel( ECollisionChannel::ECC_GameTraceChannel1, ECR_Block );
 	BlockedMesh_->SetCollisionResponseToChannel( ECollisionChannel::ECC_GameTraceChannel1, ECR_Block );
+
+	BonusHighlightMesh_ = CreateDefaultSubobject<UInstancedStaticMeshComponent>( TEXT( "BonusHighlightMesh" ) );
+	BonusHighlightMesh_->SetupAttachment( RootComponent );
+	BonusHighlightMesh_->SetCastShadow( false );
+	BonusHighlightMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 }
 
 void AGridVisualizer::BeginPlay()
@@ -57,6 +62,62 @@ void AGridVisualizer::BeginPlay()
 	}
 }
 
+void AGridVisualizer::ShowBonusHighlight( const TArray<FIntPoint>& cells, UMaterialInterface* material )
+{
+	UE_LOG(
+	    LogTemp, Warning, TEXT( "ShowBonusHighlight: cells=%d, material=%s" ), cells.Num(),
+	    material ? *material->GetName() : TEXT( "NULL" )
+	);
+	if ( !BonusHighlightMesh_ || !GridManager_ )
+	{
+		return;
+	}
+
+	BonusHighlightMesh_->ClearInstances();
+
+	if ( !material )
+	{
+		return;
+	}
+
+	BonusHighlightMesh_->SetMaterial( 0, material );
+
+	if ( !BonusHighlightMesh_->GetStaticMesh() && BuildableMesh_->GetStaticMesh() )
+	{
+		BonusHighlightMesh_->SetStaticMesh( BuildableMesh_->GetStaticMesh() );
+	}
+
+	const float cellSize = GridManager_->GetCellSize();
+	const FVector origin = GridManager_->GetActorLocation();
+	const float z = origin.Z + ZOffset_ + 0.5f;
+
+	const float baseScale = cellSize / 100.0f;
+	const FVector scale3D( baseScale * MeshScale_ );
+
+	for ( const FIntPoint& coord : cells )
+	{
+		const float centerX = origin.X + ( static_cast<float>( coord.X ) + 0.5f ) * cellSize;
+		const float centerY = origin.Y + ( static_cast<float>( coord.Y ) + 0.5f ) * cellSize;
+
+		const FVector location( centerX, centerY, z );
+		const FTransform instanceTransform( FRotator::ZeroRotator, location, scale3D );
+
+		BonusHighlightMesh_->AddInstance( instanceTransform );
+	}
+
+	BonusHighlightMesh_->SetVisibility( true );
+
+	UE_LOG( LogTemp, Warning, TEXT( "BonusHighlight instances added: %d" ), BonusHighlightMesh_->GetInstanceCount() );
+}
+
+void AGridVisualizer::HideBonusHighlight()
+{
+	if ( BonusHighlightMesh_ )
+	{
+		BonusHighlightMesh_->ClearInstances();
+		BonusHighlightMesh_->SetVisibility( false );
+	}
+}
 void AGridVisualizer::ShowGrid()
 {
 	SetGridVisible( true );

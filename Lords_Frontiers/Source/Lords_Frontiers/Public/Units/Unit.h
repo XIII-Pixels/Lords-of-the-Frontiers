@@ -56,6 +56,14 @@ public:
 
 	virtual void TakeDamage( float damage ) override;
 
+	void AdvancePathPointIndex();
+
+	void SetPathPointIndex( int pathPointIndex );
+
+	void FollowPath();
+
+	void ChangeStats( FEnemyBuff* buff );
+
 	// Getters and setters
 
 	virtual FEntityStats& Stats() override;
@@ -67,19 +75,12 @@ public:
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
-
-	const TObjectPtr<UPath>& Path() const;
-
 	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
 
+	const TObjectPtr<UPath>& Path() const;
 	void SetPath( TObjectPtr<UPath> path );
 
 	void SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager );
-
-	void AdvancePathPointIndex();
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
 
 	void SetFollowedTarget( AActor* newTarget );
 
@@ -90,6 +91,7 @@ public:
 
 	int GetMaxHealth() const;
 	void ChangeStats( FEnemyBuff* buff );
+	TObjectPtr<USceneComponent> VisualMesh();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
 	FVector HealthBarWorldOffset = FVector::ZeroVector;
@@ -98,6 +100,7 @@ protected:
 	void OnDeath();
 
 	void FollowNextPathTarget();
+
 	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
@@ -127,8 +130,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UPath> Path_;
 
-	int PathPointIndex_ = -1;
-
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 
@@ -150,12 +151,13 @@ protected:
 
 	float CurrentSwayRoll_ = 0.0f;
 
-	UPROPERTY()
-	TObjectPtr<USceneComponent> VisualMesh_;
-
 	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_;
 
 	UFUNCTION()
 	AHealthBarManager* CacheHealthBarManager();
 
+	UPROPERTY()
+	TObjectPtr<USceneComponent> VisualMesh_;
+
+	int PathPointIndex_ = -1;
 };

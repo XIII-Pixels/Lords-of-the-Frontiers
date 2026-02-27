@@ -110,14 +110,6 @@ void ABuilding::OnDeath()
 		BuildingMesh_->SetRenderCustomDepth( false );
 	}
 
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
-		{
-			eco->UnregisterBuilding( this );
-		}
-	}
-
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
@@ -185,7 +177,7 @@ void ABuilding::TakeDamage( float damage )
 	{
 		UE_LOG(
 		    LogTemp, Warning,
-		    TEXT( "ABuilding::TakeDamage: HealthBarManager not available for actor %s — skipping UI update" ),
+		    TEXT( "ABuilding::TakeDamage: HealthBarManager not available for actor %s ï¿½ skipping UI update" ),
 		    *GetNameSafe( this )
 		);
 	}
@@ -306,14 +298,6 @@ void ABuilding::RestoreFromRuins()
 		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
 		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Block );
 	}
-
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
-		{
-			eco->RegisterBuilding( this );
-		}
-	}
 }
 
 void ABuilding::FullRestore()
@@ -426,4 +410,17 @@ AHealthBarManager* ABuilding::CacheHealthBarManager()
 	    LogTemp, Log, TEXT( "CacheHealthBarManager: cached HealthBarManager = %s (ptr=%p)" ), *GetNameSafe( Mgr ), Mgr
 	);
 	return Mgr;
+}
+UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !buildingClass )
+	{
+		return nullptr;
+	}
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	if ( cdo )
+	{
+		return cdo->BuildingIcon;
+	}
+	return nullptr;
 }
