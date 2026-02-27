@@ -193,7 +193,9 @@ void AUnit::TakeDamage( float damage )
 		return;
 	}
 
-AHealthBarManager* Mgr = CachedHealthBarManager_.Get();
+	Stats_.ApplyDamage( damage );
+
+	AHealthBarManager* Mgr = CachedHealthBarManager_.Get();
 
 	if ( !IsValid( Mgr ) )
 	{
