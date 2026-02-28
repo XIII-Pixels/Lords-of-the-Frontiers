@@ -7,6 +7,7 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
+
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
@@ -14,7 +15,7 @@
 
 #include "Unit.generated.h"
 
-class UPathPointsManager;
+class AUnitAIManager;
 class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
@@ -65,7 +66,7 @@ public:
 
 	void SetPath( TObjectPtr<UPath> path );
 
-	void SetPathPointsManager( TWeakObjectPtr<UPathPointsManager> pathPointsManager );
+	void SetUnitAIManager( TWeakObjectPtr<AUnitAIManager> unitAIManager );
 
 	void AdvancePathPointIndex();
 	void SetPathPointIndex( int pathPointIndex );
@@ -104,7 +105,7 @@ protected:
 	TObjectPtr<UAttackComponent> AttackComponent_;
 
 	UPROPERTY()
-	TWeakObjectPtr<UPathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
 	UPROPERTY()
 	TObjectPtr<UPath> Path_;

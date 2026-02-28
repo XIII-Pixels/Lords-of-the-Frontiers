@@ -6,6 +6,7 @@
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "AI/UnitAIManager.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "Waves/EnemyBuff.h"
@@ -194,13 +195,14 @@ void AUnit::FollowNextPathTarget()
 
 bool AUnit::IsCloseToTarget() const
 {
-	if ( !FollowedTarget_.IsValid() || !PathPointsManager_.IsValid() )
+	if ( !FollowedTarget_.IsValid() || !UnitAIManager_.IsValid() || !IsValid( UnitAIManager_->PathPointsManager ) )
 	{
 		return false;
 	}
 
 	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	const float radiusSq = PathPointsManager_->PointReachRadius_ * PathPointsManager_->PointReachRadius_;
+	const float radius = UnitAIManager_->PathPointsManager->PointReachRadius();
+	const float radiusSq = radius * radius;
 	return distanceSq < radiusSq;
 }
 
@@ -210,9 +212,9 @@ void AUnit::SetPath( TObjectPtr<UPath> path )
 	PathPointIndex_ = 0;
 }
 
-void AUnit::SetPathPointsManager( TWeakObjectPtr<UPathPointsManager> pathPointsManager )
+void AUnit::SetUnitAIManager( TWeakObjectPtr<AUnitAIManager> unitAIManager )
 {
-	PathPointsManager_ = pathPointsManager;
+	UnitAIManager_ = unitAIManager;
 }
 
 void AUnit::AdvancePathPointIndex()
@@ -234,7 +236,7 @@ void AUnit::FollowPath()
 		return;
 	}
 
-	if ( !PathPointsManager_.IsValid() )
+	if ( !UnitAIManager_.IsValid() )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid PathPointsManager_. Cannot follow path" ) );
 		FollowedTarget_ = nullptr;
@@ -244,9 +246,9 @@ void AUnit::FollowPath()
 	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
 	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
 	{
-		if ( PathPointsManager_->GoalActor_.IsValid() )
+		if ( UnitAIManager_->GoalActor.IsValid() )
 		{
-			FollowedTarget_ = PathPointsManager_->GoalActor_;
+			FollowedTarget_ = UnitAIManager_->GoalActor;
 		}
 		else
 		{
@@ -256,7 +258,10 @@ void AUnit::FollowPath()
 	}
 	else
 	{
-		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
+		if ( IsValid( UnitAIManager_->PathPointsManager ))
+		{
+			FollowedTarget_ = UnitAIManager_->PathPointsManager->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
+		}
 	}
 }
 
@@ -279,5 +284,4 @@ void AUnit::ChangeStats( FEnemyBuff* buff )
 	);
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
 	Stats_.Heal( Stats_.MaxHealth() );
-
 }

@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "Units/Unit.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
 #include "UnitAIManager.generated.h"
 
-class AUnit;
 class APathTargetPoint;
 class UTargetBuildingTracker;
 class UPathPointsManager;

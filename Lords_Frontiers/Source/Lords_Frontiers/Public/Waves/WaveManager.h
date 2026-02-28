@@ -1,13 +1,15 @@
 #pragma once
 
+#include "EnemyBuff.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Wave.h"
-#include "EnemyBuff.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
 #include "WaveManager.generated.h"
 
+class AUnitAIManager;
 class AGridManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveStartedSignature, int32, WaveIndex ); // needed to call from BP
@@ -82,12 +84,6 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	bool bLogSpawning = true;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Spawn" )
-	TWeakObjectPtr<AGridManager> Grid;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Spawn" )
-	TWeakObjectPtr<UPathPointsManager> PathPointsManager;
-
 	// Delegate: broadcast when a wave starts
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnWaveStartedSignature OnWaveStarted;
@@ -141,6 +137,12 @@ protected:
 	    int32 maxAttempts = 32, bool bProjectToNavMesh = false
 	) const;
 
+	UPROPERTY( EditAnywhere )
+	TWeakObjectPtr<AGridManager> Grid_;
+
+	UPROPERTY( EditAnywhere )
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
+
 	// Active timer handles (for enemy spawns) so we can clear them if needed
 	UPROPERTY( Transient )
 	TArray<FTimerHandle> ActiveSpawnTimers_;
@@ -167,11 +169,10 @@ protected:
 	bool bHasBroadcastedAllWavesCompleted_ = false;
 
 	UPROPERTY( Transient )
-	TArray<TWeakObjectPtr<AUnit>> SpawnedUnits;
+	TArray<TWeakObjectPtr<AUnit>> SpawnedUnits_;
 
 	int32 DestroyAllEnemies();
 
 	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
-
 };
