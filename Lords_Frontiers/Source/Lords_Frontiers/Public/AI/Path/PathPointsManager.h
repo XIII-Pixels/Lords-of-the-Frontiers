@@ -48,6 +48,11 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	float PointReachRadius = 200.0f;
 
+	float PointReachRadius() const
+	{
+		return PointReachRadius_;
+	}
+
 private:
 	UPROPERTY( EditAnywhere )
 	TWeakObjectPtr<AGridManager> Grid_;
