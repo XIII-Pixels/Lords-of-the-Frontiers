@@ -64,6 +64,17 @@ protected:
 
 	float SplashRadius_ = 0.0f;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	float ArcHeight_ = 150.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	bool bTrackTarget_ = true;
+
+	FVector StartLocation_;
+	FVector TargetLocation_;
+	float FlightProgress_ = 0.0f;
+	float FlightDuration_ = 0.0f;
+
 	FTimerHandle LifetimeTimerHandle;
 
 	virtual void DealDamage( AActor* hitActor ) const;
