@@ -48,6 +48,9 @@ void ABaseProjectile::DeactivateToPool()
 
 	FlightProgress_ = 0.0f;
 	FlightDuration_ = 0.0f;
+
+	MaxRange_ = 0.0f;
+	ArcScale_ = 1.0f;
 }
 
 void ABaseProjectile::ActivateFromPool()
@@ -63,8 +66,11 @@ void ABaseProjectile::ActivateFromPool()
 		TargetLocation_ = StartLocation_ + GetActorForwardVector() * 500.0f;
 	}
 
-	FlightDuration_ = FMath::Max( FVector::Dist( StartLocation_, TargetLocation_ ) / Speed_, 0.1f );
+	const float distance = FVector::Dist( StartLocation_, TargetLocation_ );
+	FlightDuration_ = FMath::Max( distance / Speed_, 0.1f );
 	FlightProgress_ = 0.0f;
+
+	ArcScale_ = ( MaxRange_ > 0.0f ) ? FMath::Clamp( distance / MaxRange_, 0.0f, 1.0f ) : 1.0f;
 	bIsActive_ = true;
 
 	SetActorHiddenInGame( false );
@@ -78,14 +84,14 @@ void ABaseProjectile::ActivateFromPool()
 
 void ABaseProjectile::InitializeProjectile(
     AActor* inInstigator, AActor* inTarget, float inDamage, float inSpeed, const FVector& spawnOffset,
-    float inSplashRadius
+    float inSplashRadius, float inMaxRange
 )
 {
 	Target_ = inTarget;
 	Damage_ = FMath::Max( inDamage, 0.0f );
 	Speed_ = FMath::Max( inSpeed, 0.0f );
 	SplashRadius_ = FMath::Max( inSplashRadius, 0.f );
-
+	MaxRange_ = FMath::Max( inMaxRange, 0.0f );
 	SetInstigator( inInstigator->GetInstigator() );
 	SetOwner( inInstigator );
 
@@ -139,7 +145,8 @@ void ABaseProjectile::Tick( float deltaTime )
 	FVector newLocation;
 	newLocation.X = FMath::Lerp( StartLocation_.X, TargetLocation_.X, t );
 	newLocation.Y = FMath::Lerp( StartLocation_.Y, TargetLocation_.Y, t );
-	newLocation.Z = FMath::Lerp( StartLocation_.Z, TargetLocation_.Z, t ) + ArcHeight_ * 4.0f * t * ( 1.0f - t );
+	newLocation.Z =
+	    FMath::Lerp( StartLocation_.Z, TargetLocation_.Z, t ) + ArcHeight_ * ArcScale_ * 4.0f * t * ( 1.0f - t );
 
 	const FVector moveDirection = newLocation - previousLocation;
 	const FRotator newRotation = moveDirection.IsNearlyZero() ? GetActorRotation() : moveDirection.Rotation();

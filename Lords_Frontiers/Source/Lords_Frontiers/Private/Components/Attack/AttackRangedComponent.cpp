@@ -203,7 +203,7 @@ void UAttackRangedComponent::FireSingleProjectile( TObjectPtr<AActor> target )
 
 	projectile->InitializeProjectile(
 	    GetOwner(), target, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    OwnerEntity_->Stats().SplashRadius()
+	    OwnerEntity_->Stats().SplashRadius(), OwnerEntity_->Stats().AttackRange()
 	);
 }
 
