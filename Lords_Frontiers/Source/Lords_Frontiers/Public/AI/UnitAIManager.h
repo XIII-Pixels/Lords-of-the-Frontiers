@@ -9,7 +9,6 @@
 
 #include "UnitAIManager.generated.h"
 
-class AUnit;
 class APathTargetPoint;
 class UTargetBuildingTracker;
 class UPathPointsManager;

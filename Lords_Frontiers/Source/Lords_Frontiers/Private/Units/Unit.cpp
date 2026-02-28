@@ -6,6 +6,7 @@
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Core/EntityVFXConfig.h"
 #include "NiagaraComponent.h"

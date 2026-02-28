@@ -144,6 +144,12 @@ protected:
 	    int32 maxAttempts = 32, bool bProjectToNavMesh = false
 	) const;
 
+	UPROPERTY( EditAnywhere )
+	TWeakObjectPtr<AGridManager> Grid_;
+
+	UPROPERTY( EditAnywhere )
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
+
 	// Active timer handles (for enemy spawns) so we can clear them if needed
 	UPROPERTY( Transient )
 	TArray<FTimerHandle> ActiveSpawnTimers_;
