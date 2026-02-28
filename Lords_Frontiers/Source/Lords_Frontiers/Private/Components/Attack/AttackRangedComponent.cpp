@@ -49,38 +49,52 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	{
 		return;
 	}
-	if ( OwnerEntity_->Stats().OnCooldown() )
+
+	if ( OwnerEntity_->Stats().OnCooldown() || bBurstInProgress_ )
 	{
 		return;
 	}
-	UWorld* world = GetOwner()->GetWorld();
-	if ( !world )
-	{
-		return;
-	}
+
 	if ( !EnemyInSight_ || !ProjectileClass_ )
 	{
 		return;
 	}
 
-	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
-	if ( !pool )
+	const int32 burstCount = OwnerEntity_->Stats().BurstCount();
+
+	if ( burstCount <= 1 )
 	{
+		FireSingleProjectile( EnemyInSight_ );
+		OwnerEntity_->Stats().StartCooldown();
 		return;
 	}
 
-	ABaseProjectile* projectile = pool->AcquireProjectile( ProjectileClass_ );
-	if ( !projectile )
+	BurstTargets_.Empty();
+
+	if ( OwnerEntity_->Stats().BurstTargetMode() == EBurstTargetMode::SameTarget )
 	{
-		return;
+		for ( int32 i = 0; i < burstCount; ++i )
+		{
+			BurstTargets_.Add( EnemyInSight_ );
+		}
+	}
+	else
+	{
+		TArray<TObjectPtr<AActor>> uniqueTargets = FindNeighborTargets( burstCount );
+		if ( uniqueTargets.Num() == 0 )
+		{
+			return;
+		}
+
+		for ( int32 i = 0; i < burstCount; ++i )
+		{
+			BurstTargets_.Add( uniqueTargets[i % uniqueTargets.Num()] );
+		}
 	}
 
-	projectile->InitializeProjectile(
-	    GetOwner(), EnemyInSight_, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    OwnerEntity_->Stats().SplashRadius()
-	);
-
-	OwnerEntity_->Stats().StartCooldown();
+	bBurstInProgress_ = true;
+	CurrentBurstIndex_ = 0;
+	FireNextBurstShot();
 }
 
 TObjectPtr<AActor> UAttackRangedComponent::EnemyInSight() const
@@ -98,6 +112,9 @@ void UAttackRangedComponent::ActivateSight()
 void UAttackRangedComponent::DeactivateSight()
 {
 	GetWorld()->GetTimerManager().ClearTimer( SightTimerHandle_ );
+	GetWorld()->GetTimerManager().ClearTimer( BurstTimerHandle_ );
+	bBurstInProgress_ = false;
+	BurstTargets_.Empty();
 	EnemyInSight_ = nullptr;
 }
 
@@ -162,4 +179,114 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> actor ) const
 		}
 	}
 	return false;
+}
+
+void UAttackRangedComponent::FireSingleProjectile( TObjectPtr<AActor> target )
+{
+	UWorld* world = GetOwner()->GetWorld();
+	if ( !world || !target || !ProjectileClass_ )
+	{
+		return;
+	}
+
+	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
+	if ( !pool )
+	{
+		return;
+	}
+
+	ABaseProjectile* projectile = pool->AcquireProjectile( ProjectileClass_ );
+	if ( !projectile )
+	{
+		return;
+	}
+
+	projectile->InitializeProjectile(
+	    GetOwner(), target, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
+	    OwnerEntity_->Stats().SplashRadius()
+	);
+}
+
+TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 count ) const
+{
+	TArray<TObjectPtr<AActor>> result;
+	TArray<AActor*> overlappingActors;
+	SightSphere_->GetOverlappingActors( overlappingActors, APawn::StaticClass() );
+
+	struct FActorDistance
+	{
+		TObjectPtr<AActor> Actor;
+		float Distance;
+	};
+	TArray<FActorDistance> candidates;
+
+	const FVector ownerLocation = GetOwner()->GetActorLocation();
+	for ( auto actor : overlappingActors )
+	{
+		if ( actor == GetOwner() )
+		{
+			continue;
+		}
+		if ( CanSeeEnemy( actor ) )
+		{
+			float distance = FVector::DistSquared( ownerLocation, actor->GetActorLocation() );
+			candidates.Add( { actor, distance } );
+		}
+	}
+	const int32 resultCount = FMath::Min( count, candidates.Num() );
+	std::partial_sort(
+	    candidates.GetData(), candidates.GetData() + resultCount, candidates.GetData() + candidates.Num(),
+	    []( const FActorDistance& a, const FActorDistance& b ) { return a.Distance < b.Distance; }
+	);
+
+	for ( int32 i = 0; i < resultCount; ++i )
+	{
+		result.Add( candidates[i].Actor );
+	}
+	
+	return result;
+}
+
+void UAttackRangedComponent::FireNextBurstShot()
+{
+	if ( !OwnerIsValid() || !bBurstInProgress_ )
+	{
+		bBurstInProgress_ = false;
+		BurstTargets_.Empty();
+		return;
+	}
+
+	if (CurrentBurstIndex_ >= BurstTargets_.Num())
+	{
+		OwnerEntity_->Stats().StartCooldown();
+		bBurstInProgress_ = false;
+		BurstTargets_.Empty();
+		return;
+	}
+
+	TObjectPtr<AActor> target = BurstTargets_[CurrentBurstIndex_];
+
+	if (!IsValid(target) || !Cast<IEntity>(target) || !Cast<IEntity>(target)->Stats().IsAlive())
+	{
+		target = EnemyInSight_;
+	}
+
+	if (IsValid(target))
+	{
+		FireSingleProjectile( target );
+	}
+	++CurrentBurstIndex_;
+	if (CurrentBurstIndex_ >= BurstTargets_.Num())
+	{
+		OwnerEntity_->Stats().StartCooldown();
+		bBurstInProgress_ = false;
+		BurstTargets_.Empty();
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+		    BurstTimerHandle_, this, &UAttackRangedComponent::FireNextBurstShot, OwnerEntity_->Stats().BurstDelay(),
+		    false
+		);
+	}
 }

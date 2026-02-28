@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AttackComponent.h"
+#include "EntityStats.h"
 
 #include "CoreMinimal.h"
 
@@ -42,6 +43,12 @@ protected:
 
 	bool CanSeeEnemy( TObjectPtr<AActor> actor ) const;
 
+	void FireSingleProjectile( TObjectPtr<AActor> target );
+
+	void FireNextBurstShot();
+
+	TArray<TObjectPtr<AActor>> FindNeighborTargets( int32 count ) const;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
 
@@ -64,4 +71,12 @@ protected:
 	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;
+
+	int32 CurrentBurstIndex_ = 0;
+	bool bBurstInProgress_ = false;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AActor>> BurstTargets_;
+
+	FTimerHandle BurstTimerHandle_;
 };
