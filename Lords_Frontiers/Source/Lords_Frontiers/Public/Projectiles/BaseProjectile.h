@@ -42,7 +42,7 @@ public:
 
 	void InitializeProjectile(
 	    AActor* inInstigator, AActor* inTarget, float inDamage, float inSpeed,
-	    const FVector& spawnOffset = FVector::ZeroVector, float inSplashRadius = 0.f
+	    const FVector& spawnOffset = FVector::ZeroVector, float inSplashRadius = 0.f, float inMaxRange = 0.f
 	);
 
 	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
@@ -58,11 +58,24 @@ protected:
 	float Damage_ = 0.0f;
 	float Speed_ = 0.0f;
 	bool bIsActive_ = false;
+	float MaxRange_ = 0.0f;
+	float ArcScale_ = 1.0f;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
 	float MaxLifetime = 5.0f;
 
 	float SplashRadius_ = 0.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	float ArcHeight_ = 150.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	bool bTrackTarget_ = true;
+
+	FVector StartLocation_;
+	FVector TargetLocation_;
+	float FlightProgress_ = 0.0f;
+	float FlightDuration_ = 0.0f;
 
 	FTimerHandle LifetimeTimerHandle;
 

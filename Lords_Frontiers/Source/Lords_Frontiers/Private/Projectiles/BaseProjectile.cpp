@@ -45,10 +45,32 @@ void ABaseProjectile::DeactivateToPool()
 	Target_ = nullptr;
 	SetInstigator( nullptr );
 	SetOwner( nullptr );
+
+	FlightProgress_ = 0.0f;
+	FlightDuration_ = 0.0f;
+
+	MaxRange_ = 0.0f;
+	ArcScale_ = 1.0f;
 }
 
 void ABaseProjectile::ActivateFromPool()
 {
+	StartLocation_ = GetActorLocation();
+
+	if ( IsValid( Target_ ) )
+	{
+		TargetLocation_ = Target_->GetActorLocation();
+	}
+	else
+	{
+		TargetLocation_ = StartLocation_ + GetActorForwardVector() * 500.0f;
+	}
+
+	const float distance = FVector::Dist( StartLocation_, TargetLocation_ );
+	FlightDuration_ = FMath::Max( distance / Speed_, 0.1f );
+	FlightProgress_ = 0.0f;
+
+	ArcScale_ = ( MaxRange_ > 0.0f ) ? FMath::Clamp( distance / MaxRange_, 0.0f, 1.0f ) : 1.0f;
 	bIsActive_ = true;
 
 	SetActorHiddenInGame( false );
@@ -62,14 +84,14 @@ void ABaseProjectile::ActivateFromPool()
 
 void ABaseProjectile::InitializeProjectile(
     AActor* inInstigator, AActor* inTarget, float inDamage, float inSpeed, const FVector& spawnOffset,
-    float inSplashRadius
+    float inSplashRadius, float inMaxRange
 )
 {
 	Target_ = inTarget;
 	Damage_ = FMath::Max( inDamage, 0.0f );
 	Speed_ = FMath::Max( inSpeed, 0.0f );
 	SplashRadius_ = FMath::Max( inSplashRadius, 0.f );
-
+	MaxRange_ = FMath::Max( inMaxRange, 0.0f );
 	SetInstigator( inInstigator->GetInstigator() );
 	SetOwner( inInstigator );
 
@@ -83,33 +105,53 @@ void ABaseProjectile::InitializeProjectile(
 
 void ABaseProjectile::Tick( float deltaTime )
 {
-	Super::Tick( deltaTime );
+	AActor::Tick( deltaTime );
 	if ( !bIsActive_ )
 	{
 		return;
 	}
 
-	if ( !IsValid( Target_ ) )
+	if ( bTrackTarget_ && IsValid( Target_ ) )
 	{
+		if ( IEntity* entity = Cast<IEntity>( Target_ ) )
+		{
+			if ( !entity->Stats().IsAlive() )
+			{
+				TargetLocation_ = Target_->GetActorLocation();
+				Target_ = nullptr;
+			}
+		}
+	}
+	if ( bTrackTarget_ && IsValid( Target_ ) )
+	{
+		TargetLocation_ = Target_->GetActorLocation();
+	}
+
+	FlightProgress_ += deltaTime / FlightDuration_;
+
+	if ( FlightProgress_ >= 1.0f )
+	{
+		SetActorLocation( TargetLocation_ );
+		if ( IsValid( Target_ ) )
+		{
+			DealDamage( Target_ );
+		}
 		ReturnToPool();
 		return;
 	}
+	const float t = FlightProgress_;
+	const FVector previousLocation = GetActorLocation();
 
-	if ( IEntity* entity = Cast<IEntity>( Target_ ) )
-	{
-		if ( !entity->Stats().IsAlive() )
-		{
-			ReturnToPool();
-			return;
-		}
-	}
+	FVector newLocation;
+	newLocation.X = FMath::Lerp( StartLocation_.X, TargetLocation_.X, t );
+	newLocation.Y = FMath::Lerp( StartLocation_.Y, TargetLocation_.Y, t );
+	newLocation.Z =
+	    FMath::Lerp( StartLocation_.Z, TargetLocation_.Z, t ) + ArcHeight_ * ArcScale_ * 4.0f * t * ( 1.0f - t );
 
-	FVector ToTarget = Target_->GetActorLocation() - GetActorLocation();
-	ToTarget.Normalize();
+	const FVector moveDirection = newLocation - previousLocation;
+	const FRotator newRotation = moveDirection.IsNearlyZero() ? GetActorRotation() : moveDirection.Rotation();
 
-	const FVector DeltaMove = ToTarget * Speed_ * deltaTime;
-	AddActorWorldOffset( DeltaMove, true );
-	SetActorRotation( ToTarget.Rotation(), ETeleportType::None );
+	SetActorLocationAndRotation( newLocation, newRotation );
 }
 
 void ABaseProjectile::OnCollisionStart(
@@ -122,10 +164,25 @@ void ABaseProjectile::OnCollisionStart(
 		return;
 	}
 
-	if ( otherActor == Target_ )
+	if ( IsValid( Target_ ) && otherActor == Target_ )
 	{
 		DealDamage( otherActor );
 		ReturnToPool();
+	}
+	else if ( !IsValid( Target_ ) )
+	{
+		IEntity* enemy = Cast<IEntity>( otherActor );
+		if ( !enemy || !enemy->Stats().IsAlive() )
+		{
+			return;
+		}
+
+		IEntity* ownerEntity = Cast<IEntity>( GetInstigator() );
+		if ( ownerEntity && enemy->Team() != ownerEntity->Team() )
+		{
+			DealDamage( otherActor );
+			ReturnToPool();
+		}
 	}
 }
 
@@ -145,17 +202,7 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 	}
 
 #if ENABLE_DRAW_DEBUG
-	DrawDebugSphere(
-	    GetWorld(),
-	    GetActorLocation(), 
-	    SplashRadius_,      
-	    16,                 
-	    FColor::Red,        
-	    false,              
-	    2.0f,               
-	    0,                  
-	    2.0f                
-	);
+	DrawDebugSphere( GetWorld(), GetActorLocation(), SplashRadius_, 16, FColor::Red, false, 2.0f, 0, 2.0f );
 #endif
 
 	TArray<FOverlapResult> overlaps;
