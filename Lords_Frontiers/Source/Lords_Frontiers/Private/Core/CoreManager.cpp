@@ -373,11 +373,11 @@ void UCoreManager::FindWorldActors()
 		GridManager_ = Cast<AGridManager>( found );
 	}
 
-	if ( !PathPointsManager_.IsValid() )
-	{
-		AActor* found = UGameplayStatics::GetActorOfClass( world, UPathPointsManager::StaticClass() );
-		PathPointsManager_ = Cast<UPathPointsManager>( found );
-	}
+	// if ( !PathPointsManager_.IsValid() )
+	// {
+		// AActor* found = UGameplayStatics::GetActorOfClass( world, UPathPointsManager::StaticClass() );
+		// PathPointsManager_ = Cast<UPathPointsManager>( found );
+	// }
 }
 
 void UCoreManager::FindPlayerControllerComponents()

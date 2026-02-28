@@ -50,6 +50,11 @@ public:
 		PathPoints_ = pathPoints;
 	}
 
+	float PointReachRadius() const
+	{
+		return PointReachRadius_;
+	}
+
 private:
 	UPROPERTY( EditAnywhere )
 	TWeakObjectPtr<AGridManager> Grid_;

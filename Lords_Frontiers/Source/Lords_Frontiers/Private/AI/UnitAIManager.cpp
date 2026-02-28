@@ -10,8 +10,6 @@
 
 AUnitAIManager::AUnitAIManager()
 {
-	PathPointsManager = NewObject<UPathPointsManager>();
-	TargetBuildingTracker = NewObject<UTargetBuildingTracker>();
 }
 
 void AUnitAIManager::BeginPlay()
@@ -24,6 +22,9 @@ void AUnitAIManager::BeginPlay()
 		UE_LOG( LogTemp, Error, TEXT( "AUnitAIManager: world is null" ) );
 		return;
 	}
+
+	PathPointsManager = NewObject<UPathPointsManager>( this );
+	TargetBuildingTracker = NewObject<UTargetBuildingTracker>( this );
 
 	AGridManager* gridManager =
 	    Cast<AGridManager>( UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() ) );
