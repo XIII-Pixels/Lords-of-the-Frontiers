@@ -350,6 +350,7 @@ void AHealthBarManager::OnActorHealthChanged( AActor* actor, int32 current, int3
 	if ( !actor || !GetWorld() )
 		return;
 
+	// сразу обрабатываем смерть: снимаем таймеры, удал€ем виджет и выход
 	if ( current <= 0 )
 	{
 		if ( UHealthBarWidget** foundDead = ActiveWidgets_.Find( actor ) )
@@ -362,6 +363,7 @@ void AHealthBarManager::OnActorHealthChanged( AActor* actor, int32 current, int3
 					GetWorld()->GetTimerManager().ClearTimer( *old );
 					ReleaseTimers_.Remove( actor );
 				}
+
 				ActiveWidgetLastWorldPos_.Remove( actor );
 
 				ReleaseWidget( wDead );
@@ -371,6 +373,7 @@ void AHealthBarManager::OnActorHealthChanged( AActor* actor, int32 current, int3
 		return;
 	}
 
+	// ≈сли виджет уже активен Ч обновл€ем значени€ и перезапускаем таймер авто-удалени€
 	if ( UHealthBarWidget** found = ActiveWidgets_.Find( actor ) )
 	{
 		UHealthBarWidget* w = *found;
@@ -380,57 +383,21 @@ void AHealthBarManager::OnActorHealthChanged( AActor* actor, int32 current, int3
 			w->ShowTemporary();
 		}
 
+		// ќчистим старый таймер (если есть) Ч мы перезапустим новый ниже при AutoReleaseSeconds>0
 		if ( FTimerHandle* old = ReleaseTimers_.Find( actor ) )
 		{
 			GetWorld()->GetTimerManager().ClearTimer( *old );
 			ReleaseTimers_.Remove( actor );
 		}
-	}
-	else
-	{
-		UHealthBarWidget* w = AcquireWidget();
-		if ( !w )
-			return;
 
-		w->BindToActor( actor );
-
-		FVector worldPos = actor->GetActorLocation() + GetOffsetForActor( actor );
-		APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
-		FVector2D screenPos;
-		bool bProjected = pc && pc->ProjectWorldLocationToScreen( worldPos, screenPos, true );
-
-		if ( !bProjected )
-		{
-			FVector2D vpSize( 1280.f, 720.f );
-			if ( GEngine && GEngine->GameViewport )
-				GEngine->GameViewport->GetViewportSize( vpSize );
-			screenPos = vpSize * 0.5f;
-		}
-
-		w->SetAlignmentInViewport( FVector2D( 0.5f, 1.0f ) );
-		w->SetPositionInViewport( screenPos, true );
-		w->SetVisibility( ESlateVisibility::Visible );
-
-		ActiveWidgets_.Add( actor, w );
-		ActiveWidgetLastWorldPos_.Add( actor, worldPos );
-
-		if ( current < max )
-		{
-			w->ShowTemporary();
-		}
-
+		// ѕоставим новый таймер дл€ автоматического релиза (перезапуск таймера)
 		if ( AutoReleaseSeconds > 0.f )
 		{
-			if ( FTimerHandle* old = ReleaseTimers_.Find( actor ) )
-			{
-				GetWorld()->GetTimerManager().ClearTimer( *old );
-				ReleaseTimers_.Remove( actor );
-			}
-
 			FTimerHandle th;
 			FTimerDelegate del = FTimerDelegate::CreateLambda(
 			    [this, actor]()
 			    {
+				    // при срабатывании таймера Ч аккуратно проверить, есть ли ещЄ виджет, и освободить
 				    if ( UHealthBarWidget** wP = ActiveWidgets_.Find( actor ) )
 				    {
 					    if ( UHealthBarWidget* wPtr = *wP )
@@ -442,9 +409,72 @@ void AHealthBarManager::OnActorHealthChanged( AActor* actor, int32 current, int3
 				    ReleaseTimers_.Remove( actor );
 			    }
 			);
+
 			GetWorld()->GetTimerManager().SetTimer( th, del, AutoReleaseSeconds, false );
 			ReleaseTimers_.Add( actor, th );
 		}
+
+		return;
+	}
+
+	// »наче Ч создаЄм новый виджет, показываем его и ставим таймер
+	UHealthBarWidget* w = AcquireWidget();
+	if ( !w )
+		return;
+
+	w->BindToActor( actor );
+
+	FVector worldPos = actor->GetActorLocation() + GetOffsetForActor( actor );
+	APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
+	FVector2D screenPos;
+	bool bProjected = pc && pc->ProjectWorldLocationToScreen( worldPos, screenPos, true );
+
+	if ( !bProjected )
+	{
+		FVector2D vpSize( 1280.f, 720.f );
+		if ( GEngine && GEngine->GameViewport )
+			GEngine->GameViewport->GetViewportSize( vpSize );
+		screenPos = vpSize * 0.5f;
+	}
+
+	w->SetAlignmentInViewport( FVector2D( 0.5f, 1.0f ) );
+	w->SetPositionInViewport( screenPos, true );
+	w->SetVisibility( ESlateVisibility::Visible );
+
+	ActiveWidgets_.Add( actor, w );
+	ActiveWidgetLastWorldPos_.Add( actor, worldPos );
+
+	if ( current < max )
+	{
+		w->ShowTemporary();
+	}
+
+	if ( AutoReleaseSeconds > 0.f )
+	{
+		// clear existing timer if any (defensive)
+		if ( FTimerHandle* old = ReleaseTimers_.Find( actor ) )
+		{
+			GetWorld()->GetTimerManager().ClearTimer( *old );
+			ReleaseTimers_.Remove( actor );
+		}
+
+		FTimerHandle th;
+		FTimerDelegate del = FTimerDelegate::CreateLambda(
+		    [this, actor]()
+		    {
+			    if ( UHealthBarWidget** wP = ActiveWidgets_.Find( actor ) )
+			    {
+				    if ( UHealthBarWidget* wPtr = *wP )
+				    {
+					    ReleaseWidget( wPtr );
+				    }
+				    ActiveWidgets_.Remove( actor );
+			    }
+			    ReleaseTimers_.Remove( actor );
+		    }
+		);
+		GetWorld()->GetTimerManager().SetTimer( th, del, AutoReleaseSeconds, false );
+		ReleaseTimers_.Add( actor, th );
 	}
 }
 
@@ -459,75 +489,59 @@ void AHealthBarManager::UpdateAllPositions()
 
 	FVector2D viewportSize( 1280.f, 720.f );
 	if ( GEngine && GEngine->GameViewport )
-	{
 		GEngine->GameViewport->GetViewportSize( viewportSize );
-	}
+
+	const float margin = OffscreenHideMargin; 
 
 	TArray<TWeakObjectPtr<AActor>> keys;
 	ActiveWidgets_.GetKeys( keys );
 
-	for ( TWeakObjectPtr<AActor> weakActor : keys )
+	for ( TWeakObjectPtr<AActor> key : keys )
 	{
-		if ( !weakActor.IsValid() )
-		{
-			if ( UHealthBarWidget** wPtr = ActiveWidgets_.Find( weakActor ) )
-			{
-				if ( UHealthBarWidget* w = *wPtr )
-				{
-					ReleaseWidget( w );
-				}
-			}
-
-			ActiveWidgets_.Remove( weakActor );
-			ActiveWidgetLastWorldPos_.Remove( weakActor );
-			ReleaseTimers_.Remove( weakActor );
-			continue;
-		}
-
-		AActor* actor = weakActor.Get();
+		AActor* actor = key.Get();
 		if ( !actor )
 		{
-			ActiveWidgets_.Remove( weakActor );
-			ActiveWidgetLastWorldPos_.Remove( weakActor );
-			ReleaseTimers_.Remove( weakActor );
+			if ( UHealthBarWidget** widgetptr = ActiveWidgets_.Find( key ) )
+			{
+				if ( UHealthBarWidget* widget = *widgetptr )
+				{
+					ReleaseWidget( widget );
+				}
+			}
+			ActiveWidgets_.Remove( key );
+			ActiveWidgetLastWorldPos_.Remove( key );
+			ReleaseTimers_.Remove( key );
 			continue;
 		}
 
-		UHealthBarWidget** widgetPtr = ActiveWidgets_.Find( actor );
-		if ( !widgetPtr )
-		{
-			ActiveWidgetLastWorldPos_.Remove( actor );
-			ReleaseTimers_.Remove( actor );
+		UHealthBarWidget** wPtr = ActiveWidgets_.Find( actor );
+		if ( !wPtr )
 			continue;
-		}
-
-		UHealthBarWidget* widget = *widgetPtr;
-		if ( !widget )
+		UHealthBarWidget* widg = *wPtr;
+		if ( !widg )
 		{
 			ActiveWidgets_.Remove( actor );
-			ActiveWidgetLastWorldPos_.Remove( actor );
-			ReleaseTimers_.Remove( actor );
 			continue;
 		}
 
-		const FVector worldPos = actor->GetActorLocation() + GetOffsetForActor( actor );
-
+		FVector worldPos = actor->GetActorLocation() + GetOffsetForActor( actor );
 		FVector2D screenPos;
-		const bool bProjected = pc->ProjectWorldLocationToScreen( worldPos, screenPos, true );
+		bool bProjected = pc->ProjectWorldLocationToScreen( worldPos, screenPos, true );
 
-		if ( !bProjected )
+		bool bOnScreen = bProjected && screenPos.X >= -margin && screenPos.X <= viewportSize.X + margin &&
+		                 screenPos.Y >= -margin && screenPos.Y <= viewportSize.Y + margin;
+
+		bool bForced = ManagerForcedWidgets_.Contains( TWeakObjectPtr<UHealthBarWidget>( widg ) );
+
+		if ( !bOnScreen && !bForced )
 		{
-			screenPos.X = FMath::Clamp( screenPos.X, 0.0f, viewportSize.X );
-			screenPos.Y = FMath::Clamp( screenPos.Y, 0.0f, viewportSize.Y );
-		}
-		else
-		{
-			screenPos.X = FMath::Clamp( screenPos.X, 0.0f, viewportSize.X );
-			screenPos.Y = FMath::Clamp( screenPos.Y, 0.0f, viewportSize.Y );
+			widg->SetVisibility( ESlateVisibility::Hidden );
+			continue;
 		}
 
-		widget->SetAlignmentInViewport( FVector2D( 0.5f, 1.0f ) );
-		widget->SetPositionInViewport( screenPos, true );
+		widg->SetVisibility( ESlateVisibility::Visible );
+		widg->SetAlignmentInViewport( FVector2D( 0.5f, 1.0f ) );
+		widg->SetPositionInViewport( screenPos, true );
 
 		ActiveWidgetLastWorldPos_.FindOrAdd( actor ) = worldPos;
 	}
@@ -751,38 +765,51 @@ void AHealthBarManager::HideActiveWidgets()
 	ReleaseTimers_.Empty();
 }
 
-void AHealthBarManager::UpdatePositionForActor( AActor* Actor )
+void AHealthBarManager::UpdatePositionForActor( AActor* actor )
 {
-	if ( !Actor || !GetWorld() )
+	if ( !actor || !GetWorld() )
 		return;
 
-	UHealthBarWidget** wPtr = ActiveWidgets_.Find( Actor );
+	UHealthBarWidget** wPtr = ActiveWidgets_.Find( actor );
 	if ( !wPtr )
 		return;
 
-	UHealthBarWidget* w = *wPtr;
-	if ( !w )
+	UHealthBarWidget* widg = *wPtr;
+	if ( !widg )
 		return;
 
 	APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
 	if ( !pc )
 		return;
 
-	FVector worldPos = Actor->GetActorLocation() + GetOffsetForActor( Actor );
+	const FVector worldPos = actor->GetActorLocation() + GetOffsetForActor( actor );
 	FVector2D screenPos;
-	bool bProjected = pc->ProjectWorldLocationToScreen( worldPos, screenPos, true );
+	const bool bProjected = pc->ProjectWorldLocationToScreen( worldPos, screenPos, true );
 
-	if ( !bProjected )
+	FVector2D viewportSize( 1280.f, 720.f );
+	if ( GEngine && GEngine->GameViewport )
+		GEngine->GameViewport->GetViewportSize( viewportSize );
+
+	const float margin = OffscreenHideMargin; // используем свойство (или локальную константу)
+
+	// определ€ем Ч на экране ли точка (с запасом Margin)
+	const bool bInside = bProjected && screenPos.X >= -margin && screenPos.X <= viewportSize.X + margin &&
+	                     screenPos.Y >= -margin && screenPos.Y <= viewportSize.Y + margin;
+
+	// ≈сли виджет принудительно отображЄн менеджером Ч не скрываем его
+	if ( !bInside && !ManagerForcedWidgets_.Contains( TWeakObjectPtr<UHealthBarWidget>( widg ) ) )
 	{
-		FVector2D vpSize( 1280.f, 720.f );
-		if ( GEngine && GEngine->GameViewport )
-			GEngine->GameViewport->GetViewportSize( vpSize );
-		screenPos.X = FMath::Clamp( screenPos.X, 0.f, vpSize.X );
-		screenPos.Y = FMath::Clamp( screenPos.Y, 0.f, vpSize.Y );
+		// скрываем виджет полностью (но не освобождаем/удал€ем)
+		widg->SetVisibility( ESlateVisibility::Hidden );
+		// не обновл€ем позицию
+		return;
 	}
 
-	w->SetAlignmentInViewport( FVector2D( 0.5f, 1.0f ) );
-	w->SetPositionInViewport( screenPos, true );
+	// »наче показываем и устанавливаем позицию
+	widg->SetVisibility( ESlateVisibility::Visible );
+	widg->SetAlignmentInViewport( FVector2D( 0.5f, 1.0f ) );
+	widg->SetPositionInViewport( screenPos, true );
 
-	ActiveWidgetLastWorldPos_.FindOrAdd( Actor ) = worldPos;
+	// обновим кэш позиции мира
+	ActiveWidgetLastWorldPos_.FindOrAdd( actor ) = worldPos;
 }

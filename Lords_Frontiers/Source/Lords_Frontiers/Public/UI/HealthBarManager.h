@@ -68,6 +68,9 @@ public:
 	UPROPERTY( EditAnywhere, Category = "HealthBar|Performance" )
 	float ActorMoveThreshold = 10.0f;
 
+	UPROPERTY( EditAnywhere, Category = "HealthBar|Performance" )
+	float OffscreenHideMargin = 8.0f;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick( float delta ) override;
