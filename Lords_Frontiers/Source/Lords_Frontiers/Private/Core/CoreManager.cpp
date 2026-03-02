@@ -459,7 +459,7 @@ void UCoreManager::SetupManagerConnections()
 	if ( GameLoopManager_ )
 	{
 		GameLoopManager_->Initialize(
-		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), PathPointsManager_.Get()
+		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), UnitAIManager_.Get()
 		);
 		UE_LOG( LogCoreManager, Log, TEXT( "GameLoopManager initialized (default config)" ) );
 	}

@@ -57,6 +57,12 @@ public:
 	}
 
 protected:
+	UPROPERTY()
+	TObjectPtr<UPathPointsManager> PathPointsManager_;
+
+	UPROPERTY()
+	TObjectPtr<UTargetBuildingTracker> TargetBuildingTracker_;
+
 	virtual void BeginPlay() override;
 
 	void FindGoalActor();

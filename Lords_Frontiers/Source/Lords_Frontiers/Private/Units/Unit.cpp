@@ -75,7 +75,8 @@ void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
 
-	if ( FollowedTarget_.Get() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
+	if ( FollowedTarget_.IsValid() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) &&
+	     IsCloseToTarget() )
 	{
 		FollowNextPathTarget();
 	}

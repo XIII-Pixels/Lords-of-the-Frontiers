@@ -29,13 +29,6 @@ void AWaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if ( const UWorld* world = GetWorld() )
-	{
-		Grid_ = Cast<AGridManager>( UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() ) );
-		UnitAIManager_ =
-		    Cast<AUnitAIManager>( UGameplayStatics::GetActorOfClass( world, AUnitAIManager::StaticClass() ) );
-	}
-
 	if ( bAutoStartOnBeginPlay )
 	{
 		StartWaves();

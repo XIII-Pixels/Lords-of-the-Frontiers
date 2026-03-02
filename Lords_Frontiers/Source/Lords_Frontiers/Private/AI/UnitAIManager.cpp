@@ -11,6 +11,24 @@ AUnitAIManager::AUnitAIManager()
 {
 }
 
+void AUnitAIManager::OnPreWaveStart()
+{
+	if ( IsValid( TargetBuildingTracker_ ) )
+	{
+		TargetBuildingTracker_->ScanLevelForBuildings();
+	}
+}
+
+const UPathPointsManager* AUnitAIManager::PathPointsManager()
+{
+	return PathPointsManager_;
+}
+
+const UTargetBuildingTracker* AUnitAIManager::TargetBuildingTracker()
+{
+	return TargetBuildingTracker_;
+}
+
 void AUnitAIManager::BeginPlay()
 {
 	Super::BeginPlay();
