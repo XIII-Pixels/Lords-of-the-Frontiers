@@ -67,7 +67,9 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	FVector ProjectileSpawnPosition_;
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	bool bDirectFire_ = true;
+
 	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;

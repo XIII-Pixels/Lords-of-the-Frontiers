@@ -51,6 +51,9 @@ void ABaseProjectile::DeactivateToPool()
 
 	MaxRange_ = 0.0f;
 	ArcScale_ = 1.0f;
+
+	GroundZ_ = 0.0f;
+	bTrackTarget_ = GetDefault<ABaseProjectile>( GetClass() )->bTrackTarget_;
 }
 
 void ABaseProjectile::ActivateFromPool()
@@ -84,7 +87,7 @@ void ABaseProjectile::ActivateFromPool()
 
 void ABaseProjectile::InitializeProjectile(
     AActor* inInstigator, AActor* inTarget, float inDamage, float inSpeed, const FVector& spawnOffset,
-    float inSplashRadius, float inMaxRange
+    float inSplashRadius, float inMaxRange, bool bTrackTarget
 )
 {
 	Target_ = inTarget;
@@ -92,8 +95,26 @@ void ABaseProjectile::InitializeProjectile(
 	Speed_ = FMath::Max( inSpeed, 0.0f );
 	SplashRadius_ = FMath::Max( inSplashRadius, 0.f );
 	MaxRange_ = FMath::Max( inMaxRange, 0.0f );
+	bTrackTarget_ = bTrackTarget;
 	SetInstigator( inInstigator->GetInstigator() );
 	SetOwner( inInstigator );
+
+	FHitResult GroundHit;
+	const FVector TargetPos = inTarget->GetActorLocation();
+	FCollisionQueryParams GroundTraceParams;
+	GroundTraceParams.AddIgnoredActor( this );
+	GroundTraceParams.AddIgnoredActor( inInstigator );
+	GroundTraceParams.AddIgnoredActor( inTarget );
+	if ( GetWorld()->LineTraceSingleByChannel(
+	         GroundHit, TargetPos, TargetPos - FVector( 0, 0, 1000.f ), ECC_Visibility, GroundTraceParams
+	     ) )
+	{
+		GroundZ_ = GroundHit.ImpactPoint.Z;
+	}
+	else
+	{
+		GroundZ_ = TargetPos.Z;
+	}
 
 	const FVector SpawnLocation = inInstigator->GetActorLocation() + spawnOffset;
 	const FVector ToTarget = inTarget->GetActorLocation() - SpawnLocation;
@@ -113,29 +134,31 @@ void ABaseProjectile::Tick( float deltaTime )
 
 	if ( bTrackTarget_ && IsValid( Target_ ) )
 	{
-		if ( IEntity* entity = Cast<IEntity>( Target_ ) )
-		{
-			if ( !entity->Stats().IsAlive() )
-			{
-				TargetLocation_ = Target_->GetActorLocation();
-				Target_ = nullptr;
-			}
-		}
-	}
-	if ( bTrackTarget_ && IsValid( Target_ ) )
-	{
 		TargetLocation_ = Target_->GetActorLocation();
+
+		IEntity* entity = Cast<IEntity>( Target_ );
+		if ( entity && !entity->Stats().IsAlive() )
+		{
+			Target_ = nullptr;
+		}
 	}
 
 	FlightProgress_ += deltaTime / FlightDuration_;
 
 	if ( FlightProgress_ >= 1.0f )
 	{
-		SetActorLocation( TargetLocation_ );
-		if ( IsValid( Target_ ) )
+		const FVector ImpactLocation( TargetLocation_.X, TargetLocation_.Y, GroundZ_ );
+		SetActorLocation( ImpactLocation );
+
+		if ( bTrackTarget_ && IsValid( Target_ ) )
 		{
 			DealDamage( Target_ );
 		}
+		else
+		{
+			DealDamage( nullptr );
+		}
+
 		ReturnToPool();
 		return;
 	}
@@ -169,7 +192,7 @@ void ABaseProjectile::OnCollisionStart(
 		DealDamage( otherActor );
 		ReturnToPool();
 	}
-	else if ( !IsValid( Target_ ) )
+	else if ( !bTrackTarget_ || !IsValid( Target_ ) )
 	{
 		IEntity* enemy = Cast<IEntity>( otherActor );
 		if ( !enemy || !enemy->Stats().IsAlive() )
@@ -188,11 +211,14 @@ void ABaseProjectile::OnCollisionStart(
 
 void ABaseProjectile::DealDamage( AActor* hitActor ) const
 {
-	if ( IEntity* target = Cast<IEntity>( hitActor ) )
+	if ( hitActor )
 	{
-		if ( target->Stats().IsAlive() )
+		if ( IEntity* target = Cast<IEntity>( hitActor ) )
 		{
-			target->TakeDamage( Damage_ );
+			if ( target->Stats().IsAlive() )
+			{
+				target->TakeDamage( Damage_ );
+			}
 		}
 	}
 
@@ -245,6 +271,7 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 		float distSq = FVector::DistSquared( GetActorLocation(), overlapActor->GetActorLocation() );
 		if ( distSq > SplashRadius_ * SplashRadius_ )
 		{
+			UE_LOG( LogTemp, Warning, TEXT( "distSq > SplashRadius_ * SplashRadius_" ) );
 			continue;
 		}
 

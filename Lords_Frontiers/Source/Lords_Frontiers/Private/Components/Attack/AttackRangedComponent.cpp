@@ -203,7 +203,7 @@ void UAttackRangedComponent::FireSingleProjectile( TObjectPtr<AActor> target )
 
 	projectile->InitializeProjectile(
 	    GetOwner(), target, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    OwnerEntity_->Stats().SplashRadius(), OwnerEntity_->Stats().AttackRange()
+	    OwnerEntity_->Stats().SplashRadius(), OwnerEntity_->Stats().AttackRange(), bDirectFire_
 	);
 }
 
@@ -243,7 +243,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 	{
 		result.Add( candidates[i].Actor );
 	}
-	
+
 	return result;
 }
 
@@ -256,7 +256,7 @@ void UAttackRangedComponent::FireNextBurstShot()
 		return;
 	}
 
-	if (CurrentBurstIndex_ >= BurstTargets_.Num())
+	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )
 	{
 		OwnerEntity_->Stats().StartCooldown();
 		bBurstInProgress_ = false;
@@ -266,17 +266,17 @@ void UAttackRangedComponent::FireNextBurstShot()
 
 	TObjectPtr<AActor> target = BurstTargets_[CurrentBurstIndex_];
 
-	if (!IsValid(target) || !Cast<IEntity>(target) || !Cast<IEntity>(target)->Stats().IsAlive())
+	if ( !IsValid( target ) || !Cast<IEntity>( target ) || !Cast<IEntity>( target )->Stats().IsAlive() )
 	{
 		target = EnemyInSight_;
 	}
 
-	if (IsValid(target))
+	if ( IsValid( target ) )
 	{
 		FireSingleProjectile( target );
 	}
 	++CurrentBurstIndex_;
-	if (CurrentBurstIndex_ >= BurstTargets_.Num())
+	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )
 	{
 		OwnerEntity_->Stats().StartCooldown();
 		bBurstInProgress_ = false;
