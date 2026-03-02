@@ -8,18 +8,13 @@
 #include "Components/ChooseAttackTargetComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-void UTargetBuildingTracker::OnWaveStart()
-{
-	ScanLevelForBuildings();
-}
-
 void UTargetBuildingTracker::OnBuildingDestroyed( ABuilding* building )
 {
 }
 
 void UTargetBuildingTracker::ScanLevelForBuildings()
 {
-	UWorld* world = GetWorld();
+	const UWorld* world = GetWorld();
 	if ( !world )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UChooseAttackTargetComponent: world not found" ) );
@@ -33,26 +28,64 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 	{
 		for ( const auto& [unitClass, _] : TargetBuildings_ )
 		{
-			TSet<TSubclassOf<ABuilding>> targetClasses;
-			if ( const AUnit* cdo = unitClass->GetDefaultObject<AUnit>() )
+			if ( BuildingIsUnitTarget( buildingActor, unitClass ) )
 			{
-				if ( const auto* comp = cdo->FindComponentByClass<UChooseAttackTargetComponent>() )
+				if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
 				{
-					targetClasses = comp->TargetBuildingClasses();
-				}
-			}
-
-			for ( const TSubclassOf<ABuilding>& targetClass : targetClasses )
-			{
-				if ( buildingActor->IsA( targetClass ) )
-				{
-					if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
-					{
-						TargetBuildings_[unitClass].Buildings.Add( building );
-						break;
-					}
+					TargetBuildings_[unitClass].Buildings.Add( building );
 				}
 			}
 		}
 	}
+}
+
+bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const
+{
+	TSet<TSubclassOf<ABuilding>> targetClasses;
+	if ( const AUnit* cdo = unitClass->GetDefaultObject<AUnit>() )
+	{
+		if ( const auto* comp = cdo->FindComponentByClass<UChooseAttackTargetComponent>() )
+		{
+			targetClasses = comp->TargetBuildingClasses();
+		}
+	}
+
+	for ( const TSubclassOf<ABuilding>& targetClass : targetClasses )
+	{
+		if ( buildingActor->IsA( targetClass ) )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUnit* unit ) const
+{
+	if ( !IsValid( unit ) )
+	{
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "UTargetBuildingTracker::FindClosestBuildingFor: invalid AUnit is passed as arg" )
+		);
+		return nullptr;
+	}
+
+	TWeakObjectPtr<ABuilding> closest = nullptr;
+	float minDist = FLT_MAX;
+
+	// Tip for possible future optimization:
+	// Cache by grid square can be added (to avoid traversing through all buildings for each unit)
+	// Tip for further optimization: add same cache value to neighbour cells (warning: changes unit behavior)
+	for ( const TWeakObjectPtr<ABuilding> building : TargetBuildings_[unit->GetClass()].Buildings )
+	{
+		const float dist = FVector::Distance( unit->GetActorLocation(), building->GetActorLocation() );
+		if ( dist < minDist )
+		{
+			minDist = dist;
+			closest = building;
+		}
+	}
+
+	return closest;
 }

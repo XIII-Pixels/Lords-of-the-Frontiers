@@ -1,5 +1,6 @@
 #include "Core/CoreManager.h"
 
+#include "AI/UnitAIManager.h"
 #include "Building/Construction/BuildManager.h"
 #include "Core/GameLoopManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
@@ -207,9 +208,9 @@ USelectionManagerComponent* UCoreManager::GetSelectionManager() const
 	return SelectionManager_.Get();
 }
 
-UPathPointsManager* UCoreManager::GetPathPointsManager() const
+AUnitAIManager* UCoreManager::GetUnitAIManager() const
 {
-	return PathPointsManager_.Get();
+	return UnitAIManager_.Get();
 }
 
 UGameLoopManager* UCoreManager::GetGameLoop() const
@@ -373,11 +374,11 @@ void UCoreManager::FindWorldActors()
 		GridManager_ = Cast<AGridManager>( found );
 	}
 
-	// if ( !PathPointsManager_.IsValid() )
-	// {
-		// AActor* found = UGameplayStatics::GetActorOfClass( world, UPathPointsManager::StaticClass() );
-		// PathPointsManager_ = Cast<UPathPointsManager>( found );
-	// }
+	if ( !UnitAIManager_.IsValid() )
+	{
+		AActor* found = UGameplayStatics::GetActorOfClass( world, AUnitAIManager::StaticClass() );
+		UnitAIManager_ = Cast<AUnitAIManager>( found );
+	}
 }
 
 void UCoreManager::FindPlayerControllerComponents()
@@ -458,7 +459,7 @@ void UCoreManager::SetupManagerConnections()
 	if ( GameLoopManager_ )
 	{
 		GameLoopManager_->Initialize(
-		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), PathPointsManager_.Get()
+		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), UnitAIManager_.Get()
 		);
 		UE_LOG( LogCoreManager, Log, TEXT( "GameLoopManager initialized (default config)" ) );
 	}

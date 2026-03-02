@@ -10,7 +10,7 @@
 class AUnit;
 class ABuilding;
 
-USTRUCT(BlueprintType)
+USTRUCT( BlueprintType )
 struct FBuildingSet
 {
 	GENERATED_BODY()
@@ -29,8 +29,12 @@ class LORDS_FRONTIERS_API UTargetBuildingTracker : public UObject
 	GENERATED_BODY()
 
 public:
-	// Needs to be called when wave starts
-	void OnWaveStart();
+	// Scans level for all buildings that can be attacked by each unit types
+	// Puts buildings into PriorityBuildings_
+	void ScanLevelForBuildings();
+
+	// Finds closest building that unit can target
+	TWeakObjectPtr<ABuilding> FindClosestBuilding( const AUnit* unit ) const;
 
 	// Needs to be called when any building is destroyed
 	void OnBuildingDestroyed( ABuilding* building );
@@ -44,9 +48,7 @@ public:
 	}
 
 protected:
-	// Scans level for all buildings that can be attacked by each unit types
-	// Puts buildings into PriorityBuildings_
-	void ScanLevelForBuildings();
+	bool BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const;
 
 	UPROPERTY()
 	TMap<TSubclassOf<AUnit>, FBuildingSet> TargetBuildings_;

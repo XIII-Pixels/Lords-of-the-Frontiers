@@ -54,7 +54,7 @@ void AMainGameMode::InitializeGameSystems()
 	{
 		GL->Initialize(
 		    GameLoopConfig, Core->GetWaveManager(), Core->GetResourceManager(), Core->GetEconomyComponent(),
-		    Core->GetPathPointsManager()
+		    Core->GetUnitAIManager()
 		);
 		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with config" ) );
 	}

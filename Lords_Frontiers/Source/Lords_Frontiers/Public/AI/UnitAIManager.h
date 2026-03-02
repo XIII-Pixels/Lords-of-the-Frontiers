@@ -24,7 +24,11 @@ class LORDS_FRONTIERS_API AUnitAIManager : public AActor
 public:
 	AUnitAIManager();
 
-	// Settings
+	void OnPreWaveStart();
+
+	const UPathPointsManager* PathPointsManager();
+
+	const UTargetBuildingTracker* TargetBuildingTracker();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	TWeakObjectPtr<AActor> GoalActor;
@@ -38,14 +42,12 @@ public:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|BuildingTracker" )
 	TSet<TSubclassOf<AUnit>> UnitClasses;
 
-	// Managers
-
-	UPROPERTY()
-	TObjectPtr<UPathPointsManager> PathPointsManager;
-
-	UPROPERTY()
-	TObjectPtr<UTargetBuildingTracker> TargetBuildingTracker;
-
 protected:
+	UPROPERTY()
+	TObjectPtr<UPathPointsManager> PathPointsManager_;
+
+	UPROPERTY()
+	TObjectPtr<UTargetBuildingTracker> TargetBuildingTracker_;
+
 	virtual void BeginPlay() override;
 };
