@@ -9,6 +9,7 @@
 
 #include "GameLoopManager.generated.h"
 
+class AUnitAIManager;
 // Forward declarations
 class AWaveManager;
 class UResourceManager;
@@ -127,11 +128,12 @@ public:
 	 * @param inWaveManager - Wave spawning system. Can be null initially.
 	 * @param inResourceManager - Resource tracking. Required for initialization success.
 	 * @param inEconomyComponent - Building income. Optional but recommended.
+	 * @param inUnitAIManager - Unit AI features. Optional but recommended
 	 */
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
 	void Initialize(
 	    UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-	    UEconomyComponent* inEconomyComponent, UPathPointsManager* inPathPointsManager
+	    UEconomyComponent* inEconomyComponent, AUnitAIManager* inUnitAIManager
 	);
 
 	/**
@@ -492,9 +494,9 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<UEconomyComponent> EconomyComponent_;
 
-	/** Weak ref to path points manager. */
+	/** Weak ref to unit AI manager. */
 	UPROPERTY()
-	TWeakObjectPtr<UPathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
 	/** Current state machine phase. */
 	EGameLoopPhase CurrentPhase_ = EGameLoopPhase::None;

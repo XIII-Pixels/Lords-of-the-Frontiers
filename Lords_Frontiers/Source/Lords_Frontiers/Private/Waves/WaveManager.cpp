@@ -1,10 +1,7 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
-#include "AI/Path/PathPointsManager.h"
-#include "AI/UnitAIManager.h"
 #include "DrawDebugHelpers.h"
-#include "Grid/GridManager.h"
 #include "TimerManager.h"
 
 #include "Components/CapsuleComponent.h"
@@ -30,13 +27,6 @@ void AWaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if ( const UWorld* world = GetWorld() )
-	{
-		Grid_ = Cast<AGridManager>( UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() ) );
-		UnitAIManager_ =
-		    Cast<AUnitAIManager>( UGameplayStatics::GetActorOfClass( world, AUnitAIManager::StaticClass() ) );
-	}
-
 	if ( bAutoStartOnBeginPlay )
 	{
 		StartWaves();
@@ -59,11 +49,6 @@ void AWaveManager::StartWaves()
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
-	}
-
-	if ( UnitAIManager_.IsValid() && IsValid( UnitAIManager_->PathPointsManager ) )
-	{
-		UnitAIManager_->PathPointsManager->Empty();
 	}
 
 	for ( int waveIndex = 0; waveIndex < Waves.Num(); waveIndex++ )
@@ -230,46 +215,6 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	    *spawnTransform.GetLocation().ToString()
 	);
 
-	if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor.IsValid() )
-	{
-		// Calculate path if not calculated
-		if ( !enemyGroup.Path )
-		{
-			enemyGroup.Path = NewObject<UPath>( GetWorld() );
-			if ( enemyGroup.Path )
-			{
-				FIntPoint startCoords = Grid_->GetClosestCellCoords( spawnTransform.GetLocation() );
-				FIntPoint goalCoords = Grid_->GetClosestCellCoords( UnitAIManager_->GoalActor->GetActorLocation() );
-
-				AUnit* defaultUnit = enemyGroup.EnemyClass.GetDefaultObject();
-
-				FDStarLiteConfig config{
-				    Grid_,
-				    startCoords,
-				    goalCoords,
-				    defaultUnit->Stats().AttackDamage(),
-				    defaultUnit->Stats().AttackCooldown(),
-				    Grid_->GetCellSize() / defaultUnit->Stats().MaxSpeed()
-				};
-
-				enemyGroup.Path->Initialize( config );
-				enemyGroup.Path->CalculateOrUpdate();
-				if ( UnitAIManager_->PathPointsManager )
-				{
-					UnitAIManager_->PathPointsManager->AddPathPoints( *enemyGroup.Path );
-				}
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(
-		    LogTemp, Error,
-		    TEXT( "WaveManager: Cannot calculate path. PathPointsManager invalid or PathPointsManager::GoalActor is "
-		          "not specified" )
-		);
-	}
-
 #if WITH_EDITOR
 	DrawDebugSphere( GetWorld(), spawnTransform.GetLocation(), 50.f, 8, FColor::Blue, false, 6.f );
 #endif
@@ -334,11 +279,6 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	SpawnedUnits.Add( spawned );
 
 	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
-
-	// Set unit path
-	spawned->SetPath( enemyGroup.Path );
-	spawned->SetUnitAIManager( UnitAIManager_ );
-	spawned->FollowPath();
 
 	if ( bLogSpawning )
 	{
@@ -424,11 +364,6 @@ void AWaveManager::CancelCurrentWave()
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
-	}
-
-	if ( UnitAIManager_.IsValid() && IsValid( UnitAIManager_->PathPointsManager ) )
-	{
-		UnitAIManager_->PathPointsManager->Empty();
 	}
 
 	bIsWaveActive_ = false;
