@@ -444,6 +444,9 @@ protected:
 	UFUNCTION()
 	void HandleAllWavesCompleted();
 
+	UFUNCTION()
+	void HandleWaveEndScheduled( float SecondsRemaining );
+
 	/** Broadcasts current state of all action buttons. */
 	void BroadcastButtonStates();
 
