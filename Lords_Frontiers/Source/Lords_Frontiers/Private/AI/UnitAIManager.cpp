@@ -12,6 +12,24 @@ AUnitAIManager::AUnitAIManager()
 {
 }
 
+void AUnitAIManager::OnPreWaveStart()
+{
+	if ( IsValid( TargetBuildingTracker_ ) )
+	{
+		TargetBuildingTracker_->ScanLevelForBuildings();
+	}
+}
+
+const UPathPointsManager* AUnitAIManager::PathPointsManager()
+{
+	return PathPointsManager_;
+}
+
+const UTargetBuildingTracker* AUnitAIManager::TargetBuildingTracker()
+{
+	return TargetBuildingTracker_;
+}
+
 void AUnitAIManager::BeginPlay()
 {
 	Super::BeginPlay();
@@ -23,8 +41,8 @@ void AUnitAIManager::BeginPlay()
 		return;
 	}
 
-	PathPointsManager = NewObject<UPathPointsManager>( this );
-	TargetBuildingTracker = NewObject<UTargetBuildingTracker>( this );
+	PathPointsManager_ = NewObject<UPathPointsManager>( this );
+	TargetBuildingTracker_ = NewObject<UTargetBuildingTracker>( this );
 
 	AGridManager* gridManager =
 	    Cast<AGridManager>( UGameplayStatics::GetActorOfClass( world, AGridManager::StaticClass() ) );
@@ -33,17 +51,17 @@ void AUnitAIManager::BeginPlay()
 
 	if ( gridManager )
 	{
-		PathPointsManager->SetGrid( gridManager );
+		PathPointsManager_->SetGrid( gridManager );
 	}
 	else
 	{
 		UE_LOG( LogTemp, Error, TEXT( "AUnitAIManager: grid manager is not found" ) );
 	}
 
-	PathPointsManager->SetGoalActor( GoalActor );
-	PathPointsManager->SetPathTargetPointClass( PathPointClass );
-	PathPointsManager->SetPointReachRadius( PathPointReachRadius );
+	PathPointsManager_->SetGoalActor( GoalActor );
+	PathPointsManager_->SetPathTargetPointClass( PathPointClass );
+	PathPointsManager_->SetPointReachRadius( PathPointReachRadius );
 
 	// TargetBuildingTracker settings
-	TargetBuildingTracker->SetUnitClasses( UnitClasses );
+	TargetBuildingTracker_->SetUnitClasses( UnitClasses );
 }

@@ -69,7 +69,8 @@ void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
 
-	if ( FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
+	if ( FollowedTarget_.IsValid() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) &&
+	     IsCloseToTarget() )
 	{
 		FollowNextPathTarget();
 	}
@@ -195,13 +196,13 @@ void AUnit::FollowNextPathTarget()
 
 bool AUnit::IsCloseToTarget() const
 {
-	if ( !FollowedTarget_.IsValid() || !UnitAIManager_.IsValid() || !IsValid( UnitAIManager_->PathPointsManager ) )
+	if ( !FollowedTarget_.IsValid() || !UnitAIManager_.IsValid() || !IsValid( UnitAIManager_->PathPointsManager() ) )
 	{
 		return false;
 	}
 
 	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	const float radius = UnitAIManager_->PathPointsManager->PointReachRadius();
+	const float radius = UnitAIManager_->PathPointsManager()->PointReachRadius();
 	const float radiusSq = radius * radius;
 	return distanceSq < radiusSq;
 }
@@ -258,9 +259,9 @@ void AUnit::FollowPath()
 	}
 	else
 	{
-		if ( IsValid( UnitAIManager_->PathPointsManager ))
+		if ( IsValid( UnitAIManager_->PathPointsManager() ) )
 		{
-			FollowedTarget_ = UnitAIManager_->PathPointsManager->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
+			FollowedTarget_ = UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
 		}
 	}
 }
