@@ -679,28 +679,30 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 			break;
 		}
 	}
-	if ( SpawnedUnits.IsEmpty() )
+
+	if ( !bIsWaveActive_ )
 	{
-		UE_LOG(
-		    LogTemp, Log,
-		    TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
-
-		if ( GetWorld() )
+		if ( SpawnedUnits.IsEmpty() )
 		{
-			GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
-		}
+			UE_LOG( LogTemp, Log, TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
 
-		// set timer to 1 second so existing logic could finish the wave
-		// timer calls OnWaveEndTimerElapsed
-		if ( GetWorld() )
-		{
-			FTimerDelegate del =
-			    FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
-			GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, 1.0f, false );
+			if ( GetWorld() )
+			{
+				GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
+			}
 
-			UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+			// set timer to 1 second so existing logic could finish the wave
+			// timer calls OnWaveEndTimerElapsed
+			if ( GetWorld() )
+			{
+				FTimerDelegate del =
+					FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+				GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, 1.0f, false );
 
-			OnWaveEndScheduled.Broadcast( 1.0f );
+				UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+
+				OnWaveEndScheduled.Broadcast( 1.0f );
+			}
 		}
 	}
 }
