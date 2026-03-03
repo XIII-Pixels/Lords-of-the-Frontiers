@@ -19,16 +19,6 @@ void AUnitAIManager::OnPreWaveStart()
 	}
 }
 
-const UPathPointsManager* AUnitAIManager::PathPointsManager()
-{
-	return PathPointsManager_;
-}
-
-const UTargetBuildingTracker* AUnitAIManager::TargetBuildingTracker()
-{
-	return TargetBuildingTracker_;
-}
-
 void AUnitAIManager::BeginPlay()
 {
 	Super::BeginPlay();

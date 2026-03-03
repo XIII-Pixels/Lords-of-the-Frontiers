@@ -170,7 +170,7 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 	TSet<TSubclassOf<ABuilding>> targetClasses;
 	if ( const AUnit* cdo = unitClass->GetDefaultObject<AUnit>() )
 	{
-		if ( const auto* comp = cdo->FindComponentByClass<UChooseAttackTargetComponent>() )
+		if ( const auto* comp = cdo->FindComponentByClass<UUnitChooseTargetComponent>() )
 		{
 			targetClasses = comp->TargetBuildingClasses();
 		}
@@ -187,6 +187,18 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 	return false;
 }
 
+TWeakObjectPtr<ABuilding> UTargetBuildingTracker::GetDefaultTargetBuilding() const
+{
+	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* aiManager = cm->GetUnitAIManager() )
+		{
+			return Cast<ABuilding>( aiManager->GoalActor );
+		}
+	}
+	return nullptr;
+}
+
 TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUnit* unit ) const
 {
 	if ( !IsValid( unit ) )
@@ -194,7 +206,7 @@ TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUn
 		UE_LOG(
 		    LogTemp, Warning, TEXT( "UTargetBuildingTracker::FindClosestBuildingFor: invalid AUnit is passed as arg" )
 		);
-		return nullptr;
+		return GetDefaultTargetBuilding();
 	}
 
 	TWeakObjectPtr<ABuilding> closest = nullptr;
@@ -205,13 +217,16 @@ TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUn
 	// Tip for further optimization: add same cache value to neighbour cells (warning: changes unit behavior)
 	for ( const TWeakObjectPtr<ABuilding> building : TargetBuildings_[unit->GetClass()].Buildings )
 	{
-		const float dist = FVector::Distance( unit->GetActorLocation(), building->GetActorLocation() );
-		if ( dist < minDist )
+		if ( building.IsValid() && !building->IsDestroyed() )
 		{
-			minDist = dist;
-			closest = building;
+			const float dist = FVector::Distance( unit->GetActorLocation(), building->GetActorLocation() );
+			if ( dist < minDist )
+			{
+				minDist = dist;
+				closest = building;
+			}
 		}
 	}
 
-	return closest;
+	return closest != nullptr ? closest : GetDefaultTargetBuilding();
 }

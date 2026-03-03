@@ -13,6 +13,8 @@
 
 UFollowComponent::UFollowComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 2.0f * PI );
 	StreamRandom_ = FRandomStream( FPlatformTime::Cycles64() );
 }

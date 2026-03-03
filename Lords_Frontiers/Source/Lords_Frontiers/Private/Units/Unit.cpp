@@ -66,6 +66,11 @@ void AUnit::BeginPlay()
 		);
 	}
 
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		UnitAIManager_ = core->GetUnitAIManager();
+	}
+
 	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
 
 	ResolveVFXDefaults();

@@ -57,6 +57,8 @@ public:
 	}
 
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY()
 	TObjectPtr<UPathPointsManager> PathPointsManager_;
 
