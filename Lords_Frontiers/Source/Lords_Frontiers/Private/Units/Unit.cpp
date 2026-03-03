@@ -21,6 +21,8 @@
 
 AUnit::AUnit()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
@@ -62,6 +64,11 @@ void AUnit::BeginPlay()
 		    LogTemp, Error, TEXT( "Unit: number of unit attack components is not equal to 1 (number: %d)" ),
 		    attackComponents.Num()
 		);
+	}
+
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		UnitAIManager_ = core->GetUnitAIManager();
 	}
 
 	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
@@ -152,7 +159,7 @@ const TObjectPtr<UPath>& AUnit::Path() const
 	return Path_;
 }
 
-void AUnit::SetFollowedTarget( TObjectPtr<AActor> followedTarget )
+void AUnit::SetFollowedTarget( AActor* followedTarget )
 {
 	FollowedTarget_ = followedTarget;
 }
@@ -280,15 +287,10 @@ bool AUnit::IsCloseToTarget() const
 	return distanceSq < radiusSq;
 }
 
-void AUnit::SetPath( TObjectPtr<UPath> path )
+void AUnit::SetPath( UPath* path )
 {
 	Path_ = path;
 	PathPointIndex_ = 0;
-}
-
-void AUnit::SetUnitAIManager( TWeakObjectPtr<AUnitAIManager> unitAIManager )
-{
-	UnitAIManager_ = unitAIManager;
 }
 
 void AUnit::AdvancePathPointIndex()
@@ -312,7 +314,7 @@ void AUnit::FollowPath()
 
 	if ( !UnitAIManager_.IsValid() )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid PathPointsManager_. Cannot follow path" ) );
+		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid UnitAIManager_. Cannot follow path" ) );
 		FollowedTarget_ = nullptr;
 		return;
 	}
@@ -337,11 +339,8 @@ void AUnit::FollowPath()
 			FollowedTarget_ = UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
 		}
 	}
-}
 
-void AUnit::SetFollowedTarget( AActor* newTarget )
-{
-	FollowedTarget_ = newTarget;
+	StartFollowing();
 }
 
 TObjectPtr<USceneComponent> AUnit::VisualMesh()

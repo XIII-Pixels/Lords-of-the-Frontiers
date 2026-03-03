@@ -68,14 +68,10 @@ public:
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
-	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
+	void SetFollowedTarget( AActor* newTarget );
 
 	const TObjectPtr<UPath>& Path() const;
-	void SetPath( TObjectPtr<UPath> path );
-
-	void SetUnitAIManager( TWeakObjectPtr<AUnitAIManager> unitAIManager );
-
-	void SetFollowedTarget( AActor* newTarget );
+	void SetPath( UPath* path );
 
 	TObjectPtr<USceneComponent> VisualMesh();
 
@@ -100,10 +96,10 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
 
-	UPROPERTY()	
+	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> DeathVFX_;
 
-	UPROPERTY() 
+	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> HitVFX_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX", meta = ( Units = "s" ) )
@@ -130,13 +126,17 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UPath> Path_;
 
-	UPROPERTY()
-	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
+	int PathPointIndex_ = -1;
+
+	// Wobble
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwaySpeed_ = 15.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
+	float SwayAmplitude_ = 10.0f;
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
-
-	int PathPointIndex_ = -1;
 
 	FTimerHandle DeathTimerHandle_;
 
