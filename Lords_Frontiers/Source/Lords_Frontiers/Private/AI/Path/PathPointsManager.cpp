@@ -3,7 +3,10 @@
 
 #include "AI/Path/Path.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "Core/CoreManager.h"
 #include "Grid/GridManager.h"
+
+#include "Kismet/GameplayStatics.h"
 
 void UPathPointsManager::PostInitProperties()
 {
@@ -15,17 +18,25 @@ void UPathPointsManager::PostInitProperties()
 	}
 }
 
-void UPathPointsManager::SetGrid( TWeakObjectPtr<AGridManager> grid )
+void UPathPointsManager::InitializeGrid()
 {
-	Grid_ = grid;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		Grid_ = core->GetGridManager();
+	}
 }
 
 void UPathPointsManager::AddPathPoints( const UPath& path )
 {
 	if ( !Grid_.IsValid() )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "PathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
-		return;
+		InitializeGrid();
+
+		if ( !Grid_.IsValid() )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "PathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
+			return;
+		}
 	}
 
 	if ( !PathTargetPointClass_ )
