@@ -680,45 +680,22 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 	}
 }
 
-FString AWaveManager::GetWaveInfoText( int32 TargetWaveIndex ) const
+TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 TargetWaveIndex ) const
 {
+	TMap<TSubclassOf<AUnit>, int32> enemyCounts;
+
 	if ( !Waves.IsValidIndex( TargetWaveIndex ) )
-	{
-		return TEXT( "The final wave has passed!" );
-	}
+		return enemyCounts;
 
 	const FWave& targetWave = Waves[TargetWaveIndex];
-
-	if ( !targetWave.IsValid() )
-	{
-		return TEXT( "No threats detected" );
-	}
-
-	TMap<FString, int32> enemyCounts;
 
 	for ( const FEnemyGroup& group : targetWave.EnemyGroups )
 	{
 		if ( group.IsValid() && group.EnemyClass.Get() )
 		{
-			FString className = group.EnemyClass.Get()->GetName();
-			className.RemoveFromEnd( TEXT( "_C" ) );
-			className.RemoveFromStart( TEXT( "Default__" ) );
-			className.RemoveFromStart( TEXT( "BP_" ) );
-
-			enemyCounts.FindOrAdd( className ) += group.Count;
+			enemyCounts.FindOrAdd( group.EnemyClass.Get() ) += group.Count;
 		}
 	}
 
-	TArray<FString> infoLines;
-	for ( const auto& pair : enemyCounts )
-	{
-		infoLines.Add( FString::Printf( TEXT( "%s: %d" ), *pair.Key, pair.Value ) );
-	}
-
-	if ( infoLines.Num() == 0 )
-	{
-		return TEXT( "Unknown opponents" );
-	}
-
-	return FString::Join( infoLines, TEXT( "\n" ) );
+	return enemyCounts;
 }

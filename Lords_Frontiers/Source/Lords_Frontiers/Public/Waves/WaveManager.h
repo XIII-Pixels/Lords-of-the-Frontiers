@@ -113,7 +113,7 @@ public:
 	void BroadcastAllWavesCompleted();
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
-	FString GetWaveInfoText( int32 TargetWaveIndex ) const;
+	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
 protected:
 	virtual void BeginPlay() override;

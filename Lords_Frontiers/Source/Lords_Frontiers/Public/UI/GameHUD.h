@@ -6,6 +6,7 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
+#include "UI/InfoWaves/WaveInfoPanelWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -179,8 +180,8 @@ public:
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	UTextBlock* Text_NextWaveInfo;
+	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
+	void ToggleWaveInfoPanel();
 
 protected:
 	virtual void NativeConstruct() override;
@@ -326,5 +327,12 @@ protected:
 
 	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
 
-	void UpdateNextWaveInfo();
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
+	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;
+
+	UPROPERTY()
+	TObjectPtr<UWaveInfoPanelWidget> ActiveWavePanel;
+
+	UPROPERTY()
+	bool bIsWavePanelOpen = false;
 };

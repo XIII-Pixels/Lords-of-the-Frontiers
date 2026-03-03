@@ -144,8 +144,6 @@ void UGameHUDWidget::NativeConstruct()
 
 	UpdateResources();
 	UpdateAllBuildingButtons();
-
-	UpdateNextWaveInfo();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -236,7 +234,6 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
 
-	UpdateNextWaveInfo();
 
 	if ( TextTimer )
 	{
@@ -853,39 +850,41 @@ void UGameHUDWidget::ShowTooltipInternal()
 	}
 }
 
-void UGameHUDWidget::UpdateNextWaveInfo()
+void UGameHUDWidget::ToggleWaveInfoPanel()
 {
-	if ( !Text_NextWaveInfo )
-	{
+	if ( !WavePanelClass )
 		return;
+
+	if ( !ActiveWavePanel )
+	{
+		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
+		if ( ActiveWavePanel )
+		{
+			ActiveWavePanel->AddToViewport( 0 );
+		}
 	}
+
+	if ( !ActiveWavePanel )
+		return;
+
 	UCoreManager* core = UCoreManager::Get( this );
-	if (!core)
+	UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
+	AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
+	if ( bIsWavePanelOpen )
 	{
-		return;
-	}
-
-	UGameLoopManager* gameLoop = core->GetGameLoop();
-	if (!gameLoop)
-	{
-		return;
-	}
-
-	AWaveManager* waveManager = core->GetWaveManager();
-	if ( !waveManager )
-	{
-		waveManager =
-		    Cast<AWaveManager>( UGameplayStatics::GetActorOfClass( GetWorld(), AWaveManager::StaticClass() ) );
-	}
-
-	if ( waveManager )
-	{
-		int32 actualWaveIndex = gameLoop->GetCurrentWave() - 1;
-		FString info = waveManager->GetWaveInfoText( actualWaveIndex );
-		Text_NextWaveInfo->SetText( FText::FromString( info ) );
+		ActiveWavePanel->PlaySlideOutAnimation();
+		bIsWavePanelOpen = false;
 	}
 	else
 	{
-		Text_NextWaveInfo->SetText( FText::FromString( TEXT( "Сбор разведданных..." ) ) );
+		if ( gameLoop && waveManager )
+		{
+			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
+			TMap<TSubclassOf<AUnit>, int32> waveData = waveManager->GetNextWaveComposition( waveIndex );
+			ActiveWavePanel->PopulatePanel( waveData );
+		}
+
+		ActiveWavePanel->PlaySlideInAnimation();
+		bIsWavePanelOpen = true;
 	}
 }
