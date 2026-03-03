@@ -20,7 +20,8 @@ class LORDS_FRONTIERS_API UPathPointsManager : public UObject
 public:
 	virtual void PostInitProperties() override;
 
-	void SetGrid( TWeakObjectPtr<AGridManager> grid );
+	void InitializeGrid();
+
 	void AddPathPoints( const UPath& path );
 	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
 

@@ -9,6 +9,8 @@
 
 UFollowComponent::UFollowComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
 void UFollowComponent::TickComponent(

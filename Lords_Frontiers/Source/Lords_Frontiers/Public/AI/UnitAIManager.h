@@ -26,9 +26,15 @@ public:
 
 	void OnPreWaveStart();
 
-	const UPathPointsManager* PathPointsManager();
+	UPathPointsManager* PathPointsManager() const
+	{
+		return PathPointsManager_;
+	}
 
-	const UTargetBuildingTracker* TargetBuildingTracker();
+	UTargetBuildingTracker* TargetBuildingTracker() const
+	{
+		return TargetBuildingTracker_;
+	}
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	TWeakObjectPtr<AActor> GoalActor;
@@ -43,11 +49,11 @@ public:
 	TSet<TSubclassOf<AUnit>> UnitClasses;
 
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY()
 	TObjectPtr<UPathPointsManager> PathPointsManager_;
 
 	UPROPERTY()
 	TObjectPtr<UTargetBuildingTracker> TargetBuildingTracker_;
-
-	virtual void BeginPlay() override;
 };

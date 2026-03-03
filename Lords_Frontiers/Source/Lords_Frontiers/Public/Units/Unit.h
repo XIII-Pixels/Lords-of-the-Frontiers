@@ -62,18 +62,14 @@ public:
 
 	const TObjectPtr<UPath>& Path() const;
 
-	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
+	void SetFollowedTarget( AActor* newTarget );
 
-	void SetPath( TObjectPtr<UPath> path );
-
-	void SetUnitAIManager( TWeakObjectPtr<AUnitAIManager> unitAIManager );
+	void SetPath( UPath* path );
 
 	void AdvancePathPointIndex();
 	void SetPathPointIndex( int pathPointIndex );
 
 	void FollowPath();
-
-	void SetFollowedTarget( AActor* newTarget );
 
 	void ChangeStats( FEnemyBuff* buff );
 
@@ -112,10 +108,7 @@ protected:
 
 	int PathPointIndex_ = -1;
 
-	UPROPERTY()
-	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
-
-	//Wobble
+	// Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	float SwaySpeed_ = 15.0f;
 

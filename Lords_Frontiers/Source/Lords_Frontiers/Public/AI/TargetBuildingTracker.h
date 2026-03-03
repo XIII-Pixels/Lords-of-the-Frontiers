@@ -50,6 +50,8 @@ public:
 protected:
 	bool BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const;
 
+	TWeakObjectPtr<ABuilding> GetDefaultTargetBuilding() const;
+
 	UPROPERTY()
 	TMap<TSubclassOf<AUnit>, FBuildingSet> TargetBuildings_;
 };

@@ -2,8 +2,6 @@
 
 #include "AI/Path/Path.h"
 
-#include "Grid/GridManager.h"
-
 UPath::UPath()
 {
 }
@@ -14,7 +12,7 @@ void UPath::PostInitProperties()
 	DStarLite_ = NewObject<UDStarLite>( this );
 }
 
-void UPath::Initialize( const FDStarLiteConfig& config )
+void UPath::Initialize( const FPathConfig& config )
 {
 	DStarLite_->Initialize( config );
 }
