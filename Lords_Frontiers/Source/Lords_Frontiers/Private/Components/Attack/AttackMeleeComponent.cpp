@@ -2,6 +2,7 @@
 
 #include "Components/Attack/AttackMeleeComponent.h"
 
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -70,7 +71,9 @@ void UAttackMeleeComponent::Attack( TObjectPtr<AActor> hitActor )
 		return;
 	}
 
-	attackedEntity->TakeDamage( OwnerEntity_->Stats().AttackDamage() );
+	const float damage = OwnerEntity_->Stats().AttackDamage();
+	attackedEntity->TakeDamage( damage );
+	FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), hitActor.Get(), damage, false );
 	OwnerEntity_->Stats().StartCooldown();
 }
 

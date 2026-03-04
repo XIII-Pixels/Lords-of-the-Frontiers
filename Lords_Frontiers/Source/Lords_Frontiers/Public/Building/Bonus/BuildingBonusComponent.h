@@ -58,6 +58,11 @@ public:
 		return BonusEntries_;
 	};
 
+	const TArray<FBonusApplication>& GetActiveApplications() const
+	{
+		return ActiveApplications_;
+	}
+
 	static constexpr int32 MaxPossibleBonusRadius = 5;
 
 	static UBuildingBonusComponent* FindInBlueprintClass( TSubclassOf<ABuilding> buildingClass );

@@ -100,6 +100,9 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnAllWavesCompletedSignature OnAllWavesCompleted;
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Wave" )
+	int32 GetAliveEnemyCount() const;
+
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
 	bool SubscribeToAllWavesCompleted( UObject* listener, FName functionName );
 

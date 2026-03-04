@@ -16,6 +16,7 @@ class ABuilding;
 class UResourceManager;
 class UBonusIconsData;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingConfirmed, ABuilding*, Building, FIntPoint, CellCoords );
 
 UCLASS()
 class LORDS_FRONTIERS_API ABuildManager : public AActor
@@ -67,6 +68,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Bonus" )
 	FOnBonusPreviewUpdated OnBonusPreviewUpdated;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Building|Events" )
+	FOnBuildingConfirmed OnBuildingConfirmed;
 
 	void RecalculateBonusesAroundBuilding( ABuilding* building, const FIntPoint& cellCoords );
 

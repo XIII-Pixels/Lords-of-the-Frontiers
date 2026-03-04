@@ -82,6 +82,8 @@ void ABuilding::OnDeath()
 			FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
+
+	OnBuildingDied.Broadcast( this );
 }
 
 FEntityStats& ABuilding::Stats()
