@@ -7,7 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
 
-#include "UnitChooseTargetComponent.generated.h"
+#include "EnemyAggressionComponent.generated.h"
 
 class AUnitAIManager;
 class UTargetBuildingTracker;
@@ -16,12 +16,12 @@ class ABuilding;
 /** (Gregory-hub)
  * Finds closest building that unit should attack */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
-class LORDS_FRONTIERS_API UUnitChooseTargetComponent : public UActorComponent
+class LORDS_FRONTIERS_API UEnemyAggressionComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UUnitChooseTargetComponent();
+	UEnemyAggressionComponent();
 
 	const TSet<TSubclassOf<ABuilding>>& TargetBuildingClasses() const
 	{
@@ -31,7 +31,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void TickComponent(float deltaTime, enum ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
+	virtual void
+	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
 	// Priority list of building classes
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings" )

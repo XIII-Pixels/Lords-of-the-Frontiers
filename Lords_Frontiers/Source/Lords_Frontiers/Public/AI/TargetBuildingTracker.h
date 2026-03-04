@@ -41,7 +41,7 @@ public:
 
 	void SetUnitClasses( const TSet<TSubclassOf<AUnit>>& unitClasses )
 	{
-		for ( auto unitClass : unitClasses )
+		for ( const auto& unitClass : unitClasses )
 		{
 			TargetBuildings_.FindOrAdd( unitClass );
 		}
