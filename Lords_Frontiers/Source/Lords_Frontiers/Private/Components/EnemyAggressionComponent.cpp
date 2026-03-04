@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Components/UnitChooseTargetComponent.h"
+#include "Components/EnemyAggressionComponent.h"
 
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
@@ -11,13 +11,13 @@
 
 #include "Kismet/GameplayStatics.h"
 
-UUnitChooseTargetComponent::UUnitChooseTargetComponent()
+UEnemyAggressionComponent::UEnemyAggressionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
-void UUnitChooseTargetComponent::BeginPlay()
+void UEnemyAggressionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -27,7 +27,7 @@ void UUnitChooseTargetComponent::BeginPlay()
 	}
 }
 
-void UUnitChooseTargetComponent::TickComponent(
+void UEnemyAggressionComponent::TickComponent(
     float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
 )
 {
