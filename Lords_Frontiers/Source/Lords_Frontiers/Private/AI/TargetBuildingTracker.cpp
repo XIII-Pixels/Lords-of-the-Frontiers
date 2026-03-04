@@ -168,11 +168,20 @@ TWeakObjectPtr<const ABuilding> UTargetBuildingTracker::FindClosestBuilding( con
 bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const
 {
 	TSet<TSubclassOf<ABuilding>> targetClasses;
-	if ( const AUnit* cdo = unitClass->GetDefaultObject<AUnit>() )
+	if ( UBlueprintGeneratedClass* bpClass = Cast<UBlueprintGeneratedClass>( unitClass ) )
 	{
-		if ( const auto* comp = cdo->FindComponentByClass<UUnitChooseTargetComponent>() )
+		if ( bpClass || bpClass->SimpleConstructionScript )
 		{
-			targetClasses = comp->TargetBuildingClasses();
+			TArray<USCS_Node*> nodes = bpClass->SimpleConstructionScript->GetAllNodes();
+			for ( const USCS_Node* node : nodes )
+			{
+				if ( node->ComponentClass->IsChildOf( UEnemyAggressionComponent::StaticClass() ) )
+				{
+					UActorComponent* found = node->GetActualComponentTemplate( bpClass );
+					const UEnemyAggressionComponent* component = Cast<UEnemyAggressionComponent>( found );
+					targetClasses = component->TargetBuildingClasses();
+				}
+			}
 		}
 	}
 
@@ -196,6 +205,11 @@ TWeakObjectPtr<ABuilding> UTargetBuildingTracker::GetDefaultTargetBuilding() con
 			return Cast<ABuilding>( aiManager->GoalActor );
 		}
 	}
+
+	UE_LOG(
+	    LogTemp, Error,
+	    TEXT( "UTargetBuildingTracker::GetDefaultTargetBuilding: failed to return default building. Returning nullptr" )
+	);
 	return nullptr;
 }
 
@@ -215,7 +229,10 @@ TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUn
 	// Tip for possible future optimization:
 	// Cache by grid square can be added (to avoid traversing through all buildings for each unit)
 	// Tip for further optimization: add same cache value to neighbour cells (warning: changes unit behavior)
-	for ( const TWeakObjectPtr<ABuilding> building : TargetBuildings_[unit->GetClass()].Buildings )
+	const TSet<TWeakObjectPtr<ABuilding>>& buildings = TargetBuildings_.Contains( unit->GetClass() )
+	                                                       ? TargetBuildings_[unit->GetClass()].Buildings
+	                                                       : TSet<TWeakObjectPtr<ABuilding>>();
+	for ( const TWeakObjectPtr<ABuilding> building : buildings )
 	{
 		if ( building.IsValid() && !building->IsDestroyed() )
 		{
