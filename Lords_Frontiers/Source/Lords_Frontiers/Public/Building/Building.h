@@ -14,6 +14,8 @@
 
 class UBoxComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
 {
@@ -82,6 +84,9 @@ public:
 	{
 		return bIsRuined_;
 	}
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|State|Events" )
+	FOnBuildingDeath OnBuildingDied;
 
 protected:
 	virtual void BeginPlay() override;

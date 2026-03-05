@@ -111,6 +111,12 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
 		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
+	if ( ButtonBuildingMortira )
+	{
+		ButtonBuildingMortira->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+		ButtonBuildingMortira->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
+		ButtonBuildingMortira->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -180,6 +186,9 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	if ( ButtonBuildingMortira )
+		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -661,6 +670,10 @@ void UGameHUDWidget::OnBuildTowerT2Clicked()
 {
 	StartBuilding( TowerT2Class );
 }
+void UGameHUDWidget::OnBuildTowerMortiraClicked()
+{
+	StartBuilding( TowerMortiraClass );
+}
 
 void UGameHUDWidget::UpdateBuildingUIVisibility()
 {
@@ -775,6 +788,7 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 	UpdateButtonAvailability( ButtonBuildingTowerT0, TowerT0Class );
 	UpdateButtonAvailability( ButtonBuildingTowerT1, TowerT1Class );
 	UpdateButtonAvailability( ButtonBuildingTowerT2, TowerT2Class );
+	UpdateButtonAvailability( ButtonBuildingMortira, TowerMortiraClass );
 }
 
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )

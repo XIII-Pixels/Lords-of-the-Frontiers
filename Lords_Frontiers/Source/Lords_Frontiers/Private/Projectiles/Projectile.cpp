@@ -2,6 +2,7 @@
 
 #include "Projectiles/Projectile.h"
 
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -67,6 +68,7 @@ void AProjectile::DealDamage( TObjectPtr<AActor> target ) const
 	if ( auto enemy = Cast<IEntity>( target ) )
 	{
 		enemy->TakeDamage( Damage_ );
+		FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), target.Get(), Damage_, false );
 	}
 }
 

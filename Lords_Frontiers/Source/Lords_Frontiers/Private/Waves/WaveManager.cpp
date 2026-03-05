@@ -650,6 +650,20 @@ void AWaveManager::UpdateSpawnCounts( int32 waveIndex )
 	}
 }
 
+int32 AWaveManager::GetAliveEnemyCount() const
+{
+	int32 Count = 0;
+	for ( const TWeakObjectPtr<AUnit>& UnitPtr : SpawnedUnits )
+	{
+		AUnit* Unit = UnitPtr.Get();
+		if ( Unit && Unit->Stats().IsAlive() )
+		{
+			++Count;
+		}
+	}
+	return Count;
+}
+
 int32 AWaveManager::DestroyAllEnemies()
 {
 	int32 destroyed = 0;

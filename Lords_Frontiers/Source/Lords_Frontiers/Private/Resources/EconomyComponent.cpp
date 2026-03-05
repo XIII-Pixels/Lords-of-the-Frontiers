@@ -183,6 +183,8 @@ void UEconomyComponent::CollectGlobalResources()
 			);
 		}
 	}
+
+	OnIncomeCollected.Broadcast();
 }
 
 void UEconomyComponent::ApplyMaintenanceCosts()
@@ -238,6 +240,8 @@ void UEconomyComponent::ApplyMaintenanceCosts()
 	{
 		ResourceManager_->ForceSpendResource( Pair.Key, Pair.Value );
 	}
+
+	OnMaintenanceApplied.Broadcast();
 }
 
 void UEconomyComponent::RestoreAllBuildings()

@@ -24,7 +24,9 @@ public class Lords_Frontiers : ModuleRules
             "Blutility",
             "UMGEditor",
             "UnrealEd",
-            "EnhancedInput"
+            "EnhancedInput",
+            "Json",
+            "JsonUtilities"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });

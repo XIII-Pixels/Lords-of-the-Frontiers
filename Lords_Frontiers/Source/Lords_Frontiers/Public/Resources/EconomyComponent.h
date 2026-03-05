@@ -9,6 +9,9 @@ class ABuilding;
 class AGridManager;
 class UResourceManager;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnIncomeCollected );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnMaintenanceApplied );
+
 UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
 {
@@ -40,6 +43,12 @@ public:
 	void PerformInitialScan();
 
 	void RestoreAllBuildings();
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Economy|Events" )
+	FOnIncomeCollected OnIncomeCollected;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Economy|Events" )
+	FOnMaintenanceApplied OnMaintenanceApplied;
 
 private:
 	// url system
