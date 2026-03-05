@@ -4,8 +4,8 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
-#include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -60,6 +60,9 @@ public:
 	TObjectPtr<UButton> ButtonBuildingMagicHouse;
 
 	// ==== defensive buildings ====
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> ButtonBuildingMortira;
+
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonBuildingWoodWall;
 
@@ -146,11 +149,15 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT2Class;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
+	TSubclassOf<ABuilding> TowerMortiraClass;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
 	UPROPERTY(
-	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons", meta = ( ClampMin = "0.1", ClampMax = "3.0" )
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons",
+	    meta = ( ClampMin = "0.1", ClampMax = "3.0" )
 	)
 	float BaseBonusIconScale = 0.5f;
 
@@ -170,15 +177,14 @@ public:
 
 	TArray<FBonusIconData> CachedBonusData_;
 
-
 	void UpdateBonusIconPositions();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
+	UPROPERTY()
 
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
-
 
 protected:
 	virtual void NativeConstruct() override;
@@ -256,6 +262,9 @@ protected:
 	UFUNCTION()
 	void OnBuildTowerT2Clicked();
 
+	UFUNCTION()
+	void OnBuildTowerMortiraClicked();
+
 	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
@@ -276,6 +285,8 @@ protected:
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
 
 	FTimerHandle TooltipTimerHandle;
+	UPROPERTY()
+
 	TSubclassOf<ABuilding> PendingBuildingClass;
 
 	UFUNCTION() void OnHoverWoodenHouse()
@@ -318,7 +329,10 @@ protected:
 	{
 		StartTooltipTimer( TowerT2Class );
 	}
-
+	UFUNCTION() void OnHoverTowerMortira()
+	{
+		StartTooltipTimer( TowerMortiraClass );
+	}
 	UFUNCTION() void OnBuildingUnhovered();
 	UFUNCTION() void ShowTooltipInternal();
 
