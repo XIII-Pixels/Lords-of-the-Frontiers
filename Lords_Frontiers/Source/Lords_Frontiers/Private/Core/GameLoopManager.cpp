@@ -695,6 +695,7 @@ void UGameLoopManager::StartWave()
 		if ( UnitAIManager_.IsValid() )
 		{
 			UnitAIManager_->OnPreWaveStart();
+			UnitAIManager_->PathPointsManager()->ShowAll();
 		}
 
 		const int32 waveIndex = CurrentWave_ - 1;
@@ -746,6 +747,11 @@ void UGameLoopManager::OnCombatTimerExpired()
 
 void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 {
+	if ( UnitAIManager_.IsValid() )
+	{
+		UnitAIManager_->PathPointsManager()->Empty();
+	}
+
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
 
 	bWaveCompleted_ = true;
