@@ -234,6 +234,7 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
 
+
 	if ( TextTimer )
 	{
 		bool bShowTimer = ( NewPhase == EGameLoopPhase::Combat );
@@ -846,5 +847,44 @@ void UGameHUDWidget::ShowTooltipInternal()
 		float offsetYa = ( mousePos.Y > ( viewportSize.Y / 2.f ) ) ? -180.f : 25.f;
 
 		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
+	}
+}
+
+void UGameHUDWidget::ToggleWaveInfoPanel()
+{
+	if ( !WavePanelClass )
+		return;
+
+	if ( !ActiveWavePanel )
+	{
+		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
+		if ( ActiveWavePanel )
+		{
+			ActiveWavePanel->AddToViewport( 0 );
+		}
+	}
+
+	if ( !ActiveWavePanel )
+		return;
+
+	UCoreManager* core = UCoreManager::Get( this );
+	UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
+	AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
+	if ( bIsWavePanelOpen )
+	{
+		ActiveWavePanel->PlaySlideOutAnimation();
+		bIsWavePanelOpen = false;
+	}
+	else
+	{
+		if ( gameLoop && waveManager )
+		{
+			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
+			TMap<TSubclassOf<AUnit>, int32> waveData = waveManager->GetNextWaveComposition( waveIndex );
+			ActiveWavePanel->PopulatePanel( waveData );
+		}
+
+		ActiveWavePanel->PlaySlideInAnimation();
+		bIsWavePanelOpen = true;
 	}
 }
