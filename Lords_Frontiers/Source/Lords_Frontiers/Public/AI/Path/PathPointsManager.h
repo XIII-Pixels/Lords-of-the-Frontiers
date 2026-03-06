@@ -25,10 +25,14 @@ public:
 	void AddPathPoints( const UPath& path );
 	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
 
+	// Remove point by value
 	void Remove( const FIntPoint& point );
+	// Remove all points
 	void Empty();
 
+	// Show all points
 	void ShowAll();
+	// Hide all points
 	void HideAll();
 
 	void SetGoalActor( const TWeakObjectPtr<AActor>& goalActor )
@@ -69,4 +73,6 @@ private:
 
 	UPROPERTY()
 	TMap<FIntPoint, TObjectPtr<APathTargetPoint>> PathPoints_;
+
+	bool bPointsVisible_ = false;
 };
