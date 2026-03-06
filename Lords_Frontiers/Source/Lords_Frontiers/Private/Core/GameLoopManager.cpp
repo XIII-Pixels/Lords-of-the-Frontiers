@@ -784,6 +784,7 @@ void UGameLoopManager::UnbindFromWaveManager()
 	{
 		wm->OnWaveEnded.RemoveDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.RemoveDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.RemoveDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsBoundToWaveManager_ = false;
