@@ -3,6 +3,7 @@
 #include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
 #include "Building/Bonus/BuildingBonusComponent.h"
@@ -13,6 +14,8 @@
 #include "Building.generated.h"
 
 class UBoxComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingHealthChanged, int32, CurrentHealth, int32, MaxHealth );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -73,6 +76,15 @@ public:
 	 */
 	void ResetMaintenanceCostToDefaults();
 
+    UPROPERTY( BlueprintAssignable, Category = "Stats|Events" )
+	FOnBuildingHealthChanged OnBuildingHealthChanged;
+
+	int GetCurrentHealth() const;
+
+	int GetMaxHealth() const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI|HealthBar", meta=(ToolTip="World-space offset for healthbar. If zero, manager will auto-compute."))
+	FVector HealthBarWorldOffset = FVector::ZeroVector;
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	TObjectPtr<UTexture2D> BuildingIcon;
 
@@ -113,8 +125,14 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> DefaultMesh_;
 
+	UFUNCTION()
+	AHealthBarManager* CacheHealthBarManager();
+
 private:
 	FResourceProduction OriginalMaintenanceCost_;
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;
+
+	TWeakObjectPtr<AHealthBarManager> CachedHealthBarManager_ = nullptr;
+
 };
