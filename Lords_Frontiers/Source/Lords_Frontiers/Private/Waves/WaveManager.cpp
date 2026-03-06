@@ -14,6 +14,8 @@
 #include "NavigationSystem.h"
 #include "UObject/ScriptDelegates.h"
 
+#define TIME_TO_END_WAVE_AFTER_LAST_DEATH 1.0f
+
 AWaveManager::AWaveManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -695,22 +697,19 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 		{
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
 
-			if ( GetWorld() )
+			if ( UWorld* world = GetWorld() )
 			{
-				GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
-			}
+			//world->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
 
 			// set timer to 1 second so existing logic could finish the wave
 			// timer calls OnWaveEndTimerElapsed
-			if ( GetWorld() )
-			{
-				FTimerDelegate del =
-					FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
-				GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, 1.0f, false );
+			FTimerDelegate del =
+				FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+			world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
 
-				UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+			UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
 
-				OnWaveEndScheduled.Broadcast( 1.0f );
+			OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
 			}
 		}
 	}
