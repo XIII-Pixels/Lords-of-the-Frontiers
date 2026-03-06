@@ -1,6 +1,9 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
+#include "AI/UnitAIManager.h"
+#include "Core/CoreManager.h"
+#include "Core/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 
@@ -114,9 +117,6 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	ScheduleWaveSpawns( wave, CurrentWaveIndex );
 
 	// Schedule wave end event
-	const float totalDuration = wave.GetTotalWaveDuration();
-	const float endDelay = FMath::Max( 0.0f, totalDuration );
-
 	if ( GetWorld() )
 	{
 		GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
@@ -124,7 +124,18 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		FTimerDelegate endDelegate;
 		endDelegate.BindUFunction( this, FName( "OnWaveEndTimerElapsed" ), CurrentWaveIndex );
 
-		GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle_, endDelegate, endDelay, false );
+		if ( const UCoreManager* core = GetGameInstance()->GetSubsystem<UCoreManager>() )
+		{
+			if ( const UGameLoopManager* loopManager = core->GetGameLoop() )
+			{
+				if ( const UGameLoopConfig* config = loopManager->GetConfig() )
+				{
+					GetWorld()->GetTimerManager().SetTimer(
+					    WaveEndTimerHandle_, endDelegate, config->CombatDuration, false
+					);
+				}
+			}
+		}
 	}
 }
 
@@ -355,6 +366,8 @@ void AWaveManager::CancelCurrentWave()
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
 	}
+
+	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
 	bIsWaveActive_ = false;
 

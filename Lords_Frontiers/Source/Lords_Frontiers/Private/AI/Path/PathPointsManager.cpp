@@ -74,6 +74,7 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 
 			if ( pathPoint )
 			{
+				bPointsVisible_ ? pathPoint->Show() : pathPoint->Hide();
 				PathPoints_.Add( point, pathPoint );
 			}
 		}
@@ -116,6 +117,7 @@ void UPathPointsManager::Empty()
 		}
 	}
 	PathPoints_.Empty();
+	bPointsVisible_ = false;
 }
 
 void UPathPointsManager::ShowAll()
@@ -127,6 +129,8 @@ void UPathPointsManager::ShowAll()
 			pathPoint->Show();
 		}
 	}
+
+	bPointsVisible_ = true;
 }
 
 void UPathPointsManager::HideAll()
@@ -138,4 +142,6 @@ void UPathPointsManager::HideAll()
 			pathPoint->Hide();
 		}
 	}
+
+	bPointsVisible_ = false;
 }

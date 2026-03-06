@@ -128,13 +128,22 @@ public:
 	 * @param inWaveManager - Wave spawning system. Can be null initially.
 	 * @param inResourceManager - Resource tracking. Required for initialization success.
 	 * @param inEconomyComponent - Building income. Optional but recommended.
-	 * @param inUnitAIManager - Unit AI features. Optional but recommended
+	 * @param inUnitAIManager - Unit AI features. Optional but recommended.
 	 */
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
 	void Initialize(
 	    UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
 	    UEconomyComponent* inEconomyComponent, AUnitAIManager* inUnitAIManager
 	);
+
+	/**
+	 * Returns current game loop config.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
+	UGameLoopConfig* GetConfig() const
+	{
+		return Config_;
+	}
 
 	/**
 	 * Hot-swaps configuration without full reinitialization.
