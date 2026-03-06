@@ -699,8 +699,6 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 
 			if ( UWorld* world = GetWorld() )
 			{
-			//world->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
-
 			// set timer to 1 second so existing logic could finish the wave
 			// timer calls OnWaveEndTimerElapsed
 			FTimerDelegate del =
