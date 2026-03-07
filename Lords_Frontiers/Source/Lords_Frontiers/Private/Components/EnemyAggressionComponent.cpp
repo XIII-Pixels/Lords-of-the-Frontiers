@@ -18,10 +18,51 @@ UEnemyAggressionComponent::UEnemyAggressionComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
+void UEnemyAggressionComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		UnitAIManager_ = cm->GetUnitAIManager();
+	}
+}
+
+void UEnemyAggressionComponent::TickComponent(
+    float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
+)
+{
+	Super::TickComponent( deltaTime, tickType, thisTickFunction );
+
+	const AUnit* unit = GetOwner<AUnit>();
+	if ( !unit )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UUnitChooseTargetComponent::TickComponent: owner is not unit" ) );
+		return;
+	}
+
+	const TWeakObjectPtr<AActor> target = unit->FollowedTarget();
+	if ( target.IsValid() && target->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
+	{
+		FollowNextPathTarget();
+	}
+
+	if ( !TargetBuilding_.IsValid() || TargetBuilding_->IsDestroyed() )
+	{
+		FindPathToClosestBuilding();
+	}
+}
+
 void UEnemyAggressionComponent::SetPath( UPath* path )
 {
 	Path_ = path;
 	PathPointIndex_ = 0;
+}
+
+void UEnemyAggressionComponent::FollowNextPathTarget()
+{
+	AdvancePathPointIndex();
+	FollowPath();
 }
 
 void UEnemyAggressionComponent::AdvancePathPointIndex()
@@ -34,7 +75,7 @@ void UEnemyAggressionComponent::SetPathPointIndex( int pathPointIndex )
 	PathPointIndex_ = pathPointIndex;
 }
 
-void UEnemyAggressionComponent::FollowPath()
+void UEnemyAggressionComponent::FollowPath() const
 {
 	AUnit* unit = GetOwner<AUnit>();
 	if ( !unit )
@@ -104,7 +145,7 @@ void UEnemyAggressionComponent::FollowNextPathTarget()
 
 bool UEnemyAggressionComponent::IsCloseToTarget() const
 {
-	AUnit* unit = GetOwner<AUnit>();
+	const AUnit* unit = GetOwner<AUnit>();
 	if ( !unit )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::IsCloseToTarget: no unit owner" ) );

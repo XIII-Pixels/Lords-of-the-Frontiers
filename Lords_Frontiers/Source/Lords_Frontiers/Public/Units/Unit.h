@@ -77,8 +77,6 @@ public:
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
 
-	const TObjectPtr<UPath>& Path() const;
-
 	void SetFollowedTarget( TWeakObjectPtr<AActor> newTarget );
 
 	void ChangeStats( FEnemyBuff* buff );

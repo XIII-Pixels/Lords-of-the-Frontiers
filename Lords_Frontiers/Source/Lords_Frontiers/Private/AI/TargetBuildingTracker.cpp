@@ -61,7 +61,10 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 			{
 				if ( const ABuilding* building = Cast<ABuilding>( buildingActor ) )
 				{
-					TargetBuildings_[unitClass].Buildings.Add( building );
+					if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
+					{
+						TargetBuildings_[unitClass].Buildings.Add( building );
+					}
 				}
 			}
 		}
@@ -185,9 +188,9 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 		}
 	}
 
-	for ( const TSubclassOf<ABuilding>& targetClass : targetClasses )
+	for ( const TSoftClassPtr<ABuilding>& targetClass : targetClasses )
 	{
-		if ( buildingActor->IsA( targetClass ) )
+		if ( buildingActor->IsA( targetClass.Get() ) )
 		{
 			return true;
 		}
