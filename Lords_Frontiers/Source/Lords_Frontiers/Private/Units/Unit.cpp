@@ -147,12 +147,8 @@ TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
 	return FollowedTarget_;
 }
 
-const TObjectPtr<UPath>& AUnit::Path() const
-{
-	return Path_;
-}
 
-void AUnit::SetFollowedTarget( AActor* followedTarget )
+void AUnit::SetFollowedTarget( TWeakObjectPtr<AActor> followedTarget )
 {
 	FollowedTarget_ = followedTarget;
 }

@@ -9,6 +9,7 @@
 
 #include "EnemyAggressionComponent.generated.h"
 
+class UPath;
 class AUnitAIManager;
 class UTargetBuildingTracker;
 class ABuilding;
@@ -28,8 +29,21 @@ public:
 		return TargetBuildingClasses_;
 	}
 
+	void SetPath( UPath* path );
+
+	void AdvancePathPointIndex();
+	void SetPathPointIndex( int pathPointIndex );
+
+	void FollowPath();
+
 protected:
 	virtual void BeginPlay() override;
+
+	void FollowNextPathTarget();
+
+	bool IsCloseToTarget() const;
+
+	void FindPathToClosestBuilding();
 
 	virtual void
 	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
@@ -43,4 +57,9 @@ protected:
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
+
+	UPROPERTY()
+	TObjectPtr<UPath> Path_;
+
+	int PathPointIndex_ = -1;
 };
