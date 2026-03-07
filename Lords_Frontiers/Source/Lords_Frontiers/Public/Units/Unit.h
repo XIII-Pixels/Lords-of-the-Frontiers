@@ -76,10 +76,12 @@ public:
 	}
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
-	void SetFollowedTarget( AActor* newTarget );
 
 	const TObjectPtr<UPath>& Path() const;
-	void SetPath( UPath* path );
+
+	void SetFollowedTarget( TWeakObjectPtr<AActor> newTarget );
+
+	void ChangeStats( FEnemyBuff* buff );
 
 	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
 	{
@@ -122,10 +124,6 @@ protected:
 
 	void ResolveVFXDefaults();
 
-	void FollowNextPathTarget();
-
-	bool IsCloseToTarget() const;
-
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
 
@@ -164,11 +162,6 @@ protected:
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
-
-	UPROPERTY()
-	TObjectPtr<UPath> Path_;
-
-	int PathPointIndex_ = -1;
 
 	// Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
