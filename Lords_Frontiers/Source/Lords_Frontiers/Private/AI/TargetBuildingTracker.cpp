@@ -28,15 +28,27 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 	TArray<AActor*> buildingActors;
 	UGameplayStatics::GetAllActorsOfClass( world, ABuilding::StaticClass(), buildingActors );
 
+	TWeakObjectPtr<AActor> goalActor = nullptr;
+	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* aiManager = cm->GetUnitAIManager() )
+		{
+			goalActor = aiManager->GoalActor;
+		}
+	}
+
 	for ( AActor* buildingActor : buildingActors )
 	{
 		for ( const auto& [unitClass, _] : TargetBuildings_ )
 		{
 			if ( BuildingIsUnitTarget( buildingActor, unitClass ) )
 			{
-				if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
+				if ( buildingActor != goalActor )
 				{
-					TargetBuildings_[unitClass].Buildings.Add( building );
+					if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
+					{
+						TargetBuildings_[unitClass].Buildings.Add( building );
+					}
 				}
 			}
 		}
@@ -46,7 +58,7 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass )
     const
 {
-	TSet<TSubclassOf<ABuilding>> targetClasses;
+	TSet<TSoftClassPtr<ABuilding>> targetClasses;
 	if ( UBlueprintGeneratedClass* bpClass = Cast<UBlueprintGeneratedClass>( unitClass ) )
 	{
 		if ( bpClass || bpClass->SimpleConstructionScript )
@@ -64,9 +76,9 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 		}
 	}
 
-	for ( const TSubclassOf<ABuilding>& targetClass : targetClasses )
+	for ( const TSoftClassPtr<ABuilding>& targetClass : targetClasses )
 	{
-		if ( buildingActor->IsA( targetClass ) )
+		if ( buildingActor->IsA( targetClass.Get() ) )
 		{
 			return true;
 		}

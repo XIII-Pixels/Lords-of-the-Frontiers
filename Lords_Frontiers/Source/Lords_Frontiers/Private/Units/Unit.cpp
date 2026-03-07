@@ -3,9 +3,6 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
-#include "AI/Path/Path.h"
-#include "AI/Path/PathPointsManager.h"
-#include "AI/Path/PathTargetPoint.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Transform/TransformableHandleUtils.h"
@@ -77,7 +74,6 @@ void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
 
-
 	if ( VisualMesh_ )
 	{
 		float targetRoll = 0.0f;
@@ -97,7 +93,7 @@ void AUnit::Tick( float deltaSeconds )
 	}
 }
 
-void AUnit::StartFollowing()
+void AUnit::StartFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -105,7 +101,7 @@ void AUnit::StartFollowing()
 	}
 }
 
-void AUnit::StopFollowing()
+void AUnit::StopFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -164,7 +160,6 @@ TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
 	return FollowedTarget_;
 }
 
-
 void AUnit::SetFollowedTarget( TWeakObjectPtr<AActor> followedTarget )
 {
 	FollowedTarget_ = followedTarget;
@@ -186,7 +181,6 @@ void AUnit::OnDeath()
 
 	Destroy();
 }
-
 
 void AUnit::ChangeStats( FEnemyBuff* buff )
 {
