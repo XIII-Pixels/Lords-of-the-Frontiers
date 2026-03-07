@@ -74,7 +74,7 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 
 			if ( pathPoint )
 			{
-				bPointsVisible_ ? pathPoint->Show() : pathPoint->Hide();
+				bPointsVisible_ ? ShowPoint( pathPoint ) : HidePoint( pathPoint );
 				PathPoints_.Add( point, pathPoint );
 			}
 		}
@@ -126,7 +126,7 @@ void UPathPointsManager::ShowAll()
 	{
 		if ( IsValid( pathPoint ) )
 		{
-			pathPoint->Show();
+			ShowPoint( pathPoint );
 		}
 	}
 
@@ -139,9 +139,37 @@ void UPathPointsManager::HideAll()
 	{
 		if ( IsValid( pathPoint ) )
 		{
-			pathPoint->Hide();
+			HidePoint( pathPoint );
 		}
 	}
 
 	bPointsVisible_ = false;
+}
+
+void UPathPointsManager::ShowPoint( APathTargetPoint* point, bool buildingAware ) const
+{
+	if ( !IsValid( point ) )
+	{
+		return;
+	}
+	if ( buildingAware && Grid_.IsValid() )
+	{
+		const FIntPoint coords = Grid_->GetClosestCellCoords( point->GetActorLocation() );
+		const FGridCell* cell = Grid_->GetCell( coords.X, coords.Y );
+		if ( cell && cell->bIsOccupied )
+		{
+			// Do not show point on a cell with building
+			return;
+		}
+	}
+	point->Show();
+}
+
+void UPathPointsManager::HidePoint( APathTargetPoint* point ) const
+{
+	if ( !IsValid( point ) )
+	{
+		return;
+	}
+	point->Hide();
 }

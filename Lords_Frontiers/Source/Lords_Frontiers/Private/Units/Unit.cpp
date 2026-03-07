@@ -80,7 +80,7 @@ void AUnit::Tick( float deltaSeconds )
 	}
 }
 
-void AUnit::StartFollowing()
+void AUnit::StartFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -88,7 +88,7 @@ void AUnit::StartFollowing()
 	}
 }
 
-void AUnit::StopFollowing()
+void AUnit::StopFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -146,7 +146,6 @@ TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
 {
 	return FollowedTarget_;
 }
-
 
 void AUnit::SetFollowedTarget( TWeakObjectPtr<AActor> followedTarget )
 {

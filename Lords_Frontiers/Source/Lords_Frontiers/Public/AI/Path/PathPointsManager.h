@@ -35,6 +35,14 @@ public:
 	// Hide all points
 	void HideAll();
 
+	/** Make point mesh visible
+	 * @param point - point
+	 * @param buildingAware - if true points on cells with buildings are not visible */
+	void ShowPoint( APathTargetPoint* point, bool buildingAware = true ) const;
+
+	// Make point mesh invisible
+	void HidePoint( APathTargetPoint* point ) const;
+
 	void SetGoalActor( const TWeakObjectPtr<AActor>& goalActor )
 	{
 		GoalActor_ = goalActor;

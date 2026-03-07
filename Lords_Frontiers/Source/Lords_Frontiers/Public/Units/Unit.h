@@ -40,9 +40,9 @@ public:
 
 	virtual void Tick( float deltaSeconds ) override;
 
-	void StartFollowing();
+	void StartFollowing() const;
 
-	void StopFollowing();
+	void StopFollowing() const;
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
