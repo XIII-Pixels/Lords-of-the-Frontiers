@@ -4,6 +4,7 @@
 
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
+#include "AI/Path/PathTargetPoint.h"
 #include "AI/TargetBuildingTracker.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
@@ -17,6 +18,70 @@ UEnemyAggressionComponent::UEnemyAggressionComponent()
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
+void UEnemyAggressionComponent::SetPath( UPath* path )
+{
+	Path_ = path;
+	PathPointIndex_ = 0;
+}
+
+void UEnemyAggressionComponent::AdvancePathPointIndex()
+{
+	++PathPointIndex_;
+}
+
+void UEnemyAggressionComponent::SetPathPointIndex( int pathPointIndex )
+{
+	PathPointIndex_ = pathPointIndex;
+}
+
+void UEnemyAggressionComponent::FollowPath()
+{
+	AUnit* unit = GetOwner<AUnit>();
+	if ( !unit )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::FollowPath: no unit owner" ) );
+		return;
+	}
+
+	if ( !Path_ )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::FollowPath: no valid Path_. Cannot follow path" ) );
+		unit->SetFollowedTarget( nullptr );
+		return;
+	}
+
+	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
+	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
+	{
+		if ( TargetBuilding_.IsValid() )
+		{
+			unit->SetFollowedTarget( TargetBuilding_ );
+		}
+		else if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor.IsValid() )
+		{
+			unit->SetFollowedTarget( UnitAIManager_->GoalActor );
+		}
+		else
+		{
+			UE_LOG(
+			    LogTemp, Error,
+			    TEXT( "UEnemyAggressionComponent::FollowPath: PathPointIndex_ is out of range; failed to get "
+			          "UnitAIManager_::GoalActor" )
+			);
+			unit->SetFollowedTarget( nullptr );
+		}
+	}
+	else
+	{
+		if ( IsValid( UnitAIManager_->PathPointsManager() ) )
+		{
+			unit->SetFollowedTarget(
+			    Cast<AActor>( UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ) )
+			);
+		}
+	}
+}
+
 void UEnemyAggressionComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -27,44 +92,91 @@ void UEnemyAggressionComponent::BeginPlay()
 	}
 }
 
+void UEnemyAggressionComponent::FollowNextPathTarget()
+{
+	AdvancePathPointIndex();
+	FollowPath();
+}
+
+bool UEnemyAggressionComponent::IsCloseToTarget() const
+{
+	AUnit* unit = GetOwner<AUnit>();
+	if ( !unit )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::IsCloseToTarget: no unit owner" ) );
+		return false;
+	}
+
+	if ( !unit->FollowedTarget().IsValid() || !UnitAIManager_.IsValid() ||
+	     !IsValid( UnitAIManager_->PathPointsManager() ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::IsCloseToTarget: somethi" ) );
+		return false;
+	}
+
+	const float distanceSq =
+	    FVector::DistSquared( unit->GetActorLocation(), unit->FollowedTarget()->GetActorLocation() );
+	const float radius = UnitAIManager_->PathPointsManager()->PointReachRadius();
+	const float radiusSq = radius * radius;
+	return distanceSq < radiusSq;
+}
+
+void UEnemyAggressionComponent::FindPathToClosestBuilding()
+{
+	AUnit* unit = GetOwner<AUnit>();
+	if ( !unit )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::FindPathToClosestBuilding: owner is not unit" ) );
+		return;
+	}
+
+	TargetBuilding_ = UnitAIManager_->TargetBuildingTracker()->FindClosestBuilding( unit );
+
+	const AGridManager* grid = nullptr;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		grid = core->GetGridManager();
+	}
+
+	if ( TargetBuilding_.IsValid() && grid )
+	{
+		UPath* path = NewObject<UPath>( unit );
+		path->Initialize(
+		    { unit->GetActorLocation(), TargetBuilding_->GetTargetLocation(), unit->Stats().AttackDamage(),
+		      unit->Stats().AttackCooldown(), grid->GetCellSize() / unit->Stats().MaxSpeed() }
+		);
+		path->CalculateOrUpdate();
+		if ( UnitAIManager_.IsValid() )
+		{
+			UnitAIManager_->PathPointsManager()->AddPathPoints( *path );
+		}
+
+		SetPath( path );
+		FollowPath();
+	}
+}
+
 void UEnemyAggressionComponent::TickComponent(
     float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
 )
 {
 	Super::TickComponent( deltaTime, tickType, thisTickFunction );
 
-	AUnit* unit = Cast<AUnit>( GetOwner() );
+	const AUnit* unit = GetOwner<AUnit>();
 	if ( !unit )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UUnitChooseTargetComponent::TickComponent: owner is not unit" ) );
 		return;
 	}
 
+	const TWeakObjectPtr<AActor> target = unit->FollowedTarget();
+	if ( target.IsValid() && target->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
+	{
+		FollowNextPathTarget();
+	}
+
 	if ( !TargetBuilding_.IsValid() || TargetBuilding_->IsDestroyed() )
 	{
-		TargetBuilding_ = UnitAIManager_->TargetBuildingTracker()->FindClosestBuilding( unit );
-
-		const AGridManager* grid = nullptr;
-		if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
-		{
-			grid = core->GetGridManager();
-		}
-
-		if ( TargetBuilding_.IsValid() && grid )
-		{
-			UPath* path = NewObject<UPath>( unit );
-			path->Initialize(
-			    { unit->GetActorLocation(), TargetBuilding_->GetTargetLocation(), unit->Stats().AttackDamage(),
-			      unit->Stats().AttackCooldown(), grid->GetCellSize() / unit->Stats().MaxSpeed() }
-			);
-			path->CalculateOrUpdate();
-			if ( UnitAIManager_.IsValid() )
-			{
-				UnitAIManager_->PathPointsManager()->AddPathPoints( *path );
-			}
-
-			unit->SetPath( path );
-			unit->FollowPath();
-		}
+		FindPathToClosestBuilding();
 	}
 }

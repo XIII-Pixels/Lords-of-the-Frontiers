@@ -61,22 +61,12 @@ public:
 
 	const TObjectPtr<UPath>& Path() const;
 
-	void SetFollowedTarget( AActor* newTarget );
-
-	void SetPath( UPath* path );
-
-	void AdvancePathPointIndex();
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
+	void SetFollowedTarget( TWeakObjectPtr<AActor> newTarget );
 
 	void ChangeStats( FEnemyBuff* buff );
 
 protected:
 	void OnDeath();
-
-	void FollowNextPathTarget();
-	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -101,11 +91,6 @@ protected:
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
-
-	UPROPERTY()
-	TObjectPtr<UPath> Path_;
-
-	int PathPointIndex_ = -1;
 
 	// Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
