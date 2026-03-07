@@ -48,14 +48,6 @@ public:
 
 	virtual void TakeDamage( int damage ) override;
 
-	void AdvancePathPointIndex();
-
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
-
-	void ChangeStats( FEnemyBuff* buff );
-
 	// Getters and setters
 
 	virtual FEntityStats& Stats() override;
@@ -67,10 +59,12 @@ public:
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
-	void SetFollowedTarget( AActor* newTarget );
 
 	const TObjectPtr<UPath>& Path() const;
-	void SetPath( UPath* path );
+
+	void SetFollowedTarget( TWeakObjectPtr<AActor> newTarget );
+
+	void ChangeStats( FEnemyBuff* buff );
 
 	TObjectPtr<USceneComponent> VisualMesh();
 
@@ -84,10 +78,6 @@ protected:
 	void FinalizeDestroy();
 
 	void ResolveVFXDefaults();
-
-	void FollowNextPathTarget();
-
-	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -121,11 +111,6 @@ protected:
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
-
-	UPROPERTY()
-	TObjectPtr<UPath> Path_;
-
-	int PathPointIndex_ = -1;
 
 	// Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )

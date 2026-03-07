@@ -79,12 +79,6 @@ void AUnit::BeginPlay()
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
-
-	if ( FollowedTarget_.IsValid() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) &&
-	     IsCloseToTarget() )
-	{
-		FollowNextPathTarget();
-	}
 }
 
 void AUnit::StartFollowing()
@@ -154,12 +148,8 @@ TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
 	return FollowedTarget_;
 }
 
-const TObjectPtr<UPath>& AUnit::Path() const
-{
-	return Path_;
-}
 
-void AUnit::SetFollowedTarget( AActor* followedTarget )
+void AUnit::SetFollowedTarget( TWeakObjectPtr<AActor> followedTarget )
 {
 	FollowedTarget_ = followedTarget;
 }
@@ -268,80 +258,6 @@ void AUnit::ResolveVFXDefaults()
 	}
 }
 
-void AUnit::FollowNextPathTarget()
-{
-	AdvancePathPointIndex();
-	FollowPath();
-}
-
-bool AUnit::IsCloseToTarget() const
-{
-	if ( !FollowedTarget_.IsValid() || !UnitAIManager_.IsValid() || !IsValid( UnitAIManager_->PathPointsManager() ) )
-	{
-		return false;
-	}
-
-	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	const float radius = UnitAIManager_->PathPointsManager()->PointReachRadius();
-	const float radiusSq = radius * radius;
-	return distanceSq < radiusSq;
-}
-
-void AUnit::SetPath( UPath* path )
-{
-	Path_ = path;
-	PathPointIndex_ = 0;
-}
-
-void AUnit::AdvancePathPointIndex()
-{
-	++PathPointIndex_;
-}
-
-void AUnit::SetPathPointIndex( int pathPointIndex )
-{
-	PathPointIndex_ = pathPointIndex;
-}
-
-void AUnit::FollowPath()
-{
-	if ( !Path_ )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid Path_. Cannot follow path" ) );
-		FollowedTarget_ = nullptr;
-		return;
-	}
-
-	if ( !UnitAIManager_.IsValid() )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid UnitAIManager_. Cannot follow path" ) );
-		FollowedTarget_ = nullptr;
-		return;
-	}
-
-	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
-	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
-	{
-		if ( UnitAIManager_->GoalActor.IsValid() )
-		{
-			FollowedTarget_ = UnitAIManager_->GoalActor;
-		}
-		else
-		{
-			UE_LOG( LogTemp, Error, TEXT( "Unit: PathPointIndex_ is out of range and no GoalActor specified" ) );
-			FollowedTarget_ = nullptr;
-		}
-	}
-	else
-	{
-		if ( IsValid( UnitAIManager_->PathPointsManager() ) )
-		{
-			FollowedTarget_ = UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
-		}
-	}
-
-	StartFollowing();
-}
 
 TObjectPtr<USceneComponent> AUnit::VisualMesh()
 {
