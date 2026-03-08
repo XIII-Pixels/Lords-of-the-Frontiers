@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Units/Unit.h"
-
 #include "Blueprint/UserWidget.h"
-#include "Components/HorizontalBox.h" 
 #include "CoreMinimal.h"
 
 #include "WaveInfoPanelWidget.generated.h"
 
-class UVerticalBox;
+class AUnit;
+class UHorizontalBox;
 class UEnemyInfoDataAsset;
 class UEnemyRowWidget;
 
@@ -18,12 +16,12 @@ class LORDS_FRONTIERS_API UWaveInfoPanelWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>& WaveData );
+	void PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>& waveData );
 
-	UFUNCTION( BlueprintImplementableEvent, Category = "UI|Animation" )
+	UFUNCTION( BlueprintImplementableEvent, Category = "UI|Animation|Settings" )
 	void PlaySlideInAnimation();
 
-	UFUNCTION( BlueprintImplementableEvent, Category = "UI|Animation" )
+	UFUNCTION( BlueprintImplementableEvent, Category = "UI|Animation|Settings" )
 	void PlaySlideOutAnimation();
 
 protected:

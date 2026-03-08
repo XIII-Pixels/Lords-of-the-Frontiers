@@ -14,7 +14,7 @@ class LORDS_FRONTIERS_API UEnemyRowWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void SetupRow( const FEnemyUIData& Data, int32 Count );
+	void SetupRow( const FEnemyUIData& data, int32 count );
 
 protected:
 	UPROPERTY( meta = ( BindWidget ) )

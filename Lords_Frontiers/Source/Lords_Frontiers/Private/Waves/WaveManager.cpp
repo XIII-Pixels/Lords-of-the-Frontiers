@@ -680,14 +680,14 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 	}
 }
 
-TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 TargetWaveIndex ) const
+TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targetWaveIndex ) const
 {
 	TMap<TSubclassOf<AUnit>, int32> enemyCounts;
 
-	if ( !Waves.IsValidIndex( TargetWaveIndex ) )
+	if ( !Waves.IsValidIndex( targetWaveIndex ) )
 		return enemyCounts;
 
-	const FWave& targetWave = Waves[TargetWaveIndex];
+	const FWave& targetWave = Waves[targetWaveIndex];
 
 	for ( const FEnemyGroup& group : targetWave.EnemyGroups )
 	{

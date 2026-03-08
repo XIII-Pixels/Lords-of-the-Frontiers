@@ -1,25 +1,26 @@
 #pragma once
 
-#include "Units/Unit.h"
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
 #include "EnemyInfoDataAsset.generated.h"
 
+class AUnit;
+
 USTRUCT( BlueprintType )
 struct FEnemyUIData
 {
 	GENERATED_BODY()
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI|Settings" )
 	FText EnemyName;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI|Settings" )
 	FText EnemyDescription;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI" )
-	UTexture2D* EnemyIcon;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI|Settings" )
+	TObjectPtr<UTexture2D> EnemyIcon;
 };
 
 UCLASS( BlueprintType )

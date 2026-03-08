@@ -183,6 +183,18 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
 	void ToggleWaveInfoPanel();
 
+	UPROPERTY( BlueprintReadOnly, Category = "Settings|UI|WaveInfo" )
+	bool bIsWavePanelOpen = false;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UImage> Img_WaveInfo_Red;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UImage> Img_WaveInfo_White;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UButton> Btn_ToggleWaveInfo;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -333,6 +345,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UWaveInfoPanelWidget> ActiveWavePanel;
 
-	UPROPERTY()
-	bool bIsWavePanelOpen = false;
+	void UpdateWaveInfoButtonVisuals();
+
+	UFUNCTION()
+	void OnWaveInfoButtonClicked();
 };

@@ -133,6 +133,11 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
+	
+	if ( Btn_ToggleWaveInfo )
+	{
+		Btn_ToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+	}
 
 	UpdateDayText();
 	UpdateStatusText();
@@ -144,6 +149,7 @@ void UGameHUDWidget::NativeConstruct()
 
 	UpdateResources();
 	UpdateAllBuildingButtons();
+	UpdateWaveInfoButtonVisuals();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -867,16 +873,14 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 	if ( !ActiveWavePanel )
 		return;
 
-	UCoreManager* core = UCoreManager::Get( this );
-	UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
-	AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
+	bIsWavePanelOpen = !bIsWavePanelOpen;
+
 	if ( bIsWavePanelOpen )
 	{
-		ActiveWavePanel->PlaySlideOutAnimation();
-		bIsWavePanelOpen = false;
-	}
-	else
-	{
+		UCoreManager* core = UCoreManager::Get( this );
+		UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
+		AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
+
 		if ( gameLoop && waveManager )
 		{
 			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
@@ -885,6 +889,31 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 		}
 
 		ActiveWavePanel->PlaySlideInAnimation();
-		bIsWavePanelOpen = true;
+	}
+	else
+	{
+		ActiveWavePanel->PlaySlideOutAnimation();
+	}
+	UpdateWaveInfoButtonVisuals();
+}
+
+void UGameHUDWidget::OnWaveInfoButtonClicked()
+{
+	ToggleWaveInfoPanel();
+}
+
+void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
+{
+	if ( Img_WaveInfo_Red )
+	{
+		Img_WaveInfo_Red->SetVisibility(
+		    bIsWavePanelOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
+		);
+	}
+	if ( Img_WaveInfo_White )
+	{
+		Img_WaveInfo_White->SetVisibility(
+		    bIsWavePanelOpen ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible
+		);
 	}
 }
