@@ -164,6 +164,10 @@ void UCardSubsystem::ApplySingleCard( UCardDataAsset* card, int32 waveNumber )
 
 	TArray<ABuilding*> buildings = GetAllBuildings();
 	ApplySingleCardInternal( card, waveNumber, buildings );
+
+	TArray<UCardDataAsset*> appliedList;
+	appliedList.Add( card );
+	OnCardsApplied.Broadcast( appliedList );
 }
 
 void UCardSubsystem::ApplySingleCardInternal(

@@ -12,6 +12,7 @@
 
 #include "Building.generated.h"
 
+class UEconomyComponent;
 class UBoxComponent;
 
 UCLASS( Abstract )
@@ -112,6 +113,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> DefaultMesh_;
+
+	UPROPERTY()
+	TObjectPtr<UEconomyComponent> EconomyComponent_;
 
 private:
 	FResourceProduction OriginalMaintenanceCost_;

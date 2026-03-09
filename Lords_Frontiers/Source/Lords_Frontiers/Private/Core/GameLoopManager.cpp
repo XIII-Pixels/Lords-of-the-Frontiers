@@ -312,7 +312,6 @@ void UGameLoopManager::UpdatePostProcessVolume( EGameLoopPhase phase )
 	TArray<AActor*> foundActors;
 	UGameplayStatics::GetAllActorsWithTag( world, FName( "PPV_Night" ), foundActors );
 
-
 	const bool bNight = !( phase == EGameLoopPhase::Building || phase == EGameLoopPhase::Startup );
 
 	for ( AActor* actor : foundActors )
@@ -468,6 +467,11 @@ void UGameLoopManager::EnterBuildingPhase()
 	OnBuildTurnChanged.Broadcast( CurrentBuildTurn_, GetMaxBuildTurns() );
 
 	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
+
+	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+	{
+		ec->RecalculateAndBroadcastNetIncome();
+	}
 }
 
 void UGameLoopManager::EnterCombatPhase()
@@ -826,6 +830,11 @@ void UGameLoopManager::ExecuteHealingPulse()
 		if ( UWorld* world = GetWorldSafe() )
 		{
 			world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
+		}
+
+		if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+		{
+			ec->RecalculateAndBroadcastNetIncome();
 		}
 	}
 }
