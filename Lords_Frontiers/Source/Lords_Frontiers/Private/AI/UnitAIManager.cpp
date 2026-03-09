@@ -9,14 +9,6 @@ AUnitAIManager::AUnitAIManager()
 {
 }
 
-void AUnitAIManager::OnPreWaveStart()
-{
-	if ( IsValid( TargetBuildingTracker_ ) )
-	{
-		TargetBuildingTracker_->ScanLevelForBuildings();
-	}
-}
-
 void AUnitAIManager::BeginPlay()
 {
 	Super::BeginPlay();
@@ -30,5 +22,13 @@ void AUnitAIManager::BeginPlay()
 	PathPointsManager_->SetPointReachRadius( PathPointReachRadius );
 
 	// TargetBuildingTracker settings
-	TargetBuildingTracker_->SetUnitClasses( UnitClasses );
+	TargetBuildingTracker_->Initialize();
+}
+
+void AUnitAIManager::OnPreWaveStart()
+{
+	if ( IsValid( TargetBuildingTracker_ ) )
+	{
+		TargetBuildingTracker_->ScanLevelForBuildings();
+	}
 }
