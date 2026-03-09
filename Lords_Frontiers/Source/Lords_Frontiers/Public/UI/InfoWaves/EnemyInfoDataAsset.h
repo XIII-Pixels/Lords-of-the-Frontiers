@@ -13,13 +13,13 @@ struct FEnemyUIData
 {
 	GENERATED_BODY()
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI|Settings" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	FText EnemyName;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI|Settings" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	FText EnemyDescription;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "UI|Settings" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	TObjectPtr<UTexture2D> EnemyIcon;
 };
 

@@ -134,9 +134,9 @@ void UGameHUDWidget::NativeConstruct()
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
 	
-	if ( Btn_ToggleWaveInfo )
+	if ( BtnToggleWaveInfo )
 	{
-		Btn_ToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
 
 	UpdateDayText();
@@ -186,6 +186,8 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	if ( BtnToggleWaveInfo )
+		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -904,15 +906,15 @@ void UGameHUDWidget::OnWaveInfoButtonClicked()
 
 void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
 {
-	if ( Img_WaveInfo_Red )
+	if ( ImgWaveInfoRed )
 	{
-		Img_WaveInfo_Red->SetVisibility(
+		ImgWaveInfoRed->SetVisibility(
 		    bIsWavePanelOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
 		);
 	}
-	if ( Img_WaveInfo_White )
+	if ( ImgWaveInfoWhite )
 	{
-		Img_WaveInfo_White->SetVisibility(
+		ImgWaveInfoWhite->SetVisibility(
 		    bIsWavePanelOpen ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible
 		);
 	}

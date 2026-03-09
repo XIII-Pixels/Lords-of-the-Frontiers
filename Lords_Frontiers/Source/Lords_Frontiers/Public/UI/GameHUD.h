@@ -187,13 +187,13 @@ public:
 	bool bIsWavePanelOpen = false;
 
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UImage> Img_WaveInfo_Red;
+	TObjectPtr<UImage> ImgWaveInfoRed;
 
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UImage> Img_WaveInfo_White;
+	TObjectPtr<UImage> ImgWaveInfoWhite;
 
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UButton> Btn_ToggleWaveInfo;
+	TObjectPtr<UButton> BtnToggleWaveInfo;
 
 protected:
 	virtual void NativeConstruct() override;

@@ -18,10 +18,10 @@ class LORDS_FRONTIERS_API UWaveInfoPanelWidget : public UUserWidget
 public:
 	void PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>& waveData );
 
-	UFUNCTION( BlueprintImplementableEvent, Category = "UI|Animation|Settings" )
+	UFUNCTION( BlueprintImplementableEvent, Category = "Settings|UI|Animation" )
 	void PlaySlideInAnimation();
 
-	UFUNCTION( BlueprintImplementableEvent, Category = "UI|Animation|Settings" )
+	UFUNCTION( BlueprintImplementableEvent, Category = "Settings|UI|Animation" )
 	void PlaySlideOutAnimation();
 
 protected:
