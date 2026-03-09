@@ -12,10 +12,6 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "Kismet/GameplayStatics.h"
 
-void UTargetBuildingTracker::OnBuildingDestroyed( ABuilding* building )
-{
-}
-
 void UTargetBuildingTracker::Initialize()
 {
 	FindUnitClasses();
@@ -33,12 +29,12 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 	TArray<AActor*> buildingActors;
 	UGameplayStatics::GetAllActorsOfClass( world, ABuilding::StaticClass(), buildingActors );
 
-	TWeakObjectPtr<AActor> goalActor = nullptr;
+	TWeakObjectPtr<const AActor> goalActor = nullptr;
 	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		if ( const AUnitAIManager* aiManager = cm->GetUnitAIManager() )
 		{
-			goalActor = aiManager->GoalActor;
+			goalActor = aiManager->GoalActor();
 		}
 	}
 
@@ -103,13 +99,13 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 	return false;
 }
 
-TWeakObjectPtr<ABuilding> UTargetBuildingTracker::GetDefaultTargetBuilding() const
+TWeakObjectPtr<const ABuilding> UTargetBuildingTracker::GetDefaultTargetBuilding() const
 {
 	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		if ( const AUnitAIManager* aiManager = cm->GetUnitAIManager() )
 		{
-			return Cast<ABuilding>( aiManager->GoalActor );
+			return Cast<const ABuilding>( aiManager->GoalActor().Get() );
 		}
 	}
 
@@ -120,7 +116,7 @@ TWeakObjectPtr<ABuilding> UTargetBuildingTracker::GetDefaultTargetBuilding() con
 	return nullptr;
 }
 
-TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUnit* unit ) const
+TWeakObjectPtr<const ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUnit* unit ) const
 {
 	if ( !IsValid( unit ) )
 	{
@@ -130,16 +126,16 @@ TWeakObjectPtr<ABuilding> UTargetBuildingTracker::FindClosestBuilding( const AUn
 		return GetDefaultTargetBuilding();
 	}
 
-	TWeakObjectPtr<ABuilding> closest = nullptr;
+	TWeakObjectPtr<const ABuilding> closest = nullptr;
 	float minDist = FLT_MAX;
 
 	// Tip for possible future optimization:
 	// Cache by grid square can be added (to avoid traversing through all buildings for each unit)
 	// Tip for further optimization: add same cache value to neighbour cells (warning: changes unit behavior)
-	const TSet<TWeakObjectPtr<ABuilding>>& buildings = TargetBuildings_.Contains( unit->GetClass() )
+	const TSet<TWeakObjectPtr<const ABuilding>>& buildings = TargetBuildings_.Contains( unit->GetClass() )
 	                                                       ? TargetBuildings_[unit->GetClass()].Buildings
-	                                                       : TSet<TWeakObjectPtr<ABuilding>>();
-	for ( const TWeakObjectPtr<ABuilding> building : buildings )
+	                                                       : TSet<TWeakObjectPtr<const ABuilding>>();
+	for ( const TWeakObjectPtr<const ABuilding> building : buildings )
 	{
 		if ( building.IsValid() && !building->IsDestroyed() )
 		{

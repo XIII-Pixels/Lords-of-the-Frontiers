@@ -112,7 +112,7 @@ protected:
 	FEntityStats Stats_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	TWeakObjectPtr<AActor> FollowedTarget_;
+	TWeakObjectPtr<const AActor> FollowedTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;

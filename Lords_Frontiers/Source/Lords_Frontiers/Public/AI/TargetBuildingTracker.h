@@ -15,7 +15,7 @@ struct FBuildingSet
 {
 	GENERATED_BODY()
 
-	TSet<TWeakObjectPtr<ABuilding>> Buildings;
+	TSet<TWeakObjectPtr<const ABuilding>> Buildings;
 };
 
 /** (Gregory-hub)
@@ -36,10 +36,7 @@ public:
 	void ScanLevelForBuildings();
 
 	// Finds closest building that unit can target
-	TWeakObjectPtr<ABuilding> FindClosestBuilding( const AUnit* unit ) const;
-
-	// Needs to be called when any building is destroyed
-	void OnBuildingDestroyed( ABuilding* building );
+	TWeakObjectPtr<const ABuilding> FindClosestBuilding( const AUnit* unit ) const;
 
 protected:
 	// Registers all AUnit subclasses
@@ -48,7 +45,7 @@ protected:
 
 	bool BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const;
 
-	TWeakObjectPtr<ABuilding> GetDefaultTargetBuilding() const;
+	TWeakObjectPtr<const ABuilding> GetDefaultTargetBuilding() const;
 
 	UPROPERTY()
 	TMap<TSubclassOf<AUnit>, FBuildingSet> TargetBuildings_;

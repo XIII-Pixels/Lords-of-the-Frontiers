@@ -54,7 +54,7 @@ protected:
 	TSet<TSoftClassPtr<ABuilding>> TargetBuildingClasses_;
 
 	UPROPERTY()
-	TWeakObjectPtr<ABuilding> TargetBuilding_;
+	TWeakObjectPtr<const ABuilding> TargetBuilding_;
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;

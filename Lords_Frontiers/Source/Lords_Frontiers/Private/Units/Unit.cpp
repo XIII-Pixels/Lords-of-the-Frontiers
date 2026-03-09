@@ -142,12 +142,12 @@ TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
 	return UnitBehaviorTree_;
 }
 
-TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
+TWeakObjectPtr<const AActor> AUnit::FollowedTarget() const
 {
 	return FollowedTarget_;
 }
 
-void AUnit::SetFollowedTarget( TWeakObjectPtr<AActor> followedTarget )
+void AUnit::SetFollowedTarget( TWeakObjectPtr<const AActor> followedTarget )
 {
 	FollowedTarget_ = followedTarget;
 }
