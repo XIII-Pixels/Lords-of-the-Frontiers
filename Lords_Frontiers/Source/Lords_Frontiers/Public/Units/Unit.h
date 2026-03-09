@@ -45,6 +45,8 @@ public:
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
+	void ChangeStats( FEnemyBuff* buff );
+
 	virtual void TakeDamage( int damage ) override;
 
 	void ChangeStats( FEnemyBuff* buff );
@@ -160,13 +162,6 @@ protected:
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
-
-	// Wobble
-	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
-	float SwaySpeed_ = 15.0f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
-	float SwayAmplitude_ = 10.0f;
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
