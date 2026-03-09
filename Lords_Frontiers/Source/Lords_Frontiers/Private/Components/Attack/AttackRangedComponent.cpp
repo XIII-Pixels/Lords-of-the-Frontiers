@@ -201,17 +201,22 @@ void UAttackRangedComponent::FireSingleProjectile( TObjectPtr<AActor> target )
 		return;
 	}
 
-	projectile->InitializeProjectile(
+	const bool bInitialized = projectile->InitializeProjectile(
 	    GetOwner(), target, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    OwnerEntity_->Stats().SplashRadius(), OwnerEntity_->Stats().AttackRange(), bDirectFire_
+	    OwnerEntity_->Stats().SplashRadius(), OwnerEntity_->Stats().AttackRange(), bTrackTarget_
 	);
+
+	if ( !bInitialized )
+	{
+		pool->ReturnProjectile( projectile );
+	}
 }
 
 TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 count ) const
 {
 	TArray<TObjectPtr<AActor>> result;
 	TArray<AActor*> overlappingActors;
-	SightSphere_->GetOverlappingActors( overlappingActors, APawn::StaticClass() );
+	SightSphere_->GetOverlappingActors( overlappingActors, AActor::StaticClass() );
 
 	struct FActorDistance
 	{

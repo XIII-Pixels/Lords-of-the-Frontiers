@@ -10,6 +10,7 @@
 
 class USphereComponent;
 
+inline const FVector PooledLocation{ 0.0f, 0.0f, -10000.0f };
 
 UENUM( BlueprintType )
 enum class EProjectileType : uint8
@@ -40,38 +41,37 @@ public:
 
 	virtual void Tick( float deltaTime ) override;
 
-	void InitializeProjectile(
-	    AActor* inInstigator, AActor* inTarget, float inDamage, float inSpeed,
+	bool InitializeProjectile(
+	    AActor* inInstigator, AActor* inTarget, int inDamage, float inSpeed,
 	    const FVector& spawnOffset = FVector::ZeroVector, float inSplashRadius = 0.f, float inMaxRange = 0.f,
 	    bool bTrackTarget = true
 	);
 
-	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	EProjectileType ProjectileType = EProjectileType::Arrow_Tower;
 
 protected:
-	UPROPERTY( VisibleAnywhere, Category = "Setting|Projectile" )
+	UPROPERTY( VisibleAnywhere, Category = "Settings|Projectile" )
 	TObjectPtr<USphereComponent> CollisionComp_;
 
 	UPROPERTY()
 	TObjectPtr<AActor> Target_;
 
-	float Damage_ = 0.0f;
+	float Damage_ = 0;
 	float Speed_ = 0.0f;
 	bool bIsActive_ = false;
 	float MaxRange_ = 0.0f;
 	float ArcScale_ = 1.0f;
-	float GroundZ_ = 30.0f;
+	float GroundZ_ = 0.0f;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	float MaxLifetime = 5.0f;
 
 	float SplashRadius_ = 0.0f;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	float ArcHeight_ = 150.0f;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Setting|Projectile" )
+	UPROPERTY()
 	bool bTrackTarget_ = true;
 
 	FVector StartLocation_;

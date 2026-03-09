@@ -11,7 +11,6 @@ void UProjectilePoolSubsystem::Initialize( FSubsystemCollectionBase& Collection 
 
 void UProjectilePoolSubsystem::Deinitialize()
 {
-	const int32 TotalPooled = Pools.Num();
 	Pools.Empty();
 	ActiveCounts.Empty();
 
@@ -74,14 +73,12 @@ void UProjectilePoolSubsystem::PreWarmPool( TSubclassOf<ABaseProjectile> project
 	FProjectilePool& pool = Pools.FindOrAdd( projectileClass );
 	pool.Projectiles.Reserve( pool.Projectiles.Num() + count );
 
-	int32 successCount = 0;
 	for ( int32 i = 0; i < count; ++i )
 	{
 		if ( ABaseProjectile* proj = CreateNewProjectile( projectileClass ) )
 		{
 			proj->DeactivateToPool();
 			pool.Projectiles.Add( proj );
-			successCount++;
 		}
 	}
 }
@@ -118,7 +115,6 @@ ABaseProjectile* UProjectilePoolSubsystem::CreateNewProjectile( TSubclassOf<ABas
 
 	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	return world->SpawnActor<ABaseProjectile>(
-	    projectileClass, FVector( 0.0f, 0.0f, -10000.0f ), FRotator::ZeroRotator, params
+	return world->SpawnActor<ABaseProjectile>( projectileClass, PooledLocation, FRotator::ZeroRotator, params
 	);
 }

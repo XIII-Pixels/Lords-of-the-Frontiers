@@ -2,7 +2,6 @@
 
 #include "Projectiles/BaseProjectile.h"
 
-#include "Core/Selection/SelectionManagerComponent.h"
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "DrawDebugHelpers.h"
 #include "Entity.h"
@@ -40,7 +39,7 @@ void ABaseProjectile::DeactivateToPool()
 
 	GetWorld()->GetTimerManager().ClearAllTimersForObject( this );
 
-	SetActorLocation( FVector( 0.0f, 0.0f, -10000.0f ) );
+	SetActorLocation( PooledLocation );
 
 	Target_ = nullptr;
 	SetInstigator( nullptr );
@@ -85,13 +84,19 @@ void ABaseProjectile::ActivateFromPool()
 	);
 }
 
-void ABaseProjectile::InitializeProjectile(
-    AActor* inInstigator, AActor* inTarget, float inDamage, float inSpeed, const FVector& spawnOffset,
+bool ABaseProjectile::InitializeProjectile(
+    AActor* inInstigator, AActor* inTarget, int inDamage, float inSpeed, const FVector& spawnOffset,
     float inSplashRadius, float inMaxRange, bool bTrackTarget
 )
 {
+
+	if ( !IsValid( inInstigator ) || !IsValid( inTarget ) )
+	{
+		return false;
+	}
+
 	Target_ = inTarget;
-	Damage_ = FMath::Max( inDamage, 0.0f );
+	Damage_ = FMath::Max( inDamage, 0 );
 	Speed_ = FMath::Max( inSpeed, 0.0f );
 	SplashRadius_ = FMath::Max( inSplashRadius, 0.f );
 	MaxRange_ = FMath::Max( inMaxRange, 0.0f );
@@ -101,10 +106,12 @@ void ABaseProjectile::InitializeProjectile(
 
 	FHitResult GroundHit;
 	const FVector TargetPos = inTarget->GetActorLocation();
+
 	FCollisionQueryParams GroundTraceParams;
 	GroundTraceParams.AddIgnoredActor( this );
 	GroundTraceParams.AddIgnoredActor( inInstigator );
 	GroundTraceParams.AddIgnoredActor( inTarget );
+
 	if ( GetWorld()->LineTraceSingleByChannel(
 	         GroundHit, TargetPos, TargetPos - FVector( 0, 0, 1000.f ), ECC_Visibility, GroundTraceParams
 	     ) )
@@ -122,6 +129,8 @@ void ABaseProjectile::InitializeProjectile(
 	SetActorLocationAndRotation( SpawnLocation, ToTarget.Rotation() );
 
 	ActivateFromPool();
+
+	return true;
 }
 
 void ABaseProjectile::Tick( float deltaTime )
@@ -257,6 +266,14 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 
 	for ( const FOverlapResult& overlap : overlaps )
 	{
+		if ( const auto* comp = overlap.GetComponent() )
+		{
+			if ( comp->GetCollisionObjectType() != ECC_Entity )
+			{
+				continue;
+			}
+		}
+
 		AActor* overlapActor = overlap.GetActor();
 		if ( !overlapActor )
 		{
@@ -265,13 +282,6 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 
 		if ( damagedActors.Contains( overlapActor ) )
 		{
-			continue;
-		}
-
-		float distSq = FVector::DistSquared( GetActorLocation(), overlapActor->GetActorLocation() );
-		if ( distSq > SplashRadius_ * SplashRadius_ )
-		{
-			UE_LOG( LogTemp, Warning, TEXT( "distSq > SplashRadius_ * SplashRadius_" ) );
 			continue;
 		}
 

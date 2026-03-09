@@ -34,7 +34,7 @@ public:
 
 	virtual ETeam Team() override;
 
-	virtual void TakeDamage( float damage ) override;
+	virtual void TakeDamage( int damage ) override;
 
 	virtual void OnSelected_Implementation() override;
 

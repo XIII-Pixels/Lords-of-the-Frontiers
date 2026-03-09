@@ -68,7 +68,7 @@ protected:
 	FVector ProjectileSpawnPosition_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	bool bDirectFire_ = true;
+	bool bTrackTarget_ = true;
 
 	TObjectPtr<USphereComponent> SightSphere_;
 
