@@ -45,9 +45,6 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	float PathPointReachRadius = 200.0f;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|BuildingTracker" )
-	TSet<TSubclassOf<AUnit>> UnitClasses;
-
 protected:
 	virtual void BeginPlay() override;
 

@@ -7,7 +7,7 @@
 #include "MainBase.generated.h"
 
 // The main building of the player. Loss of this building leads to defeat.
-UCLASS()
+UCLASS( Abstract )
 class LORDS_FRONTIERS_API AMainBase : public AResourceBuilding
 {
 	GENERATED_BODY()

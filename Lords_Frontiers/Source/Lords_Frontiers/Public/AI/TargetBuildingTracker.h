@@ -29,6 +29,8 @@ class LORDS_FRONTIERS_API UTargetBuildingTracker : public UObject
 	GENERATED_BODY()
 
 public:
+	void Initialize();
+
 	// Scans level for all buildings that can be attacked by each unit types
 	// Puts buildings into PriorityBuildings_
 	void ScanLevelForBuildings();
@@ -39,15 +41,11 @@ public:
 	// Needs to be called when any building is destroyed
 	void OnBuildingDestroyed( ABuilding* building );
 
-	void SetUnitClasses( const TSet<TSubclassOf<AUnit>>& unitClasses )
-	{
-		for ( const auto& unitClass : unitClasses )
-		{
-			TargetBuildings_.FindOrAdd( unitClass );
-		}
-	}
-
 protected:
+	// Registers all AUnit subclasses
+	// Needs to be called before searching for building
+	void FindUnitClasses();
+
 	bool BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const;
 
 	TWeakObjectPtr<ABuilding> GetDefaultTargetBuilding() const;
