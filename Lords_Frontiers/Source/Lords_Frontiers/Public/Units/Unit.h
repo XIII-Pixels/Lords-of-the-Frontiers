@@ -58,9 +58,9 @@ public:
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
-	TWeakObjectPtr<AActor> FollowedTarget() const;
+	TWeakObjectPtr<const AActor> FollowedTarget() const;
 
-	void SetFollowedTarget( TWeakObjectPtr<AActor> newTarget );
+	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget );
 
 	void ChangeStats( FEnemyBuff* buff );
 
@@ -96,7 +96,7 @@ protected:
 	FEntityStats Stats_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	TWeakObjectPtr<AActor> FollowedTarget_;
+	TWeakObjectPtr<const AActor> FollowedTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;

@@ -25,6 +25,10 @@ void UEnemyAggressionComponent::BeginPlay()
 	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		UnitAIManager_ = cm->GetUnitAIManager();
+		if ( !UnitAIManager_.IsValid() )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::BeginPlay: UnitAIManager_ is not valid" ) );
+		}
 	}
 }
 
@@ -41,7 +45,7 @@ void UEnemyAggressionComponent::TickComponent(
 		return;
 	}
 
-	const TWeakObjectPtr<AActor> target = unit->FollowedTarget();
+	const TWeakObjectPtr<const AActor> target = unit->FollowedTarget();
 	if ( target.IsValid() && target->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
 	{
 		FollowNextPathTarget();
@@ -98,9 +102,9 @@ void UEnemyAggressionComponent::FollowPath() const
 		{
 			unit->SetFollowedTarget( TargetBuilding_ );
 		}
-		else if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor.IsValid() )
+		else if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor().IsValid() )
 		{
-			unit->SetFollowedTarget( UnitAIManager_->GoalActor );
+			unit->SetFollowedTarget( UnitAIManager_->GoalActor() );
 		}
 		else
 		{
@@ -152,6 +156,14 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 	if ( !unit )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::FindPathToClosestBuilding: owner is not unit" ) );
+		return;
+	}
+
+	if ( !UnitAIManager_.IsValid() )
+	{
+		UE_LOG(
+		    LogTemp, Error, TEXT( "UEnemyAggressionComponent::FindPathToClosestBuilding: UnitAIManager is not valid" )
+		);
 		return;
 	}
 
