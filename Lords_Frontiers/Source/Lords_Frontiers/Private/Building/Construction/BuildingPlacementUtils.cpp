@@ -28,7 +28,6 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 1) ������� ���� �� ������.
 	float screenX = 0.0f;
 	float screenY = 0.0f;
 	if ( !playerController->GetMousePosition( screenX, screenY ) )
@@ -36,7 +35,6 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 2) ����������� � ��� � ����.
 	FVector worldOrigin;
 	FVector worldDirection;
 	if ( !playerController->DeprojectScreenPositionToWorld( screenX, screenY, worldOrigin, worldDirection ) )
@@ -50,27 +48,23 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 		return result;
 	}
 
-	// 3) ��������� �����: Z = GridOrigin.Z (����� ��������������).
 	const FVector gridOrigin = gridManager->GetActorLocation();
 	const float planeZ = gridOrigin.Z;
 
 	const float dirZ = worldDirection.Z;
 	if ( FMath::IsNearlyZero( dirZ ) )
 	{
-		// ��� ����� ���������� ���������.
 		return result;
 	}
 
 	const float t = ( planeZ - worldOrigin.Z ) / dirZ;
 	if ( t <= 0.0f )
 	{
-		// ����������� ������ ������.
 		return result;
 	}
 
 	const FVector hitPoint = worldOrigin + worldDirection * t;
 
-	// 4) ��������� ����� � ���������� �����.
 	const float cellSize = gridManager->GetCellSize();
 	if ( cellSize <= KINDA_SMALL_NUMBER )
 	{
@@ -91,8 +85,6 @@ FBuildingPlacementResult BuildingPlacementUtils::FindCellUnderCursor(
 
 	const FIntPoint cellCoords( gridX, gridY );
 
-	// 5) ����� ������ ���� �� �������������, ����� ��������� � ������������
-	// ������.
 	FVector cellWorldLocation;
 	if ( !gridVisualizer->GetCellWorldCenter( cellCoords, cellWorldLocation ) )
 	{
@@ -119,7 +111,6 @@ bool BuildingPlacementUtils::CanBuildAtCell( const AGridManager* gridManager, co
 		return false;
 	}
 
-	// ������ ������� �� �������������� ��� ��� ������� ������.
 	if ( !cell->bIsBuildable || cell->bIsOccupied )
 	{
 		return false;
@@ -155,10 +146,8 @@ ABuilding* BuildingPlacementUtils::PlaceBuilding(
 		return nullptr;
 	}
 
-	// ��� ������� � ������ ��������� ���� � ������ ������.
 	DrawDebugBox( world, worldLocation, FVector( 15.0f, 15.0f, 15.0f ), FColor::Cyan, false, 2.0f );
 
-	// �������� ������ �������.
 	FGridCell* cell = gridManager->GetCell( cellCoords.X, cellCoords.Y );
 	if ( cell )
 	{

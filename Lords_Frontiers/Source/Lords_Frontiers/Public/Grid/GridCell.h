@@ -46,6 +46,11 @@ struct FGridCell
 		GridCoords.Y = y;
 	}
 
+	FIntPoint GetXY() const
+	{
+		return GridCoords;
+	}
+
 	FORCEINLINE int32 GetX() const
 	{
 		return GridCoords.X;

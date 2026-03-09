@@ -93,6 +93,54 @@ void FEntityStats::SetMaxSpeed( float maxSpeed )
 	MaxSpeed_ = FMath::Max( maxSpeed, 0.0f );
 }
 
+void FEntityStats::AddStat( EStatsType statType, float value )
+{
+	switch ( statType )
+	{
+	case EStatsType::MaxHealth:
+		AddMaxHealth( FMath::FloorToInt( value ) );
+		break;
+	case EStatsType::AttackRange:
+		AddAttackRange( value );
+		break;
+	case EStatsType::AttackDamage:
+		AddAttackDamage( FMath::FloorToInt( value ) );
+		break;
+	case EStatsType::AttackCooldown:
+		AddAttackCooldown( value );
+		break;
+	case EStatsType::MaxSpeed:
+		break;
+	default:
+		break;
+	}
+}
+
+void FEntityStats::AddMaxHealth( int maxHealth )
+{
+	SetMaxHealth( MaxHealth_ + maxHealth );
+}
+
+void FEntityStats::AddAttackRange( float attackRange )
+{
+	SetAttackRange( AttackRange_ + attackRange );
+}
+
+void FEntityStats::AddAttackDamage( int attackDamage )
+{
+	SetAttackDamage( AttackDamage_ + attackDamage );
+}
+
+void FEntityStats::AddAttackCooldown( float attackCooldown )
+{
+	SetAttackCooldown( AttackCooldown_ + attackCooldown );
+}
+
+void FEntityStats::AddMaxSpeed( float maxSpeed )
+{
+	SetMaxSpeed( MaxSpeed_ + maxSpeed );
+}
+
 int FEntityStats::ApplyDamage( int damage )
 {
 	if ( damage <= 0 || Health_ <= 0 )

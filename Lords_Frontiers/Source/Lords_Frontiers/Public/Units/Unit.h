@@ -47,6 +47,14 @@ public:
 
 	virtual void TakeDamage( float damage ) override;
 
+	void AdvancePathPointIndex();
+
+	void SetPathPointIndex( int pathPointIndex );
+
+	void FollowPath();
+
+	void ChangeStats( FEnemyBuff* buff );
+
 	// Getters and setters
 
 	virtual FEntityStats& Stats() override;
@@ -61,10 +69,14 @@ public:
 
 	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget );
 
-	void ChangeStats( FEnemyBuff* buff );
+	TObjectPtr<USceneComponent> VisualMesh();
 
 protected:
 	void OnDeath();
+
+	void FollowNextPathTarget();
+
+	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -103,4 +115,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
+
+	int PathPointIndex_ = -1;
 };

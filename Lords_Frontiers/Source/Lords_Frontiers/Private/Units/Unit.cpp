@@ -65,32 +65,12 @@ void AUnit::BeginPlay()
 		UnitAIManager_ = core->GetUnitAIManager();
 	}
 
-	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 6.28f );
-
 	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
 }
 
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
-
-	if ( VisualMesh_ )
-	{
-		float targetRoll = 0.0f;
-
-		if ( GetVelocity().Size() > 10.0f )
-		{
-			float time = GetWorld()->GetTimeSeconds();
-			targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
-		}
-
-		CurrentSwayRoll_ = FMath::FInterpTo( CurrentSwayRoll_, targetRoll, deltaSeconds, 10.0f );
-
-		FRotator currentRot = VisualMesh_->GetRelativeRotation();
-		currentRot.Pitch = CurrentSwayRoll_;
-		currentRot.Roll = 0.0f;
-		VisualMesh_->SetRelativeRotation( currentRot );
-	}
 }
 
 void AUnit::StartFollowing() const
@@ -180,6 +160,16 @@ void AUnit::OnDeath()
 	}
 
 	Destroy();
+}
+
+void AUnit::SetFollowedTarget( AActor* newTarget )
+{
+	FollowedTarget_ = newTarget;
+}
+
+TObjectPtr<USceneComponent> AUnit::VisualMesh()
+{
+	return VisualMesh_;
 }
 
 void AUnit::ChangeStats( FEnemyBuff* buff )

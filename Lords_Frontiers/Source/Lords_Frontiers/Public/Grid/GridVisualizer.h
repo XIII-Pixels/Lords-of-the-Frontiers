@@ -37,9 +37,11 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Grid" )
 	bool GetCellWorldCenter( const FIntPoint& cellCoords, FVector& outLocation ) const;
 
+	void ShowBonusHighlight( const TArray<FIntPoint>& cells, UMaterialInterface* material );
+	void HideBonusHighlight();
+
 protected:
 	virtual void BeginPlay() override;
-
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	TObjectPtr<AGridManager> GridManager_ = nullptr;
 
@@ -57,6 +59,9 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	float MeshScale_ = 0.48f;
+
+	UPROPERTY()
+	TObjectPtr<UInstancedStaticMeshComponent> BonusHighlightMesh_;
 
 private:
 	void RefreshGrid();
