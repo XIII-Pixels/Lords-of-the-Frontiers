@@ -162,11 +162,6 @@ void AUnit::OnDeath()
 	Destroy();
 }
 
-void AUnit::SetFollowedTarget( AActor* newTarget )
-{
-	FollowedTarget_ = newTarget;
-}
-
 TObjectPtr<USceneComponent> AUnit::VisualMesh()
 {
 	return VisualMesh_;

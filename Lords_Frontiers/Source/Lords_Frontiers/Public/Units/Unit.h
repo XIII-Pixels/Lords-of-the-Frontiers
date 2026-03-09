@@ -47,12 +47,6 @@ public:
 
 	virtual void TakeDamage( float damage ) override;
 
-	void AdvancePathPointIndex();
-
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
-
 	void ChangeStats( FEnemyBuff* buff );
 
 	// Getters and setters
@@ -73,10 +67,6 @@ public:
 
 protected:
 	void OnDeath();
-
-	void FollowNextPathTarget();
-
-	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -102,19 +92,6 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
-	// Wobble
-	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
-	float SwaySpeed_ = 15.0f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
-	float SwayAmplitude_ = 10.0f;
-
-	float SwayPhaseOffset_ = 0.0f;
-
-	float CurrentSwayRoll_ = 0.0f;
-
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
-
-	int PathPointIndex_ = -1;
 };
