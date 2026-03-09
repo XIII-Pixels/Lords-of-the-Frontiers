@@ -47,6 +47,8 @@ void UGameLoopManager::Initialize(
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
 		BindToWaveManager();
+		WaveManager_->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsInitialized_ = ResourceManager_.IsValid();
@@ -782,6 +784,7 @@ void UGameLoopManager::UnbindFromWaveManager()
 	{
 		wm->OnWaveEnded.RemoveDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.RemoveDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.RemoveDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsBoundToWaveManager_ = false;
@@ -828,4 +831,15 @@ void UGameLoopManager::ExecuteHealingPulse()
 			world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
 		}
 	}
+}
+void UGameLoopManager::HandleWaveEndScheduled( float secondsRemaining )
+{
+	if ( GetWorld() )
+	{
+		GetWorld()->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
+	}
+
+	CombatTimeRemaining_ = secondsRemaining;
+
+	OnCombatTimerUpdated.Broadcast( CombatTimeRemaining_, CombatTimeRemaining_ );
 }
