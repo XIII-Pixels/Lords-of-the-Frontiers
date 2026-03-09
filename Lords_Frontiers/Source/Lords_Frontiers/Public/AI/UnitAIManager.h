@@ -36,17 +36,37 @@ public:
 		return TargetBuildingTracker_;
 	}
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	TWeakObjectPtr<AActor> GoalActor;
+	TWeakObjectPtr<const AActor> GoalActor() const
+	{
+		return GoalActor_;
+	}
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	TSubclassOf<APathTargetPoint> PathPointClass;
+	TSubclassOf<const APathTargetPoint> PathPointClass() const
+	{
+		return PathPointClass_;
+	}
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	float PathPointReachRadius = 200.0f;
+	float PathPointReachRadius() const
+	{
+		return PathPointReachRadius_;
+	}
 
 protected:
 	virtual void BeginPlay() override;
+
+	void FindGoalActor();
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path", meta = ( AllowAbstract = "true" ) )
+	TSubclassOf<AActor> GoalActorClass_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	TSubclassOf<APathTargetPoint> PathPointClass_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	float PathPointReachRadius_ = 200.0f;
+
+	UPROPERTY()
+	TWeakObjectPtr<AActor> GoalActor_;
 
 	UPROPERTY()
 	TObjectPtr<UPathPointsManager> PathPointsManager_;
