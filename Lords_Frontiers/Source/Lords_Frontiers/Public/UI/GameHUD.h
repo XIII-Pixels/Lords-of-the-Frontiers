@@ -186,6 +186,11 @@ public:
 	UPROPERTY( BlueprintReadOnly, Category = "Settings|UI|WaveInfo" )
 	bool bIsWavePanelOpen = false;
 
+	bool bIsWavePanelAnimating = false;
+	FTimerHandle WavePanelAnimationTimerHandle;
+
+	void UnlockWaveInfoButton();
+
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UImage> ImgWaveInfoRed;
 
