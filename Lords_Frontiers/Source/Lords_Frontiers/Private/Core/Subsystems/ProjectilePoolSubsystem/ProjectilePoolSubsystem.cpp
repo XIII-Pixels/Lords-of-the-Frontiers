@@ -4,9 +4,9 @@
 
 #include "Projectiles/BaseProjectile.h"
 
-void UProjectilePoolSubsystem::Initialize( FSubsystemCollectionBase& Collection )
+void UProjectilePoolSubsystem::Initialize( FSubsystemCollectionBase& collection )
 {
-	Super::Initialize( Collection );
+	Super::Initialize( collection );
 }
 
 void UProjectilePoolSubsystem::Deinitialize()

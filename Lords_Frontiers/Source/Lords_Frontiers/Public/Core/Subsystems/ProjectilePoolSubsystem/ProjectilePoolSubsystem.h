@@ -40,23 +40,23 @@ class LORDS_FRONTIERS_API UProjectilePoolSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
-	virtual void Initialize( FSubsystemCollectionBase& Collection ) override;
+	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
-	ABaseProjectile* AcquireProjectile( TSubclassOf<ABaseProjectile> ProjectileClass );
+	ABaseProjectile* AcquireProjectile( TSubclassOf<ABaseProjectile> projectileClass );
 
-	void ReturnProjectile( ABaseProjectile* Projectile );
+	void ReturnProjectile( ABaseProjectile* projectile );
 
-	void PreWarmPool( TSubclassOf<ABaseProjectile> ProjectileClass, int32 Conut );
+	void PreWarmPool( TSubclassOf<ABaseProjectile> projectileClass, int32 conut );
 
-	void PreWarmPools( const TArray<FPoolWarmupConfig>& Configs );
+	void PreWarmPools( const TArray<FPoolWarmupConfig>& Cconfigs );
 
-	int32 GetActiveCount( TSubclassOf<ABaseProjectile> ProjectileClass ) const;
+	int32 GetActiveCount( TSubclassOf<ABaseProjectile> projectileClass ) const;
 
-	int32 GetPooledCount( TSubclassOf<ABaseProjectile> ProjectileClass ) const;
+	int32 GetPooledCount( TSubclassOf<ABaseProjectile> projectileClass ) const;
 
 private:
-	ABaseProjectile* CreateNewProjectile( TSubclassOf<ABaseProjectile> ProjectileClass );
+	ABaseProjectile* CreateNewProjectile( TSubclassOf<ABaseProjectile> projectileClass );
 
 	UPROPERTY()
 	TMap<TSubclassOf<ABaseProjectile>, FProjectilePool> Pools;
