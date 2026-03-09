@@ -48,12 +48,6 @@ public:
 
 	virtual void TakeDamage( int damage ) override;
 
-	void AdvancePathPointIndex();
-
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
-
 	void ChangeStats( FEnemyBuff* buff );
 
 	// Getters and setters
