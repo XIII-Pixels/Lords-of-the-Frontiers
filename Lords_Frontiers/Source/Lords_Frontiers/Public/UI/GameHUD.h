@@ -6,6 +6,7 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
+#include "UI/InfoWaves/WaveInfoPanelWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -179,6 +180,25 @@ public:
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
+	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
+	void ToggleWaveInfoPanel();
+
+	UPROPERTY( BlueprintReadOnly, Category = "Settings|UI|WaveInfo" )
+	bool bIsWavePanelOpen = false;
+
+	bool bIsWavePanelAnimating = false;
+	FTimerHandle WavePanelAnimationTimerHandle;
+
+	void UnlockWaveInfoButton();
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UImage> ImgWaveInfoRed;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UImage> ImgWaveInfoWhite;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UButton> BtnToggleWaveInfo;
 
 protected:
 	virtual void NativeConstruct() override;
@@ -323,4 +343,15 @@ protected:
 	UFUNCTION() void ShowTooltipInternal();
 
 	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
+	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;
+
+	UPROPERTY()
+	TObjectPtr<UWaveInfoPanelWidget> ActiveWavePanel;
+
+	void UpdateWaveInfoButtonVisuals();
+
+	UFUNCTION()
+	void OnWaveInfoButtonClicked();
 };

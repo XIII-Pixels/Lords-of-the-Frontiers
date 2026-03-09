@@ -94,7 +94,7 @@ ETeam ABuilding::Team()
 	return Stats_.Team();
 }
 
-void ABuilding::TakeDamage( float damage )
+void ABuilding::TakeDamage( int damage )
 {
 	if ( !Stats_.IsAlive() )
 	{

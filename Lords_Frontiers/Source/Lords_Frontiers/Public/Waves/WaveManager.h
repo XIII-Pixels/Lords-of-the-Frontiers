@@ -115,6 +115,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnWaveEndScheduled OnWaveEndScheduled;
+  
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
+	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
 protected:
 	virtual void BeginPlay() override;

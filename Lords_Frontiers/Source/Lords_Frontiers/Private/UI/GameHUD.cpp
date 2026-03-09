@@ -133,6 +133,11 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
+	
+	if ( BtnToggleWaveInfo )
+	{
+		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+	}
 
 	UpdateDayText();
 	UpdateStatusText();
@@ -144,6 +149,7 @@ void UGameHUDWidget::NativeConstruct()
 
 	UpdateResources();
 	UpdateAllBuildingButtons();
+	UpdateWaveInfoButtonVisuals();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -180,6 +186,8 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	if ( BtnToggleWaveInfo )
+		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -201,6 +209,11 @@ void UGameHUDWidget::NativeDestruct()
 		{
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
+	}
+
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( WavePanelAnimationTimerHandle );
 	}
 
 	Super::NativeDestruct();
@@ -233,6 +246,7 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
+
 
 	if ( TextTimer )
 	{
@@ -847,4 +861,89 @@ void UGameHUDWidget::ShowTooltipInternal()
 
 		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
 	}
+}
+
+void UGameHUDWidget::ToggleWaveInfoPanel()
+{
+	if ( !WavePanelClass )
+	{
+		return;
+	}
+		
+	if ( bIsWavePanelAnimating )
+	{
+		return;
+	}
+		
+	if ( !ActiveWavePanel )
+	{
+		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
+		if ( ActiveWavePanel )
+		{
+			ActiveWavePanel->AddToViewport( 0 );
+		}
+	}
+
+	if ( !ActiveWavePanel )
+	{
+		return;
+	}
+
+	bIsWavePanelAnimating = true;
+
+	GetWorld()->GetTimerManager().SetTimer(
+	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton,
+	    0.3f,
+	    false
+	);
+
+	bIsWavePanelOpen = !bIsWavePanelOpen;
+
+	if ( bIsWavePanelOpen )
+	{
+		UCoreManager* core = UCoreManager::Get( this );
+		UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
+		AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
+
+		if ( gameLoop && waveManager )
+		{
+			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
+			TMap<TSubclassOf<AUnit>, int32> waveData = waveManager->GetNextWaveComposition( waveIndex );
+			ActiveWavePanel->PopulatePanel( waveData );
+		}
+
+		ActiveWavePanel->PlaySlideInAnimation();
+	}
+	else
+	{
+		ActiveWavePanel->PlaySlideOutAnimation();
+	}
+
+	UpdateWaveInfoButtonVisuals();
+}
+
+void UGameHUDWidget::OnWaveInfoButtonClicked()
+{
+	ToggleWaveInfoPanel();
+}
+
+void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
+{
+	if ( ImgWaveInfoRed )
+	{
+		ImgWaveInfoRed->SetVisibility(
+		    bIsWavePanelOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
+		);
+	}
+	if ( ImgWaveInfoWhite )
+	{
+		ImgWaveInfoWhite->SetVisibility(
+		    bIsWavePanelOpen ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible
+		);
+	}
+}
+
+void UGameHUDWidget::UnlockWaveInfoButton()
+{
+	bIsWavePanelAnimating = false;
 }
