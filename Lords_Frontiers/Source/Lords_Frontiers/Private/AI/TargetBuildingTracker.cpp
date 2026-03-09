@@ -16,6 +16,11 @@ void UTargetBuildingTracker::OnBuildingDestroyed( ABuilding* building )
 {
 }
 
+void UTargetBuildingTracker::Initialize()
+{
+	FindUnitClasses();
+}
+
 void UTargetBuildingTracker::ScanLevelForBuildings()
 {
 	const UWorld* world = GetWorld();
@@ -52,6 +57,17 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 				}
 			}
 		}
+	}
+}
+
+void UTargetBuildingTracker::FindUnitClasses()
+{
+	TArray<UClass*> outClasses;
+	GetDerivedClasses( AUnit::StaticClass(), outClasses, true );
+
+	for ( auto* c : outClasses )
+	{
+		TargetBuildings_.FindOrAdd( c );
 	}
 }
 
