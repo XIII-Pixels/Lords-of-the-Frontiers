@@ -75,9 +75,9 @@ public:
 		return FollowedTarget_;
 	}
 
-	TWeakObjectPtr<AActor> FollowedTarget() const;
+	TWeakObjectPtr<const AActor> FollowedTarget() const;
 
-	void SetFollowedTarget( TWeakObjectPtr<AActor> newTarget );
+	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget );
 
 	void ChangeStats( FEnemyBuff* buff );
 

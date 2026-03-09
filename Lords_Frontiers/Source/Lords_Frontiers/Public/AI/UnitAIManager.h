@@ -59,6 +59,20 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	void FindGoalActor();
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path", meta = ( AllowAbstract = "true" ) )
+	TSubclassOf<AActor> GoalActorClass_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	TSubclassOf<APathTargetPoint> PathPointClass_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	float PathPointReachRadius_ = 200.0f;
+
+	UPROPERTY()
+	TWeakObjectPtr<AActor> GoalActor_;
+
 	UPROPERTY()
 	TObjectPtr<UPathPointsManager> PathPointsManager_;
 
