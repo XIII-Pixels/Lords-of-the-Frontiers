@@ -71,3 +71,23 @@ void ADefensiveBuilding::OnDeath()
 		AttackComponent_->DeactivateSight();
 	}
 }
+
+void ADefensiveBuilding::RestoreFromRuins()
+{
+	Super::RestoreFromRuins();
+
+	if ( AttackComponent_ )
+	{
+		AttackComponent_->ActivateSight();
+	}
+}
+
+void ADefensiveBuilding::FullRestore()
+{
+	Super::FullRestore();
+
+	if ( AttackComponent_ )
+	{
+		AttackComponent_->ActivateSight();
+	}
+}

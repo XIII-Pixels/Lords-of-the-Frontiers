@@ -63,5 +63,5 @@ protected:
 
 public:
 	/** Implement IAttackable::TakeDamage - called when this unit is attacked */
-	virtual void TakeDamage( float DamageAmount ) override;
+	virtual void TakeDamage( int DamageAmount ) override;
 };

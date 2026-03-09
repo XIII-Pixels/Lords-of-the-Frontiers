@@ -18,7 +18,17 @@ enum class EStatsType : uint8
 	AttackRange,
 	AttackDamage,
 	AttackCooldown,
-	MaxSpeed
+	MaxSpeed,
+	SplashRadius,
+	BurstCount,
+	BurstDelay
+};
+
+UENUM( BlueprintType )
+enum class EBurstTargetMode : uint8
+{
+	SameTarget UMETA( DisplayName = "Same Target" ),
+	Neighbors UMETA( DisplayName = "Neighboring Enemies" )
 };
 
 // (Artyom)
@@ -47,6 +57,13 @@ struct FEntityStats
 
 	ETeam Team() const;
 
+	float SplashRadius() const;
+
+	int32 BurstCount() const;
+
+	float BurstDelay() const;
+
+	EBurstTargetMode BurstTargetMode() const;
 	// setters
 	void SetMaxHealth( int maxHealth ); // min = 1
 
@@ -62,6 +79,15 @@ struct FEntityStats
 
 	void SetTeam( ETeam team );
 
+	void SetSplashRadius( float splashRadius );
+
+	void SetBurstCount( int32 burstCount );
+
+	void SetBurstDelay( float burstDelay );
+
+	void SetBurstTargetMode( EBurstTargetMode burstTargetMode );
+
+	void AddSplashRadius( float splashRadius );
 
 	void AddStat( EStatsType statType, float value );
 
@@ -74,6 +100,10 @@ struct FEntityStats
 	void AddAttackCooldown( float attackCooldown );
 
 	void AddMaxSpeed( float maxSpeed );
+
+	void AddBurstCount( int32 burstCount );
+
+	void AddBurstDelay( float burstDelay );
 
 	// returns applied damage
 	int ApplyDamage( int damage );
@@ -99,17 +129,29 @@ private:
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings|Stats" )
 	int Health_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
 	float AttackRange_ = 200.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
 	int AttackDamage_ = 10;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
 	float AttackCooldown_ = 1.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	float MaxSpeed_ = 300.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
+	float SplashRadius_ = 0.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( ClampMin = "1", ClampMax = "10" ) )
+	int32 BurstCount_ = 1;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( ClampMin = "0.05" ) )
+	float BurstDelay_ = 0.15f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
+	EBurstTargetMode BurstTargetMode_ = EBurstTargetMode::SameTarget;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	ETeam Team_;
