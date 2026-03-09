@@ -21,6 +21,11 @@ void UTargetBuildingTracker::OnBuildingDestroyed( ABuilding* building )
 {
 }
 
+void UTargetBuildingTracker::Initialize()
+{
+	FindUnitClasses();
+}
+
 void UTargetBuildingTracker::ScanLevelForBuildings()
 {
 	const UWorld* world = GetWorld();
