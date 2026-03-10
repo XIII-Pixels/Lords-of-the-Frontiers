@@ -22,34 +22,42 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 	const UWorld* world = GetWorld();
 	if ( !world )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "UChooseAttackTargetComponent: world not found" ) );
+		UE_LOG( LogTemp, Error, TEXT( "UTargetBuildingTracker::ScanLevelForBuildings: world not found" ) );
 		return;
 	}
 
 	TArray<AActor*> buildingActors;
 	UGameplayStatics::GetAllActorsOfClass( world, ABuilding::StaticClass(), buildingActors );
 
-	TWeakObjectPtr<const AActor> goalActor = nullptr;
+	// Set goal actor to all unit classes
 	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		if ( const AUnitAIManager* aiManager = cm->GetUnitAIManager() )
 		{
-			goalActor = aiManager->GoalActor();
+			TWeakObjectPtr<const AActor> goalActor = aiManager->GoalActor();
+			if ( goalActor.IsValid() )
+			{
+				for ( const auto& [unitClass, _] : TargetBuildings_ )
+				{
+					if ( const ABuilding* building = Cast<ABuilding>( goalActor.Get() ) )
+					{
+						TargetBuildings_[unitClass].Buildings.Add( building );
+					}
+				}
+			}
 		}
 	}
 
+	// Find buildings for each unit class
 	for ( AActor* buildingActor : buildingActors )
 	{
 		for ( const auto& [unitClass, _] : TargetBuildings_ )
 		{
 			if ( BuildingIsUnitTarget( buildingActor, unitClass ) )
 			{
-				if ( buildingActor != goalActor )
+				if ( const ABuilding* building = Cast<ABuilding>( buildingActor ) )
 				{
-					if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
-					{
-						TargetBuildings_[unitClass].Buildings.Add( building );
-					}
+					TargetBuildings_[unitClass].Buildings.Add( building );
 				}
 			}
 		}
@@ -133,8 +141,8 @@ TWeakObjectPtr<const ABuilding> UTargetBuildingTracker::FindClosestBuilding( con
 	// Cache by grid square can be added (to avoid traversing through all buildings for each unit)
 	// Tip for further optimization: add same cache value to neighbour cells (warning: changes unit behavior)
 	const TSet<TWeakObjectPtr<const ABuilding>>& buildings = TargetBuildings_.Contains( unit->GetClass() )
-	                                                       ? TargetBuildings_[unit->GetClass()].Buildings
-	                                                       : TSet<TWeakObjectPtr<const ABuilding>>();
+	                                                             ? TargetBuildings_[unit->GetClass()].Buildings
+	                                                             : TSet<TWeakObjectPtr<const ABuilding>>();
 	for ( const TWeakObjectPtr<const ABuilding> building : buildings )
 	{
 		if ( building.IsValid() && !building->IsDestroyed() )
