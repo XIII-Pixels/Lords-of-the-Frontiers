@@ -32,17 +32,26 @@ void ABuilding::BeginPlay()
 		DefaultMesh_ = BuildingMesh_->GetStaticMesh();
 	}
 
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
 	{
-		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
-		{
-			Eco->RegisterBuilding( this );
-		}
+		EconomyComponent_ = pc->FindComponentByClass<UEconomyComponent>();
+	}
+
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RegisterBuilding( this );
+
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
+
 	}
 
 	if ( UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this ) )
 	{
 		cardSubsystem->OnBuildingPlaced( this );
+	}
+
+	if ( EconomyComponent_ )
+	{
 	}
 }
 
@@ -74,6 +83,13 @@ void ABuilding::OnDeath()
 	}
 
 	SetCanAffectNavigationGeneration( false );
+
+	OnBuildingDied.Broadcast( this );
+
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
+	}
 
 	if ( GEngine )
 	{
@@ -173,12 +189,9 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 
 void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	if ( EconomyComponent_ )
 	{
-		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
-		{
-			Eco->UnregisterBuilding( this );
-		}
+		EconomyComponent_->UnregisterBuilding( this );
 	}
 	Super::EndPlay( EndPlayReason );
 }
@@ -227,12 +240,9 @@ void ABuilding::FullRestore()
 			CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
 		}
 
-		if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+		if ( EconomyComponent_ )
 		{
-			if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
-			{
-				eco->RegisterBuilding( this );
-			}
+			EconomyComponent_->RegisterBuilding( this );
 		}
 		SetCanAffectNavigationGeneration( true );
 	}

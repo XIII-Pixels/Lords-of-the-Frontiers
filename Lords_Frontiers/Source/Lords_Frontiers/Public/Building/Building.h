@@ -12,7 +12,10 @@
 
 #include "Building.generated.h"
 
+class UEconomyComponent;
 class UBoxComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -76,6 +79,9 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	TObjectPtr<UTexture2D> BuildingIcon;
 
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingDeath OnBuildingDied;
+
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
 	bool IsRuined() const
@@ -112,6 +118,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> DefaultMesh_;
+
+	UPROPERTY()
+	TObjectPtr<UEconomyComponent> EconomyComponent_;
 
 private:
 	FResourceProduction OriginalMaintenanceCost_;

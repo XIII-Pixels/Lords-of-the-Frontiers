@@ -4,9 +4,10 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
-#include "UI/Widgets/BuildingTooltipWidget.h"
+#include "Resources/GameResource.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -76,6 +77,9 @@ public:
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonBuildingTowerT2;
 
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> ButtonBuildingMortira;
+
 	// Panels where we will add building cards
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UPanelWidget> BuildingClassGrid;
@@ -117,6 +121,36 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextTimer;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Text_GoldIncome;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Text_FoodIncome;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> Arrow_Gold;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> Arrow_Food;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	float IncomeAnimationDuration = 1.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	float ArrowDisplayDuration = 2.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	FSlateColor PositiveIncomeColor = FSlateColor( FLinearColor( 0.0f, 0.8f, 0.0f, 1.0f ) );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	FSlateColor NegativeIncomeColor = FSlateColor( FLinearColor( 0.9f, 0.1f, 0.1f, 1.0f ) );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	TObjectPtr<UTexture2D> ArrowUpTexture;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	TObjectPtr<UTexture2D> ArrowDownTexture;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> WoodenHouseClass;
 
@@ -147,11 +181,15 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT2Class;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
+	TSubclassOf<ABuilding> TowerMortiraClass;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
 	UPROPERTY(
-	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons", meta = ( ClampMin = "0.1", ClampMax = "3.0" )
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons",
+	    meta = ( ClampMin = "0.1", ClampMax = "3.0" )
 	)
 	float BaseBonusIconScale = 0.5f;
 
@@ -171,12 +209,12 @@ public:
 
 	TArray<FBonusIconData> CachedBonusData_;
 
-
 	void UpdateBonusIconPositions();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
 
+	UPROPERTY()
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
@@ -276,6 +314,9 @@ protected:
 	UFUNCTION()
 	void OnBuildTowerT2Clicked();
 
+	UFUNCTION()
+	void OnBuildTowerMortiraClicked();
+
 	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
@@ -296,6 +337,8 @@ protected:
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
 
 	FTimerHandle TooltipTimerHandle;
+
+	UPROPERTY()
 	TSubclassOf<ABuilding> PendingBuildingClass;
 
 	UFUNCTION() void OnHoverWoodenHouse()
@@ -339,10 +382,39 @@ protected:
 		StartTooltipTimer( TowerT2Class );
 	}
 
+	UFUNCTION() void OnHoverTowerMortira()
+	{
+		StartTooltipTimer( TowerMortiraClass );
+	}
+
 	UFUNCTION() void OnBuildingUnhovered();
 	UFUNCTION() void ShowTooltipInternal();
 
 	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
+
+	struct FIncomeAnimState
+	{
+		int32 StartValue = 0;
+		int32 TargetValue = 0;
+		int32 DisplayedValue = 0;
+		float Elapsed = 0.0f;
+		bool bAnimating = false;
+		float ArrowTimer = 0.0f;
+	};
+
+	FIncomeAnimState GoldIncomeAnim_;
+	FIncomeAnimState FoodIncomeAnim_;
+
+	UFUNCTION()
+	void HandleNetIncomeChanged( const FResourceProduction& netIncome );
+
+	void StartIncomeAnimation( UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, int32 newValue );
+
+	void TickIncomeAnimation( UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, float deltaTime );
+
+	void ApplyIncomeText( UTextBlock* textBlock, int32 value );
+
+	void InitIncomeDisplay();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;
