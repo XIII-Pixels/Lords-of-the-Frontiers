@@ -15,6 +15,7 @@ class ABuildPreviewActor;
 class ABuilding;
 class UResourceManager;
 class UBonusIconsData;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingConfirmed, ABuilding*, Building, FIntPoint, CellCoords );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
 
 UCLASS()
@@ -64,6 +65,9 @@ public:
 	{
 		return bIsPlacing_;
 	};
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
+	FOnBuildingConfirmed OnBuildingConfirmed;
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Bonus" )
 	FOnBonusPreviewUpdated OnBonusPreviewUpdated;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Resources/GameResource.h"
+
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
 
@@ -8,6 +10,10 @@
 class ABuilding;
 class AGridManager;
 class UResourceManager;
+class UCardDataAsset;
+struct FEconomyBonuses;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnNetIncomeChanged, const FResourceProduction&, NetIncome );
 
 UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
@@ -17,10 +23,14 @@ class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
 public:
 	UEconomyComponent();
 
-protected:
-	virtual void BeginPlay() override;
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Economy|Events" )
+	FOnNetIncomeChanged OnNetIncomeChanged;
 
-public:
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	FResourceProduction CalculateNetIncome() const;
+
+	void RecalculateAndBroadcastNetIncome();
+
 	// scan grid and accrual resource
 	// button in UI
 	UFUNCTION( BlueprintCallable, Category = "Settings|Economy" )
@@ -32,16 +42,23 @@ public:
 	void RegisterBuilding( class ABuilding* building );
 	void UnregisterBuilding( class ABuilding* building );
 
-	void SetResourceManager( UResourceManager* InManager )
+	void SetResourceManager( UResourceManager* inManager )
 	{
-		ResourceManager_ = InManager;
+		ResourceManager_ = inManager;
 	}
 
 	void PerformInitialScan();
 
 	void RestoreAllBuildings();
 
+protected:
+	virtual void BeginPlay() override;
+
 private:
+	FResourceProduction CalculateTotalIncome() const;
+
+	FResourceProduction CalculateTotalMaintenance() const;
+
 	// url system
 	UPROPERTY()
 	AGridManager* GridManager_;
@@ -55,6 +72,16 @@ private:
 	UPROPERTY()
 	bool bInitialScanDone = false;
 
+	FResourceProduction CachedNetIncome_;
+
 	// dependency search
 	void FindSystems();
+
+	void SubscribeToCardEvents();
+
+	UFUNCTION()
+	void HandleCardsApplied( const TArray<UCardDataAsset*>& appliedCards );
+
+	UFUNCTION()
+	void HandleEconomyBonusesChanged( const FEconomyBonuses& newBonuses );
 };

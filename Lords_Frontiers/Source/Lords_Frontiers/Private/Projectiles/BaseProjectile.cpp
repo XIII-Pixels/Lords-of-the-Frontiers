@@ -3,6 +3,7 @@
 #include "Projectiles/BaseProjectile.h"
 
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "DrawDebugHelpers.h"
 #include "Entity.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -227,6 +228,7 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 			if ( target->Stats().IsAlive() )
 			{
 				target->TakeDamage( Damage_ );
+				FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), hitActor, Damage_, false );
 			}
 		}
 	}
@@ -294,6 +296,7 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 		if ( enemy->Stats().IsAlive() && enemy->Team() != ownerEntity->Team() )
 		{
 			enemy->TakeDamage( Damage_ );
+			FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), overlapActor, Damage_, true );
 			damagedActors.Add( overlapActor );
 		}
 	}
