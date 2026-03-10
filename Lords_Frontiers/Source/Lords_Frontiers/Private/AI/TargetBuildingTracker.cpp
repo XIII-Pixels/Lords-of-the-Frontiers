@@ -66,10 +66,7 @@ void UTargetBuildingTracker::ScanLevelForBuildings()
 			{
 				if ( const ABuilding* building = Cast<ABuilding>( buildingActor ) )
 				{
-					if ( ABuilding* building = Cast<ABuilding>( buildingActor ) )
-					{
-						TargetBuildings_[unitClass].Buildings.Add( building );
-					}
+					TargetBuildings_[unitClass].Buildings.Add( building );
 				}
 			}
 		}
@@ -238,8 +235,8 @@ TWeakObjectPtr<const ABuilding> UTargetBuildingTracker::FindClosestBuilding( con
 	// Cache by grid square can be added (to avoid traversing through all buildings for each unit)
 	// Tip for further optimization: add same cache value to neighbour cells (warning: changes unit behavior)
 	const TSet<TWeakObjectPtr<const ABuilding>>& buildings = TargetBuildings_.Contains( unit->GetClass() )
-	                                                       ? TargetBuildings_[unit->GetClass()].Buildings
-	                                                       : TSet<TWeakObjectPtr<const ABuilding>>();
+	                                                             ? TargetBuildings_[unit->GetClass()].Buildings
+	                                                             : TSet<TWeakObjectPtr<const ABuilding>>();
 	for ( const TWeakObjectPtr<const ABuilding> building : buildings )
 	{
 		if ( building.IsValid() && !building->IsDestroyed() )
