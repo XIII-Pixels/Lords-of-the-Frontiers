@@ -1,18 +1,19 @@
 #pragma once
 
+#include "Building/Bonus/BuildingBonusComponent.h"
 #include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
-#include "Building/Bonus/BuildingBonusComponent.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
 #include "Building.generated.h"
 
+class UEconomyComponent;
 class UBoxComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingHealthChanged, int32, CurrentHealth, int32, MaxHealth );
@@ -27,9 +28,9 @@ public:
 
 	bool IsDestroyed() const;
 
-	void RestoreFromRuins();
+	virtual void RestoreFromRuins();
 
-	void FullRestore();
+	virtual void FullRestore();
 
 	virtual FString GetNameBuild();
 
@@ -37,7 +38,7 @@ public:
 
 	virtual ETeam Team() override;
 
-	virtual void TakeDamage( float damage ) override;
+	virtual void TakeDamage( int damage ) override;
 
 	virtual void OnSelected_Implementation() override;
 
@@ -127,6 +128,8 @@ protected:
 
 	UFUNCTION()
 	AHealthBarManager* CacheHealthBarManager();
+	UPROPERTY()
+	TObjectPtr<UEconomyComponent> EconomyComponent_;
 
 private:
 	FResourceProduction OriginalMaintenanceCost_;

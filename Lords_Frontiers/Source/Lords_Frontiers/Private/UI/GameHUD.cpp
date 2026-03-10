@@ -4,6 +4,7 @@
 #include "Building/Construction/BuildManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
+#include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 
 #include "Camera/CameraComponent.h"
@@ -134,6 +135,13 @@ void UGameHUDWidget::NativeConstruct()
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
 
+	if ( BtnToggleWaveInfo )
+	{
+		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+	}
+
+	InitIncomeDisplay();
+
 	UpdateDayText();
 	UpdateStatusText();
 	UpdateResources();
@@ -144,6 +152,7 @@ void UGameHUDWidget::NativeConstruct()
 
 	UpdateResources();
 	UpdateAllBuildingButtons();
+	UpdateWaveInfoButtonVisuals();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -180,6 +189,8 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	if ( BtnToggleWaveInfo )
+		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -201,6 +212,16 @@ void UGameHUDWidget::NativeDestruct()
 		{
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
+
+		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
+		{
+			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+		}
+	}
+
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( WavePanelAnimationTimerHandle );
 	}
 
 	Super::NativeDestruct();
@@ -310,6 +331,9 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	{
 		UpdateBonusIconPositions();
 	}
+
+	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
+	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
 
 void UGameHUDWidget::UpdateBonusIconPositions()
@@ -340,7 +364,6 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			}
 		}
 	}
-
 
 	const float baseOrthoWigth = 2048.0f;
 	const float baseScale = 0.5f;
@@ -847,4 +870,229 @@ void UGameHUDWidget::ShowTooltipInternal()
 
 		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
 	}
+}
+
+void UGameHUDWidget::ToggleWaveInfoPanel()
+{
+	if ( !WavePanelClass )
+	{
+		return;
+	}
+
+	if ( bIsWavePanelAnimating )
+	{
+		return;
+	}
+
+	if ( !ActiveWavePanel )
+	{
+		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
+		if ( ActiveWavePanel )
+		{
+			ActiveWavePanel->AddToViewport( 0 );
+		}
+	}
+
+	if ( !ActiveWavePanel )
+	{
+		return;
+	}
+
+	bIsWavePanelAnimating = true;
+
+	GetWorld()->GetTimerManager().SetTimer(
+	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
+	);
+
+	bIsWavePanelOpen = !bIsWavePanelOpen;
+
+	if ( bIsWavePanelOpen )
+	{
+		UCoreManager* core = UCoreManager::Get( this );
+		UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
+		AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
+
+		if ( gameLoop && waveManager )
+		{
+			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
+			TMap<TSubclassOf<AUnit>, int32> waveData = waveManager->GetNextWaveComposition( waveIndex );
+			ActiveWavePanel->PopulatePanel( waveData );
+		}
+
+		ActiveWavePanel->PlaySlideInAnimation();
+	}
+	else
+	{
+		ActiveWavePanel->PlaySlideOutAnimation();
+	}
+
+	UpdateWaveInfoButtonVisuals();
+}
+
+void UGameHUDWidget::OnWaveInfoButtonClicked()
+{
+	ToggleWaveInfoPanel();
+}
+
+void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
+{
+	if ( ImgWaveInfoRed )
+	{
+		ImgWaveInfoRed->SetVisibility(
+		    bIsWavePanelOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
+		);
+	}
+	if ( ImgWaveInfoWhite )
+	{
+		ImgWaveInfoWhite->SetVisibility(
+		    bIsWavePanelOpen ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible
+		);
+	}
+}
+
+void UGameHUDWidget::UnlockWaveInfoButton()
+{
+	bIsWavePanelAnimating = false;
+}
+
+void UGameHUDWidget::InitIncomeDisplay()
+{
+	if ( Arrow_Gold )
+	{
+		Arrow_Gold->SetVisibility( ESlateVisibility::Collapsed );
+	}
+	if ( Arrow_Food )
+	{
+		Arrow_Food->SetVisibility( ESlateVisibility::Collapsed );
+	}
+
+	ApplyIncomeText( Text_GoldIncome, 0 );
+	ApplyIncomeText( Text_FoodIncome, 0 );
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
+		{
+			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+			eC->OnNetIncomeChanged.AddDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+
+			FResourceProduction netIncome = eC->CalculateNetIncome();
+			GoldIncomeAnim_.DisplayedValue = netIncome.Gold;
+			GoldIncomeAnim_.TargetValue = netIncome.Gold;
+			FoodIncomeAnim_.DisplayedValue = netIncome.Food;
+			FoodIncomeAnim_.TargetValue = netIncome.Food;
+
+			ApplyIncomeText( Text_GoldIncome, netIncome.Gold );
+			ApplyIncomeText( Text_FoodIncome, netIncome.Food );
+		}
+	}
+}
+
+void UGameHUDWidget::HandleNetIncomeChanged( const FResourceProduction& netIncome )
+{
+	StartIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, netIncome.Gold );
+	StartIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, netIncome.Food );
+}
+
+void UGameHUDWidget::StartIncomeAnimation(
+    UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, int32 newValue
+)
+{
+	if ( newValue == state.TargetValue )
+	{
+		return;
+	}
+
+	state.StartValue = state.DisplayedValue;
+	state.TargetValue = newValue;
+	state.Elapsed = 0.0f;
+	state.bAnimating = true;
+	state.ArrowTimer = ArrowDisplayDuration;
+
+	ApplyIncomeText( textBlock, state.DisplayedValue );
+
+	if ( arrow )
+	{
+		bool bIncrease = ( newValue > state.StartValue );
+		UTexture2D* arrowTexture = bIncrease ? ArrowUpTexture.Get() : ArrowDownTexture.Get();
+
+		if ( arrowTexture )
+		{
+			arrow->SetBrushFromTexture( arrowTexture );
+		}
+
+		arrow->SetColorAndOpacity(
+		    bIncrease ? PositiveIncomeColor.GetSpecifiedColor() : NegativeIncomeColor.GetSpecifiedColor()
+		);
+		arrow->SetRenderOpacity( 1.0f );
+		arrow->SetVisibility( ESlateVisibility::HitTestInvisible );
+	}
+}
+
+void UGameHUDWidget::TickIncomeAnimation(
+    UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, float deltaTime
+)
+{
+	const float cArrowFadeDuration = 0.5f;
+
+	if ( state.bAnimating )
+	{
+		state.Elapsed += deltaTime;
+		float alpha = FMath::Clamp( state.Elapsed / FMath::Max( IncomeAnimationDuration, 0.01f ), 0.0f, 1.0f );
+
+		state.DisplayedValue = FMath::RoundToInt(
+		    FMath::Lerp( static_cast<float>( state.StartValue ), static_cast<float>( state.TargetValue ), alpha )
+		);
+
+		ApplyIncomeText( textBlock, state.DisplayedValue );
+
+		if ( alpha >= 1.0f )
+		{
+			state.bAnimating = false;
+			state.DisplayedValue = state.TargetValue;
+			ApplyIncomeText( textBlock, state.DisplayedValue );
+		}
+	}
+
+	if ( state.ArrowTimer > 0.0f )
+	{
+		state.ArrowTimer -= deltaTime;
+
+		if ( state.ArrowTimer <= 0.0f && arrow )
+		{
+			arrow->SetVisibility( ESlateVisibility::Collapsed );
+		}
+		else if ( arrow && state.ArrowTimer < cArrowFadeDuration )
+		{
+			float fadeAlpha = FMath::Max( 0.0f, state.ArrowTimer / cArrowFadeDuration );
+			arrow->SetRenderOpacity( fadeAlpha );
+		}
+	}
+}
+
+void UGameHUDWidget::ApplyIncomeText( UTextBlock* textBlock, int32 value )
+{
+	if ( !textBlock )
+	{
+		return;
+	}
+
+	FString displayText;
+	if ( value > 0 )
+	{
+		displayText = FString::Printf( TEXT( "+%d" ), value );
+		textBlock->SetColorAndOpacity( PositiveIncomeColor );
+	}
+	else if ( value < 0 )
+	{
+		displayText = FString::Printf( TEXT( "%d" ), value );
+		textBlock->SetColorAndOpacity( NegativeIncomeColor );
+	}
+	else
+	{
+		displayText = TEXT( "0" );
+		textBlock->SetColorAndOpacity( FSlateColor( FLinearColor::White ) );
+	}
+
+	textBlock->SetText( FText::FromString( displayText ) );
 }

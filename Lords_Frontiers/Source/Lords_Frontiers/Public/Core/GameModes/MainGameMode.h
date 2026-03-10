@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 
 #include "MainGameMode.generated.h"
 
@@ -21,6 +22,8 @@ public:
 	virtual void StartPlay() override;
 
 protected:
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Pools" )
+	TArray<FPoolWarmupConfig> ProjectilePoolConfigs;
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Config" )
 	TObjectPtr<UGameLoopConfig> GameLoopConfig;
 

@@ -54,7 +54,7 @@ public:
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
-	virtual void TakeDamage( float damage ) override;
+	virtual void TakeDamage( int damage ) override;
 
 	void AdvancePathPointIndex();
 

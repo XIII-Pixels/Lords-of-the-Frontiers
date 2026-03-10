@@ -37,12 +37,17 @@ void ABuilding::BeginPlay()
 		DefaultMesh_ = BuildingMesh_->GetStaticMesh();
 	}
 
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
 	{
-		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
-		{
-			Eco->RegisterBuilding( this );
-		}
+		EconomyComponent_ = pc->FindComponentByClass<UEconomyComponent>();
+	}
+
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RegisterBuilding( this );
+
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
+
 	}
 
 	if ( UWidgetComponent* wc = FindComponentByClass<UWidgetComponent>() )
@@ -61,6 +66,11 @@ void ABuilding::BeginPlay()
 	{
 		cardSubsystem->OnBuildingPlaced( this );
 	}
+
+	if ( EconomyComponent_ )
+	{
+	}
+}
 
 	UWorld* world = GetWorld();
 
@@ -124,6 +134,11 @@ void ABuilding::OnDeath()
 
 	SetCanAffectNavigationGeneration( false );
 
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
+	}
+
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
@@ -153,7 +168,7 @@ ETeam ABuilding::Team()
 	return Stats_.Team();
 }
 
-void ABuilding::TakeDamage( float damage )
+void ABuilding::TakeDamage( int damage )
 {
 	if ( !Stats_.IsAlive() )
 	{
@@ -253,12 +268,9 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 
 void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
-	if ( APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	if ( EconomyComponent_ )
 	{
-		if ( UEconomyComponent* Eco = PC->FindComponentByClass<UEconomyComponent>() )
-		{
-			Eco->UnregisterBuilding( this );
-		}
+		EconomyComponent_->UnregisterBuilding( this );
 	}
 	if ( UWorld* world = GetWorld() )
 	{
@@ -316,12 +328,9 @@ void ABuilding::FullRestore()
 			CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
 		}
 
-		if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+		if ( EconomyComponent_ )
 		{
-			if ( UEconomyComponent* eco = pc->FindComponentByClass<UEconomyComponent>() )
-			{
-				eco->RegisterBuilding( this );
-			}
+			EconomyComponent_->RegisterBuilding( this );
 		}
 		SetCanAffectNavigationGeneration( true );
 	}

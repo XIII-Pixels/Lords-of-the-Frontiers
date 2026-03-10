@@ -45,6 +45,26 @@ float FEntityStats::AttackRange() const
 	return AttackRange_;
 }
 
+float FEntityStats::SplashRadius() const
+{
+	return SplashRadius_;
+}
+
+int32 FEntityStats::BurstCount() const
+{
+	return BurstCount_;
+}
+
+float FEntityStats::BurstDelay() const
+{
+	return BurstDelay_;
+}
+
+EBurstTargetMode FEntityStats::BurstTargetMode() const
+{
+	return BurstTargetMode_;
+}
+
 // setters
 
 // (Artyom)
@@ -93,6 +113,31 @@ void FEntityStats::SetMaxSpeed( float maxSpeed )
 	MaxSpeed_ = FMath::Max( maxSpeed, 0.0f );
 }
 
+void FEntityStats::SetSplashRadius( float splashRadius )
+{
+	SplashRadius_ = FMath::Max( splashRadius, 0.0f );
+}
+
+void FEntityStats::SetBurstCount( int32 burstCount )
+{
+	BurstCount_ = FMath::Max( burstCount, 1 );
+}
+
+void FEntityStats::SetBurstDelay( float burstDelay )
+{
+	BurstDelay_ = FMath::Max( burstDelay, 0.05f );
+}
+
+void FEntityStats::SetBurstTargetMode( EBurstTargetMode burstTargetMode )
+{
+	BurstTargetMode_ = burstTargetMode;
+}
+
+void FEntityStats::AddSplashRadius( float splashRadius )
+{
+	SetSplashRadius( SplashRadius_ + splashRadius );
+}
+
 void FEntityStats::AddStat( EStatsType statType, float value )
 {
 	switch ( statType )
@@ -110,6 +155,15 @@ void FEntityStats::AddStat( EStatsType statType, float value )
 		AddAttackCooldown( value );
 		break;
 	case EStatsType::MaxSpeed:
+		break;
+	case EStatsType::SplashRadius:
+		AddSplashRadius( value );
+		break;
+	case EStatsType::BurstCount:
+		AddBurstCount( FMath::FloorToInt( value ) );
+		break;
+	case EStatsType::BurstDelay:
+		AddBurstDelay( value );
 		break;
 	default:
 		break;
@@ -139,6 +193,16 @@ void FEntityStats::AddAttackCooldown( float attackCooldown )
 void FEntityStats::AddMaxSpeed( float maxSpeed )
 {
 	SetMaxSpeed( MaxSpeed_ + maxSpeed );
+}
+
+void FEntityStats::AddBurstCount( int32 burstCount )
+{
+	SetBurstCount( BurstCount_ + burstCount );
+}
+
+void FEntityStats::AddBurstDelay( float burstDelay )
+{
+	SetBurstDelay( BurstDelay_ + burstDelay );
 }
 
 int FEntityStats::ApplyDamage( int damage )
