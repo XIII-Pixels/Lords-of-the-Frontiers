@@ -296,6 +296,17 @@ float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 	// Diagonal move
 	if ( dx == 1 && dy == 1 )
 	{
+		const FGridCell* cellX = Grid_->GetCell( a.X + ( b.X - a.X ), a.Y );
+		const FGridCell* cellY = Grid_->GetCell( a.X, a.Y + ( b.Y - a.Y ) );
+
+		const bool cellXBlocked = !cellX || !cellX->bIsWalkable || cellX->bIsOccupied;
+		const bool cellYBlocked = !cellY || !cellY->bIsWalkable || cellY->bIsOccupied;
+
+		if ( cellXBlocked && cellYBlocked )
+		{
+			return TNumericLimits<float>::Max();
+		}
+
 		static constexpr float sqrt2 = 1.41421356f;
 		return sqrt2 * EmptyCellTravelTime_ + timeToDestroy;
 	}
