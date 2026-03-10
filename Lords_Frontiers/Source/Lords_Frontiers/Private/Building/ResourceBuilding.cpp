@@ -27,6 +27,11 @@ void AResourceBuilding::BeginPlay()
 		ResourceGenerator_->Initialize( FindResourceManager() );
 		ResourceGenerator_->SetProductionConfig( ProductionConfig_ );
 	}
+
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
+	}
 }
 
 UResourceManager* AResourceBuilding::FindResourceManager() const
