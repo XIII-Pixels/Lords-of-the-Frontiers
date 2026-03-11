@@ -5,6 +5,8 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "Resources/ResourceManager.h"
+#include "UI/Widgets/GameStateOverlayWidget.h"
+#include "Camera/StrategyCamera.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
@@ -126,6 +128,7 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			gL->OnGameEnded.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 	}
 
@@ -203,6 +206,7 @@ void UGameHUDWidget::NativeDestruct()
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			//gL->OnGameEnded.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 
 		if ( UResourceManager* rM = core->GetResourceManager() )
@@ -946,4 +950,74 @@ void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
 void UGameHUDWidget::UnlockWaveInfoButton()
 {
 	bIsWavePanelAnimating = false;
+}
+
+void UGameHUDWidget::HandleGameEnded( bool bVictory )
+{
+	if ( !OverlayWidgetClass )
+	{
+		return;
+	}
+
+	if ( !ActiveOverlay )
+	{
+		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, OverlayWidgetClass );
+		ActiveOverlay->AddToViewport( 100 );
+	}
+
+	ActiveOverlay->SetVisibility( ESlateVisibility::Visible );
+
+	if ( bVictory )
+	{
+		ActiveOverlay->SetupWinState();
+	}
+	else
+	{
+		ActiveOverlay->SetupLoseState();
+	}
+	if ( APlayerController* PC = GetOwningPlayer() )
+	{
+		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+		{
+			Cam->SetCameraInputDisabled( true );
+		}
+	}
+}
+
+void UGameHUDWidget::TogglePauseMenu()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( core && core->GetGameLoop() && !core->GetGameLoop()->IsGameStarted() )
+	{
+		return;
+	}
+
+	if ( !OverlayWidgetClass )
+	{
+		return;
+	}
+
+	if ( !ActiveOverlay )
+	{
+		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, OverlayWidgetClass );
+		ActiveOverlay->AddToViewport( 100 );
+	}
+	bool bWillBeVisible = ( ActiveOverlay->GetVisibility() != ESlateVisibility::Visible );
+
+	if ( bWillBeVisible )
+	{
+		ActiveOverlay->SetupPauseState();
+		ActiveOverlay->SetVisibility( ESlateVisibility::Visible );
+	}
+	else
+	{
+		ActiveOverlay->SetVisibility( ESlateVisibility::Collapsed );
+	}
+	if ( APlayerController* PC = GetOwningPlayer() )
+	{
+		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+		{
+			Cam->SetCameraInputDisabled( bWillBeVisible );
+		}
+	}
 }

@@ -46,6 +46,21 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
 	TObjectPtr<UInputAction> RotateAction; // Q/E (Axis1D)
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
+	TObjectPtr<UInputAction> PauseAction; //ESC
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Input" )
+	void SetCameraInputDisabled( bool bDisabled )
+	{
+		bIsCameraInputDisabled_ = bDisabled;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Input" )
+	bool IsCameraInputDisabled() const
+	{
+		return bIsCameraInputDisabled_;
+	}
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -118,8 +133,10 @@ private:
 
 	void Rotate( const FInputActionValue& value );
 	void HandleEdgeScrolling();
+	void TogglePause( const FInputActionValue& value );
 
 	float TargetZoom_;
 	float TargetYaw_;
 	float CurrentYaw_;
+	bool bIsCameraInputDisabled_ = false;
 };

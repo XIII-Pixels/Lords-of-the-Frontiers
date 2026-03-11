@@ -47,7 +47,6 @@ void UGameLoopManager::Initialize(
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
 		BindToWaveManager();
-		WaveManager_->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
@@ -581,10 +580,6 @@ void UGameLoopManager::EnterVictoryPhase()
 	OnGameEnded.Broadcast( true );
 
 	Log( TEXT( "=== VICTORY! ===" ) );
-
-	const FName levelName = FName( TEXT( "Win" ) );
-	UWorld* world = GetWorldSafe();
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::EnterDefeatPhase()
@@ -602,9 +597,6 @@ void UGameLoopManager::EnterDefeatPhase()
 	OnGameEnded.Broadcast( false );
 
 	Log( TEXT( "=== DEFEAT ===" ) );
-
-	const FName levelName = FName( TEXT( "Lose" ) );
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::GrantStartingResources()
