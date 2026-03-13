@@ -2,9 +2,12 @@
 
 #include "Components/FollowComponent.h"
 
+#include "Core/CoreManager.h"
+#include "Grid/GridManager.h"
 #include "Units/Unit.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 
 UFollowComponent::UFollowComponent()
@@ -46,6 +49,11 @@ void UFollowComponent::BeginPlay()
 
 	Unit_ = Cast<AUnit>( GetOwner() );
 
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		Grid_ = core->GetGridManager();
+	}
+
 	if ( PawnOwner )
 	{
 		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
@@ -54,7 +62,7 @@ void UFollowComponent::BeginPlay()
 
 void UFollowComponent::StartFollowing()
 {
-	if ( Unit_ && Unit_->FollowedTarget().IsValid() )
+	if ( Unit_.IsValid() && Unit_->FollowedTarget().IsValid() )
 	{
 		bFollowTarget_ = true;
 	}
@@ -72,7 +80,7 @@ void UFollowComponent::SetMaxSpeed( float maxSpeed )
 
 void UFollowComponent::MoveTowardsTarget( float deltaTime )
 {
-	if ( !Unit_ || !Unit_->FollowedTarget().IsValid() )
+	if ( !Unit_.IsValid() || !Unit_->FollowedTarget().IsValid() )
 	{
 		return;
 	}
@@ -119,7 +127,7 @@ void UFollowComponent::SnapToGround()
 
 void UFollowComponent::Sway( float deltaTime )
 {
-	if ( IsValid( Unit_ ) && Unit_.Get()->VisualMesh() )
+	if ( Unit_.IsValid() && Unit_.Get()->VisualMesh() )
 	{
 		float targetRoll = 0.0f;
 
@@ -135,6 +143,23 @@ void UFollowComponent::Sway( float deltaTime )
 		currentRot.Pitch = CurrentSwayRoll_;
 		currentRot.Roll = 0.0f;
 		Unit_.Get()->VisualMesh()->SetRelativeRotation( currentRot );
+	}
+}
+
+void UFollowComponent::ResolveUnitOnUnwalkableCell()
+{
+	if ( !Grid_.IsValid() || !Unit_.IsValid() )
+	{
+		return;
+	}
+
+	const FIntPoint cellCoords = Grid_->GetCellCoords( Unit_->GetActorLocation() );
+	const FGridCell* cell = Grid_->GetCell( cellCoords.X, cellCoords.Y );
+
+	if ( !cell->bIsWalkable )
+	{
+		// Calculate cell bounds and center
+		// Teleport unit towards closest side taking into account UnwalkableAllowedPart_
 	}
 }
 

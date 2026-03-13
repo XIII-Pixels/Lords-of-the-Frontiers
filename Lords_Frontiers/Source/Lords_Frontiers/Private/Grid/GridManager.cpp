@@ -115,28 +115,38 @@ bool AGridManager::GetCellWorldCenter( const FIntPoint& coords, FVector& outLoca
 	return true;
 }
 
+FIntPoint AGridManager::GetCellCoords( FVector location ) const
+{
+	const FIntPoint coords = GetCellCoordsRaw( location );
+
+	const int32 height = GetGridHeight();
+	const int32 width = GetRowWidth( 0 );	// assuming rectangular grid
+
+	if ( coords.X < 0 || coords.X >= width || coords.Y < 0 || coords.Y >= height )
+	{
+		return { -1, -1 };
+	}
+	return coords;
+}
+
 FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 {
+	FIntPoint coords = GetCellCoordsRaw( location );
+
 	const int32 height = GetGridHeight();
-	if ( height == 0 )
-	{
-		return FIntPoint::ZeroValue;
-	}
+	const int32 width = GetRowWidth( 0 );	// assuming rectangular grid
 
+	coords.Y = FMath::Clamp( coords.Y, 0, height - 1 );
+	coords.X = FMath::Clamp( coords.X, 0, width - 1 );
+
+	return coords;
+}
+
+FIntPoint AGridManager::GetCellCoordsRaw( FVector location ) const
+{
 	location -= GetActorLocation();
-
-	int32 y = static_cast<int32>( location.Y / CellSize_ );
-	y = FMath::Clamp( y, 0, height - 1 );
-
-	const int32 rowWidth = GetRowWidth( y );
-	if ( rowWidth == 0 )
-	{
-		return FIntPoint( 0, y );
-	}
-
-	int32 x = static_cast<int32>( location.X / CellSize_ );
-	x = FMath::Clamp( x, 0, rowWidth - 1 );
-
+	const int32 y = static_cast<int32>( location.Y / CellSize_ );
+	const int32 x = static_cast<int32>( location.X / CellSize_ );
 	return FIntPoint( x, y );
 }
 
@@ -205,7 +215,6 @@ TArray<FGridCell*> AGridManager::GetCellsByShape( const FIntPoint& myCell, const
 		return GetCellsInCross( myCell, radius );
 	}
 }
-
 
 void AGridManager::InitializeGrid()
 {
