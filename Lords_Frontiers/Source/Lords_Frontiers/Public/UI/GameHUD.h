@@ -21,6 +21,8 @@
 #include "GameHUD.generated.h"
 
 class ABuilding;
+class UGameStateOverlayWidget;
+
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -231,6 +233,15 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> BtnToggleWaveInfo;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> OverlayWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UGameStateOverlayWidget> ActiveOverlay;
+
+	UFUNCTION( BlueprintCallable )
+	void TogglePauseMenu();
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -409,4 +420,7 @@ protected:
 
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
+
+	UFUNCTION()
+	void HandleGameEnded( bool bVictory );
 };

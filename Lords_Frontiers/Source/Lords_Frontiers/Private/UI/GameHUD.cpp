@@ -6,6 +6,8 @@
 #include "Core/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
+#include "UI/Widgets/GameStateOverlayWidget.h"
+#include "Camera/StrategyCamera.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
@@ -127,6 +129,7 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			gL->OnGameEnded.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 	}
 
@@ -134,12 +137,12 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
-
+	
 	if ( BtnToggleWaveInfo )
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
-
+	
 	InitIncomeDisplay();
 
 	UpdateDayText();
@@ -206,13 +209,14 @@ void UGameHUDWidget::NativeDestruct()
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			//gL->OnGameEnded.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 
 		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
-
+		
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
 			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
@@ -254,6 +258,7 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
+
 
 	if ( TextTimer )
 	{
@@ -331,7 +336,7 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	{
 		UpdateBonusIconPositions();
 	}
-
+	
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -364,6 +369,7 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			}
 		}
 	}
+	
 
 	const float baseOrthoWigth = 2048.0f;
 	const float baseScale = 0.5f;
@@ -878,12 +884,12 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 	{
 		return;
 	}
-
+		
 	if ( bIsWavePanelAnimating )
 	{
 		return;
 	}
-
+		
 	if ( !ActiveWavePanel )
 	{
 		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
@@ -900,8 +906,7 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 
 	bIsWavePanelAnimating = true;
 
-	GetWorld()->GetTimerManager().SetTimer(
-	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
+	GetWorld()->GetTimerManager().SetTimer(WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
 	);
 
 	bIsWavePanelOpen = !bIsWavePanelOpen;
@@ -954,7 +959,6 @@ void UGameHUDWidget::UnlockWaveInfoButton()
 {
 	bIsWavePanelAnimating = false;
 }
-
 void UGameHUDWidget::InitIncomeDisplay()
 {
 	if ( Arrow_Gold )
@@ -1095,4 +1099,73 @@ void UGameHUDWidget::ApplyIncomeText( UTextBlock* textBlock, int32 value )
 	}
 
 	textBlock->SetText( FText::FromString( displayText ) );
+}
+void UGameHUDWidget::HandleGameEnded( bool bVictory )
+{
+	if ( !OverlayWidgetClass )
+	{
+		return;
+	}
+
+	if ( !ActiveOverlay )
+	{
+		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, OverlayWidgetClass );
+		ActiveOverlay->AddToViewport( 100 );
+	}
+
+	ActiveOverlay->SetVisibility( ESlateVisibility::Visible );
+
+	if ( bVictory )
+	{
+		ActiveOverlay->SetupWinState();
+	}
+	else
+	{
+		ActiveOverlay->SetupLoseState();
+	}
+	if ( APlayerController* PC = GetOwningPlayer() )
+	{
+		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+		{
+			Cam->SetCameraInputDisabled( true );
+		}
+	}
+}
+
+void UGameHUDWidget::TogglePauseMenu()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( core && core->GetGameLoop() && !core->GetGameLoop()->IsGameStarted() )
+	{
+		return;
+	}
+
+	if ( !OverlayWidgetClass )
+	{
+		return;
+	}
+
+	if ( !ActiveOverlay )
+	{
+		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, OverlayWidgetClass );
+		ActiveOverlay->AddToViewport( 100 );
+	}
+	bool bWillBeVisible = ( ActiveOverlay->GetVisibility() != ESlateVisibility::Visible );
+
+	if ( bWillBeVisible )
+	{
+		ActiveOverlay->SetupPauseState();
+		ActiveOverlay->SetVisibility( ESlateVisibility::Visible );
+	}
+	else
+	{
+		ActiveOverlay->SetVisibility( ESlateVisibility::Collapsed );
+	}
+	if ( APlayerController* PC = GetOwningPlayer() )
+	{
+		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+		{
+			Cam->SetCameraInputDisabled( bWillBeVisible );
+		}
+	}
 }
