@@ -7,11 +7,13 @@
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -88,6 +90,8 @@ void UGameLoopManager::UpdateDependencies(
 	{
 		BindToWaveManager();
 	}
+
+	bIsInitialized_ = ResourceManager_.IsValid();
 
 	Log( FString::Printf(
 	    TEXT( "Dependencies updated. WaveManager: %s, ResourceManager: %s" ),
@@ -169,21 +173,25 @@ void UGameLoopManager::Tick( float deltaTime )
 
 void UGameLoopManager::StartGame()
 {
+	RefreshDependencies();
+
+	if ( ResourceManager_.IsValid() )
+		ResourceManager_->ResetResources();
+	if ( EconomyComponent_.IsValid() )
+		EconomyComponent_->ResetEconomy();
+
 	if ( !bIsInitialized_ )
 	{
 		Log( TEXT( "ERROR: Cannot start - not initialized!" ) );
 		return;
 	}
 
-	if ( bIsGameStarted_ )
-	{
-		Log( TEXT( "WARNING: Game already started" ) );
-		return;
-	}
 
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
 	bWaitingForCardSelection_ = false;
+
+	CurrentPhase_ = EGameLoopPhase::None;
 	CurrentWave_ = 1;
 	CurrentBuildTurn_ = 0;
 	bPerfectWave_ = true;
@@ -605,39 +613,23 @@ void UGameLoopManager::EnterDefeatPhase()
 
 void UGameLoopManager::GrantStartingResources()
 {
-	if ( !Config_ )
-	{
-		Log( TEXT( "WARNING: No config for starting resources" ) );
-		return;
-	}
-
-	if ( !ResourceManager_.IsValid() )
-	{
-		Log( TEXT( "ERROR: ResourceManager is INVALID!" ) );
-		return;
-	}
-
-	const FResourceReward& start = Config_->StartingResources;
 	UResourceManager* rm = ResourceManager_.Get();
 
+	if ( !Config_ || !rm )
+	{
+		return;
+	}
+		
+	const FResourceReward& start = Config_->StartingResources;
+
 	if ( start.Gold > 0 )
-	{
 		rm->AddResource( EResourceType::Gold, start.Gold );
-	}
 	if ( start.Food > 0 )
-	{
 		rm->AddResource( EResourceType::Food, start.Food );
-	}
 	if ( start.Population > 0 )
-	{
 		rm->AddResource( EResourceType::Population, start.Population );
-	}
 
 	OnResourcesGranted.Broadcast( start );
-
-	Log( FString::Printf(
-	    TEXT( "Starting resources granted: Gold=%d, Food=%d, Pop=%d" ), start.Gold, start.Food, start.Population
-	) );
 }
 
 void UGameLoopManager::GrantCombatReward()
@@ -843,4 +835,23 @@ void UGameLoopManager::HandleWaveEndScheduled( float secondsRemaining )
 	CombatTimeRemaining_ = secondsRemaining;
 
 	OnCombatTimerUpdated.Broadcast( CombatTimeRemaining_, CombatTimeRemaining_ );
+}
+
+void UGameLoopManager::RefreshDependencies()
+{
+	UCoreManager* core = UCoreManager::Get( GetWorldSafe() );
+	if ( !core )
+		return;
+
+	ResourceManager_ = core->GetResourceManager();
+	EconomyComponent_ = core->GetEconomyComponent();
+	WaveManager_ = core->GetWaveManager();
+
+	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
+	{
+		BindToWaveManager();
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
+	}
+
+	bIsInitialized_ = ResourceManager_.IsValid();
 }

@@ -14,22 +14,23 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 void UGameHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
-	if ( pc )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		UResourceManager* rM = pc->FindComponentByClass<UResourceManager>();
-		if ( !rM )
+		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
-			rM = NewObject<UResourceManager>( pc, TEXT( "GlobalResourceManager" ) );
-			rM->RegisterComponent();
+			rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
-		rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
-		rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+
+		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
+		{
+			eC->OnNetIncomeChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+		}
 	}
 
 	if ( ButtonRelocateBuilding )
@@ -153,7 +154,6 @@ void UGameHUDWidget::NativeConstruct()
 
 	ShowEconomyBuildings();
 
-	UpdateResources();
 	UpdateAllBuildingButtons();
 	UpdateWaveInfoButtonVisuals();
 }
@@ -209,7 +209,7 @@ void UGameHUDWidget::NativeDestruct()
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
-			//gL->OnGameEnded.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
+			gL->OnGameEnded.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 
 		if ( UResourceManager* rM = core->GetResourceManager() )
@@ -247,7 +247,7 @@ void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
 
 void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount )
 {
-	UE_LOG( LogTemp, Warning, TEXT( "HandleResourceChanged: Type=%d, Amount=%d" ), (int32) Type, NewAmount );
+
 	UpdateResources();
 	UpdateAllBuildingButtons();
 }
@@ -332,11 +332,31 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 {
 	Super::NativeTick( MyGeometry, InDeltaTime );
 
+	if ( !bIsEconomySubscribed_ )
+	{
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		{
+			UResourceManager* rM = core->GetResourceManager();
+			UEconomyComponent* eC = core->GetEconomyComponent();
+
+			if ( rM && eC )
+			{
+				rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+				eC->OnNetIncomeChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+
+				UpdateResources();
+				InitIncomeDisplay();
+
+				bIsEconomySubscribed_ = true;
+			}
+		}
+	}
+
 	if ( ActiveBonusIcons_.Num() > 0 )
 	{
 		UpdateBonusIconPositions();
 	}
-	
+
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -495,18 +515,10 @@ void UGameHUDWidget::UpdateResources()
 	UE_LOG( LogTemp, Warning, TEXT( "=== UpdateResources ===" ) );
 
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Core is NULL" ) );
-		return;
-	}
+	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
 
-	UResourceManager* rM = core->GetResourceManager();
 	if ( !rM )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "ResourceManager is NULL" ) );
 		return;
-	}
 
 	int32 gold = rM->GetResourceAmount( EResourceType::Gold );
 	int32 food = rM->GetResourceAmount( EResourceType::Food );
@@ -809,15 +821,13 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
 {
 	if ( !button || !buildingClass )
-	{
 		return;
-	}
+
 	UCoreManager* core = UCoreManager::Get( this );
 	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
+
 	if ( !rM )
-	{
 		return;
-	}
 
 	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
 	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
@@ -977,9 +987,6 @@ void UGameHUDWidget::InitIncomeDisplay()
 	{
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
-			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
-			eC->OnNetIncomeChanged.AddDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
-
 			FResourceProduction netIncome = eC->CalculateNetIncome();
 			GoldIncomeAnim_.DisplayedValue = netIncome.Gold;
 			GoldIncomeAnim_.TargetValue = netIncome.Gold;

@@ -251,6 +251,7 @@ protected:
 	void CancelCurrentBuilding();
 
 	bool bShowingEconomyBuildings_ = true;
+	bool bIsEconomySubscribed_ = false;
 	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
