@@ -14,7 +14,7 @@ UFollowComponent::UFollowComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
-  
+
 	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 2.0f * PI );
 	StreamRandom_ = FRandomStream( FPlatformTime::Cycles64() );
 }
@@ -41,6 +41,8 @@ void UFollowComponent::TickComponent(
 		RotateForward( deltaTime );
 		SnapToGround();
 	}
+
+	ResolveUnitOnUnwalkableCell();
 }
 
 void UFollowComponent::BeginPlay()
@@ -101,7 +103,7 @@ void UFollowComponent::MoveTowardsTarget( float deltaTime )
 
 void UFollowComponent::SnapToGround()
 {
-	if ( !PawnOwner || !CapsuleComponent_ )
+	if ( !PawnOwner || !CapsuleComponent_.IsValid() )
 	{
 		return;
 	}
@@ -148,18 +150,55 @@ void UFollowComponent::Sway( float deltaTime )
 
 void UFollowComponent::ResolveUnitOnUnwalkableCell()
 {
-	if ( !Grid_.IsValid() || !Unit_.IsValid() )
+	if ( !bAvoidUnwalkableCells_ || !Grid_.IsValid() || !Unit_.IsValid() || !CapsuleComponent_.IsValid() )
 	{
 		return;
 	}
 
-	const FIntPoint cellCoords = Grid_->GetCellCoords( Unit_->GetActorLocation() );
-	const FGridCell* cell = Grid_->GetCell( cellCoords.X, cellCoords.Y );
+	const float cellSize = Grid_->GetCellSize();
+	// const float capsuleRadius = CapsuleComponent_->GetScaledCapsuleRadius();
+	// const float allowedDistance = capsuleRadius * UnwalkableAllowedPart_;
 
-	if ( !cell->bIsWalkable )
+	const FIntPoint currentCellCoords = Grid_->GetCellCoords( Unit_->GetActorLocation() );
+	FVector currentCellCenter;
+	Grid_->GetCellWorldCenter( currentCellCoords, currentCellCenter );
+
+	TArray suspectedCoords {
+	    currentCellCoords, currentCellCoords + FIntPoint( 1, 0 ), currentCellCoords + FIntPoint( -1, 0 ),
+	    currentCellCoords + FIntPoint( 0, 1 ), currentCellCoords + FIntPoint( 0, -1 )
+	};
+
+	for ( const auto& cellCoords : suspectedCoords )
 	{
-		// Calculate cell bounds and center
-		// Teleport unit towards closest side taking into account UnwalkableAllowedPart_
+		const FGridCell* cell = Grid_->GetCell( cellCoords.X, cellCoords.Y );
+		if ( cell && !cell->bIsWalkable )
+		{
+			FVector cellCenter;
+			Grid_->GetCellWorldCenter( cellCoords, cellCenter );
+
+			const float dx = cellCenter.X - Unit_->GetActorLocation().X;
+			const float dy = cellCenter.Y - Unit_->GetActorLocation().Y;
+
+			const bool xIsInside = FMath::Abs( dx ) < cellSize / 2.0f;
+			const bool yIsInside = FMath::Abs( dy ) < cellSize / 2.0f;
+
+			if ( xIsInside && yIsInside && FMath::Abs( dx ) < FMath::Abs( dy ) )
+			{
+				const FVector location = Unit_->GetActorLocation();
+				const float x = cellCenter.X - FMath::Sign( dx ) * cellSize / 2.0f;
+				const FVector targetLocation = { x, location.Y, location.Z };
+				Unit_->SetActorLocation( FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ ) );
+				return;
+			}
+			if ( xIsInside && yIsInside  )
+			{
+				const FVector location = Unit_->GetActorLocation();
+				const float y = cellCenter.Y - FMath::Sign( dy ) * cellSize / 2.0f;
+				const FVector targetLocation = { location.X, y, location.Z };
+				Unit_->SetActorLocation( FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ ) );
+				return;
+			}
+		}
 	}
 }
 

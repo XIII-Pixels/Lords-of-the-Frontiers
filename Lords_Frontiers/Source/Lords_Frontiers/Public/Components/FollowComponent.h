@@ -44,7 +44,7 @@ protected:
 	float SnapToGroundDistance_ = 500.0f;
 
 	UPROPERTY()
-	TObjectPtr<UCapsuleComponent> CapsuleComponent_;
+	TWeakObjectPtr<UCapsuleComponent> CapsuleComponent_;
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnit> Unit_;
@@ -76,11 +76,10 @@ protected:
 	float CurrentDeviationYaw_ = 0.0f;
 
 	// Do not walk on unwalkable grid cells
-	UPROPERTY( EditAnywhere, Category = "Settings|Unwalkable cells" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Unwalkable" )
 	bool bAvoidUnwalkableCells_ = true;
 
-	// Part of unit capsule radius allowed to get on unwalkable cell
-	// (0 - no part of capsule can get on cell, 1 - up to half of capsule can get on cell)
-	UPROPERTY( EditAnywhere, Category = "Settings|Unwalkable cells", meta = ( ClampMin = 0.0f, ClampMax = 1.0f ) )
-	float UnwalkableAllowedPart_ = 0.0f;
+	// Speed at which unit is pushed from unwalkable cell
+	UPROPERTY( EditAnywhere, Category = "Settings|Unwalkable", meta = ( ClampMin = 0.0f, ClampMax = 1.0f ) )
+	float UnwalkablePushSpeed_ = 5.0f;
 };
