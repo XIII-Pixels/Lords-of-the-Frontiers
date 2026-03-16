@@ -114,6 +114,11 @@ void UGameLoopManager::Cleanup()
 	{
 		world->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
 		world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
+
+		if ( UCardSubsystem* cardSub = UCardSubsystem::Get( world ) )
+		{
+			cardSub->ResetCardHistory();
+		}
 	}
 
 	CurrentPhase_ = EGameLoopPhase::None;
