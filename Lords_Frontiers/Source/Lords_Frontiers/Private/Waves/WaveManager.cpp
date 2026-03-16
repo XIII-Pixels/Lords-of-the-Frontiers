@@ -759,34 +759,51 @@ void AWaveManager::ApplyWaveConfig()
 	    *GetNameSafe( WaveConfig_ ), Waves.Num(), RuntimeWaveEndSafetyMargin_
 	);
 }
-
-void AWaveManager::SetWaveConfig( UWaveConfigData* NewConfig )
+ 
+// Apply to HotSwap wave config (for difficulty and etc)
+void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 {
-	if ( WaveConfig_ == NewConfig )
+	if ( !newConfig )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "SetWaveConfig called with nullptr" ) );
 		return;
+	}
+
+	if ( WaveConfig_ == newConfig )
+		return;
+
+	const bool bWasWaveActive = bIsWaveActive_;
 
 	CancelCurrentWave();
 
-	WaveConfig_ = NewConfig;
+	WaveConfig_ = newConfig;
 
-	if ( WaveConfig_ )
+	ApplyWaveConfig();
+
+	if ( Waves.Num() == 0 )
 	{
-		ApplyWaveConfig();
+		UE_LOG( LogTemp, Warning, TEXT( "WaveConfig contains no waves" ) );
+		return;
 	}
-	else
+
+	CurrentWaveIndex = FMath::Clamp( CurrentWaveIndex, 0, Waves.Num() - 1 );
+
+	UE_LOG( LogTemp, Log, TEXT( "WaveConfig swapped. Continuing from wave %d" ), CurrentWaveIndex );
+
+	if ( bWasWaveActive )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "WaveManager::SetWaveConfig: NewConfig == nullptr" ) );
+		StartWaveAtIndex( CurrentWaveIndex );
 	}
 }
 
 #if WITH_EDITOR
-void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
+void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& propertyChangedEvent )
 {
-	Super::PostEditChangeProperty( PropertyChangedEvent );
+	Super::PostEditChangeProperty( propertyChangedEvent );
 
-	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName propertyName = propertyChangedEvent.Property ? propertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if ( PropertyName == GET_MEMBER_NAME_CHECKED( AWaveManager, WaveConfig_ ) )
+	if ( propertyName == GET_MEMBER_NAME_CHECKED( AWaveManager, WaveConfig_ ) )
 	{
 		if ( WaveConfig_ )
 		{

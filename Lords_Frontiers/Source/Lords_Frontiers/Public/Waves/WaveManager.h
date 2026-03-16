@@ -123,11 +123,9 @@ public:
 	UPROPERTY( EditAnywhere, Category = "WaveConfig" )
 	UWaveConfigData* WaveConfig_;
 
-	  // Сменить конфиг в рантайме (безопасно)
 	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
-	void SetWaveConfig( UWaveConfigData* NewConfig );
+	void SetWaveConfig( UWaveConfigData* newConfig );
 
-	// Применить текущий WaveConfig (копируем данные из DA в Waves)
 	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
 	void ApplyWaveConfig();
 
@@ -193,9 +191,9 @@ protected:
 	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
 
+	// update in editor
 	#if WITH_EDITOR
-	// чтобы обновлять Waves в редакторе при смене ссылки на DA
-	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& propertyChangedEvent ) override;
 	#endif
 
 private:
