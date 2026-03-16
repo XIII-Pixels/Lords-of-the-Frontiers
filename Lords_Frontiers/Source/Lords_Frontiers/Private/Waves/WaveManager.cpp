@@ -5,6 +5,9 @@
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "TimerManager.h"
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
 
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
@@ -29,6 +32,10 @@ void AWaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if ( WaveConfig_ )
+	{
+		ApplyWaveConfig();
+	}
 	if ( bAutoStartOnBeginPlay )
 	{
 		StartWaves();
@@ -732,3 +739,59 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 
 	return enemyCounts;
 }
+void AWaveManager::ApplyWaveConfig()
+{
+	if ( WaveConfig_ == nullptr )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "WaveManager::ApplyWaveConfig: WaveConfig == nullptr; keeping existing Waves array." )
+		);
+		return;
+	}
+
+	Waves = WaveConfig_->Waves;
+
+	RuntimeWaveEndSafetyMargin_ = WaveConfig_->WaveEndSafetyMargin;
+
+	UE_LOG(
+	    LogTemp, Log, TEXT( "WaveManager::ApplyWaveConfig: Applied config '%s' => Waves=%d, SafetyMargin=%.2f" ),
+	    *GetNameSafe( WaveConfig_ ), Waves.Num(), RuntimeWaveEndSafetyMargin_
+	);
+}
+
+void AWaveManager::SetWaveConfig( UWaveConfigData* NewConfig )
+{
+	if ( WaveConfig_ == NewConfig )
+		return;
+
+	CancelCurrentWave();
+
+	WaveConfig_ = NewConfig;
+
+	if ( WaveConfig_ )
+	{
+		ApplyWaveConfig();
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager::SetWaveConfig: NewConfig == nullptr" ) );
+	}
+}
+
+#if WITH_EDITOR
+void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
+{
+	Super::PostEditChangeProperty( PropertyChangedEvent );
+
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if ( PropertyName == GET_MEMBER_NAME_CHECKED( AWaveManager, WaveConfig_ ) )
+	{
+		if ( WaveConfig_ )
+		{
+			ApplyWaveConfig();
+		}
+	}
+}
+#endif

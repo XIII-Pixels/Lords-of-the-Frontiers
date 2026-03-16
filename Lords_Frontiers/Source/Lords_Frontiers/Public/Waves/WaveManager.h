@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Lords_Frontiers/Public/Units/Unit.h"
+#include "Lords_Frontiers/Public/Waves/WaveConfig.h"
 #include "Wave.h"
 #include "EnemyBuff.h"
 #include "CoreMinimal.h"
@@ -119,6 +120,17 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
 	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
+	UPROPERTY( EditAnywhere, Category = "WaveConfig" )
+	UWaveConfigData* WaveConfig_;
+
+	  // Сменить конфиг в рантайме (безопасно)
+	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
+	void SetWaveConfig( UWaveConfigData* NewConfig );
+
+	// Применить текущий WaveConfig (копируем данные из DA в Waves)
+	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
+	void ApplyWaveConfig();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -181,4 +193,11 @@ protected:
 	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
 
+	#if WITH_EDITOR
+	// чтобы обновлять Waves в редакторе при смене ссылки на DA
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
+	#endif
+
+private:
+	float RuntimeWaveEndSafetyMargin_ = 1.0f;
 };
