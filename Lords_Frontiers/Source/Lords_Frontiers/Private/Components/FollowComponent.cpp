@@ -39,7 +39,6 @@ void UFollowComponent::TickComponent(
 	if ( !Velocity.IsNearlyZero() )
 	{
 		RotateForward( deltaTime );
-		SnapToGround();
 	}
 
 	ResolveUnitOnUnwalkableCell();
@@ -60,6 +59,8 @@ void UFollowComponent::BeginPlay()
 	{
 		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
 	}
+
+	SnapToGround();
 }
 
 void UFollowComponent::StartFollowing()
