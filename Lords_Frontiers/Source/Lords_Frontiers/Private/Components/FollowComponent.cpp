@@ -156,8 +156,6 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 	}
 
 	const float cellSize = Grid_->GetCellSize();
-	// const float capsuleRadius = CapsuleComponent_->GetScaledCapsuleRadius();
-	// const float allowedDistance = capsuleRadius * UnwalkableAllowedPart_;
 
 	const FIntPoint currentCellCoords = Grid_->GetCellCoords( Unit_->GetActorLocation() );
 	FVector currentCellCenter;
@@ -190,7 +188,7 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 				Unit_->SetActorLocation( FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ ) );
 				return;
 			}
-			if ( xIsInside && yIsInside  )
+			if ( xIsInside && yIsInside )
 			{
 				const FVector location = Unit_->GetActorLocation();
 				const float y = cellCenter.Y - FMath::Sign( dy ) * cellSize / 2.0f;

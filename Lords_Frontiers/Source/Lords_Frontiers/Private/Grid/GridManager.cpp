@@ -120,7 +120,7 @@ FIntPoint AGridManager::GetCellCoords( FVector location ) const
 	const FIntPoint coords = GetCellCoordsRaw( location );
 
 	const int32 height = GetGridHeight();
-	const int32 width = GetRowWidth( 0 );	// assuming rectangular grid
+	const int32 width = GetRowWidth( 0 ); // assuming rectangular grid
 
 	if ( coords.X < 0 || coords.X >= width || coords.Y < 0 || coords.Y >= height )
 	{
@@ -134,12 +134,79 @@ FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 	FIntPoint coords = GetCellCoordsRaw( location );
 
 	const int32 height = GetGridHeight();
-	const int32 width = GetRowWidth( 0 );	// assuming rectangular grid
+	const int32 width = GetRowWidth( 0 ); // assuming rectangular grid
 
 	coords.Y = FMath::Clamp( coords.Y, 0, height - 1 );
 	coords.X = FMath::Clamp( coords.X, 0, width - 1 );
 
 	return coords;
+}
+
+FIntPoint AGridManager::FindClosestWalkableCell( const FVector& location ) const
+{
+	FIntPoint currentCoords = GetCellCoords( location );
+	if ( !IsValidCoords( currentCoords.X, currentCoords.Y ) )
+	{
+		return { -1, -1 };
+	}
+
+	constexpr int maxDistance = 100;
+
+	FIntPoint closestCoords = { -1, -1 };
+	float distToClosest = std::numeric_limits<float>::max();
+	bool found = false;
+
+	auto processCell = [this, &closestCoords, &location, &distToClosest, &found]( const FIntPoint coords )
+	{
+		const FGridCell* cell = GetCell( coords.X, coords.Y );
+		if ( cell && cell->bIsWalkable )
+		{
+			FVector cellLocation;
+			GetCellWorldCenter( coords, cellLocation );
+			const float distToCell = FVector::Distance( location, cellLocation );
+			if ( !found || distToCell < distToClosest )
+			{
+				closestCoords = coords;
+				distToClosest = distToCell;
+				found = true;
+			}
+		}
+	};
+
+	processCell( currentCoords );
+	if ( found )
+	{
+		return currentCoords;
+	}
+
+	for ( int dist = 1; dist < maxDistance; ++dist )
+	{
+		for ( int dx = -dist; dx <= dist; ++dx )
+		{
+			processCell( { currentCoords.X + dx, currentCoords.Y + dist } );
+		}
+
+		for ( int dy = dist - 1; dy >= -dist; --dy )
+		{
+			processCell( { currentCoords.X + dist, currentCoords.Y + dy } );
+		}
+
+		for ( int dx = dist - 1; dx >= -dist; --dx )
+		{
+			processCell( { currentCoords.X + dx, currentCoords.Y - dist } );
+		}
+
+		for ( int dy = -dist + 1; dy <= dist - 1; ++dy )
+		{
+			processCell( { currentCoords.X - dist, currentCoords.Y + dy } );
+		}
+
+		if ( found )
+		{
+			return closestCoords;
+		}
+	}
+	return { -1, -1 };
 }
 
 FIntPoint AGridManager::GetCellCoordsRaw( FVector location ) const

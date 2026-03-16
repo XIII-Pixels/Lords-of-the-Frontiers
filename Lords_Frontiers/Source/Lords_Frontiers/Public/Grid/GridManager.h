@@ -103,6 +103,9 @@ public:
 	/// If location is not on grid returns grid coords of closest cell.
 	FIntPoint GetClosestCellCoords( FVector location ) const;
 
+	/// @brief Find the closest cell with bWalkable = true
+	FIntPoint FindClosestWalkableCell( const FVector& location ) const;
+
 	/// @brief Get array the cell's neighbors
 	/// @param[in] FGridCell 
 	/// @param[in] radius how many cells to look at.

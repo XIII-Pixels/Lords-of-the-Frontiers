@@ -76,10 +76,10 @@ protected:
 	float CurrentDeviationYaw_ = 0.0f;
 
 	// Do not walk on unwalkable grid cells
-	UPROPERTY( EditAnywhere, Category = "Settings|Unwalkable" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
 	bool bAvoidUnwalkableCells_ = true;
 
 	// Speed at which unit is pushed from unwalkable cell
-	UPROPERTY( EditAnywhere, Category = "Settings|Unwalkable", meta = ( ClampMin = 0.0f, ClampMax = 1.0f ) )
-	float UnwalkablePushSpeed_ = 5.0f;
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
+	float UnwalkablePushSpeed_ = 20.0f;
 };
