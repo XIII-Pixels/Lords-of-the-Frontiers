@@ -2,6 +2,7 @@
 
 #include "Components/FollowComponent.h"
 
+#include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Grid/GridManager.h"
 #include "Units/Unit.h"
@@ -102,30 +103,35 @@ void UFollowComponent::MoveTowardsTarget( float deltaTime )
 	AddInputVector( CurrentDirection_ );
 }
 
-void UFollowComponent::SnapToGround()
+void UFollowComponent::SnapToGround() const
 {
-	if ( !PawnOwner || !CapsuleComponent_.IsValid() )
+	if ( !PawnOwner )
 	{
 		return;
 	}
 
-	float halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
-	FVector location = PawnOwner->GetActorLocation();
-	location.Z -= halfHeight;
-
-	FVector start = location + FVector( 0, 0, SnapToGroundDistance_ );
-	FVector end = location - FVector( 0, 0, SnapToGroundDistance_ );
-
-	FHitResult hit;
-	FCollisionQueryParams params;
-	params.AddIgnoredActor( PawnOwner );
-
-	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Visibility, params ) )
+	const AUnitAIManager* aiManager = nullptr;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
-		FVector groundLocation = hit.ImpactPoint;
-		location.Z = groundLocation.Z + halfHeight;
-		PawnOwner->SetActorLocation( location );
+		aiManager = core->GetUnitAIManager();
+		if ( !aiManager )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "UFollowComponent::SnapToGround: UnitAIManager not found" ) );
+			return;
+		}
 	}
+
+	float halfHeight = 0.0f;
+	if ( CapsuleComponent_.IsValid() )
+	{
+		halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
+	}
+
+	const FVector groundLocation = { 0.0f, 0.0f, aiManager->GroundHeight() };
+
+	FVector location = PawnOwner->GetActorLocation();
+	location.Z = groundLocation.Z + halfHeight;
+	PawnOwner->SetActorLocation( location );
 }
 
 void UFollowComponent::Sway( float deltaTime )

@@ -33,7 +33,7 @@ protected:
 
 	void MoveTowardsTarget( float deltaTime );
 	void RotateForward( float deltaTime );
-	void SnapToGround();
+	void SnapToGround() const;
 	void Sway( float deltaTime );
 	void ResolveUnitOnUnwalkableCell();
 

@@ -51,6 +51,11 @@ public:
 		return PathPointReachRadius_;
 	}
 
+	float GroundHeight() const
+	{
+		return GroundHeight_;
+	}
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -64,6 +69,9 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	float PathPointReachRadius_ = 100.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
+	float GroundHeight_ = 10.0f;
 
 	UPROPERTY()
 	TWeakObjectPtr<AActor> GoalActor_;
