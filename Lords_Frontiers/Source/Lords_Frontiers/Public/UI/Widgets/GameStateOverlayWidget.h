@@ -6,7 +6,6 @@
 #include "GameStateOverlayWidget.generated.h"
 
 class UButton;
-class UTextBlock;
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UGameStateOverlayWidget : public UUserWidget
@@ -16,24 +15,17 @@ class LORDS_FRONTIERS_API UGameStateOverlayWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
-	void SetupWinState();
-	void SetupLoseState();
-	void SetupPauseState();
-
 protected:
-	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UTextBlock> TextTitle;
-
-	UPROPERTY( meta = ( BindWidget ) )
+	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> BtnMainMenu;
 
-	UPROPERTY( meta = ( BindWidget ) )
+	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> BtnRestart;
 
-	UPROPERTY( meta = ( BindWidget ) )
+	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> BtnNextLevel;
 
-	UPROPERTY( meta = ( BindWidget ) )
+	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> BtnResume;
 
 	UFUNCTION()

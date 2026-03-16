@@ -1109,27 +1109,22 @@ void UGameHUDWidget::ApplyIncomeText( UTextBlock* textBlock, int32 value )
 }
 void UGameHUDWidget::HandleGameEnded( bool bVictory )
 {
-	if ( !OverlayWidgetClass )
+	if ( ActiveOverlay )
 	{
-		return;
+		ActiveOverlay->RemoveFromParent();
+		ActiveOverlay = nullptr;
 	}
 
-	if ( !ActiveOverlay )
+	TSubclassOf<UGameStateOverlayWidget> ClassToUse = bVictory ? WinWidgetClass : LoseWidgetClass;
+	if ( !ClassToUse )
+		return;
+
+	ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, ClassToUse );
+	if ( ActiveOverlay )
 	{
-		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, OverlayWidgetClass );
 		ActiveOverlay->AddToViewport( 100 );
 	}
 
-	ActiveOverlay->SetVisibility( ESlateVisibility::Visible );
-
-	if ( bVictory )
-	{
-		ActiveOverlay->SetupWinState();
-	}
-	else
-	{
-		ActiveOverlay->SetupLoseState();
-	}
 	if ( APlayerController* PC = GetOwningPlayer() )
 	{
 		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
@@ -1147,32 +1142,28 @@ void UGameHUDWidget::TogglePauseMenu()
 		return;
 	}
 
-	if ( !OverlayWidgetClass )
+	if ( ActiveOverlay )
 	{
-		return;
-	}
+		ActiveOverlay->RemoveFromParent();
+		ActiveOverlay = nullptr;
 
-	if ( !ActiveOverlay )
-	{
-		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, OverlayWidgetClass );
-		ActiveOverlay->AddToViewport( 100 );
-	}
-	bool bWillBeVisible = ( ActiveOverlay->GetVisibility() != ESlateVisibility::Visible );
-
-	if ( bWillBeVisible )
-	{
-		ActiveOverlay->SetupPauseState();
-		ActiveOverlay->SetVisibility( ESlateVisibility::Visible );
+		if ( APlayerController* PC = GetOwningPlayer() )
+			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+				Cam->SetCameraInputDisabled( false );
 	}
 	else
 	{
-		ActiveOverlay->SetVisibility( ESlateVisibility::Collapsed );
-	}
-	if ( APlayerController* PC = GetOwningPlayer() )
-	{
-		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+		if ( !PauseWidgetClass )
+			return;
+
+		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, PauseWidgetClass );
+		if ( ActiveOverlay )
 		{
-			Cam->SetCameraInputDisabled( bWillBeVisible );
+			ActiveOverlay->AddToViewport( 100 );
 		}
+
+		if ( APlayerController* PC = GetOwningPlayer() )
+			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+				Cam->SetCameraInputDisabled( true );
 	}
 }

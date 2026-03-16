@@ -234,7 +234,13 @@ public:
 	TObjectPtr<UButton> BtnToggleWaveInfo;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
-	TSubclassOf<UGameStateOverlayWidget> OverlayWidgetClass;
+	TSubclassOf<UGameStateOverlayWidget> WinWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> LoseWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> PauseWidgetClass;
 
 	UPROPERTY()
 	TObjectPtr<UGameStateOverlayWidget> ActiveOverlay;
