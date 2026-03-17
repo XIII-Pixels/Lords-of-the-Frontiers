@@ -20,6 +20,33 @@ UFollowComponent::UFollowComponent()
 	StreamRandom_ = FRandomStream( FPlatformTime::Cycles64() );
 }
 
+void UFollowComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Unit_ = Cast<AUnit>( GetOwner() );
+
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		Grid_ = core->GetGridManager();
+	}
+
+	if ( PawnOwner )
+	{
+		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
+	}
+
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* aiManager = core->GetUnitAIManager() )
+		{
+			GroundHeight_ = aiManager->GroundHeight();
+		}
+		else
+			UE_LOG( LogTemp, Error, TEXT( "UFollowComponent::SnapToGround: UnitAIManager not found" ) );
+	}
+}
+
 void UFollowComponent::TickComponent(
     float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
 )
@@ -42,26 +69,17 @@ void UFollowComponent::TickComponent(
 		RotateForward( deltaTime );
 	}
 
+	if ( CapsuleComponent_.IsValid() )
+	{
+		const float halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
+		if ( Unit_.IsValid() &&
+		     FMath::Abs( Unit_->GetActorLocation().Z - halfHeight - GroundHeight_ ) > KINDA_SMALL_NUMBER )
+		{
+			SnapToGround();
+		}
+	}
+
 	ResolveUnitOnUnwalkableCell();
-}
-
-void UFollowComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	Unit_ = Cast<AUnit>( GetOwner() );
-
-	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
-	{
-		Grid_ = core->GetGridManager();
-	}
-
-	if ( PawnOwner )
-	{
-		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
-	}
-
-	SnapToGround();
 }
 
 void UFollowComponent::StartFollowing()
@@ -110,27 +128,14 @@ void UFollowComponent::SnapToGround() const
 		return;
 	}
 
-	const AUnitAIManager* aiManager = nullptr;
-	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
-	{
-		aiManager = core->GetUnitAIManager();
-		if ( !aiManager )
-		{
-			UE_LOG( LogTemp, Error, TEXT( "UFollowComponent::SnapToGround: UnitAIManager not found" ) );
-			return;
-		}
-	}
-
 	float halfHeight = 0.0f;
 	if ( CapsuleComponent_.IsValid() )
 	{
 		halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
 	}
 
-	const FVector groundLocation = { 0.0f, 0.0f, aiManager->GroundHeight() };
-
 	FVector location = PawnOwner->GetActorLocation();
-	location.Z = groundLocation.Z + halfHeight;
+	location.Z = GroundHeight_ + halfHeight;
 	PawnOwner->SetActorLocation( location );
 }
 
@@ -168,7 +173,7 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 	FVector currentCellCenter;
 	Grid_->GetCellWorldCenter( currentCellCoords, currentCellCenter );
 
-	TArray suspectedCoords {
+	TArray suspectedCoords{
 	    currentCellCoords, currentCellCoords + FIntPoint( 1, 0 ), currentCellCoords + FIntPoint( -1, 0 ),
 	    currentCellCoords + FIntPoint( 0, 1 ), currentCellCoords + FIntPoint( 0, -1 )
 	};
@@ -192,7 +197,9 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 				const FVector location = Unit_->GetActorLocation();
 				const float x = cellCenter.X - FMath::Sign( dx ) * cellSize / 2.0f;
 				const FVector targetLocation = { x, location.Y, location.Z };
-				Unit_->SetActorLocation( FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ ) );
+				Unit_->SetActorLocation(
+				    FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ )
+				);
 				return;
 			}
 			if ( xIsInside && yIsInside )
@@ -200,7 +207,9 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 				const FVector location = Unit_->GetActorLocation();
 				const float y = cellCenter.Y - FMath::Sign( dy ) * cellSize / 2.0f;
 				const FVector targetLocation = { location.X, y, location.Z };
-				Unit_->SetActorLocation( FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ ) );
+				Unit_->SetActorLocation(
+				    FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ )
+				);
 				return;
 			}
 		}

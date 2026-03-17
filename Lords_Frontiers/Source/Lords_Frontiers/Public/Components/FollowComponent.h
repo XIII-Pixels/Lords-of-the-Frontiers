@@ -82,4 +82,6 @@ protected:
 	// Speed at which unit is pushed from unwalkable cell
 	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
 	float UnwalkablePushSpeed_ = 20.0f;
+
+	float GroundHeight_ = 0.0f;
 };
