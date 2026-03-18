@@ -24,18 +24,30 @@ class LORDS_FRONTIERS_API UEnemyAggressionComponent : public UActorComponent
 public:
 	UEnemyAggressionComponent();
 
+	void FollowNextPathTarget();
+
+	void FollowPath() const;
+
 	const TSet<TSoftClassPtr<ABuilding>>& TargetBuildingClasses() const
 	{
 		return TargetBuildingClasses_;
 	}
 
-	void FollowNextPathTarget();
+	void SetPathPointIndex( int pathPointIndex )
+	{
+		PathPointIndex_ = pathPointIndex;
+	}
 
-	void SetPathPointIndex( int pathPointIndex );
+	UPath* Path() const
+	{
+		return Path_;
+	}
 
-	void FollowPath() const;
-
-	void SetPath( UPath* path );
+	void SetPath( UPath* path )
+	{
+		Path_ = path;
+		PathPointIndex_ = 0;
+	}
 
 protected:
 	virtual void BeginPlay() override;
@@ -52,9 +64,6 @@ protected:
 	// Set of building classes (not ordered). Unit attacks closest building from set
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( AllowAbstract = "true" ) )
 	TSet<TSoftClassPtr<ABuilding>> TargetBuildingClasses_;
-
-	UPROPERTY()
-	TWeakObjectPtr<const ABuilding> TargetBuilding_;
 
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;

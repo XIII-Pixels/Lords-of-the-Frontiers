@@ -51,16 +51,10 @@ void UEnemyAggressionComponent::TickComponent(
 		FollowNextPathTarget();
 	}
 
-	if ( !TargetBuilding_.IsValid() || TargetBuilding_->IsDestroyed() )
+	if ( !unit->TargetBuilding().IsValid() || unit->TargetBuilding()->IsDestroyed() )
 	{
 		FindPathToClosestBuilding();
 	}
-}
-
-void UEnemyAggressionComponent::SetPath( UPath* path )
-{
-	Path_ = path;
-	PathPointIndex_ = 0;
 }
 
 void UEnemyAggressionComponent::FollowNextPathTarget()
@@ -72,11 +66,6 @@ void UEnemyAggressionComponent::FollowNextPathTarget()
 void UEnemyAggressionComponent::AdvancePathPointIndex()
 {
 	++PathPointIndex_;
-}
-
-void UEnemyAggressionComponent::SetPathPointIndex( int pathPointIndex )
-{
-	PathPointIndex_ = pathPointIndex;
 }
 
 void UEnemyAggressionComponent::FollowPath() const
@@ -98,9 +87,9 @@ void UEnemyAggressionComponent::FollowPath() const
 	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
 	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
 	{
-		if ( TargetBuilding_.IsValid() )
+		if ( unit->TargetBuilding().IsValid() )
 		{
-			unit->SetFollowedTarget( TargetBuilding_ );
+			unit->SetFollowedTarget( unit->TargetBuilding() );
 		}
 		else if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor().IsValid() )
 		{
@@ -167,7 +156,7 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 		return;
 	}
 
-	TargetBuilding_ = UnitAIManager_->TargetBuildingTracker()->FindClosestBuilding( unit );
+	unit->SetTargetBuilding( UnitAIManager_->TargetBuildingTracker()->FindClosestBuilding( unit ) );
 
 	const AGridManager* grid = nullptr;
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
@@ -175,11 +164,11 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 		grid = core->GetGridManager();
 	}
 
-	if ( TargetBuilding_.IsValid() && grid )
+	if ( unit->TargetBuilding().IsValid() && grid )
 	{
 		UPath* path = NewObject<UPath>( unit );
 		path->Initialize(
-		    { unit->GetActorLocation(), TargetBuilding_->GetTargetLocation(), unit->Stats().AttackDamage(),
+		    { unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), unit->Stats().AttackDamage(),
 		      unit->Stats().AttackCooldown(), grid->GetCellSize() / unit->Stats().MaxSpeed() }
 		);
 		path->CalculateOrUpdate();

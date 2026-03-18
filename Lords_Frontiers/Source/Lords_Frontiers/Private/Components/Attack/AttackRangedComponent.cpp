@@ -4,6 +4,7 @@
 
 #include "Entity.h"
 #include "Projectiles/Projectile.h"
+#include "Units/Unit.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/SphereComponent.h"
@@ -121,11 +122,9 @@ void UAttackRangedComponent::Look()
 			}
 		}
 	}
-
-	// UE_LOG( LogTemp, Log, TEXT( "Enemy in sight: %s" ), *GetNameSafe( EnemyInSight_ ) );
 }
 
-bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> actor ) const
+bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 {
 	// it is assumed the actor is inside the sight sphere
 	if ( !OwnerIsValid() )
@@ -133,13 +132,13 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> actor ) const
 		return false;
 	}
 
-	const auto enemy = Cast<IEntity>( actor );
+	const auto enemy = Cast<IEntity>( enemyActor );
 	if ( enemy && enemy->Stats().IsAlive() && enemy->Team() != OwnerEntity_->Team() )
 	{
 		if ( !bCanAttackBackward_ ) // look in half-circle in front of unit
 		{
 			const float dot = FVector::DotProduct(
-			    actor->GetActorLocation() - GetOwner()->GetActorLocation(), GetOwner()->GetActorForwardVector()
+			    enemyActor->GetActorLocation() - GetOwner()->GetActorLocation(), GetOwner()->GetActorForwardVector()
 			);
 			if ( dot > 0 )
 			{
@@ -150,6 +149,28 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> actor ) const
 		{
 			return true;
 		}
+	}
+	return false;
+}
+
+bool UAttackRangedComponent::EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) const
+{
+	if ( !OwnerIsValid() )
+	{
+		return false;
+	}
+
+	const AUnit* unit = GetOwner<AUnit>();
+	if ( !unit )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::EnemyIsOnPath: owner unit not found" ) );
+		return false;
+	}
+
+	UPath* path = unit->Path();
+	if ( path )
+	{
+
 	}
 	return false;
 }

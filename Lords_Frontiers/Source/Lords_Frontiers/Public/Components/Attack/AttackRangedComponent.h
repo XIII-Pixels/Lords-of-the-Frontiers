@@ -39,7 +39,9 @@ protected:
 	// Look around at given time intervals
 	void Look();
 
-	bool CanSeeEnemy( TObjectPtr<AActor> actor ) const;
+	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
+
+	bool EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) const;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
