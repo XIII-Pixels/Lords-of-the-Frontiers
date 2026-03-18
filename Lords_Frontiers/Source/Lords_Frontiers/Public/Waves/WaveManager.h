@@ -68,11 +68,9 @@ public:
 	TMap<TSubclassOf<AUnit>, FEnemyBuff> EnemyBuffs;
 
 	// Current wave index (0-based)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	int32 CurrentWaveIndex = 0;
 
 	// List of waves. Index in array is the wave number
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	TArray<FWave> Waves;
 
 	// If true, WaveManager will auto-start the first wave on BeginPlay (if there
