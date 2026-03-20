@@ -472,6 +472,7 @@ void UGameLoopManager::EnterBuildingPhase()
 
 	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
 	{
+		ec->PerformInitialScan();
 		ec->RecalculateAndBroadcastNetIncome();
 	}
 }
