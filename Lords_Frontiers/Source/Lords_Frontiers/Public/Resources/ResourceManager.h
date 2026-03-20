@@ -28,6 +28,9 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )
 	void AddResource( EResourceType type, int32 quantity );
 
+	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )
+	void ResetResources();
+
 	// Trying to spend a resource. Returns true if there are enough resources and
 	// the debit was successful.
 	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )

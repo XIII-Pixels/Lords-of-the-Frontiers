@@ -286,7 +286,11 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 		return false;
 	}
 
-	UResourceManager* resManager = CachedResourceManager_.Get();
+	UResourceManager* resManager = nullptr;
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		resManager = core->GetResourceManager();
+	}
 
 	const ABuilding* cdo = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
 	check( cdo );
@@ -311,6 +315,7 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 	{
 		resManager->SpendResources( cdo->GetBuildingCost() );
 	}
+
 	RecalculateBonusesAroundBuilding( newBuilding, CurrentCellCoords_ );
 	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
 	PlayPlacementAnimation( newBuilding );

@@ -323,3 +323,12 @@ void UEconomyComponent::HandleEconomyBonusesChanged( const FEconomyBonuses& newB
 {
 	RecalculateAndBroadcastNetIncome();
 }
+
+void UEconomyComponent::ResetEconomy()
+{
+	RegisteredBuildings_.Empty();
+	bInitialScanDone = false;
+	CachedNetIncome_ = FResourceProduction();
+
+	FindSystems();
+}
