@@ -344,54 +344,58 @@ protected:
 
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
 
-	FTimerHandle TooltipTimerHandle;
-	TSubclassOf<ABuilding> PendingBuildingClass;
-
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
-		StartTooltipTimer( WoodenHouseClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( WoodenHouseClass );
 	}
 	UFUNCTION() void OnHoverStrawHouse()
 	{
-		StartTooltipTimer( StrawHouseClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( StrawHouseClass );
 	}
 	UFUNCTION() void OnHoverFarm()
 	{
-		StartTooltipTimer( FarmClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( FarmClass );
 	}
 	UFUNCTION() void OnHoverLawnHouse()
 	{
-		StartTooltipTimer( LawnHouseClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( LawnHouseClass );
 	}
 	UFUNCTION() void OnHoverMagicHouse()
 	{
-		StartTooltipTimer( MagicHouseClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( MagicHouseClass );
 	}
 	UFUNCTION() void OnHoverWoodWall()
 	{
-		StartTooltipTimer( WoodWallClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( WoodWallClass );
 	}
 	UFUNCTION() void OnHoverStoneWall()
 	{
-		StartTooltipTimer( StoneWallClass );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( StoneWallClass );
 	}
 	UFUNCTION() void OnHoverTowerT0()
 	{
-		StartTooltipTimer( TowerT0Class );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( TowerT0Class );
 	}
 	UFUNCTION() void OnHoverTowerT1()
 	{
-		StartTooltipTimer( TowerT1Class );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( TowerT1Class );
 	}
 	UFUNCTION() void OnHoverTowerT2()
 	{
-		StartTooltipTimer( TowerT2Class );
+		if ( ActiveTooltip )
+			ActiveTooltip->ShowTooltip( TowerT2Class );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
-	UFUNCTION() void ShowTooltipInternal();
-
-	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
 
 	struct FIncomeAnimState
 	{

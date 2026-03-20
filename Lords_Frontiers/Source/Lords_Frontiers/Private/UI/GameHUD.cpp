@@ -8,6 +8,7 @@
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "Camera/StrategyCamera.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
@@ -142,6 +143,15 @@ void UGameHUDWidget::NativeConstruct()
 	if ( BtnToggleWaveInfo )
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+	}
+	if ( TooltipClass && !ActiveTooltip )
+	{
+		ActiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
+		if ( ActiveTooltip )
+		{
+			ActiveTooltip->AddToViewport( 99 );
+			ActiveTooltip->ForceHide();         
+		}
 	}
 	
 	InitIncomeDisplay();
@@ -786,6 +796,10 @@ void UGameHUDWidget::CancelCurrentBuilding()
 	{
 		bM->CancelPlacing();
 	}
+	if ( ActiveTooltip )
+	{
+		ActiveTooltip->HideTooltip();
+	}
 }
 
 void UGameHUDWidget::UpdateCategoryButtonsVisual()
@@ -839,52 +853,12 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
 }
 
-void UGameHUDWidget::StartTooltipTimer( TSubclassOf<ABuilding> buildingClass )
-{
-	PendingBuildingClass = buildingClass;
-	GetWorld()->GetTimerManager().SetTimer(
-	    TooltipTimerHandle, this, &UGameHUDWidget::ShowTooltipInternal, 0.5f, false
-	);
-}
 
 void UGameHUDWidget::OnBuildingUnhovered()
 {
-	GetWorld()->GetTimerManager().ClearTimer( TooltipTimerHandle );
 	if ( ActiveTooltip )
-		ActiveTooltip->SetVisibility( ESlateVisibility::Collapsed );
-	PendingBuildingClass = nullptr;
-}
-
-void UGameHUDWidget::ShowTooltipInternal()
-{
-	if ( !PendingBuildingClass || !TooltipClass )
 	{
-		return;
-	}
-
-	if ( !ActiveTooltip )
-	{
-		ActiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
-		ActiveTooltip->AddToViewport( 99 );
-	}
-
-	ActiveTooltip->UpdateTooltip( PendingBuildingClass->GetDefaultObject<ABuilding>() );
-	ActiveTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
-
-	FVector2D mousePos;
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		pc->GetMousePosition( mousePos.X, mousePos.Y );
-
-		FVector2D viewportSize;
-		if ( GEngine && GEngine->GameViewport )
-		{
-			GEngine->GameViewport->GetViewportSize( viewportSize );
-		}
-
-		float offsetYa = ( mousePos.Y > ( viewportSize.Y / 2.f ) ) ? -180.f : 25.f;
-
-		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
+		ActiveTooltip->HideTooltip();
 	}
 }
 
