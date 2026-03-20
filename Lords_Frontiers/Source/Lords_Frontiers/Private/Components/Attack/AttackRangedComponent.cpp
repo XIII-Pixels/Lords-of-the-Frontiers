@@ -2,7 +2,11 @@
 
 #include "Components/Attack/AttackRangedComponent.h"
 
+#include "AI/Path/Path.h"
+#include "AI/Path/PathTargetPoint.h"
+#include "Core/CoreManager.h"
 #include "Entity.h"
+#include "Grid/GridManager.h"
 #include "Projectiles/Projectile.h"
 #include "Units/Unit.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -112,7 +116,7 @@ void UAttackRangedComponent::Look()
 			continue;
 		}
 
-		if ( CanSeeEnemy( actor ) )
+		if ( CanSeeEnemy( actor ) && EnemyIsOnPath( actor )  )
 		{
 			float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
 			if ( !EnemyInSight_ || distance < minDistance )
@@ -155,6 +159,8 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 
 bool UAttackRangedComponent::EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) const
 {
+	// Path destination is on path as well
+
 	if ( !OwnerIsValid() )
 	{
 		return false;
@@ -167,10 +173,28 @@ bool UAttackRangedComponent::EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) cons
 		return false;
 	}
 
-	UPath* path = unit->Path();
-	if ( path )
+	const AGridManager* grid = nullptr;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
+		grid = core->GetGridManager();
+	}
+	if ( !grid )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::EnemyIsOnPath: grid not found" ) );
+		return false;
+	}
 
+	if ( const UPath* path = unit->Path() )
+	{
+		const FIntPoint enemyCoords = grid->GetCellCoords ( enemyActor->GetActorLocation() );
+		for ( const FIntPoint& point : path->GetPoints() )
+		{
+			// Path points storage will probably be reimplemented so this may be optimized in future
+			if ( point == enemyCoords )
+			{
+				return true;
+			}
+		}
 	}
 	return false;
 }
