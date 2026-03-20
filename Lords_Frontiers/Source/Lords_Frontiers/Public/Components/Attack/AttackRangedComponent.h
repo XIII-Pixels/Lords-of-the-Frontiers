@@ -36,8 +36,13 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	// Look around at given time intervals
+	// Runs at given time intervals
+	void LookTick();
+
+	// Look around
 	void Look();
+
+	void ChooseAttackMode();
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
@@ -65,4 +70,6 @@ protected:
 	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;
+
+	EAttackMode AttackMode_ = EAttackMode::Normal;
 };

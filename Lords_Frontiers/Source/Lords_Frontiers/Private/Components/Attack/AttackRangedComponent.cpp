@@ -47,6 +47,12 @@ void UAttackRangedComponent::BeginPlay()
 	ActivateSight();
 }
 
+void UAttackRangedComponent::LookTick()
+{
+	ChooseAttackMode();
+	Look();
+}
+
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 {
 	if ( !OwnerIsValid() )
@@ -68,7 +74,7 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	FTransform spawnTransform = GetOwner()->GetTransform();
 	spawnTransform.AddToTranslation( ProjectileSpawnPosition_ );
 
-	if ( EnemyInSight_ && ProjectileClass_ )
+	if ( IsValid( EnemyInSight_ ) && ProjectileClass_ )
 	{
 		const FActorSpawnParameters spawnParams;
 		const auto projectile = world->SpawnActor<AProjectile>( ProjectileClass_, spawnTransform, spawnParams );
@@ -86,7 +92,7 @@ TObjectPtr<AActor> UAttackRangedComponent::EnemyInSight() const
 void UAttackRangedComponent::ActivateSight()
 {
 	GetWorld()->GetTimerManager().SetTimer(
-	    SightTimerHandle_, this, &UAttackRangedComponent::Look, LookForwardTimeInterval_, true
+	    SightTimerHandle_, this, &UAttackRangedComponent::LookTick, LookForwardTimeInterval_, true
 	);
 }
 
@@ -116,15 +122,28 @@ void UAttackRangedComponent::Look()
 			continue;
 		}
 
-		if ( CanSeeEnemy( actor ) && EnemyIsOnPath( actor )  )
+		if ( CanSeeEnemy( actor ) && ( AttackMode_ == EAttackMode::BeatEverything || EnemyIsOnPath( actor ) ) )
 		{
 			float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
-			if ( !EnemyInSight_ || distance < minDistance )
+			if ( !IsValid( EnemyInSight_ ) || distance < minDistance )
 			{
 				EnemyInSight_ = actor;
 				minDistance = distance;
 			}
 		}
+	}
+}
+
+void UAttackRangedComponent::ChooseAttackMode()
+{
+	if ( !IsValid( EnemyInSight_ ) && OwnerEntity_ &&
+	     Cast<AActor>( OwnerEntity_ )->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	{
+		AttackMode_ = EAttackMode::BeatEverything;
+	}
+	else
+	{
+		AttackMode_ = EAttackMode::Normal;
 	}
 }
 
@@ -186,7 +205,7 @@ bool UAttackRangedComponent::EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) cons
 
 	if ( const UPath* path = unit->Path() )
 	{
-		const FIntPoint enemyCoords = grid->GetCellCoords ( enemyActor->GetActorLocation() );
+		const FIntPoint enemyCoords = grid->GetCellCoords( enemyActor->GetActorLocation() );
 		for ( const FIntPoint& point : path->GetPoints() )
 		{
 			// Path points storage will probably be reimplemented so this may be optimized in future

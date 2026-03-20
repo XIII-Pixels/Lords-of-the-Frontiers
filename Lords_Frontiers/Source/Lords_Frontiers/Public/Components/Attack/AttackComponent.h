@@ -9,6 +9,13 @@
 class IEntity;
 class USceneComponent;
 
+UENUM()
+enum class EAttackMode : uint8
+{
+	Normal,
+	BeatEverything
+};
+
 /** (Gregory-hub)
  * Base class for attack components */
 UCLASS( Abstract )
