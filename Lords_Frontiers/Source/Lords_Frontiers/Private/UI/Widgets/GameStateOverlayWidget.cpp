@@ -11,14 +11,14 @@ void UGameStateOverlayWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if ( BtnMainMenu )
-		BtnMainMenu->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnMainMenuClicked );
-	if ( BtnRestart )
-		BtnRestart->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnRestartClicked );
-	if ( BtnNextLevel )
-		BtnNextLevel->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnNextLevelClicked );
-	if ( BtnResume )
-		BtnResume->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnResumeClicked );
+	if ( ButtonMainMenu )
+		ButtonMainMenu->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnMainMenuClicked );
+	if ( ButtonRestart )
+		ButtonRestart->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnRestartClicked );
+	if ( ButtonNextLevel )
+		ButtonNextLevel->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnNextLevelClicked );
+	if ( ButtonResume )
+		ButtonResume->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnResumeClicked );
 }
 
 void UGameStateOverlayWidget::OnMainMenuClicked()
@@ -51,13 +51,5 @@ void UGameStateOverlayWidget::OnNextLevelClicked()
 
 void UGameStateOverlayWidget::OnResumeClicked()
 {
-	RemoveFromParent();
-
-	if ( APlayerController* PC = GetOwningPlayer() )
-	{
-		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
-		{
-			Cam->SetCameraInputDisabled( false );
-		}
-	}
+	OnResumeRequested.Broadcast();
 }
