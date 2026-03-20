@@ -5,6 +5,8 @@
 
 #include "GameStateOverlayWidget.generated.h"
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnResumeRequested );
 class UButton;
 
 UCLASS( Abstract )
@@ -15,18 +17,21 @@ class LORDS_FRONTIERS_API UGameStateOverlayWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 
+	UPROPERTY( BlueprintAssignable, Category = "Events" )
+	FOnResumeRequested OnResumeRequested;
+
 protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> BtnMainMenu;
+	TObjectPtr<UButton> ButtonMainMenu;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> BtnRestart;
+	TObjectPtr<UButton> ButtonRestart;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> BtnNextLevel;
+	TObjectPtr<UButton> ButtonNextLevel;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> BtnResume;
+	TObjectPtr<UButton> ButtonResume;
 
 	UFUNCTION()
 	void OnMainMenuClicked();

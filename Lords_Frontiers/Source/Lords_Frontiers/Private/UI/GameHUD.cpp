@@ -10,6 +10,7 @@
 #include "Camera/StrategyCamera.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 
+
 #include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
@@ -1106,6 +1107,13 @@ void UGameHUDWidget::HandleGameEnded( bool bVictory )
 			Cam->SetCameraInputDisabled( true );
 		}
 	}
+	if ( ActiveOverlay )
+	{
+		ActiveOverlay->OnResumeRequested.RemoveDynamic( this, &UGameHUDWidget::TogglePauseMenu );
+		
+		ActiveOverlay->RemoveFromParent();
+		ActiveOverlay = nullptr;
+	}
 }
 
 void UGameHUDWidget::TogglePauseMenu()
@@ -1118,12 +1126,18 @@ void UGameHUDWidget::TogglePauseMenu()
 
 	if ( ActiveOverlay )
 	{
+		ActiveOverlay->OnResumeRequested.RemoveDynamic( this, &UGameHUDWidget::TogglePauseMenu );
+
 		ActiveOverlay->RemoveFromParent();
 		ActiveOverlay = nullptr;
 
 		if ( APlayerController* PC = GetOwningPlayer() )
+		{
 			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+			{
 				Cam->SetCameraInputDisabled( false );
+			}	
+		}		
 	}
 	else
 	{
@@ -1134,10 +1148,15 @@ void UGameHUDWidget::TogglePauseMenu()
 		if ( ActiveOverlay )
 		{
 			ActiveOverlay->AddToViewport( 100 );
+			ActiveOverlay->OnResumeRequested.AddDynamic( this, &UGameHUDWidget::TogglePauseMenu );
 		}
 
 		if ( APlayerController* PC = GetOwningPlayer() )
+		{
 			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+			{
 				Cam->SetCameraInputDisabled( true );
+			}	
+		}
 	}
 }
