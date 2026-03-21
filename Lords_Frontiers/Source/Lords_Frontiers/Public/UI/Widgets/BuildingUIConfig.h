@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Resources/GameResource.h" 
+#include "EntityStats.h"
 
 #include "BuildingUIConfig.generated.h"
 
@@ -30,4 +32,10 @@ class LORDS_FRONTIERS_API UBuildingUIConfig : public UPrimaryDataAsset
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Config" )
 	TMap<TSubclassOf<ABuilding>, FBuildingUIData> BuildingsData;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Config|Global Icons" )
+	TMap<EResourceType, TObjectPtr<UTexture2D>> ResourceIcons;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Config|Global Icons" )
+	TMap<EStatsType, TObjectPtr<UTexture2D>> StatIcons;
 };
