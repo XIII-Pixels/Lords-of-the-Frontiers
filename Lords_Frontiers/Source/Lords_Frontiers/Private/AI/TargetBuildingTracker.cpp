@@ -81,7 +81,7 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 	TSet<TSoftClassPtr<ABuilding>> targetClasses;
 	if ( UBlueprintGeneratedClass* bpClass = Cast<UBlueprintGeneratedClass>( unitClass ) )
 	{
-		if ( bpClass || bpClass->SimpleConstructionScript )
+		if ( bpClass && bpClass->SimpleConstructionScript )
 		{
 			TArray<USCS_Node*> nodes = bpClass->SimpleConstructionScript->GetAllNodes();
 			for ( const USCS_Node* node : nodes )
@@ -89,8 +89,10 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 				if ( node->ComponentClass->IsChildOf( UEnemyAggressionComponent::StaticClass() ) )
 				{
 					UActorComponent* found = node->GetActualComponentTemplate( bpClass );
-					const UEnemyAggressionComponent* component = Cast<UEnemyAggressionComponent>( found );
-					targetClasses = component->TargetBuildingClasses();
+					if ( const UEnemyAggressionComponent* component = Cast<UEnemyAggressionComponent>( found ) )
+					{
+						targetClasses = component->TargetBuildingClasses();
+					}
 				}
 			}
 		}
@@ -98,7 +100,7 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget( const AActor* buildingActor, 
 
 	for ( const TSoftClassPtr<ABuilding>& targetClass : targetClasses )
 	{
-		if ( buildingActor->IsA( targetClass.Get() ) )
+		if ( targetClass.Get() && buildingActor->IsA( targetClass.Get() ) )
 		{
 			return true;
 		}
