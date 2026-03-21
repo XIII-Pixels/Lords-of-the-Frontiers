@@ -92,6 +92,8 @@ void UGameLoopManager::UpdateDependencies(
 		BindToWaveManager();
 	}
 
+	bIsInitialized_ = ResourceManager_.IsValid();
+
 	Log( FString::Printf(
 	    TEXT( "Dependencies updated. WaveManager: %s, ResourceManager: %s" ),
 	    WaveManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
@@ -113,6 +115,11 @@ void UGameLoopManager::Cleanup()
 	{
 		world->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
 		world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
+
+		if ( UCardSubsystem* cardSub = UCardSubsystem::Get( world ) )
+		{
+			cardSub->ResetCardHistory();
+		}
 	}
 
 	CurrentPhase_ = EGameLoopPhase::None;
@@ -172,21 +179,25 @@ void UGameLoopManager::Tick( float deltaTime )
 
 void UGameLoopManager::StartGame()
 {
+	RefreshDependencies();
+
+	if ( ResourceManager_.IsValid() )
+		ResourceManager_->ResetResources();
+	if ( EconomyComponent_.IsValid() )
+		EconomyComponent_->ResetEconomy();
+
 	if ( !bIsInitialized_ )
 	{
 		Log( TEXT( "ERROR: Cannot start - not initialized!" ) );
 		return;
 	}
 
-	if ( bIsGameStarted_ )
-	{
-		Log( TEXT( "WARNING: Game already started" ) );
-		return;
-	}
 
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
 	bWaitingForCardSelection_ = false;
+
+	CurrentPhase_ = EGameLoopPhase::None;
 	CurrentWave_ = 1;
 	CurrentBuildTurn_ = 0;
 	bPerfectWave_ = true;
@@ -587,10 +598,6 @@ void UGameLoopManager::EnterVictoryPhase()
 	OnGameEnded.Broadcast( true );
 
 	Log( TEXT( "=== VICTORY! ===" ) );
-
-	const FName levelName = FName( TEXT( "Win" ) );
-	UWorld* world = GetWorldSafe();
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::EnterDefeatPhase()
@@ -608,27 +615,18 @@ void UGameLoopManager::EnterDefeatPhase()
 	OnGameEnded.Broadcast( false );
 
 	Log( TEXT( "=== DEFEAT ===" ) );
-
-	const FName levelName = FName( TEXT( "Lose" ) );
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::GrantStartingResources()
 {
-	if ( !Config_ )
-	{
-		Log( TEXT( "WARNING: No config for starting resources" ) );
-		return;
-	}
+	UResourceManager* rm = ResourceManager_.Get();
 
-	if ( !ResourceManager_.IsValid() )
+	if ( !Config_ || !rm )
 	{
-		Log( TEXT( "ERROR: ResourceManager is INVALID!" ) );
 		return;
 	}
 
 	const FResourceReward& start = Config_->StartingResources;
-	UResourceManager* rm = ResourceManager_.Get();
 
 	if ( start.Gold > 0 )
 	{
@@ -865,4 +863,23 @@ void UGameLoopManager::HandleWaveEndScheduled( float secondsRemaining )
 	CombatTimeRemaining_ = secondsRemaining;
 
 	OnCombatTimerUpdated.Broadcast( CombatTimeRemaining_, CombatTimeRemaining_ );
+}
+
+void UGameLoopManager::RefreshDependencies()
+{
+	UCoreManager* core = UCoreManager::Get( GetWorldSafe() );
+	if ( !core )
+		return;
+
+	ResourceManager_ = core->GetResourceManager();
+	EconomyComponent_ = core->GetEconomyComponent();
+	WaveManager_ = core->GetWaveManager();
+
+	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
+	{
+		BindToWaveManager();
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
+	}
+
+	bIsInitialized_ = ResourceManager_.IsValid();
 }

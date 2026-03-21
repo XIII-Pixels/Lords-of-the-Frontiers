@@ -19,26 +19,19 @@ void UResourceManager::AddResource( EResourceType type, int32 quantity )
 	{
 		return;
 	}
-
+		
 	int32& CurrentAmount = Resources_.FindOrAdd( type );
-	const int32 MaxAmount = GetMaxResourceAmount( type );
-
-	CurrentAmount = FMath::Min( CurrentAmount + quantity, MaxAmount );
+	CurrentAmount = FMath::Min( CurrentAmount + quantity, GetMaxResourceAmount( type ) );
 	OnResourceChanged.Broadcast( type, CurrentAmount );
 }
 
 bool UResourceManager::TrySpendResource( EResourceType type, int32 quantity )
 {
-	if ( ( type == EResourceType::None ) )
+	if ( type == EResourceType::None || !Resources_.Contains( type ) )
 	{
 		return false;
 	}
-
-	if ( !Resources_.Contains( type ) )
-	{
-		return false;
-	}
-
+		
 	int32& CurrentAmount = Resources_.FindOrAdd( type );
 
 	if ( CurrentAmount >= quantity )
@@ -108,4 +101,12 @@ int32 UResourceManager::ForceSpendResource( EResourceType type, int32 quantity )
 		OnResourceChanged.Broadcast( type, CurrentAmount );
 	}
 	return AmountToSpend;
+}
+
+void UResourceManager::ResetResources()
+{
+	Resources_.Empty();
+	OnResourceChanged.Broadcast( EResourceType::Gold, 0 );
+	OnResourceChanged.Broadcast( EResourceType::Food, 0 );
+	OnResourceChanged.Broadcast( EResourceType::Population, 0 );
 }

@@ -21,6 +21,8 @@
 #include "GameHUD.generated.h"
 
 class ABuilding;
+class UGameStateOverlayWidget;
+
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -231,6 +233,21 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> BtnToggleWaveInfo;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> WinWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> LoseWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> PauseWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UGameStateOverlayWidget> ActiveOverlay;
+
+	UFUNCTION( BlueprintCallable )
+	void TogglePauseMenu();
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -240,6 +257,7 @@ protected:
 	void CancelCurrentBuilding();
 
 	bool bShowingEconomyBuildings_ = true;
+	bool bIsEconomySubscribed_ = false;
 	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
@@ -409,4 +427,7 @@ protected:
 
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
+
+	UFUNCTION()
+	void HandleGameEnded( bool bVictory );
 };

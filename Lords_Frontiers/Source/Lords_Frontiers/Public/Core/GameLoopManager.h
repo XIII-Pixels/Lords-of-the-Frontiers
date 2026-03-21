@@ -485,6 +485,8 @@ protected:
 
 private:
 
+	void RefreshDependencies();
+
 	/** Configuration data asset. Owned by this manager if created internally. */
 	UPROPERTY()
 	TObjectPtr<UGameLoopConfig> Config_;
