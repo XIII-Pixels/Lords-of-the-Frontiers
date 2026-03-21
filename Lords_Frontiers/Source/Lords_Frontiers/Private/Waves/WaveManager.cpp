@@ -1,9 +1,10 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
-#include "AI/Path/PathPointsManager.h"
+#include "AI/UnitAIManager.h"
+#include "Core/CoreManager.h"
+#include "Core/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
-#include "Grid/GridManager.h"
 #include "TimerManager.h"
 
 #include "Components/CapsuleComponent.h"
@@ -53,11 +54,6 @@ void AWaveManager::StartWaves()
 		return;
 	}
 
-	if ( PathPointsManager.IsValid() )
-	{
-		PathPointsManager->Empty();
-	}
-
 	for ( int waveIndex = 0; waveIndex < Waves.Num(); waveIndex++ )
 	{
 		for ( FEnemyGroup& enemyGroup : Waves[waveIndex].EnemyGroups )
@@ -96,10 +92,8 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	{
 		UE_LOG(
 		    LogTemp, Warning,
-		    TEXT(
-		        "WaveManager: Wave %d is not valid (  no enemy groups ) . "
-		        "Skipping."
-		    ),
+		    TEXT( "WaveManager: Wave %d is not valid (  no enemy groups ) . "
+		          "Skipping." ),
 		    CurrentWaveIndex
 		);
 
@@ -123,9 +117,6 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	ScheduleWaveSpawns( wave, CurrentWaveIndex );
 
 	// Schedule wave end event
-	const float totalDuration = wave.GetTotalWaveDuration();
-	const float endDelay = FMath::Max( 0.0f, totalDuration );
-
 	if ( GetWorld() )
 	{
 		GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
@@ -133,7 +124,18 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		FTimerDelegate endDelegate;
 		endDelegate.BindUFunction( this, FName( "OnWaveEndTimerElapsed" ), CurrentWaveIndex );
 
-		GetWorld()->GetTimerManager().SetTimer( WaveEndTimerHandle_, endDelegate, endDelay, false );
+		if ( const UCoreManager* core = GetGameInstance()->GetSubsystem<UCoreManager>() )
+		{
+			if ( const UGameLoopManager* loopManager = core->GetGameLoop() )
+			{
+				if ( const UGameLoopConfig* config = loopManager->GetConfig() )
+				{
+					GetWorld()->GetTimerManager().SetTimer(
+					    WaveEndTimerHandle_, endDelegate, config->CombatDuration, false
+					);
+				}
+			}
+		}
 	}
 }
 
@@ -179,10 +181,8 @@ void AWaveManager::ScheduleWaveSpawns( const FWave& wave, int32 waveIndex )
 			{
 				UE_LOG(
 				    LogTemp, Log,
-				    TEXT(
-				        "WaveManager: Scheduled spawn Wave[%d] Group[%d] Enemy[%d] "
-				        "at +%f s"
-				    ),
+				    TEXT( "WaveManager: Scheduled spawn Wave[%d] Group[%d] Enemy[%d] "
+				          "at +%f s" ),
 				    waveIndex, groupIndex, enemyIndex, timeFromWaveStart
 				);
 			}
@@ -226,46 +226,6 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	    *spawnTransform.GetLocation().ToString()
 	);
 
-	if ( PathPointsManager.IsValid() && PathPointsManager->GoalActor.IsValid() )
-	{
-		// Calculate path if not calculated
-		if ( !enemyGroup.Path )
-		{
-
-			enemyGroup.Path = NewObject<UPath>( GetWorld() );
-			if ( enemyGroup.Path )
-			{
-				FIntPoint startCoords = Grid->GetClosestCellCoords( spawnTransform.GetLocation() );
-				FIntPoint goalCoords = Grid->GetClosestCellCoords( PathPointsManager->GoalActor->GetActorLocation() );
-
-				AUnit* defaultUnit = enemyGroup.EnemyClass.GetDefaultObject();
-
-				FDStarLiteConfig config{
-				    Grid,
-				    startCoords,
-				    goalCoords,
-				    defaultUnit->Stats().AttackDamage(),
-				    defaultUnit->Stats().AttackCooldown(),
-				    Grid->GetCellSize() / defaultUnit->Stats().MaxSpeed()
-				};
-
-				enemyGroup.Path->Initialize( config );
-				enemyGroup.Path->CalculateOrUpdate();
-				PathPointsManager->AddPathPoints( *enemyGroup.Path );
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(
-		    LogTemp, Error,
-		    TEXT(
-		        "WaveManager: Cannot calculate path. PathPointsManager invalid or PathPointsManager::GoalActor is "
-		        "not specified"
-		    )
-		);
-	}
-
 #if WITH_EDITOR
 	DrawDebugSphere( GetWorld(), spawnTransform.GetLocation(), 50.f, 8, FColor::Blue, false, 6.f );
 #endif
@@ -302,12 +262,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	spawnParams.Owner = this;
 	spawnParams.Instigator = GetInstigator();
 
-
-	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>(
-	    enemyClass, FinalTransform,
-	    this,           
-	    GetInstigator()
-	);
+	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>( enemyClass, FinalTransform, this, GetInstigator() );
 
 	if ( FEnemyBuff* buff = EnemyBuffs.Find( enemyClass ) )
 	{
@@ -332,13 +287,9 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
-	SpawnedUnits.Add( spawned );
+	SpawnedUnits_.Add( spawned );
 
 	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
-	// Set unit path
-	spawned->SetPath( enemyGroup.Path );
-	spawned->SetPathPointsManager( PathPointsManager );
-	spawned->FollowPath();
 
 	if ( bLogSpawning )
 	{
@@ -426,7 +377,7 @@ void AWaveManager::CancelCurrentWave()
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
 	}
 
-	PathPointsManager->Empty();
+	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
 	bIsWaveActive_ = false;
 
@@ -570,10 +521,8 @@ bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functi
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
-		    TEXT(
-		        "WaveManager: SubscribeToAllWavesCompleted - already "
-		        "subscribed: %s"
-		    ),
+		    TEXT( "WaveManager: SubscribeToAllWavesCompleted - already "
+		          "subscribed: %s" ),
 		    *GetNameSafe( listener )
 		);
 		return false;
@@ -621,10 +570,8 @@ void AWaveManager::BroadcastAllWavesCompleted()
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
-		    TEXT(
-		        "WaveManager: BroadcastAllWavesCompleted - already "
-		        "broadcasted, skipping."
-		    )
+		    TEXT( "WaveManager: BroadcastAllWavesCompleted - already "
+		          "broadcasted, skipping." )
 		);
 		return;
 	}
@@ -666,48 +613,49 @@ void AWaveManager::UpdateSpawnCounts( int32 waveIndex )
 int32 AWaveManager::DestroyAllEnemies()
 {
 	int32 destroyed = 0;
-	for ( int32 i = SpawnedUnits.Num() - 1; i >= 0; --i )
+	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
-		AUnit* unit = SpawnedUnits[i].Get();
+		AUnit* unit = SpawnedUnits_[i].Get();
 		if ( unit )
 		{
 			unit->Destroy();
 			++destroyed;
 		}
 	}
-	SpawnedUnits.Empty();
+	SpawnedUnits_.Empty();
 
 	return destroyed;
 }
+
 void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 {
 	// Remove from SpawnedUnits
-	for ( int32 i = SpawnedUnits.Num() - 1; i >= 0; --i )
+	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
-		if ( SpawnedUnits[i].Get() == destroyedActor /* || !SpawnedUnits[i].IsValid*/ )
+		if ( SpawnedUnits_[i].Get() == destroyedActor /* || !SpawnedUnits[i].IsValid*/ )
 		{
-			SpawnedUnits.RemoveAtSwap( i );
+			SpawnedUnits_.RemoveAtSwap( i );
 			break;
 		}
 	}
 
 	if ( !bIsWaveActive_ )
 	{
-		if ( SpawnedUnits.IsEmpty() )
+		if ( SpawnedUnits_.IsEmpty() )
 		{
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
 
 			if ( UWorld* world = GetWorld() )
 			{
-			// set timer to 1 second so existing logic could finish the wave
-			// timer calls OnWaveEndTimerElapsed
-			FTimerDelegate del =
-				FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
-			world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
+				// set timer to 1 second so existing logic could finish the wave
+				// timer calls OnWaveEndTimerElapsed
+				FTimerDelegate del =
+					FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
 
-			UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+				UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
 
-			OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
+				OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
 			}
 		}
 	}
@@ -718,7 +666,9 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 	TMap<TSubclassOf<AUnit>, int32> enemyCounts;
 
 	if ( !Waves.IsValidIndex( targetWaveIndex ) )
+	{
 		return enemyCounts;
+	}
 
 	const FWave& targetWave = Waves[targetWaveIndex];
 

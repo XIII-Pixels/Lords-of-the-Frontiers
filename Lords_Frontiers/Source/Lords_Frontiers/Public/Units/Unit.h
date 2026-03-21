@@ -7,14 +7,14 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
+
 #include "Components/Attack/AttackComponent.h"
-#include "Components/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
 #include "Unit.generated.h"
 
-class APathPointsManager;
+class AUnitAIManager;
 class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
@@ -39,19 +39,13 @@ public:
 
 	virtual void Tick( float deltaSeconds ) override;
 
-	void StartFollowing();
+	void StartFollowing() const;
 
-	void StopFollowing();
+	void StopFollowing() const;
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual void TakeDamage( int damage ) override;
-
-	void AdvancePathPointIndex();
-
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
 
 	void ChangeStats( FEnemyBuff* buff );
 
@@ -65,24 +59,14 @@ public:
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
-	TWeakObjectPtr<AActor> FollowedTarget() const;
-	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
+	TWeakObjectPtr<const AActor> FollowedTarget() const;
 
-	const TObjectPtr<UPath>& Path() const;
-	void SetPath( TObjectPtr<UPath> path );
-
-	void SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager );
-
-	void SetFollowedTarget( AActor* newTarget );
+	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget );
 
 	TObjectPtr<USceneComponent> VisualMesh();
 
 protected:
 	void OnDeath();
-
-	void FollowNextPathTarget();
-
-	bool IsCloseToTarget() const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -94,7 +78,7 @@ protected:
 	FEntityStats Stats_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	TWeakObjectPtr<AActor> FollowedTarget_;
+	TWeakObjectPtr<const AActor> FollowedTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
@@ -106,16 +90,8 @@ protected:
 	TObjectPtr<UAttackComponent> AttackComponent_;
 
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
-
-	UPROPERTY()
-	TObjectPtr<UPath> Path_;
-
-	UPROPERTY()
-	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
 	UPROPERTY()
 	TObjectPtr<USceneComponent> VisualMesh_;
-
-	int PathPointIndex_ = -1;
 };
