@@ -3,9 +3,8 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
-#include "AI/Path/Path.h"
-#include "AI/Path/PathPointsManager.h"
-#include "AI/Path/PathTargetPoint.h"
+#include "AI/UnitAIManager.h"
+#include "Core/CoreManager.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "Waves/EnemyBuff.h"
@@ -16,6 +15,8 @@
 
 AUnit::AUnit()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
@@ -59,20 +60,20 @@ void AUnit::BeginPlay()
 		);
 	}
 
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		UnitAIManager_ = core->GetUnitAIManager();
+	}
+
 	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
 }
 
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
-
-	if ( FollowedTarget_.Get() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
-	{
-		FollowNextPathTarget();
-	}
 }
 
-void AUnit::StartFollowing()
+void AUnit::StartFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -80,7 +81,7 @@ void AUnit::StartFollowing()
 	}
 }
 
-void AUnit::StopFollowing()
+void AUnit::StopFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -134,17 +135,12 @@ TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
 	return UnitBehaviorTree_;
 }
 
-TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
+TWeakObjectPtr<const AActor> AUnit::FollowedTarget() const
 {
 	return FollowedTarget_;
 }
 
-const TObjectPtr<UPath>& AUnit::Path() const
-{
-	return Path_;
-}
-
-void AUnit::SetFollowedTarget( TObjectPtr<AActor> followedTarget )
+void AUnit::SetFollowedTarget( TWeakObjectPtr<const AActor> followedTarget )
 {
 	FollowedTarget_ = followedTarget;
 }
@@ -166,85 +162,6 @@ void AUnit::OnDeath()
 	Destroy();
 }
 
-void AUnit::FollowNextPathTarget()
-{
-	AdvancePathPointIndex();
-	FollowPath();
-}
-
-bool AUnit::IsCloseToTarget() const
-{
-	if ( !FollowedTarget_.IsValid() || !PathPointsManager_.IsValid() )
-	{
-		return false;
-	}
-
-	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	const float radiusSq = PathPointsManager_->PointReachRadius * PathPointsManager_->PointReachRadius;
-	return distanceSq < radiusSq;
-}
-
-void AUnit::SetPath( TObjectPtr<UPath> path )
-{
-	Path_ = path;
-	PathPointIndex_ = 0;
-}
-
-void AUnit::SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager )
-{
-	PathPointsManager_ = pathPointsManager;
-}
-
-void AUnit::AdvancePathPointIndex()
-{
-	++PathPointIndex_;
-}
-
-void AUnit::SetPathPointIndex( int pathPointIndex )
-{
-	PathPointIndex_ = pathPointIndex;
-}
-
-void AUnit::FollowPath()
-{
-	if ( !Path_ )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid Path_. Cannot follow path" ) );
-		FollowedTarget_ = nullptr;
-		return;
-	}
-
-	if ( !PathPointsManager_.IsValid() )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid PathPointsManager_. Cannot follow path" ) );
-		FollowedTarget_ = nullptr;
-		return;
-	}
-
-	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
-	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
-	{
-		if ( PathPointsManager_->GoalActor.IsValid() )
-		{
-			FollowedTarget_ = PathPointsManager_->GoalActor;
-		}
-		else
-		{
-			UE_LOG( LogTemp, Error, TEXT( "Unit: PathPointIndex_ is out of range and no GoalActor specified" ) );
-			FollowedTarget_ = nullptr;
-		}
-	}
-	else
-	{
-		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
-	}
-}
-
-void AUnit::SetFollowedTarget( AActor* newTarget )
-{
-	FollowedTarget_ = newTarget;
-}
-
 TObjectPtr<USceneComponent> AUnit::VisualMesh()
 {
 	return VisualMesh_;
@@ -264,5 +181,4 @@ void AUnit::ChangeStats( FEnemyBuff* buff )
 	);
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
 	Stats_.Heal( Stats_.MaxHealth() );
-
 }

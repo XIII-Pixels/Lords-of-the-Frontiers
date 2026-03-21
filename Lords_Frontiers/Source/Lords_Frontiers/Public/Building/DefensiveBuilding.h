@@ -18,7 +18,7 @@ class UBehaviorTree;
 /**
  *
  */
-UCLASS()
+UCLASS( Abstract )
 class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding, public IAttacker, public IControlledByTree
 {
 	GENERATED_BODY()

@@ -88,29 +88,24 @@ struct DStarQueueEntryCompare
 /** (Gregory-hub)
  * D*-lite algorithm configuration */
 USTRUCT()
-struct FDStarLiteConfig
+struct FPathConfig
 {
 	GENERATED_BODY()
 
-	// Grid is required to calculate path
-	TWeakObjectPtr<AGridManager> Grid;
-
-	FIntPoint Start;
-	FIntPoint Goal;
+	FVector Start;
+	FVector Goal;
 
 	// Unit damage and cooldown are needed to calculate time to destroy a building
 	int UnitDamage;
 	float UnitCooldown;
-
 	float EmptyCellTravelTime;
 
-	FDStarLiteConfig() = default;
+	FPathConfig() = default;
 
-	FDStarLiteConfig(
-	    TWeakObjectPtr<AGridManager> grid, FIntPoint start, FIntPoint goal, int unitDamage, float unitCooldown,
-	    float emptyCellTravelTime
+	FPathConfig( const FVector& start, const FVector& goal, const int unitDamage, const float unitCooldown,
+	    const float emptyCellTravelTime
 	)
-	    : Grid( grid ), Start( start ), Goal( goal ), UnitDamage( unitDamage ), UnitCooldown( unitCooldown ),
+	    : Start( start ), Goal( goal ), UnitDamage( unitDamage ), UnitCooldown( unitCooldown ),
 	      EmptyCellTravelTime( emptyCellTravelTime )
 	{
 	}
@@ -126,7 +121,7 @@ class LORDS_FRONTIERS_API UDStarLite : public UObject
 public:
 	UDStarLite();
 
-	void Initialize( const FDStarLiteConfig& config );
+	void Initialize( const FPathConfig& config );
 
 	void OnUpdateEdgeCost( const FIntPoint& from );
 
