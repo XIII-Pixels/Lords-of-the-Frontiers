@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Building.h"
-#include "CoreMinimal.h"
+#include "Building/Animation/ResourceCollectionAnimData.h"
 #include "Lords_Frontiers/Public/Resources/ResourceGenerator.h"
+
+#include "CoreMinimal.h"
 
 #include "ResourceBuilding.generated.h"
 
@@ -27,6 +29,8 @@ public:
 	{
 		return ProductionConfig_;
 	}
+
+	FBuildingCollectionAnimData GetCollectionAnimData() const;
 
 	/**
 	 * Modifies ProductionConfig for a specific resource type.

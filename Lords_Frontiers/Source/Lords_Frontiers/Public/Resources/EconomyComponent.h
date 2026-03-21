@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Building/Animation/ResourcePopupAnimTypes.h"
 #include "Resources/GameResource.h"
 
 #include "Components/ActorComponent.h"
@@ -12,8 +13,14 @@ class AGridManager;
 class UResourceManager;
 class UCardDataAsset;
 struct FEconomyBonuses;
+class UResourceAnimConfig;
+class UBonusIconsData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnNetIncomeChanged, const FResourceProduction&, NetIncome );
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+    FOnCollectionAnimRequested, const TArray<FResourcePopupBatchEntry>&, Batch
+);
 
 UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
@@ -28,6 +35,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Economy|Events" )
 	FOnNetIncomeChanged OnNetIncomeChanged;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Economy|Events" )
+	FOnCollectionAnimRequested OnCollectionAnimRequested;
 
 	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
 	FResourceProduction CalculateNetIncome() const;
@@ -53,6 +63,14 @@ public:
 	void PerformInitialScan();
 
 	void RestoreAllBuildings();
+
+	void TriggerCollectionAnimations();
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Economy|Animation" )
+	TObjectPtr<UResourceAnimConfig> ResourceAnimConfig_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Economy|Animation" )
+	TObjectPtr<UBonusIconsData> BonusIconsData_;
 
 protected:
 	virtual void BeginPlay() override;

@@ -1,5 +1,7 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 
+#include "Building/Bonus/BuildingBonusComponent.h"
+#include "Cards/CardTypes.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 
@@ -73,4 +75,58 @@ void AResourceBuilding::SyncGeneratorConfig()
 	{
 		ResourceGenerator_->SetProductionConfig( ProductionConfig_ );
 	}
+}
+
+FBuildingCollectionAnimData AResourceBuilding::GetCollectionAnimData() const
+{
+	FBuildingCollectionAnimData data;
+
+	const FResourceProduction& maintenance = GetMaintenanceCost();
+
+	if ( IsRuined() )
+	{
+		data.bIsRuined = true;
+		for ( EResourceType type : CardTypeHelpers::GetAllResourceTypes() )
+		{
+			const int32 cost = maintenance.GetByType( type );
+			if ( cost > 0 )
+			{
+				data.BaseIncome.Add( { type, -cost } );
+			}
+		}
+		return data;
+	}
+
+	FResourceProduction bonusProduction;
+	const UBuildingBonusComponent* bonusComp = FindComponentByClass<UBuildingBonusComponent>();
+	if ( bonusComp )
+	{
+		bonusProduction = bonusComp->GetBonusResourceProduction();
+	}
+
+	TMap<EResourceType, int32> totalProduction;
+	if ( IsValid( ResourceGenerator_ ) )
+	{
+		totalProduction = ResourceGenerator_->GetTotalProduction();
+	}
+
+	for ( EResourceType type : CardTypeHelpers::GetAllResourceTypes() )
+	{
+		const int32 total = totalProduction.Contains( type ) ? totalProduction[type] : 0;
+		const int32 bonus = bonusProduction.GetByType( type );
+		const int32 baseProduction = total - bonus;
+		const int32 maintenanceCost = maintenance.GetByType( type );
+		const int32 netBase = baseProduction - maintenanceCost;
+
+		if ( netBase != 0 )
+		{
+			data.BaseIncome.Add( { type, netBase } );
+		}
+		if ( bonus != 0 )
+		{
+			data.BonusIncome.Add( { type, bonus } );
+		}
+	}
+
+	return data;
 }

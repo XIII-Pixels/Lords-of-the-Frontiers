@@ -1,4 +1,5 @@
 #pragma once
+#include "Building/Animation/ResourcePopupAnimTypes.h"
 #include "Core/GameLoopManager.h"
 #include "Lords_Frontiers/Public/UI/Widgets/ResourceItemWidget.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
@@ -22,6 +23,9 @@
 
 class ABuilding;
 class UGameStateOverlayWidget;
+class UResourcePopupWidget;
+class UResourceAnimConfig;
+class UBonusIconsData;
 
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
@@ -209,6 +213,23 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UCanvasPanel> ResourcePopupCanvas;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|ResourcePopups" )
+	TSubclassOf<UResourcePopupWidget> ResourcePopupWidgetClass;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|ResourcePopups" )
+	TObjectPtr<UResourceAnimConfig> PopupAnimConfig;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|ResourcePopups" )
+	TObjectPtr<UBonusIconsData> PopupIconsData;
+
+	UFUNCTION()
+	void HandleCollectionAnimRequested( const TArray<FResourcePopupBatchEntry>& Batch );
+
+	void StartResourcePopupAnimations( const TArray<FResourcePopupBatchEntry>& batch );
 
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
@@ -416,6 +437,16 @@ protected:
 	void ApplyIncomeText( UTextBlock* textBlock, int32 value );
 
 	void InitIncomeDisplay();
+
+	UResourcePopupWidget* AcquirePopupWidget();
+	void ReleasePopupWidget( UResourcePopupWidget* widget );
+	void UpdateResourcePopupPositions( float DeltaTime );
+	void ClearAllResourcePopups();
+
+	TArray<FResourcePopupInstance> ActivePopupInstances_;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UResourcePopupWidget>> PopupWidgetPool_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;

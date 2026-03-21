@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Building/Bonus/BuildingBonusEntry.h"
+#include "Resources/GameResource.h"
 
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
@@ -60,6 +61,11 @@ public:
 
 	static constexpr int32 MaxPossibleBonusRadius = 5;
 
+	const FResourceProduction& GetBonusResourceProduction() const
+	{
+		return BonusResourceProduction_;
+	}
+
 	static UBuildingBonusComponent* FindInBlueprintClass( TSubclassOf<ABuilding> buildingClass );
 
 	static TArray<FIntPoint> FindBonusCells( TSubclassOf<ABuilding> buildingClass, AGridManager* gridManager );
@@ -77,6 +83,8 @@ private:
 	FindCellsWhereNeighborsGetBonuses( const ABuilding* cdo, AGridManager* gridManager, TArray<FIntPoint>& outCells );
 
 	TArray<FBonusApplication> ActiveApplications_;
+
+	FResourceProduction BonusResourceProduction_;
 
 	void ApplySingleBonus( ABuilding* target, int32 entryIndex );
 

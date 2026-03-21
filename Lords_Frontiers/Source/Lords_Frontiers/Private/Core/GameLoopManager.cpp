@@ -3,17 +3,17 @@
 #include "Building/Building.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
+#include "Core/CoreManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
-#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameStateBase.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -190,7 +190,6 @@ void UGameLoopManager::StartGame()
 		Log( TEXT( "ERROR: Cannot start - not initialized!" ) );
 		return;
 	}
-
 
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
@@ -624,7 +623,7 @@ void UGameLoopManager::GrantStartingResources()
 	{
 		return;
 	}
-		
+
 	const FResourceReward& start = Config_->StartingResources;
 
 	if ( start.Gold > 0 )
@@ -675,6 +674,8 @@ void UGameLoopManager::CollectBuildingIncome()
 		ec->CollectGlobalResources();
 
 		ec->ApplyMaintenanceCosts();
+
+		ec->TriggerCollectionAnimations();
 
 		Log( TEXT( "Collected building income" ) );
 	}

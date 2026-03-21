@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
+#include "Building/Construction/BuildingPlacementUtils.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -16,6 +16,8 @@ class ABuildPreviewActor;
 class ABuilding;
 class UResourceManager;
 class UBonusIconsData;
+class UResourceAnimConfig;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
 
 UCLASS()
@@ -81,6 +83,14 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TObjectPtr<UBonusIconsData> BonusIconsData;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" )
+	TObjectPtr<UResourceAnimConfig> ResourceAnimConfig;
+
+	UResourceAnimConfig* GetResourceAnimConfig() const
+	{
+		return ResourceAnimConfig;
+	}
 
 	UPROPERTY( EditAnywhere, Category = "Settings|PlacementAnimation" )
 	FBuildPlacementAnimParams PlacementAnimParams_;

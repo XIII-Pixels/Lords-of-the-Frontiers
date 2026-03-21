@@ -1,20 +1,23 @@
 ﻿#include "Lords_Frontiers/Public/UI/GameHUD.h"
 
+#include "Building/Animation/ResourceAnimConfig.h"
 #include "Building/Building.h"
 #include "Building/Construction/BuildManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
+#include "UI/BonusNeighborhood/BonusIconsData.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
-#include "Camera/StrategyCamera.h"
+#include "UI/Widgets/ResourcePopupWidget.h"
 
 #include "Camera/CameraComponent.h"
+#include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameStateBase.h"
+#include "Kismet/GameplayStatics.h"
 
 void UGameHUDWidget::NativeConstruct()
 {
@@ -132,18 +135,22 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 			gL->OnGameEnded.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
+		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
+		{
+			eC->OnCollectionAnimRequested.AddDynamic( this, &UGameHUDWidget::HandleCollectionAnimRequested );
+		}
 	}
 
 	if ( TextTimer )
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
-	
+
 	if ( BtnToggleWaveInfo )
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
-	
+
 	InitIncomeDisplay();
 
 	UpdateDayText();
@@ -216,12 +223,16 @@ void UGameHUDWidget::NativeDestruct()
 		{
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
-		
+
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
 			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+
+			eC->OnCollectionAnimRequested.RemoveDynamic( this, &UGameHUDWidget::HandleCollectionAnimRequested );
 		}
 	}
+
+	ClearAllResourcePopups();
 
 	if ( UWorld* world = GetWorld() )
 	{
@@ -258,7 +269,6 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
-
 
 	if ( TextTimer )
 	{
@@ -357,6 +367,10 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 		UpdateBonusIconPositions();
 	}
 
+	if ( ActivePopupInstances_.Num() > 0 )
+	{
+		UpdateResourcePopupPositions( InDeltaTime );
+	}
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -389,7 +403,6 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			}
 		}
 	}
-	
 
 	const float baseOrthoWigth = 2048.0f;
 	const float baseScale = 0.5f;
@@ -454,6 +467,315 @@ void UGameHUDWidget::ClearBonusIcons()
 	}
 	ActiveBonusIcons_.Empty();
 	ActiveBonusWorldPositions_.Empty();
+}
+
+void UGameHUDWidget::HandleCollectionAnimRequested( const TArray<FResourcePopupBatchEntry>& batch )
+{
+	StartResourcePopupAnimations( batch );
+}
+
+void UGameHUDWidget::StartResourcePopupAnimations( const TArray<FResourcePopupBatchEntry>& batch )
+{
+	if ( !ResourcePopupCanvas || !ResourcePopupWidgetClass || !PopupAnimConfig || !PopupIconsData )
+	{
+		return;
+	}
+
+	APlayerController* pc = GetOwningPlayer();
+	if ( !pc )
+	{
+		return;
+	}
+
+	const FResourceIconRandomParams& rnd = PopupAnimConfig->IconRandom;
+	const float vertSpacing = PopupAnimConfig->VerticalSpacing;
+
+	for ( const FResourcePopupBatchEntry& batchEntry : batch )
+	{
+
+		float currentOffset = 0.0f;
+		int32 iconIndex = 0;
+
+		auto addEntry = [&]( const FResourceCollectionEntry& entry, bool bIsBonus )
+		{
+			UTexture2D* icon = nullptr;
+			FBonusIconData tempData;
+			tempData.Category = EBonusCategory::Production;
+			tempData.ResourceType = entry.ResourceType;
+			icon = PopupIconsData->GetIconForBonus( tempData );
+
+			UResourcePopupWidget* widget = AcquirePopupWidget();
+			if ( !widget )
+			{
+				return;
+			}
+
+			widget->SetData( icon, entry.Amount, bIsBonus, batchEntry.AnimData.bIsRuined );
+			widget->SetPopupOpacity( 0.0f );
+			widget->SetVisibility( ESlateVisibility::HitTestInvisible );
+
+			const float staggerDelay = iconIndex * PopupAnimConfig->StaggerDelayPerIcon;
+			const float jitter = ( rnd.SpawnDelayJitter > 0.0f )
+			                         ? FMath::FRandRange( -rnd.SpawnDelayJitter, rnd.SpawnDelayJitter )
+			                         : 0.0f;
+			FVector trajectoryOffset = FVector::ZeroVector;
+
+			if ( rnd.TrajectorySpreadX > 0.0f || rnd.TrajectorySpreadY > 0.0f )
+			{
+				trajectoryOffset.X = FMath::FRandRange( -rnd.TrajectorySpreadX, rnd.TrajectorySpreadX );
+				trajectoryOffset.Y = FMath::FRandRange( -rnd.TrajectorySpreadY, rnd.TrajectorySpreadY );
+			}
+
+			FResourcePopupInstance inst;
+			inst.Widget = widget;
+			inst.WorldBasePosition = batchEntry.BuildingWorldLocation;
+			inst.BaseOffset = FVector( 0.0f, 0.0f, currentOffset );
+			inst.TrajectoryOffset = trajectoryOffset;
+			inst.StartDelay =
+			    PopupAnimConfig->StartDelay + staggerDelay + FMath::Max( 0.0f, jitter ) + batchEntry.WaveDelay;
+			inst.Age = 0.0f;
+			inst.bFinished = false;
+
+			ActivePopupInstances_.Add( MoveTemp( inst ) );
+
+			currentOffset += vertSpacing;
+			++iconIndex;
+		};
+
+		for ( const FResourceCollectionEntry& entry : batchEntry.AnimData.BaseIncome )
+		{
+			addEntry( entry, false );
+		}
+		for ( const FResourceCollectionEntry& entry : batchEntry.AnimData.BonusIncome )
+		{
+			addEntry( entry, true );
+		}
+	}
+}
+
+UResourcePopupWidget* UGameHUDWidget::AcquirePopupWidget()
+{
+	if ( PopupWidgetPool_.Num() > 0 )
+	{
+		UResourcePopupWidget* widget = PopupWidgetPool_.Pop();
+		if ( IsValid( widget ) )
+		{
+			widget->SetVisibility( ESlateVisibility::HitTestInvisible );
+			return widget;
+		}
+	}
+
+	APlayerController* pc = GetOwningPlayer();
+	if ( !pc || !ResourcePopupWidgetClass || !ResourcePopupCanvas )
+	{
+		return nullptr;
+	}
+
+	UResourcePopupWidget* widget = CreateWidget<UResourcePopupWidget>( pc, ResourcePopupWidgetClass );
+	if ( !widget )
+	{
+		return nullptr;
+	}
+
+	UCanvasPanelSlot* slot = ResourcePopupCanvas->AddChildToCanvas( widget );
+
+	if ( slot )
+	{
+		slot->SetAutoSize( true );
+		slot->SetAlignment( FVector2D( 0.5f, 1.0f ) );
+	}
+
+	return widget;
+}
+
+void UGameHUDWidget::ReleasePopupWidget( UResourcePopupWidget* widget )
+{
+	if ( !widget )
+	{
+		return;
+	}
+
+	widget->SetVisibility( ESlateVisibility::Collapsed );
+	widget->SetPopupOpacity( 0.0f );
+	widget->SetRenderScale( FVector2D( 1.0f, 1.0f ) );
+	PopupWidgetPool_.Add( widget );
+}
+
+void UGameHUDWidget::UpdateResourcePopupPositions( float deltaTime )
+{
+	if ( !PopupAnimConfig )
+	{
+		return;
+	}
+
+	APlayerController* pc = GetOwningPlayer();
+	if ( !pc )
+	{
+		return;
+	}
+
+	const float viewportScale = UWidgetLayoutLibrary::GetViewportScale( this );
+	if ( viewportScale <= 0.0f )
+	{
+		return;
+	}
+
+	float orthoWidth = PopupAnimConfig->BaseOrthoWidth;
+	if ( pc->PlayerCameraManager )
+	{
+		AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget();
+		if ( viewTarget )
+		{
+			UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>();
+			if ( cam )
+			{
+				orthoWidth = cam->OrthoWidth;
+			}
+		}
+	}
+	const float zoomRatio = PopupAnimConfig->BaseOrthoWidth / orthoWidth;
+	const float zoomScale = FMath::Clamp(
+	    zoomRatio * PopupAnimConfig->BasePopupScale, PopupAnimConfig->MinPopupScale, PopupAnimConfig->MaxPopupScale
+	);
+
+	const float spacingScale =
+	    ( PopupAnimConfig->ZoomSpacingExponent > 0.0f )
+	        ? FMath::Pow( 1.0f / FMath::Max( zoomRatio, 0.01f ), PopupAnimConfig->ZoomSpacingExponent )
+	        : 1.0f;
+
+	const FIconPhaseParams& phases = PopupAnimConfig->IconPhases;
+	const float riseHeight = PopupAnimConfig->RiseHeight;
+
+	const float rawTotal = phases.ScaleUpDuration + phases.HoldDuration + phases.FlyAwayDuration;
+	const float timeScale = ( PopupAnimConfig->IconAnimDuration > 0.0f && rawTotal > 0.0f )
+	                            ? ( PopupAnimConfig->IconAnimDuration / rawTotal )
+	                            : 1.0f;
+
+	const float phase1End = phases.ScaleUpDuration * timeScale;
+	const float phase2End = phase1End + phases.HoldDuration * timeScale;
+	const float phase3End = phase2End + phases.FlyAwayDuration * timeScale;
+	const float buildingHeight = 80.0f;
+
+	for ( FResourcePopupInstance& inst : ActivePopupInstances_ )
+	{
+
+		if ( inst.bFinished || !IsValid( inst.Widget ) )
+		{
+			inst.bFinished = true;
+			continue;
+		}
+
+		inst.Age += deltaTime;
+
+		const float localTime = inst.Age - inst.StartDelay;
+
+		if ( localTime < 0.0f )
+		{
+			inst.Widget->SetPopupOpacity( 0.0f );
+			continue;
+		}
+
+		float iconScale = phases.FullScale;
+		float opacity = 1.0f;
+		float riseOffset = 0.0f;
+
+		if ( localTime < phase1End )
+		{
+			const float alpha = localTime / phase1End;
+			const float eased = FMath::InterpEaseOut( 0.0f, 1.0f, alpha, phases.ScaleUpEase );
+			iconScale = FMath::Lerp( phases.InitialScale, phases.FullScale, eased );
+			opacity = eased;
+		}
+
+		else if ( localTime < phase2End )
+		{
+			iconScale = phases.FullScale;
+			opacity = 1.0f;
+		}
+		else if ( localTime < phase3End )
+		{
+			const float alpha = ( localTime - phase2End ) / phases.FlyAwayDuration;
+			const float eased = FMath::InterpEaseIn( 0.0f, 1.0f, alpha, phases.FlyAwayEase );
+			iconScale = FMath::Lerp( phases.FullScale, phases.FlyAwayScale, eased );
+			opacity = 1.0f - eased;
+			riseOffset = eased * riseHeight;
+		}
+		else
+		{
+			inst.bFinished = true;
+			inst.Widget->SetPopupOpacity( 0.0f );
+			inst.Widget->SetVisibility( ESlateVisibility::Collapsed );
+			continue;
+		}
+
+		const float trajectoryAlpha = ( phase3End > 0.0f ) ? FMath::Clamp( localTime / phase3End, 0.0f, 1.0f ) : 1.0f;
+
+		const FVector scaledOffset = FVector( inst.BaseOffset.X, inst.BaseOffset.Y, inst.BaseOffset.Z * spacingScale );
+		FVector worldPos = inst.WorldBasePosition + scaledOffset + inst.TrajectoryOffset * trajectoryAlpha +
+		                   FVector( 0.0f, 0.0f, buildingHeight + riseOffset );
+
+		FVector2D screenPos;
+		if ( !pc->ProjectWorldLocationToScreen( worldPos, screenPos ) )
+		{
+			inst.Widget->SetVisibility( ESlateVisibility::Collapsed );
+			continue;
+		}
+
+		screenPos /= viewportScale;
+
+		UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>( inst.Widget->Slot.Get() );
+		if ( !slot )
+		{
+			continue;
+		}
+
+		slot->SetPosition( screenPos );
+
+		float finalScale = FMath::Max( iconScale, 0.0f ) * zoomScale;
+
+		const bool bIconOnly =
+		    PopupAnimConfig->IconOnlyScaleThreshold > 0.0f && finalScale < PopupAnimConfig->IconOnlyScaleThreshold;
+
+		inst.Widget->SetIconOnly( bIconOnly );
+		if ( bIconOnly )
+		{
+			finalScale *= PopupAnimConfig->IconOnlyScaleMultiplier;
+		}
+
+		inst.Widget->SetRenderScale( FVector2D( finalScale, finalScale ) );
+		inst.Widget->SetRenderTransformPivot( FVector2D( 0.5f, 1.0f ) );
+		inst.Widget->SetPopupOpacity( FMath::Clamp( opacity, 0.0f, 1.0f ) );
+		inst.Widget->SetVisibility( ESlateVisibility::HitTestInvisible );
+	}
+	for ( int32 i = ActivePopupInstances_.Num() - 1; i >= 0; --i )
+	{
+		if ( ActivePopupInstances_[i].bFinished )
+		{
+			ReleasePopupWidget( ActivePopupInstances_[i].Widget.Get() );
+			ActivePopupInstances_.RemoveAtSwap( i );
+		}
+	}
+}
+
+void UGameHUDWidget::ClearAllResourcePopups()
+{
+	for ( FResourcePopupInstance& inst : ActivePopupInstances_ )
+	{
+		if ( IsValid( inst.Widget ) )
+		{
+			inst.Widget->RemoveFromParent();
+		}
+	}
+	ActivePopupInstances_.Empty();
+
+	for ( UResourcePopupWidget* widget : PopupWidgetPool_ )
+	{
+		if ( IsValid( widget ) )
+		{
+			widget->RemoveFromParent();
+		}
+	}
+	PopupWidgetPool_.Empty();
 }
 
 void UGameHUDWidget::UpdateDayText()
@@ -894,12 +1216,12 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 	{
 		return;
 	}
-		
+
 	if ( bIsWavePanelAnimating )
 	{
 		return;
 	}
-		
+
 	if ( !ActiveWavePanel )
 	{
 		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
@@ -916,7 +1238,8 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 
 	bIsWavePanelAnimating = true;
 
-	GetWorld()->GetTimerManager().SetTimer(WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
+	GetWorld()->GetTimerManager().SetTimer(
+	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
 	);
 
 	bIsWavePanelOpen = !bIsWavePanelOpen;
@@ -1135,7 +1458,7 @@ void UGameHUDWidget::HandleGameEnded( bool bVictory )
 	if ( ActiveOverlay )
 	{
 		ActiveOverlay->OnResumeRequested.RemoveDynamic( this, &UGameHUDWidget::TogglePauseMenu );
-		
+
 		ActiveOverlay->RemoveFromParent();
 		ActiveOverlay = nullptr;
 	}
@@ -1161,8 +1484,8 @@ void UGameHUDWidget::TogglePauseMenu()
 			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
 			{
 				Cam->SetCameraInputDisabled( false );
-			}	
-		}		
+			}
+		}
 	}
 	else
 	{
@@ -1182,8 +1505,7 @@ void UGameHUDWidget::TogglePauseMenu()
 			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
 			{
 				Cam->SetCameraInputDisabled( true );
-			}	
+			}
 		}
-			
 	}
 }

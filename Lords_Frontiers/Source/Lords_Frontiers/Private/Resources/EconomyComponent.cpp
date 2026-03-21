@@ -1,5 +1,8 @@
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 
+#include "Building/Animation/ResourceAnimConfig.h"
+#include "Building/Animation/ResourceCollectionAnimComponent.h"
+#include "Building/MainBase.h"
 #include "Cards/CardSubsystem.h"
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 #include "Lords_Frontiers/Public/Grid/GridManager.h"
@@ -300,6 +303,89 @@ void UEconomyComponent::RestoreAllBuildings()
 	}
 
 	RecalculateAndBroadcastNetIncome();
+}
+
+static FBuildingCollectionAnimData BuildAnimData( ABuilding* building )
+{
+	FBuildingCollectionAnimData data;
+
+	if ( building->IsRuined() )
+	{
+		data.bIsRuined = true;
+		const FResourceProduction& maintenance = building->GetMaintenanceCost();
+
+		for ( EResourceType type : CardTypeHelpers::GetAllResourceTypes() )
+		{
+			const int32 cost = maintenance.GetByType( type );
+			if ( cost > 0 )
+			{
+				data.BaseIncome.Add( { type, -cost } );
+			}
+		}
+		return data;
+	}
+
+	AResourceBuilding* resBuild = Cast<AResourceBuilding>( building );
+	if ( resBuild )
+	{
+		data = resBuild->GetCollectionAnimData();
+	}
+
+	return data;
+}
+
+void UEconomyComponent::TriggerCollectionAnimations()
+{
+	PerformInitialScan();
+
+	FVector baseLocation = FVector::ZeroVector;
+	const float waveRate = ( ResourceAnimConfig_ ? ResourceAnimConfig_->WaveDelayPerUnit : 0.0f );
+
+	if ( waveRate > 0.0f )
+	{
+		if ( const AMainBase* mainBase =
+		         Cast<AMainBase>( UGameplayStatics::GetActorOfClass( GetWorld(), AMainBase::StaticClass() ) ) )
+		{
+			baseLocation = mainBase->GetActorLocation();
+		}
+	}
+
+	TArray<FResourcePopupBatchEntry> batch;
+
+	for ( const TWeakObjectPtr<ABuilding>& weakBuilding : RegisteredBuildings_ )
+	{
+		ABuilding* building = weakBuilding.Get();
+		if ( !IsValid( building ) )
+		{
+			continue;
+		}
+
+		FBuildingCollectionAnimData data = BuildAnimData( building );
+		if ( data.IsEmpty() )
+		{
+			continue;
+		}
+
+		const float waveDelay =
+		    ( waveRate > 0.0f ) ? FVector::Dist2D( baseLocation, building->GetActorLocation() ) * waveRate : 0.0f;
+
+		UResourceCollectionAnimComponent* animComp = building->FindComponentByClass<UResourceCollectionAnimComponent>();
+		if ( animComp )
+		{
+			animComp->StartAnimation( ResourceAnimConfig_, data.bIsRuined, waveDelay );
+		}
+
+		FResourcePopupBatchEntry entry;
+		entry.BuildingWorldLocation = building->GetActorLocation();
+		entry.AnimData = data;
+		entry.WaveDelay = waveDelay;
+		batch.Add( MoveTemp( entry ) );
+	}
+
+	if ( batch.Num() > 0 )
+	{
+		OnCollectionAnimRequested.Broadcast( batch );
+	}
 }
 
 void UEconomyComponent::SubscribeToCardEvents()

@@ -18,6 +18,7 @@ UBuildingBonusComponent::UBuildingBonusComponent()
 void UBuildingBonusComponent::RecalculateBonuses( AGridManager* gridManager, const FIntPoint& myCellCoordinate )
 {
 	RemoveAppliedBonuses();
+	BonusResourceProduction_ = FResourceProduction();
 
 	FGridCell* myCell = gridManager->GetCell( myCellCoordinate.X, myCellCoordinate.Y );
 	if ( !myCell )
@@ -53,6 +54,7 @@ void UBuildingBonusComponent::RemoveAppliedBonuses()
 		RevertSingleBonus( application );
 	}
 	ActiveApplications_.Empty();
+	BonusResourceProduction_ = FResourceProduction();
 }
 
 void UBuildingBonusComponent::ApplySingleBonus( ABuilding* target, int32 entryIndex )
@@ -76,6 +78,7 @@ void UBuildingBonusComponent::ApplySingleBonus( ABuilding* target, int32 entryIn
 		if ( AResourceBuilding* resBuilding = Cast<AResourceBuilding>( target ) )
 		{
 			resBuilding->ModifyProduction( entry.ResourceType, entry.Value );
+			BonusResourceProduction_.ModifyByType( entry.ResourceType, static_cast<int32>( entry.Value ) );
 			activeBonus = true;
 		}
 		break;

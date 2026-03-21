@@ -1,5 +1,6 @@
 #include "Core/CoreManager.h"
 
+#include "Building/Animation/ResourceAnimConfig.h"
 #include "Building/Construction/BuildManager.h"
 #include "Core/GameLoopManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
@@ -302,6 +303,11 @@ void UCoreManager::UnregisterWaveManager( AWaveManager* inWaveManager )
 void UCoreManager::RegisterBuildManager( ABuildManager* inBuildManager )
 {
 	RegisterManagerInternal( BuildManager_, inBuildManager, TEXT( "BuildManager" ) );
+	if ( EconomyComponent_.IsValid() && IsValid( inBuildManager ) && !EconomyComponent_->ResourceAnimConfig_ )
+	{
+		EconomyComponent_->ResourceAnimConfig_ = inBuildManager->GetResourceAnimConfig();
+		EconomyComponent_->BonusIconsData_ = inBuildManager->BonusIconsData;
+	}
 }
 
 void UCoreManager::UnregisterBuildManager( ABuildManager* inBuildManager )
@@ -401,6 +407,12 @@ void UCoreManager::FindPlayerControllerComponents()
 			newEC->RegisterComponent();
 			UE_LOG( LogCoreManager, Log, TEXT( "Created EconomyComponent on PlayerController" ) );
 		}
+		ABuildManager* buildManager = BuildManager_.Get();
+		if ( EconomyComponent_.IsValid() && IsValid( buildManager ) )
+		{
+			EconomyComponent_->ResourceAnimConfig_ = buildManager->GetResourceAnimConfig();
+			EconomyComponent_->BonusIconsData_ = buildManager->BonusIconsData;
+		}
 	}
 
 	if ( !SelectionManager_.IsValid() )
@@ -447,8 +459,7 @@ void UCoreManager::SetupManagerConnections()
 	if ( GameLoopManager_ )
 	{
 		GameLoopManager_->Initialize(
-		    nullptr, WaveManager_.Get(), ResourceManager_.Get(),
-		    EconomyComponent_.Get(), PathPointsManager_.Get()
+		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), PathPointsManager_.Get()
 		);
 		UE_LOG( LogCoreManager, Log, TEXT( "GameLoopManager initialized (default config)" ) );
 	}
