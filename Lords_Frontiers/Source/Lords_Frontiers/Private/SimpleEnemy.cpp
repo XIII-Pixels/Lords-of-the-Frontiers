@@ -52,10 +52,10 @@ void ASimpleEnemy::BeginPlay()
 #endif
 }
 
-void ASimpleEnemy::TakeDamage( float DamageAmount )
+void ASimpleEnemy::TakeDamage( int DamageAmount )
 {
 	// Basic guard
-	if ( DamageAmount <= 0.0f || Health <= 0 )
+	if ( DamageAmount <= 0 || Health <= 0 )
 	{
 		return;
 	}
@@ -67,7 +67,7 @@ void ASimpleEnemy::TakeDamage( float DamageAmount )
 	{
 		GEngine->AddOnScreenDebugMessage(
 		    -1, 2.0f, FColor::Yellow,
-		    FString::Printf( TEXT( "%s took %.1f damage, HP=%.1f/%.1f" ), *GetName(), DamageAmount, Health, MaxHealth )
+		    FString::Printf( TEXT( "%s took %d damage, HP=%.1f/%.1f" ), *GetName(), DamageAmount, Health, MaxHealth )
 		);
 	}
 
