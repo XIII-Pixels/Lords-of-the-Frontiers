@@ -49,7 +49,9 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		AnimProgress = FMath::Clamp( AnimProgress - ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		ApplyAnimation();
 		if ( AnimProgress <= 0.0f )
+		{
 			ForceHide();
+		}
 		break;
 
 	case ETooltipState::Visible:
@@ -62,11 +64,10 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 
 void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> BuildingClass )
 {
-	if ( GEngine )
-		GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Yellow, TEXT( "Hover detected!" ) );
-
 	if ( !BuildingClass )
+	{
 		return;
+	}
 
 	CurrentBuildingClass = BuildingClass;
 	UpdateContent();
@@ -103,103 +104,109 @@ void UBuildingTooltipWidget::ForceHide()
 void UBuildingTooltipWidget::ApplyAnimation()
 {
 	if ( !AnimationContainer || !WhiteFlash )
+	{
 		return;
+	}
+		
+	float alpha = AnimationCurve ? AnimationCurve->GetFloatValue( AnimProgress ) : AnimProgress;
 
-	float Alpha = AnimationCurve ? AnimationCurve->GetFloatValue( AnimProgress ) : AnimProgress;
-
-	float CurrentX = FMath::Lerp( SlideOffsetX, 0.0f, Alpha );
+	float CurrentX = FMath::Lerp( SlideOffsetX, 0.0f, alpha );
 	AnimationContainer->SetRenderTranslation( FVector2D( CurrentX, 0.0f ) );
 
-	SetRenderOpacity( Alpha );
+	SetRenderOpacity( alpha );
 
-	WhiteFlash->SetRenderOpacity( 1.0f - Alpha );
+	WhiteFlash->SetRenderOpacity( 1.0f - alpha );
 }
 
 void UBuildingTooltipWidget::UpdateContent()
 {
 	if ( !CurrentBuildingClass )
+	{
 		return;
-	const ABuilding* CDO = CurrentBuildingClass->GetDefaultObject<ABuilding>();
-	if ( !CDO )
+	}
+	const ABuilding* cDO = CurrentBuildingClass->GetDefaultObject<ABuilding>();
+	if ( !cDO )
+	{
 		return;
+	}
 
 	if ( UIConfig && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
 	{
-		const FBuildingUIData& Data = UIConfig->BuildingsData[CurrentBuildingClass];
-		Text_Name->SetText( Data.Name );
-		Text_Description->SetText( Data.Description );
+		const FBuildingUIData& data = UIConfig->BuildingsData[CurrentBuildingClass];
+		Text_Name->SetText( data.Name );
+		Text_Description->SetText( data.Description );
 		if ( Img_Icon )
-			Img_Icon->SetBrushFromTexture( Data.Icon );
+			Img_Icon->SetBrushFromTexture( data.Icon );
 	}
 	else
 	{
-		FString BuildingName = const_cast<ABuilding*>( CDO )->GetNameBuild();
-		Text_Name->SetText( FText::FromString( BuildingName ) );
+		FString buildingName = const_cast<ABuilding*>( cDO )->GetNameBuild();
+		Text_Name->SetText( FText::FromString( buildingName ) );
 		Text_Description->SetText( FText::FromString( TEXT( "No description in config" ) ) );
 	}
 
-	FEntityStats Stats = const_cast<ABuilding*>( CDO )->Stats();
-	FString StatsStr = FString::Printf( TEXT( "Strength: %d\n" ), Stats.MaxHealth() );
+	FEntityStats stats = const_cast<ABuilding*>( cDO )->Stats();
+	FString statsStr = FString::Printf( TEXT( "Strength: %d\n" ), stats.MaxHealth() );
 
-	if ( CDO->IsA<ADefensiveBuilding>() )
+	if ( cDO->IsA<ADefensiveBuilding>() )
 	{
-		StatsStr += FString::Printf(
-		    TEXT( "Damage: %d\nSpeed damage: %.1f\nRadius: %.0f\nArea damage: %s" ), Stats.AttackDamage(),
-		    Stats.AttackCooldown(), Stats.AttackRange(), Stats.SplashRadius() > 0.0f ? TEXT( "Yes" ) : TEXT( "No" )
+		statsStr += FString::Printf(
+		    TEXT( "Damage: %d\nSpeed damage: %.1f\nRadius: %.0f\nArea damage: %s" ), stats.AttackDamage(),
+		    stats.AttackCooldown(), stats.AttackRange(), stats.SplashRadius() > 0.0f ? TEXT( "Yes" ) : TEXT( "No" )
 		);
 	}
-	Text_Stats->SetText( FText::FromString( StatsStr ) );
+	Text_Stats->SetText( FText::FromString( statsStr ) );
 
-	int32 CostG = CDO->GetBuildingCost().Gold;
-	int32 CostF = CDO->GetBuildingCost().Food;
-	int32 CostP = CDO->GetBuildingCost().Population;
+	int32 costG = cDO->GetBuildingCost().Gold;
+	int32 costF = cDO->GetBuildingCost().Food;
+	int32 costP = cDO->GetBuildingCost().Population;
 
-	int32 MaintG = CDO->GetMaintenanceCost().Gold;
-	int32 MaintF = CDO->GetMaintenanceCost().Food;
-	int32 MaintP = CDO->GetMaintenanceCost().Population;
+	int32 maintG = cDO->GetMaintenanceCost().Gold;
+	int32 maintF = cDO->GetMaintenanceCost().Food;
+	int32 maintP = cDO->GetMaintenanceCost().Population;
 
-	int32 ProdG = 0, ProdF = 0, ProdP = 0;
-	if ( const AResourceBuilding* ResB = Cast<AResourceBuilding>( CDO ) )
+	int32 prodG = 0, prodF = 0, prodP = 0;
+	if ( const AResourceBuilding* resB = Cast<AResourceBuilding>( cDO ) )
 	{
-		ProdG = ResB->GetProductionConfig().Gold;
-		ProdF = ResB->GetProductionConfig().Food;
-		ProdP = ResB->GetProductionConfig().Population;
+		prodG = resB->GetProductionConfig().Gold;
+		prodF = resB->GetProductionConfig().Food;
+		prodP = resB->GetProductionConfig().Population;
 	}
 
-	if ( CostP < 0 )
+	if ( costP < 0 )
 	{
-		ProdP += FMath::Abs( CostP );
-		CostP = 0;
+		prodP += FMath::Abs( costP );
+		costP = 0;
 	}
-	if ( MaintP < 0 )
+	if ( maintP < 0 )
 	{
-		ProdP += FMath::Abs( MaintP );
-		MaintP = 0;
+		prodP += FMath::Abs( maintP );
+		maintP = 0;
 	}
 
-	Text_Cost->SetText( FText::FromString( FormatResourceString( CostG, CostF, CostP, 0 ) ) );
-	Text_Maintenance->SetText( FText::FromString( FormatResourceString( MaintG, MaintF, MaintP, 0 ) ) );
-	Text_Production->SetText( FText::FromString( FormatResourceString( ProdG, ProdF, ProdP, 0 ) ) );
+	Text_Cost->SetText( FText::FromString( FormatResourceString( costG, costF, costP, 0 ) ) );
+	Text_Maintenance->SetText( FText::FromString( FormatResourceString( maintG, maintF, maintP, 0 ) ) );
+	Text_Production->SetText( FText::FromString( FormatResourceString( prodG, prodF, prodP, 0 ) ) );
 
-	UBuildingBonusComponent* BonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
-	if ( BonusComp && BonusComp->GetBonusEntries().Num() > 0 )
+	UBuildingBonusComponent* bonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
+	if ( bonusComp && bonusComp->GetBonusEntries().Num() > 0 )
 	{
-		FString BonusStr = TEXT( "" );
-		for ( const FBuildingBonusEntry& Entry : BonusComp->GetBonusEntries() )
+		FString bonusStr = TEXT( "" );
+		for ( const FBuildingBonusEntry& Entry : bonusComp->GetBonusEntries() )
 		{
-			FString SourceName = TEXT( "Build" );
+			FString sourceName = TEXT( "Build" );
 			if ( Entry.SourceBuildingClass )
 			{
-				ABuilding* SourceCDO =
+				ABuilding* sourceCDO =
 				    const_cast<ABuilding*>( Entry.SourceBuildingClass->GetDefaultObject<ABuilding>() );
-				if ( SourceCDO )
+				if ( sourceCDO )
 				{
-					SourceName = SourceCDO->GetNameBuild();
+					sourceName = sourceCDO->GetNameBuild();
 				}
 			}
-			BonusStr += FString::Printf( TEXT( "Next to [%s] gives +%.0f\n" ), *SourceName, Entry.Value );
+			bonusStr += FString::Printf( TEXT( "Next to [%s] gives +%.0f\n" ), *sourceName, Entry.Value );
 		}
-		Text_Bonus->SetText( FText::FromString( BonusStr ) );
+		Text_Bonus->SetText( FText::FromString( bonusStr ) );
 	}
 	else
 	{
