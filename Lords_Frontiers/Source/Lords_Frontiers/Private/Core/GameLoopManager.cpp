@@ -48,8 +48,6 @@ void UGameLoopManager::Initialize(
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
 		BindToWaveManager();
-		WaveManager_->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
-		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsInitialized_ = ResourceManager_.IsValid();
@@ -786,6 +784,7 @@ void UGameLoopManager::BindToWaveManager()
 	{
 		wm->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.AddDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 		bIsBoundToWaveManager_ = true;
 
 		Log( TEXT( "Bound to WaveManager" ) );
