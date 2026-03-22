@@ -427,6 +427,20 @@ protected:
 	FIncomeAnimState GoldIncomeAnim_;
 	FIncomeAnimState FoodIncomeAnim_;
 
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|ResourceCounters", meta = ( ClampMin = "0.0" ) )
+	float ResourceCounterAnimDuration = 0.5f;
+
+	FIncomeAnimState GoldAnim_;
+	FIncomeAnimState FoodAnim_;
+	FIncomeAnimState CitizensAnim_;
+
+	void StartResourceCounterAnim( FIncomeAnimState& state, int32 newValue );
+	void TickResourceCounterAnim( UTextBlock* textBlock, FIncomeAnimState& state, float deltaTime );
+
+	bool bWaveSyncActive_ = false;
+
+	FIncomeAnimState* GetCounterForType( EResourceType type );
+
 	UFUNCTION()
 	void HandleNetIncomeChanged( const FResourceProduction& netIncome );
 

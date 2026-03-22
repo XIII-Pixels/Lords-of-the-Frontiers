@@ -258,8 +258,21 @@ void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
 
 void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount )
 {
-
-	UpdateResources();
+	if ( !bWaveSyncActive_ )
+		switch ( Type )
+		{
+		case EResourceType::Gold:
+			StartResourceCounterAnim( GoldAnim_, NewAmount );
+			break;
+		case EResourceType::Food:
+			StartResourceCounterAnim( FoodAnim_, NewAmount );
+			break;
+		case EResourceType::Population:
+			StartResourceCounterAnim( CitizensAnim_, NewAmount );
+			break;
+		default:
+			break;
+		}
 	UpdateAllBuildingButtons();
 }
 
@@ -373,6 +386,10 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	}
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
+
+	TickResourceCounterAnim( Text_Gold, GoldAnim_, InDeltaTime );
+	TickResourceCounterAnim( Text_Food, FoodAnim_, InDeltaTime );
+	TickResourceCounterAnim( Text_Citizens, CitizensAnim_, InDeltaTime );
 }
 
 void UGameHUDWidget::UpdateBonusIconPositions()
@@ -535,6 +552,9 @@ void UGameHUDWidget::StartResourcePopupAnimations( const TArray<FResourcePopupBa
 			    PopupAnimConfig->StartDelay + staggerDelay + FMath::Max( 0.0f, jitter ) + batchEntry.WaveDelay;
 			inst.Age = 0.0f;
 			inst.bFinished = false;
+			inst.ResourceType = entry.ResourceType;
+			inst.ResourceAmount = entry.Amount;
+			inst.bCounted = false;
 
 			ActivePopupInstances_.Add( MoveTemp( inst ) );
 
@@ -550,6 +570,17 @@ void UGameHUDWidget::StartResourcePopupAnimations( const TArray<FResourcePopupBa
 		{
 			addEntry( entry, true );
 		}
+	}
+	if ( ActivePopupInstances_.Num() > 0 )
+	{
+		bWaveSyncActive_ = true;
+
+		GoldAnim_.TargetValue = GoldAnim_.DisplayedValue;
+		GoldAnim_.bAnimating = false;
+		FoodAnim_.TargetValue = FoodAnim_.DisplayedValue;
+		FoodAnim_.bAnimating = false;
+		CitizensAnim_.TargetValue = CitizensAnim_.DisplayedValue;
+		CitizensAnim_.bAnimating = false;
 	}
 }
 
@@ -675,6 +706,22 @@ void UGameHUDWidget::UpdateResourcePopupPositions( float deltaTime )
 			continue;
 		}
 
+		if ( !inst.bCounted )
+		{
+			inst.bCounted = true;
+			if ( bWaveSyncActive_ )
+			{
+				FIncomeAnimState* counter = GetCounterForType( inst.ResourceType );
+				if ( counter )
+				{
+					counter->StartValue = counter->DisplayedValue;
+					counter->TargetValue += inst.ResourceAmount;
+					counter->Elapsed = 0.0f;
+					counter->bAnimating = true;
+				}
+			}
+		}
+
 		float iconScale = phases.FullScale;
 		float opacity = 1.0f;
 		float riseOffset = 0.0f;
@@ -753,6 +800,20 @@ void UGameHUDWidget::UpdateResourcePopupPositions( float deltaTime )
 		{
 			ReleasePopupWidget( ActivePopupInstances_[i].Widget.Get() );
 			ActivePopupInstances_.RemoveAtSwap( i );
+		}
+	}
+
+	if ( ActivePopupInstances_.Num() == 0 && bWaveSyncActive_ )
+	{
+		bWaveSyncActive_ = false;
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		{
+			if ( UResourceManager* rM = core->GetResourceManager() )
+			{
+				StartResourceCounterAnim( GoldAnim_, rM->GetResourceAmount( EResourceType::Gold ) );
+				StartResourceCounterAnim( FoodAnim_, rM->GetResourceAmount( EResourceType::Food ) );
+				StartResourceCounterAnim( CitizensAnim_, rM->GetResourceAmount( EResourceType::Population ) );
+			}
 		}
 	}
 }
@@ -847,6 +908,18 @@ void UGameHUDWidget::UpdateResources()
 	int32 pop = rM->GetResourceAmount( EResourceType::Population );
 
 	UE_LOG( LogTemp, Warning, TEXT( "Resources: Gold=%d, Food=%d, Pop=%d" ), gold, food, pop );
+
+	GoldAnim_.DisplayedValue = gold;
+	GoldAnim_.TargetValue = gold;
+	GoldAnim_.bAnimating = false;
+
+	FoodAnim_.DisplayedValue = food;
+	FoodAnim_.TargetValue = food;
+	FoodAnim_.bAnimating = false;
+
+	CitizensAnim_.DisplayedValue = pop;
+	CitizensAnim_.TargetValue = pop;
+	CitizensAnim_.bAnimating = false;
 
 	if ( Text_Gold )
 	{
@@ -1507,5 +1580,59 @@ void UGameHUDWidget::TogglePauseMenu()
 				Cam->SetCameraInputDisabled( true );
 			}
 		}
+	}
+}
+
+void UGameHUDWidget::StartResourceCounterAnim( FIncomeAnimState& state, int32 newValue )
+{
+	if ( newValue == state.TargetValue )
+	{
+		return;
+	}
+
+	state.StartValue = state.DisplayedValue;
+	state.TargetValue = newValue;
+	state.Elapsed = 0.0f;
+	state.bAnimating = true;
+}
+
+void UGameHUDWidget::TickResourceCounterAnim( UTextBlock* textBlock, FIncomeAnimState& state, float deltaTime )
+{
+	if ( !state.bAnimating || !textBlock )
+	{
+		return;
+	}
+
+	state.Elapsed += deltaTime;
+
+	const float duration = FMath::Max( ResourceCounterAnimDuration, 0.01f );
+	const float alpha = FMath::Clamp( state.Elapsed / duration, 0.0f, 1.0f );
+
+	state.DisplayedValue = FMath::RoundToInt(
+	    FMath::Lerp( static_cast<float>( state.StartValue ), static_cast<float>( state.TargetValue ), alpha )
+	);
+
+	textBlock->SetText( FText::AsNumber( state.DisplayedValue ) );
+
+	if ( alpha >= 1.0f )
+	{
+		state.bAnimating = false;
+		state.DisplayedValue = state.TargetValue;
+		textBlock->SetText( FText::AsNumber( state.DisplayedValue ) );
+	}
+}
+
+UGameHUDWidget::FIncomeAnimState* UGameHUDWidget::GetCounterForType( EResourceType type )
+{
+	switch ( type )
+	{
+	case EResourceType::Gold:
+		return &GoldAnim_;
+	case EResourceType::Food:
+		return &FoodAnim_;
+	case EResourceType::Population:
+		return &CitizensAnim_;
+	default:
+		return nullptr;
 	}
 }

@@ -33,4 +33,8 @@ struct FResourcePopupInstance
 	float StartDelay = 0.0f;
 	float Age = 0.0f;
 	bool bFinished = false;
+
+	EResourceType ResourceType = EResourceType::None;
+	int32 ResourceAmount = 0;
+	bool bCounted = false;
 };
