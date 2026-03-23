@@ -49,6 +49,9 @@ public:
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonDefensiveBuildings;
 
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> TutorialButton;
+
 	// ==== economic buildings ====
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonBuildingWoodenHouse;
@@ -224,6 +227,9 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
 	void ToggleWaveInfoPanel();
+
+	UFUNCTION()
+	void HandleTutorialButtonClicked();
 
 	UPROPERTY( BlueprintReadOnly, Category = "Settings|UI|WaveInfo" )
 	bool bIsWavePanelOpen = false;
