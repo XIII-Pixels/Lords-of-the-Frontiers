@@ -14,7 +14,8 @@
 //logic mini-widgeth
 void UBuildingTooltipResourceRow::Setup( int32 Amount, UTexture2D* Icon, FSlateColor TextColor, bool bShowTurnSuffix )
 {
-	FString Sign = Amount > 0 ? TEXT( "+" ) : TEXT( "" );
+	FString Sign = ( TextColor.GetSpecifiedColor() == FLinearColor::White ) ? TEXT( "" )
+	                                                                        : ( Amount > 0 ? TEXT( "+" ) : TEXT( "" ) );
 	if ( Text_Amount )
 	{
 		Text_Amount->SetText( FText::FromString( FString::Printf( TEXT( "%s%d" ), *Sign, Amount ) ) );
@@ -24,7 +25,7 @@ void UBuildingTooltipResourceRow::Setup( int32 Amount, UTexture2D* Icon, FSlateC
 		Img_ResourceIcon->SetBrushFromTexture( Icon );
 	if ( Text_Suffix )
 	{
-		Text_Suffix->SetText( FText::FromString( TEXT( "/move" ) ) );
+		Text_Suffix->SetText( FText::FromString( TEXT( "/move" ) ) ); //TODO - language Russian!!!
 		Text_Suffix->SetVisibility(
 		    bShowTurnSuffix ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
 		);
@@ -68,56 +69,107 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		StateTimer -= InDeltaTime;
 		if ( StateTimer <= 0.0f )
 		{
+			CurrentBuildingClass = PendingBuildingClass;
+			UpdateContent();
+
 			CurrentState = ETooltipState::AnimatingIn;
 			SetVisibility( ESlateVisibility::HitTestInvisible );
 		}
 		break;
-	case ETooltipState::DelayHide:
-		StateTimer -= InDeltaTime;
-		if ( StateTimer <= 0.0f )
-			CurrentState = ETooltipState::AnimatingOut;
-		break;
+
 	case ETooltipState::AnimatingIn:
 		AnimProgress = FMath::Clamp( AnimProgress + ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		ApplyAnimation();
 		if ( AnimProgress >= 1.0f )
 		{
-			CurrentState = ETooltipState::Visible;
-			SetRenderOpacity( 1.0f );
+			CurrentState = ETooltipState::HoldFlash;
+			StateTimer = FlashHoldDuration;
 		}
 		break;
+
+	case ETooltipState::HoldFlash:
+		StateTimer -= InDeltaTime;
+		if ( StateTimer <= 0.0f )
+		{
+			CurrentState = ETooltipState::FadeFlash;
+			FlashProgress = 1.0f;
+		}
+		break;
+
+	case ETooltipState::FadeFlash:
+		FlashProgress = FMath::Clamp( FlashProgress - ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
+		if ( WhiteFlash )
+			WhiteFlash->SetRenderOpacity( FlashProgress );
+		if ( FlashProgress <= 0.0f )
+			CurrentState = ETooltipState::Visible;
+		break;
+
+	case ETooltipState::DelayHide:
+		if ( bIsLocked )
+		{
+			CurrentState = ETooltipState::Visible;
+			break;
+		}
+
+		StateTimer -= InDeltaTime;
+		if ( StateTimer <= 0.0f )
+			CurrentState = ETooltipState::AnimatingOut;
+		break;
+
 	case ETooltipState::AnimatingOut:
+		if ( bIsLocked )
+		{
+			CurrentState = ETooltipState::AnimatingIn;
+			break;
+		}
+
 		AnimProgress = FMath::Clamp( AnimProgress - ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		ApplyAnimation();
 		if ( AnimProgress <= 0.0f )
 			ForceHide();
 		break;
+
 	case ETooltipState::Visible:
 	case ETooltipState::Hidden:
 		break;
 	}
 }
 
-void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> BuildingClass )
+void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> BuildingClass, bool bInstantSwitch )
 {
 	if ( !BuildingClass )
 		return;
-	CurrentBuildingClass = BuildingClass;
-	UpdateContent();
 
-	if ( CurrentState == ETooltipState::Hidden || CurrentState == ETooltipState::DelayHide ||
-	     CurrentState == ETooltipState::AnimatingOut )
+	if ( CurrentBuildingClass == BuildingClass && CurrentState == ETooltipState::Visible )
+		return;
+
+	PendingBuildingClass = BuildingClass;
+
+	SetVisibility( ESlateVisibility::HitTestInvisible );
+
+	if ( CurrentState == ETooltipState::Hidden || CurrentState == ETooltipState::AnimatingOut )
 	{
 		CurrentState = ETooltipState::DelayShow;
 		StateTimer = ShowDelay;
-		SetVisibility( ESlateVisibility::HitTestInvisible );
-		ApplyAnimation();
+		AnimProgress = 0.0f;
+		SetRenderOpacity( 0.0f );
+	}
+	else
+	{
+		CurrentState = ETooltipState::DelayShow;
+		StateTimer = SwitchDelay;
+		if ( WhiteFlash )
+			WhiteFlash->SetRenderOpacity( 1.0f );
 	}
 }
 
 void UBuildingTooltipWidget::HideTooltip()
 {
+	if ( bIsLocked )
+		return;
+
 	if ( CurrentState == ETooltipState::Visible || CurrentState == ETooltipState::AnimatingIn ||
+	     CurrentState == ETooltipState::HoldFlash || CurrentState == ETooltipState::FadeFlash ||
 	     CurrentState == ETooltipState::DelayShow )
 	{
 		CurrentState = ETooltipState::DelayHide;
@@ -129,6 +181,7 @@ void UBuildingTooltipWidget::ForceHide()
 {
 	CurrentState = ETooltipState::Hidden;
 	AnimProgress = 0.0f;
+	bIsLocked = false;
 	SetRenderOpacity( 0.0f );
 	SetVisibility( ESlateVisibility::Hidden );
 }
@@ -140,7 +193,11 @@ void UBuildingTooltipWidget::ApplyAnimation()
 	float alpha = AnimationCurve ? AnimationCurve->GetFloatValue( AnimProgress ) : AnimProgress;
 	AnimationContainer->SetRenderTranslation( FVector2D( FMath::Lerp( SlideOffsetX, 0.0f, alpha ), 0.0f ) );
 	SetRenderOpacity( alpha );
-	WhiteFlash->SetRenderOpacity( 1.0f - alpha );
+
+	if ( CurrentState == ETooltipState::AnimatingIn || CurrentState == ETooltipState::AnimatingOut )
+	{
+		WhiteFlash->SetRenderOpacity( 1.0f );
+	}
 }
 
 UTexture2D* UBuildingTooltipWidget::GetResourceIcon( EResourceType Type )

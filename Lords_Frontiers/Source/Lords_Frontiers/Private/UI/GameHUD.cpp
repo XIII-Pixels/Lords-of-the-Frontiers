@@ -1,6 +1,7 @@
 ﻿#include "Lords_Frontiers/Public/UI/GameHUD.h"
 
 #include "Building/Building.h"
+#include "Building/DefensiveBuilding.h"
 #include "Building/Construction/BuildManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
@@ -145,13 +146,23 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
-	if ( TooltipClass && !ActiveTooltip )
+	if ( EconomyTooltipClass && !ActiveEconomyTooltip )
 	{
-		ActiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
-		if ( ActiveTooltip )
+		ActiveEconomyTooltip = CreateWidget<UBuildingTooltipWidget>( this, EconomyTooltipClass );
+		if ( ActiveEconomyTooltip )
 		{
-			ActiveTooltip->AddToViewport( 99 );
-			ActiveTooltip->ForceHide();         
+			ActiveEconomyTooltip->AddToViewport( 99 );
+			ActiveEconomyTooltip->ForceHide();
+		}
+	}
+
+	if ( DefensiveTooltipClass && !ActiveDefensiveTooltip )
+	{
+		ActiveDefensiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, DefensiveTooltipClass );
+		if ( ActiveDefensiveTooltip )
+		{
+			ActiveDefensiveTooltip->AddToViewport( 99 );
+			ActiveDefensiveTooltip->ForceHide();
 		}
 	}
 	
@@ -354,20 +365,37 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 			{
 				rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 				eC->OnNetIncomeChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
-
 				UpdateResources();
 				InitIncomeDisplay();
-
 				bIsEconomySubscribed_ = true;
 			}
 		}
 	}
 
-	if ( ActiveBonusIcons_.Num() > 0 )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		UpdateBonusIconPositions();
+		if ( ABuildManager* bM = core->GetBuildManager() )
+		{
+			bool bIsPlacing = bM->IsPlacing();
+
+			if ( !bIsPlacing )
+			{
+				if ( ActiveEconomyTooltip && ActiveEconomyTooltip->IsLocked() )
+				{
+					ActiveEconomyTooltip->SetLocked( false );
+					ActiveEconomyTooltip->HideTooltip();
+				}
+				if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->IsLocked() )
+				{
+					ActiveDefensiveTooltip->SetLocked( false );
+					ActiveDefensiveTooltip->HideTooltip();
+				}
+			}
+		}
 	}
 
+	if ( ActiveBonusIcons_.Num() > 0 )
+		UpdateBonusIconPositions();
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -662,6 +690,10 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 	}
 
 	bM->StartPlacingBuilding( BuildingClass );
+	if ( ActiveEconomyTooltip && ActiveEconomyTooltip->GetVisibility() != ESlateVisibility::Hidden )
+		ActiveEconomyTooltip->SetLocked( true );
+	if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->GetVisibility() != ESlateVisibility::Hidden )
+		ActiveDefensiveTooltip->SetLocked( true );
 }
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
@@ -784,22 +816,25 @@ void UGameHUDWidget::CancelCurrentBuilding()
 {
 	UCoreManager* core = UCoreManager::Get( this );
 	if ( !core )
-	{
 		return;
-	}
 	ABuildManager* bM = core->GetBuildManager();
 	if ( !bM )
-	{
 		return;
-	};
 
 	if ( bM->IsPlacing() )
 	{
 		bM->CancelPlacing();
 	}
-	if ( ActiveTooltip )
+
+	if ( ActiveEconomyTooltip )
 	{
-		ActiveTooltip->HideTooltip();
+		ActiveEconomyTooltip->SetLocked( false );
+		ActiveEconomyTooltip->HideTooltip();
+	}
+	if ( ActiveDefensiveTooltip )
+	{
+		ActiveDefensiveTooltip->SetLocked( false );
+		ActiveDefensiveTooltip->HideTooltip();
 	}
 }
 
@@ -857,10 +892,10 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 
 void UGameHUDWidget::OnBuildingUnhovered()
 {
-	if ( ActiveTooltip )
-	{
-		ActiveTooltip->HideTooltip();
-	}
+	if ( ActiveEconomyTooltip )
+		ActiveEconomyTooltip->HideTooltip();
+	if ( ActiveDefensiveTooltip )
+		ActiveDefensiveTooltip->HideTooltip();
 }
 
 void UGameHUDWidget::ToggleWaveInfoPanel()
@@ -1158,5 +1193,29 @@ void UGameHUDWidget::TogglePauseMenu()
 				Cam->SetCameraInputDisabled( true );
 			}	
 		}
+	}
+}
+
+void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !buildingClass )
+		return;
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	if ( !cdo )
+		return;
+
+	if ( cdo->IsA<ADefensiveBuilding>() )
+	{
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->HideTooltip();
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->ShowTooltip( buildingClass );
+	}
+	else
+	{
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->HideTooltip();
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->ShowTooltip( buildingClass );
 	}
 }

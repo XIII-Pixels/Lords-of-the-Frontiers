@@ -340,59 +340,54 @@ protected:
 	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
-	TSubclassOf<UBuildingTooltipWidget> TooltipClass;
+	TSubclassOf<UBuildingTooltipWidget> EconomyTooltipClass;
 
-	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
+	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
+
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveEconomyTooltip;
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveDefensiveTooltip;
+	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( WoodenHouseClass );
+		ShowTooltipForBuilding( WoodenHouseClass );
 	}
 	UFUNCTION() void OnHoverStrawHouse()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( StrawHouseClass );
+		ShowTooltipForBuilding( StrawHouseClass );
 	}
 	UFUNCTION() void OnHoverFarm()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( FarmClass );
+		ShowTooltipForBuilding( FarmClass );
 	}
 	UFUNCTION() void OnHoverLawnHouse()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( LawnHouseClass );
+		ShowTooltipForBuilding( LawnHouseClass );
 	}
 	UFUNCTION() void OnHoverMagicHouse()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( MagicHouseClass );
+		ShowTooltipForBuilding( MagicHouseClass );
 	}
 	UFUNCTION() void OnHoverWoodWall()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( WoodWallClass );
+		ShowTooltipForBuilding( WoodWallClass );
 	}
 	UFUNCTION() void OnHoverStoneWall()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( StoneWallClass );
+		ShowTooltipForBuilding( StoneWallClass );
 	}
 	UFUNCTION() void OnHoverTowerT0()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( TowerT0Class );
+		ShowTooltipForBuilding( TowerT0Class );
 	}
 	UFUNCTION() void OnHoverTowerT1()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( TowerT1Class );
+		ShowTooltipForBuilding( TowerT1Class );
 	}
 	UFUNCTION() void OnHoverTowerT2()
 	{
-		if ( ActiveTooltip )
-			ActiveTooltip->ShowTooltip( TowerT2Class );
+		ShowTooltipForBuilding( TowerT2Class );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();

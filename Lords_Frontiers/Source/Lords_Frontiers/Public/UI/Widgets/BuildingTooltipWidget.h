@@ -21,6 +21,8 @@ enum class ETooltipState : uint8
 	Hidden,
 	DelayShow,
 	AnimatingIn,
+	HoldFlash,
+	FadeFlash,
 	Visible,
 	DelayHide,
 	AnimatingOut
@@ -34,10 +36,10 @@ class LORDS_FRONTIERS_API UBuildingTooltipResourceRow : public UUserWidget
 public:
 	void Setup( int32 Amount, UTexture2D* Icon, FSlateColor TextColor, bool bShowTurnSuffix );
 
-protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Amount;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_ResourceIcon;
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_Suffix; // "/move"
+
 };
 
 //str stats
@@ -79,7 +81,7 @@ public:
 	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
-	void ShowTooltip( TSubclassOf<ABuilding> BuildingClass );
+	void ShowTooltip( TSubclassOf<ABuilding> BuildingClass, bool bInstantSwitch = false );
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void HideTooltip();
@@ -87,10 +89,27 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void ForceHide();
 
+	void SetLocked( bool bLock )
+	{
+		bIsLocked = bLock;
+	}
+	bool IsLocked() const
+	{
+		return bIsLocked;
+	}
+
 protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.3f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float HideDelay = 0.1f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float AnimDuration = 0.25f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation", meta = ( Tooltip = "How long is the white fill hanging?" ) )
+	float FlashHoldDuration = 0.15f;
+	UPROPERTY(
+	    EditAnywhere, Category = "Settings|Animation",
+	    meta = ( Tooltip = "update opened information" )
+	)
+	float SwitchDelay = 0.1f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float SlideOffsetX = -50.0f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) TObjectPtr<UCurveFloat> AnimationCurve;
 	UPROPERTY( EditAnywhere, Category = "Settings|Config" ) TObjectPtr<UBuildingUIConfig> UIConfig;
@@ -116,18 +135,21 @@ protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Description;
 
 	//containers
-	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UPanelWidget> Box_Stats;
-	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UPanelWidget> Box_Cost;
-	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UPanelWidget> Box_Maintenance;
-	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UPanelWidget> Box_Production;
-	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UPanelWidget> Box_Bonus;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Stats;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Cost;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Maintenance;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Production;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Bonus;
 
 private:
 	ETooltipState CurrentState = ETooltipState::Hidden;
 	float StateTimer = 0.0f;
 	float AnimProgress = 0.0f;
+	float FlashProgress = 0.0f;
+	bool bIsLocked = false;
 
 	UPROPERTY() TSubclassOf<ABuilding> CurrentBuildingClass;
+	UPROPERTY() TSubclassOf<ABuilding> PendingBuildingClass;
 
 	void ApplyAnimation();
 	void UpdateContent();
