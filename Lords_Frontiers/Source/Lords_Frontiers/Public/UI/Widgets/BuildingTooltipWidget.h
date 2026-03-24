@@ -28,7 +28,7 @@ enum class ETooltipState : uint8
 	AnimatingOut
 };
 
-//str economy
+// str economy
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipResourceRow : public UUserWidget
 {
@@ -38,11 +38,10 @@ public:
 
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Amount;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_ResourceIcon;
-	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_Suffix; // "/move"
-
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_Suffix;
 };
 
-//str stats
+// str stats
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipStatRow : public UUserWidget
 {
@@ -56,7 +55,7 @@ protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Value;
 };
 
-//str bonus
+// str bonus
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipBonusRow : public UUserWidget
 {
@@ -71,7 +70,7 @@ protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UImage> Img_ResourceIcon;
 };
 
-//main widgeth tooltip
+// main widgeth tooltip
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipWidget : public UUserWidget
 {
@@ -89,52 +88,39 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void ForceHide();
 
-	void SetLocked( bool bLock )
-	{
-		bIsLocked = bLock;
-	}
-	bool IsLocked() const
-	{
-		return bIsLocked;
-	}
-
 protected:
-	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.3f;
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.2f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float HideDelay = 0.1f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float AnimDuration = 0.25f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Animation", meta = ( Tooltip = "How long is the white fill hanging?" ) )
-	float FlashHoldDuration = 0.15f;
-	UPROPERTY(
-	    EditAnywhere, Category = "Settings|Animation",
-	    meta = ( Tooltip = "update opened information" )
-	)
-	float SwitchDelay = 0.1f;
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float FlashHoldDuration = 0.05f;
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float SwitchDelay = 0.05f;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float SlideOffsetX = -50.0f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) TObjectPtr<UCurveFloat> AnimationCurve;
 	UPROPERTY( EditAnywhere, Category = "Settings|Config" ) TObjectPtr<UBuildingUIConfig> UIConfig;
 
-	//color numbers
+	// color numbers
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
 	FSlateColor IncomeColor = FSlateColor( FLinearColor::Green );
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" ) FSlateColor ExpenseColor = FSlateColor( FLinearColor::Red );
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
 	FSlateColor NeutralColor = FSlateColor( FLinearColor::White );
 
-	//class sample
+	// class sample
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" )
 	TSubclassOf<UBuildingTooltipResourceRow> ResourceRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipStatRow> StatRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipBonusRow> BonusRowClass;
 
-	//elem main widgeth
+	// elem main widgeth
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UOverlay> AnimationContainer;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> WhiteFlash;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_Icon;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Name;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Description;
 
-	//containers
+	// containers
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Stats;
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Cost;
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Maintenance;
@@ -146,7 +132,6 @@ private:
 	float StateTimer = 0.0f;
 	float AnimProgress = 0.0f;
 	float FlashProgress = 0.0f;
-	bool bIsLocked = false;
 
 	UPROPERTY() TSubclassOf<ABuilding> CurrentBuildingClass;
 	UPROPERTY() TSubclassOf<ABuilding> PendingBuildingClass;

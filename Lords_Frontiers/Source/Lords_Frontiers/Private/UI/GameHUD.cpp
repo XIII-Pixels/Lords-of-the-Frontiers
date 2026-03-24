@@ -376,20 +376,14 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	{
 		if ( ABuildManager* bM = core->GetBuildManager() )
 		{
-			bool bIsPlacing = bM->IsPlacing();
-
-			if ( !bIsPlacing )
+			if ( !bM->IsPlacing() && bIsBuildingLocked )
 			{
-				if ( ActiveEconomyTooltip && ActiveEconomyTooltip->IsLocked() )
-				{
-					ActiveEconomyTooltip->SetLocked( false );
+				bIsBuildingLocked = false;
+				LockedBuildingClass = nullptr;
+				if ( ActiveEconomyTooltip )
 					ActiveEconomyTooltip->HideTooltip();
-				}
-				if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->IsLocked() )
-				{
-					ActiveDefensiveTooltip->SetLocked( false );
+				if ( ActiveDefensiveTooltip )
 					ActiveDefensiveTooltip->HideTooltip();
-				}
 			}
 		}
 	}
@@ -672,28 +666,20 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 {
 	if ( !BuildingClass )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildingClass is null" ) );
 		return;
 	}
 
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	}
-
-	ABuildManager* bM = core->GetBuildManager();
+	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
 	if ( !bM )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildManager is null" ) );
 		return;
 	}
 
 	bM->StartPlacingBuilding( BuildingClass );
-	if ( ActiveEconomyTooltip && ActiveEconomyTooltip->GetVisibility() != ESlateVisibility::Hidden )
-		ActiveEconomyTooltip->SetLocked( true );
-	if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->GetVisibility() != ESlateVisibility::Hidden )
-		ActiveDefensiveTooltip->SetLocked( true );
+
+	bIsBuildingLocked = true;
+	LockedBuildingClass = BuildingClass;
 }
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
@@ -815,25 +801,21 @@ void UGameHUDWidget::UpdateBuildingUIVisibility()
 void UGameHUDWidget::CancelCurrentBuilding()
 {
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-		return;
-	ABuildManager* bM = core->GetBuildManager();
-	if ( !bM )
-		return;
+	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
 
-	if ( bM->IsPlacing() )
+	if ( bM && bM->IsPlacing() )
 	{
 		bM->CancelPlacing();
 	}
 
+	bIsBuildingLocked = false;
+	LockedBuildingClass = nullptr;
 	if ( ActiveEconomyTooltip )
 	{
-		ActiveEconomyTooltip->SetLocked( false );
 		ActiveEconomyTooltip->HideTooltip();
 	}
 	if ( ActiveDefensiveTooltip )
 	{
-		ActiveDefensiveTooltip->SetLocked( false );
 		ActiveDefensiveTooltip->HideTooltip();
 	}
 }
@@ -892,10 +874,17 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 
 void UGameHUDWidget::OnBuildingUnhovered()
 {
-	if ( ActiveEconomyTooltip )
-		ActiveEconomyTooltip->HideTooltip();
-	if ( ActiveDefensiveTooltip )
-		ActiveDefensiveTooltip->HideTooltip();
+	if ( bIsBuildingLocked && LockedBuildingClass )
+	{
+		ShowTooltipForBuilding( LockedBuildingClass );
+	}
+	else
+	{
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->HideTooltip();
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->HideTooltip();
+	}
 }
 
 void UGameHUDWidget::ToggleWaveInfoPanel()

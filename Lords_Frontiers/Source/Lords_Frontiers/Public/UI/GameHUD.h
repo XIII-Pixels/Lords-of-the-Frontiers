@@ -347,6 +347,10 @@ protected:
 
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveEconomyTooltip;
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveDefensiveTooltip;
+
+	bool bIsBuildingLocked = false;
+	UPROPERTY() TSubclassOf<ABuilding> LockedBuildingClass;
+
 	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	UFUNCTION() void OnHoverWoodenHouse()

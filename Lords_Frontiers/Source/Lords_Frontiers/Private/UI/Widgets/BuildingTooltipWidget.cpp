@@ -113,11 +113,6 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		break;
 
 	case ETooltipState::DelayHide:
-		if ( bIsLocked )
-		{
-			CurrentState = ETooltipState::Visible;
-			break;
-		}
 
 		StateTimer -= InDeltaTime;
 		if ( StateTimer <= 0.0f )
@@ -125,11 +120,6 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		break;
 
 	case ETooltipState::AnimatingOut:
-		if ( bIsLocked )
-		{
-			CurrentState = ETooltipState::AnimatingIn;
-			break;
-		}
 
 		AnimProgress = FMath::Clamp( AnimProgress - ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		ApplyAnimation();
@@ -181,9 +171,6 @@ void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> BuildingClass, 
 
 void UBuildingTooltipWidget::HideTooltip()
 {
-	if ( bIsLocked )
-		return;
-
 	if ( CurrentState != ETooltipState::Hidden && CurrentState != ETooltipState::AnimatingOut &&
 	     CurrentState != ETooltipState::DelayHide )
 	{
@@ -196,7 +183,6 @@ void UBuildingTooltipWidget::ForceHide()
 {
 	CurrentState = ETooltipState::Hidden;
 	AnimProgress = 0.0f;
-	bIsLocked = false;
 	SetRenderOpacity( 0.0f );
 	SetVisibility( ESlateVisibility::Hidden );
 }
@@ -314,11 +300,11 @@ void UBuildingTooltipWidget::UpdateContent()
 
 	AddResRow( Box_Maintenance, -maintG, EResourceType::Gold, ExpenseColor, true );
 	AddResRow( Box_Maintenance, -maintF, EResourceType::Food, ExpenseColor, true );
-	AddResRow( Box_Maintenance, -maintP, EResourceType::Population, ExpenseColor, true );
+	AddResRow( Box_Maintenance, -maintP, EResourceType::Population, ExpenseColor, false );
 
 	AddResRow( Box_Production, prodG, EResourceType::Gold, IncomeColor, true );
 	AddResRow( Box_Production, prodF, EResourceType::Food, IncomeColor, true );
-	AddResRow( Box_Production, prodP, EResourceType::Population, IncomeColor, true );
+	AddResRow( Box_Production, prodP, EResourceType::Population, IncomeColor, false );
 
 	//stats
 	FEntityStats stats = const_cast<ABuilding*>( cDO )->Stats();
