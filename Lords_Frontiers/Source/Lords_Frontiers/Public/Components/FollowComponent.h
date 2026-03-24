@@ -7,6 +7,7 @@
 
 #include "FollowComponent.generated.h"
 
+class AGridManager;
 class AUnit;
 
 /** (Gregory-hub)
@@ -20,7 +21,6 @@ public:
 	UFollowComponent();
 
 	void StartFollowing();
-
 	void StopFollowing();
 
 	void SetMaxSpeed( float maxSpeed );
@@ -28,15 +28,14 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	virtual void TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
+	virtual void
+	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
 	void MoveTowardsTarget( float deltaTime );
-
 	void RotateForward( float deltaTime );
-
-	void SnapToGround();
-
+	void SnapToGround() const;
 	void Sway( float deltaTime );
+	void ResolveUnitOnUnwalkableCell();
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float RotationSpeed_ = 5.0f;
@@ -44,12 +43,25 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float SnapToGroundDistance_ = 500.0f;
 
+	UPROPERTY()
+	TWeakObjectPtr<UCapsuleComponent> CapsuleComponent_;
+
+	UPROPERTY()
+	TWeakObjectPtr<AUnit> Unit_;
+
+	UPROPERTY()
+	TWeakObjectPtr<AGridManager> Grid_;
+
+	bool bFollowTarget_ = false;
+
 	// Wobble
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	float SwaySpeed_ = 15.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	float SwayAmplitude_ = 10.0f;
+	float SwayPhaseOffset_ = 0.0f;
+	float CurrentSwayRoll_ = 0.0f;
 
 	// Deviate from going forward
 	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
@@ -58,23 +70,18 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
 	float DeviationMaxRate_ = 20.0f;
 
-	float SwayPhaseOffset_ = 0.0f;
-
-	float CurrentSwayRoll_ = 0.0f;
-
-	UPROPERTY()
-	TObjectPtr<UCapsuleComponent> CapsuleComponent_;
-
-	UPROPERTY()
-	TObjectPtr<AUnit> Unit_;
-
 	FRandomStream StreamRandom_;
-
 	FVector CurrentDirection_;
-
 	float CurrentDeviationYawSpeed_ = 0.0f;
-
 	float CurrentDeviationYaw_ = 0.0f;
 
-	bool bFollowTarget_ = false;
+	// Do not walk on unwalkable grid cells
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
+	bool bAvoidUnwalkableCells_ = true;
+
+	// Speed at which unit is pushed from unwalkable cell
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
+	float UnwalkablePushSpeed_ = 20.0f;
+
+	float GroundHeight_ = 0.0f;
 };

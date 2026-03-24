@@ -96,8 +96,15 @@ public:
 	bool GetCellWorldCenter( const FIntPoint& cellCoords, FVector& outLocation ) const;
 
 	/// @brief Calculate grid coords based on location.
-	/// For non-rectangular grids, clamps X to the actual row width.
+	/// If location is not on grid returns { -1, -1 }.
+	FIntPoint GetCellCoords( FVector location ) const;
+
+	/// @brief Calculate grid coords based on location.
+	/// If location is not on grid returns grid coords of closest cell.
 	FIntPoint GetClosestCellCoords( FVector location ) const;
+
+	/// @brief Find the closest cell with bWalkable = true
+	FIntPoint FindClosestWalkableCell( const FVector& location ) const;
 
 	/// @brief Get array the cell's neighbors
 	/// @param[in] FGridCell 
@@ -135,4 +142,8 @@ private:
 	/// - snaps pre-assigned occupants to cell centers;
 	/// - resets runtime state of empty cells.
 	void InitializeGrid();
+
+	/// @brief Calculate grid coords based on location.
+	/// Returns coords as if grid is infinite
+	FIntPoint GetCellCoordsRaw( FVector location ) const;
 };
