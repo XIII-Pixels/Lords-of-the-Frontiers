@@ -68,7 +68,10 @@ protected:
 	TSubclassOf<APathTargetPoint> PathPointClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	float PathPointReachRadius_ = 200.0f;
+	float PathPointReachRadius_ = 100.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
+	float GroundHeight_ = 10.0f;
 
 	UPROPERTY()
 	TWeakObjectPtr<AActor> GoalActor_;
