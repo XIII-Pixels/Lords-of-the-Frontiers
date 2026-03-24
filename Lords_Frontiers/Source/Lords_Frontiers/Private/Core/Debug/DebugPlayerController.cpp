@@ -193,8 +193,10 @@ void ADebugPlayerController::OpenTutorial()
 	InputMode.SetHideCursorDuringCapture( false );
 
 	SetInputMode( InputMode );
+	bShowMouseCursor = true;
 
 	TutorialWidgetInstance->SetUserFocus( this );
+	TutorialWidgetInstance->SetKeyboardFocus();
 }
 
 void ADebugPlayerController::CloseTutorial()
@@ -207,6 +209,7 @@ void ADebugPlayerController::CloseTutorial()
 
 void ADebugPlayerController::HandleTutorialClosed()
 {
-	SetInputMode( FInputModeGameOnly() );
+	SetInputMode( FInputModeGameAndUI() );
+	bShowMouseCursor = true;
 	TutorialWidgetInstance = nullptr;
 }

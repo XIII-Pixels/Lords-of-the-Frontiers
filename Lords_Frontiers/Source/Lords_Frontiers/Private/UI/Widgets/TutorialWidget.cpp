@@ -1,5 +1,5 @@
 #include "UI/Widgets/TutorialWidget.h"
-
+#include "UI/Widgets/TutorialPageWidget.h"
 #include "TimerManager.h"
 
 #include "Components/Button.h"
@@ -7,6 +7,8 @@
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "InputCoreTypes.h"
+#include "Components/WidgetSwitcher.h"
+
 
 void UTutorialWidget::NativeOnInitialized()
 {
@@ -18,113 +20,178 @@ void UTutorialWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// Нужно для ESC.
 	SetIsFocusable( true );
 
-	// На старте можно открыть первый шаг.
-	if ( Steps.IsValidIndex( 0 ) )
+	if ( !bPagesBuilt_ )
 	{
-		ShowStep( 0 );
+		BuildPages();
 	}
+
+	if ( PagesSwitcher_ && PagesSwitcher_->GetChildrenCount() > 0 )
+	{
+		ActivatePage( 0 );
+	}
+	else
+	{
+		UpdateNavigationButtons();
+	}
+
+	SetKeyboardFocus();
 }
 
 void UTutorialWidget::NativeDestruct()
 {
-	StopPlayback();
 	Super::NativeDestruct();
 }
 
 void UTutorialWidget::BindUI()
 {
-	if ( CloseButton )
+	if ( CloseButton_ )
 	{
-		CloseButton->OnClicked.RemoveAll( this );
-		CloseButton->OnClicked.AddDynamic( this, &UTutorialWidget::HandleCloseClicked );
+		CloseButton_->OnClicked.AddDynamic( this, &UTutorialWidget::HandleCloseClicked );
 	}
 
-	if ( BackdropButton )
+	if ( BackdropButton_ )
 	{
-		BackdropButton->OnClicked.RemoveAll( this );
-		BackdropButton->OnClicked.AddDynamic( this, &UTutorialWidget::HandleBackdropClicked );
+		BackdropButton_->OnClicked.AddDynamic( this, &UTutorialWidget::HandleBackdropClicked );
+	}
+
+	if ( NextButton_ )
+	{
+		NextButton_->OnClicked.AddDynamic( this, &UTutorialWidget::HandleNextClicked );
+	}
+
+	if ( PrevButton_ )
+	{
+		PrevButton_->OnClicked.AddDynamic( this, &UTutorialWidget::HandlePrevClicked );
 	}
 }
 
-void UTutorialWidget::ShowStep( int32 StepIndex )
+void UTutorialWidget::BuildPages()
 {
-	if ( !Steps.IsValidIndex( StepIndex ) )
+	if ( !PagesSwitcher_ )
 	{
 		return;
 	}
 
-	StopPlayback();
+	PagesSwitcher_->ClearChildren();
+	BuiltPages_.Reset();
 
-	CurrentStepIndex = StepIndex;
-	CurrentFrameIndex = 0;
-
-	if ( TutorialText )
+	if ( !PageWidgetClass_ || !GetOwningPlayer() )
 	{
-		TutorialText->SetText( Steps[StepIndex].InstructionText );
+		bPagesBuilt_ = true;
+		return;
 	}
 
-	StartPlayback();
+	for ( const FTutorialPageData& pageData : Pages_ )
+	{
+		UTutorialPageWidget* pageWidget = CreateWidget<UTutorialPageWidget>( GetOwningPlayer(), PageWidgetClass_ );
+		if ( !pageWidget )
+		{
+			continue;
+		}
+
+		pageWidget->SetData( pageData );
+		pageWidget->OnPageDeactivated();
+
+		PagesSwitcher_->AddChild( pageWidget );
+		BuiltPages_.Add( pageWidget );
+	}
+
+	bPagesBuilt_ = true;
 }
 
-void UTutorialWidget::StartPlayback()
+void UTutorialWidget::RebuildPages()
 {
-	if ( !GetWorld() || !Steps.IsValidIndex( CurrentStepIndex ) )
+	bPagesBuilt_ = false;
+	BuildPages();
+
+	if ( PagesSwitcher_ && PagesSwitcher_->GetChildrenCount() > 0 )
+	{
+		ActivatePage( 0 );
+	}
+	else
+	{
+		UpdateNavigationButtons();
+	}
+}
+
+void UTutorialWidget::ActivatePage( int32 newIndex )
+{
+	if ( !PagesSwitcher_ )
 	{
 		return;
 	}
 
-	const TArray<TObjectPtr<UTexture2D>>& Frames = Steps[CurrentStepIndex].Frames;
-	if ( Frames.IsEmpty() || !TutorialImage )
+	const int32 count = PagesSwitcher_->GetChildrenCount();
+	if ( count <= 0 )
 	{
+		CurrentPageIndex_ = INDEX_NONE;
+		UpdateNavigationButtons();
 		return;
 	}
 
-	const float SafeFPS = FMath::Max( FramesPerSecond, 1.0f );
-	const float Delay = 1.0f / SafeFPS;
+	const int32 clampedIndex = FMath::Clamp( newIndex, 0, count - 1 );
 
-	// Сразу показать первый кадр.
-	TutorialImage->SetBrushFromTexture( Frames[0], true );
+	if ( BuiltPages_.IsValidIndex( CurrentPageIndex_ ) && BuiltPages_[CurrentPageIndex_] )
+	{
+		BuiltPages_[CurrentPageIndex_]->OnPageDeactivated();
+	}
 
-	GetWorld()->GetTimerManager().SetTimer( FrameTimerHandle, this, &UTutorialWidget::AdvanceFrame, Delay, true );
+	CurrentPageIndex_ = clampedIndex;
+	PagesSwitcher_->SetActiveWidgetIndex( CurrentPageIndex_ );
+
+	if ( BuiltPages_.IsValidIndex( CurrentPageIndex_ ) && BuiltPages_[CurrentPageIndex_] )
+	{
+		BuiltPages_[CurrentPageIndex_]->OnPageActivated();
+	}
+
+	UpdateNavigationButtons();
 }
 
-void UTutorialWidget::StopPlayback()
+void UTutorialWidget::SetPage( int32 pageIndex )
 {
-	if ( GetWorld() )
+	ActivatePage( pageIndex );
+}
+
+void UTutorialWidget::NextPage()
+{
+	SetPage( CurrentPageIndex_ + 1 );
+}
+
+void UTutorialWidget::PrevPage()
+{
+	SetPage( CurrentPageIndex_ - 1 );
+}
+
+void UTutorialWidget::UpdateNavigationButtons()
+{
+	const int32 count = PagesSwitcher_ ? PagesSwitcher_->GetChildrenCount() : 0;
+
+	const bool bHasPages = count > 0;
+	const bool bCanGoPrev = bHasPages && CurrentPageIndex_ > 0;
+	const bool bCanGoNext = bHasPages && CurrentPageIndex_ < count - 1;
+
+	if ( PrevButton_ )
 	{
-		GetWorld()->GetTimerManager().ClearTimer( FrameTimerHandle );
+		PrevButton_->SetVisibility( bCanGoPrev ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+
+	if ( NextButton_ )
+	{
+		NextButton_->SetVisibility( bCanGoNext ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
 	}
 }
 
-void UTutorialWidget::AdvanceFrame()
+FReply UTutorialWidget::NativeOnPreviewKeyDown( const FGeometry& inGeometry, const FKeyEvent& inKeyEvent )
 {
-	if ( !Steps.IsValidIndex( CurrentStepIndex ) || !TutorialImage )
-	{
-		return;
-	}
-
-	const TArray<TObjectPtr<UTexture2D>>& Frames = Steps[CurrentStepIndex].Frames;
-	if ( Frames.IsEmpty() )
-	{
-		return;
-	}
-
-	CurrentFrameIndex = ( CurrentFrameIndex + 1 ) % Frames.Num();
-	TutorialImage->SetBrushFromTexture( Frames[CurrentFrameIndex], true );
-}
-
-FReply UTutorialWidget::NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
-{
-	if ( InKeyEvent.GetKey() == EKeys::Escape )
+	if ( inKeyEvent.GetKey() == EKeys::Escape )
 	{
 		CloseTutorial();
 		return FReply::Handled();
 	}
 
-	return Super::NativeOnPreviewKeyDown( InGeometry, InKeyEvent );
+	return Super::NativeOnPreviewKeyDown( inGeometry, inKeyEvent );
 }
 
 void UTutorialWidget::HandleCloseClicked()
@@ -137,9 +204,23 @@ void UTutorialWidget::HandleBackdropClicked()
 	CloseTutorial();
 }
 
+void UTutorialWidget::HandleNextClicked()
+{
+	NextPage();
+}
+
+void UTutorialWidget::HandlePrevClicked()
+{
+	PrevPage();
+}
+
 void UTutorialWidget::CloseTutorial()
 {
-	StopPlayback();
+	if ( BuiltPages_.IsValidIndex( CurrentPageIndex_ ) && BuiltPages_[CurrentPageIndex_] )
+	{
+		BuiltPages_[CurrentPageIndex_]->OnPageDeactivated();
+	}
+
 	OnTutorialClosed.Broadcast();
 	RemoveFromParent();
 }

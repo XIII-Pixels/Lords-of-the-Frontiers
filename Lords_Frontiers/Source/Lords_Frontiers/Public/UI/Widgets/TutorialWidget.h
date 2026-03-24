@@ -2,26 +2,14 @@
 
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
+#include "UI/Widgets/TutorialPageWidget.h"
 
 #include "TutorialWidget.generated.h"
 
 class UButton;
-class UImage;
-class UTextBlock;
+class UWidgetSwitcher;
+class UTutorialPageWidget;
 class UTexture2D;
-
-USTRUCT( BlueprintType )
-struct FTutorialStep
-{
-	GENERATED_BODY()
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly )
-	FText InstructionText;
-
-	// Кадры, экспортированные из GIF в PNG/Texture2D.
-	UPROPERTY( EditAnywhere, BlueprintReadOnly )
-	TArray<TObjectPtr<UTexture2D>> Frames;
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FTutorialWidgetClosedSignature );
 
@@ -35,48 +23,68 @@ public:
 	FTutorialWidgetClosedSignature OnTutorialClosed;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Tutorial" )
-	TArray<FTutorialStep> Steps;
+	TSubclassOf<UTutorialPageWidget> PageWidgetClass_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Tutorial" )
-	float FramesPerSecond = 12.0f;
+	TArray<FTutorialPageData> Pages_;
 
 	UFUNCTION( BlueprintCallable, Category = "Tutorial" )
-	void ShowStep( int32 StepIndex );
+	void SetPage( int32 pageIndex );
+
+	UFUNCTION( BlueprintCallable, Category = "Tutorial" )
+	void NextPage();
+
+	UFUNCTION( BlueprintCallable, Category = "Tutorial" )
+	void PrevPage();
 
 	UFUNCTION( BlueprintCallable, Category = "Tutorial" )
 	void CloseTutorial();
+
+	UFUNCTION( BlueprintCallable, Category = "Tutorial" )
+	void RebuildPages();
 
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
-	virtual FReply NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual FReply NativeOnPreviewKeyDown( const FGeometry& inGeometry, const FKeyEvent& inKeyEvent ) override;
 
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UButton> CloseButton;
+	TObjectPtr<UButton> CloseButton_;
 
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UButton> BackdropButton; // полный экран, ловит клик "в пустоту"
+	TObjectPtr<UButton> BackdropButton_;
 
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UImage> TutorialImage;
+	TObjectPtr<UWidgetSwitcher> PagesSwitcher_;
 
-	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UTextBlock> TutorialText;
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> NextButton_;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> PrevButton_;
 
 private:
-	FTimerHandle FrameTimerHandle;
-	int32 CurrentStepIndex = INDEX_NONE;
-	int32 CurrentFrameIndex = 0;
+	UPROPERTY()
+	TArray<TObjectPtr<UTutorialPageWidget>> BuiltPages_;
+
+	int32 CurrentPageIndex_ = INDEX_NONE;
+	bool bPagesBuilt_ = false;
 
 	void BindUI();
-	void StartPlayback();
-	void StopPlayback();
-	void AdvanceFrame();
+	void BuildPages();
+	void ActivatePage( int32 newIndex );
+	void UpdateNavigationButtons();
 
 	UFUNCTION()
 	void HandleCloseClicked();
 
 	UFUNCTION()
 	void HandleBackdropClicked();
+
+	UFUNCTION()
+	void HandleNextClicked();
+
+	UFUNCTION()
+	void HandlePrevClicked();
 };
