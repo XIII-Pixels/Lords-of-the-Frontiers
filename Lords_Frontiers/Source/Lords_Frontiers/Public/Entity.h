@@ -27,7 +27,7 @@ class LORDS_FRONTIERS_API IEntity
 
 public:
 	// Attackers call this on attacked object to deal damage
-	virtual void TakeDamage( float damage ) = 0;
+	virtual void TakeDamage( int damage ) = 0;
 
 	virtual FEntityStats& Stats() = 0;
 

@@ -12,6 +12,7 @@ AResourceBuilding::AResourceBuilding()
 {
 	Stats_ = FEntityStats( cDefaultResourceHealth, cDefaultResourceDamage, 0.0f );
 	ResourceGenerator_ = CreateDefaultSubobject<UResourceGenerator>( TEXT( "ResourceGenerator" ) );
+	Stats_.SetTeam( ETeam::Cat );
 }
 
 void AResourceBuilding::BeginPlay()
@@ -25,6 +26,11 @@ void AResourceBuilding::BeginPlay()
 	{
 		ResourceGenerator_->Initialize( FindResourceManager() );
 		ResourceGenerator_->SetProductionConfig( ProductionConfig_ );
+	}
+
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
 	}
 }
 

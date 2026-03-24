@@ -15,6 +15,8 @@
 #include "NavigationSystem.h"
 #include "UObject/ScriptDelegates.h"
 
+#define TIME_TO_END_WAVE_AFTER_LAST_DEATH 1.0f
+
 AWaveManager::AWaveManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -276,7 +278,17 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
+	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
+	{
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
+		    groupIndex
+		);
+		return;
+	}
+
 	SpawnedUnits_.Add( spawned );
+
 	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
 
 	if ( bLogSpawning )
@@ -302,7 +314,7 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 
 	if ( bLogSpawning )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Wave %d ended." ), waveIndex );
+		UE_LOG( LogTemp, Log, TEXT( "WaveManager::OnWaveEndTimerElapsed: Wave %d ended." ), waveIndex );
 	}
 
 	if ( waveIndex >= Waves.Num() - 1 )
@@ -373,6 +385,8 @@ void AWaveManager::CancelCurrentWave()
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
 	}
+
+	OnWaveEnded.Broadcast( CurrentWaveIndex );
 }
 
 void AWaveManager::RestartWaves()
@@ -618,10 +632,53 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 	// Remove from SpawnedUnits
 	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
-		if ( SpawnedUnits_[i].Get() == destroyedActor )
+		if ( SpawnedUnits_[i].Get() == destroyedActor /* || !SpawnedUnits[i].IsValid*/ )
 		{
 			SpawnedUnits_.RemoveAtSwap( i );
 			break;
 		}
 	}
+
+	if ( !bIsWaveActive_ )
+	{
+		if ( SpawnedUnits_.IsEmpty() )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
+
+			if ( UWorld* world = GetWorld() )
+			{
+				// set timer to 1 second so existing logic could finish the wave
+				// timer calls OnWaveEndTimerElapsed
+				FTimerDelegate del =
+					FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
+
+				UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+
+				OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
+			}
+		}
+	}
+}
+
+TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targetWaveIndex ) const
+{
+	TMap<TSubclassOf<AUnit>, int32> enemyCounts;
+
+	if ( !Waves.IsValidIndex( targetWaveIndex ) )
+	{
+		return enemyCounts;
+	}
+
+	const FWave& targetWave = Waves[targetWaveIndex];
+
+	for ( const FEnemyGroup& group : targetWave.EnemyGroups )
+	{
+		if ( group.IsValid() && group.EnemyClass.Get() )
+		{
+			enemyCounts.FindOrAdd( group.EnemyClass.Get() ) += group.Count;
+		}
+	}
+
+	return enemyCounts;
 }

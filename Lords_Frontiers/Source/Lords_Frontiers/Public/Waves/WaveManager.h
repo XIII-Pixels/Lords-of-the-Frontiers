@@ -15,6 +15,7 @@ class AGridManager;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveStartedSignature, int32, WaveIndex ); // needed to call from BP
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndedSignature, int32, WaveIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnAllWavesCompletedSignature );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndScheduled, float, SecondsRemaining );
 
 /*
  (Artyom)
@@ -107,6 +108,12 @@ public:
 	// once).
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
 	void BroadcastAllWavesCompleted();
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
+	FOnWaveEndScheduled OnWaveEndScheduled;
+  
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
+	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
 protected:
 	virtual void BeginPlay() override;

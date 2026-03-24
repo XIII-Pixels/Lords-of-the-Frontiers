@@ -3,6 +3,7 @@
 
 #include "Camera/StrategyCamera.h"
 #include "Grid/GridManager.h"
+#include "UI/GameHUD.h"
 
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -10,6 +11,7 @@
 #include "Components/InputComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraActor.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 #include "GameFramework/FloatingPawnMovement.h"
 
@@ -165,11 +167,24 @@ void AStrategyCamera::SetupPlayerInputComponent(UInputComponent* playerInputComp
 		EnhancedInputComponent->BindAction( MoveAction, ETriggerEvent::Triggered, this, &AStrategyCamera::Move );
 		EnhancedInputComponent->BindAction( ZoomAction, ETriggerEvent::Triggered, this, &AStrategyCamera::Zoom );
 		EnhancedInputComponent->BindAction( RotateAction, ETriggerEvent::Started, this, &AStrategyCamera::Rotate );
+
+		if ( PauseAction )
+		{
+			EnhancedInputComponent->BindAction(
+			    PauseAction, ETriggerEvent::Started, this, &AStrategyCamera::TogglePause
+			);
+		}
 	}
 }
 
 void AStrategyCamera::Move( const FInputActionValue& value )
 {
+
+	if ( bIsCameraInputDisabled_ )
+	{
+		return;
+	}
+
 	FVector2D movementVector = value.Get<FVector2D>();
 
 	const float cCameraYaw = SpringArm->GetComponentRotation().Yaw;
@@ -184,6 +199,11 @@ void AStrategyCamera::Move( const FInputActionValue& value )
 
 void AStrategyCamera::Zoom( const FInputActionValue& value )
 {
+	if ( bIsCameraInputDisabled_ )
+	{
+		return;
+	}
+	
 	float zoomDirection = value.Get<float>();
 
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
@@ -191,6 +211,11 @@ void AStrategyCamera::Zoom( const FInputActionValue& value )
 
 void AStrategyCamera::Rotate( const FInputActionValue& value )
 {
+	if ( bIsCameraInputDisabled_ )
+	{
+		return;
+	}
+
 	//Value = 1 (E) -1 (Q)
 	float direction = value.Get<float>();
 
@@ -209,6 +234,11 @@ void AStrategyCamera::Rotate( const FInputActionValue& value )
 
 void AStrategyCamera::HandleEdgeScrolling()
 {
+	if ( bIsCameraInputDisabled_ )
+	{
+		return;
+	}
+
 	if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
 	{
 		float mouseX, mouseY;
@@ -245,6 +275,20 @@ void AStrategyCamera::HandleEdgeScrolling()
 				AddMovementInput( cForwardDir, movementInput.Y );
 				AddMovementInput( cRightDir, movementInput.X );
 			}
+		}
+	}
+}
+
+void AStrategyCamera::TogglePause( const FInputActionValue& value )
+{
+	TArray<UUserWidget*> FoundWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass( GetWorld(), FoundWidgets, UGameHUDWidget::StaticClass(), false );
+
+	if ( FoundWidgets.Num() > 0 )
+	{
+		if ( UGameHUDWidget* HUD = Cast<UGameHUDWidget>( FoundWidgets[0] ) )
+		{
+			HUD->TogglePauseMenu();
 		}
 	}
 }

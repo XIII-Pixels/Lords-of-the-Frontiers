@@ -4,8 +4,10 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
-#include "UI/Widgets/BuildingTooltipWidget.h"
+#include "Resources/GameResource.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
+#include "UI/InfoWaves/WaveInfoPanelWidget.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -19,6 +21,8 @@
 #include "GameHUD.generated.h"
 
 class ABuilding;
+class UGameStateOverlayWidget;
+
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -116,6 +120,36 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextTimer;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Text_GoldIncome;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Text_FoodIncome;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> Arrow_Gold;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> Arrow_Food;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	float IncomeAnimationDuration = 1.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	float ArrowDisplayDuration = 2.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	FSlateColor PositiveIncomeColor = FSlateColor( FLinearColor( 0.0f, 0.8f, 0.0f, 1.0f ) );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	FSlateColor NegativeIncomeColor = FSlateColor( FLinearColor( 0.9f, 0.1f, 0.1f, 1.0f ) );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	TObjectPtr<UTexture2D> ArrowUpTexture;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
+	TObjectPtr<UTexture2D> ArrowDownTexture;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> WoodenHouseClass;
 
@@ -150,7 +184,8 @@ public:
 	float ActiveButtonLiftOffset = -10.0f;
 
 	UPROPERTY(
-	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons", meta = ( ClampMin = "0.1", ClampMax = "3.0" )
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons",
+	    meta = ( ClampMin = "0.1", ClampMax = "3.0" )
 	)
 	float BaseBonusIconScale = 0.5f;
 
@@ -170,7 +205,6 @@ public:
 
 	TArray<FBonusIconData> CachedBonusData_;
 
-
 	void UpdateBonusIconPositions();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
@@ -179,6 +213,40 @@ public:
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
+	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
+	void ToggleWaveInfoPanel();
+
+	UPROPERTY( BlueprintReadOnly, Category = "Settings|UI|WaveInfo" )
+	bool bIsWavePanelOpen = false;
+
+	bool bIsWavePanelAnimating = false;
+	FTimerHandle WavePanelAnimationTimerHandle;
+
+	void UnlockWaveInfoButton();
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UImage> ImgWaveInfoRed;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UImage> ImgWaveInfoWhite;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UButton> BtnToggleWaveInfo;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> WinWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> LoseWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> PauseWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UGameStateOverlayWidget> ActiveOverlay;
+
+	UFUNCTION( BlueprintCallable )
+	void TogglePauseMenu();
 
 protected:
 	virtual void NativeConstruct() override;
@@ -189,6 +257,7 @@ protected:
 	void CancelCurrentBuilding();
 
 	bool bShowingEconomyBuildings_ = true;
+	bool bIsEconomySubscribed_ = false;
 	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
@@ -323,4 +392,42 @@ protected:
 	UFUNCTION() void ShowTooltipInternal();
 
 	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
+
+	struct FIncomeAnimState
+	{
+		int32 StartValue = 0;
+		int32 TargetValue = 0;
+		int32 DisplayedValue = 0;
+		float Elapsed = 0.0f;
+		bool bAnimating = false;
+		float ArrowTimer = 0.0f;
+	};
+
+	FIncomeAnimState GoldIncomeAnim_;
+	FIncomeAnimState FoodIncomeAnim_;
+
+	UFUNCTION()
+	void HandleNetIncomeChanged( const FResourceProduction& netIncome );
+
+	void StartIncomeAnimation( UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, int32 newValue );
+
+	void TickIncomeAnimation( UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, float deltaTime );
+
+	void ApplyIncomeText( UTextBlock* textBlock, int32 value );
+
+	void InitIncomeDisplay();
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
+	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;
+
+	UPROPERTY()
+	TObjectPtr<UWaveInfoPanelWidget> ActiveWavePanel;
+
+	void UpdateWaveInfoButtonVisuals();
+
+	UFUNCTION()
+	void OnWaveInfoButtonClicked();
+
+	UFUNCTION()
+	void HandleGameEnded( bool bVictory );
 };

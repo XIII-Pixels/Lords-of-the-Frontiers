@@ -42,7 +42,6 @@ struct FGameResource
 	}
 };
 
-
 USTRUCT( BlueprintType )
 struct FResourceProduction
 {
@@ -65,11 +64,16 @@ struct FResourceProduction
 	{
 		switch ( type )
 		{
-		case EResourceType::Gold:       return Gold;
-		case EResourceType::Food:       return Food;
-		case EResourceType::Population: return Population;
-		case EResourceType::Progress:   return Progress;
-		default:                        return 0;
+		case EResourceType::Gold:
+			return Gold;
+		case EResourceType::Food:
+			return Food;
+		case EResourceType::Population:
+			return Population;
+		case EResourceType::Progress:
+			return Progress;
+		default:
+			return 0;
 		}
 	}
 
@@ -78,11 +82,20 @@ struct FResourceProduction
 	{
 		switch ( type )
 		{
-		case EResourceType::Gold:       Gold       = FMath::Max( 0, Gold + delta );       break;
-		case EResourceType::Food:       Food       = FMath::Max( 0, Food + delta );       break;
-		case EResourceType::Population: Population = FMath::Max( 0, Population + delta ); break;
-		case EResourceType::Progress:   Progress   = FMath::Max( 0, Progress + delta );   break;
-		default: break;
+		case EResourceType::Gold:
+			Gold = FMath::Max( 0, Gold + delta );
+			break;
+		case EResourceType::Food:
+			Food = FMath::Max( 0, Food + delta );
+			break;
+		case EResourceType::Population:
+			Population = FMath::Max( 0, Population + delta );
+			break;
+		case EResourceType::Progress:
+			Progress = FMath::Max( 0, Progress + delta );
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -91,11 +104,20 @@ struct FResourceProduction
 	{
 		switch ( type )
 		{
-		case EResourceType::Gold:       Gold       = value; break;
-		case EResourceType::Food:       Food       = value; break;
-		case EResourceType::Population: Population = value; break;
-		case EResourceType::Progress:   Progress   = value; break;
-		default: break;
+		case EResourceType::Gold:
+			Gold = value;
+			break;
+		case EResourceType::Food:
+			Food = value;
+			break;
+		case EResourceType::Population:
+			Population = value;
+			break;
+		case EResourceType::Progress:
+			Progress = value;
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -113,5 +135,35 @@ struct FResourceProduction
 		Map.Add( EResourceType::Population, Population );
 		Map.Add( EResourceType::Progress, Progress );
 		return Map;
+	}
+
+	FResourceProduction operator+( const FResourceProduction& other ) const
+	{
+		FResourceProduction result;
+		result.Gold = Gold + other.Gold;
+		result.Food = Food + other.Food;
+		result.Population = Population + other.Population;
+		result.Progress = Progress + other.Progress;
+		return result;
+	}
+
+	FResourceProduction operator-( const FResourceProduction& other ) const
+	{
+		FResourceProduction result;
+		result.Gold = Gold - other.Gold;
+		result.Food = Food - other.Food;
+		result.Population = Population - other.Population;
+		result.Progress = Progress - other.Progress;
+		return result;
+	}
+
+	bool operator==( const FResourceProduction& other ) const
+	{
+		return Gold == other.Gold && Food == other.Food && Population == other.Population && Progress == other.Progress;
+	}
+
+	bool operator!=( const FResourceProduction& other ) const
+	{
+		return !( *this == other );
 	}
 };
