@@ -42,7 +42,7 @@ void UDStarLite::Initialize( const FPathConfig& config )
 		return;
 	}
 
-	Start_ = Grid_->GetClosestCellCoords( config.Start );
+	Start_ = Grid_->FindClosestWalkableCell( config.Start );
 	Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
 
 	Goal_ = Grid_->GetClosestCellCoords( config.Goal );
@@ -302,7 +302,7 @@ float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 		const bool cellXBlocked = !cellX || !cellX->bIsWalkable || cellX->bIsOccupied;
 		const bool cellYBlocked = !cellY || !cellY->bIsWalkable || cellY->bIsOccupied;
 
-		if ( cellXBlocked && cellYBlocked )
+		if ( cellXBlocked || cellYBlocked )
 		{
 			return TNumericLimits<float>::Max();
 		}
