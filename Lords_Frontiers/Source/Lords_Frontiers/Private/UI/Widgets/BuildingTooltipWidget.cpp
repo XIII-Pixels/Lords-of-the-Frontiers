@@ -42,6 +42,15 @@ void UBuildingTooltipStatRow::Setup( UTexture2D* Icon, const FString& StatName, 
 		Text_Value->SetText( FText::FromString( Value ) );
 }
 
+void UBuildingTooltipHealthRow::Setup( UTexture2D* Icon, const FString& HealthValue )
+{
+	if ( Img_HealthIcon && Icon )
+		Img_HealthIcon->SetBrushFromTexture( Icon );
+
+	if ( Text_HealthValue )
+		Text_HealthValue->SetText( FText::FromString( HealthValue ) );
+}
+
 void UBuildingTooltipBonusRow::Setup(
     UTexture2D* TargetIcon, UTexture2D* SourceIcon, float Value, UTexture2D* ResourceIcon
 )
@@ -234,6 +243,8 @@ void UBuildingTooltipWidget::UpdateContent()
 		Box_Stats->ClearChildren();
 	if ( Box_Bonus )
 		Box_Bonus->ClearChildren();
+	if ( Box_Health )
+		Box_Health->ClearChildren();
 
 	//name and icon
 	UTexture2D* BuildingIconTex = nullptr;
@@ -309,28 +320,32 @@ void UBuildingTooltipWidget::UpdateContent()
 	//stats
 	FEntityStats stats = const_cast<ABuilding*>( cDO )->Stats();
 
-	auto AddStatRow = [&]( EStatsType Type, const FString& Name, const FString& Value )
+	if ( HealthRowClass && Box_Health )
 	{
-		if ( StatRowClass && Box_Stats )
-		{
-			UBuildingTooltipStatRow* Row = CreateWidget<UBuildingTooltipStatRow>( PC, StatRowClass );
-			Row->Setup( GetStatIcon( Type ), Name, Value );
-			Box_Stats->AddChild( Row );
-		}
-	};
-
-	AddStatRow( EStatsType::MaxHealth, TEXT( "strength" ), FString::FromInt( stats.MaxHealth() ) );
+		UBuildingTooltipHealthRow* HealthRow = CreateWidget<UBuildingTooltipHealthRow>( PC, HealthRowClass );
+		HealthRow->Setup( GetStatIcon( EStatsType::MaxHealth ), FString::FromInt( stats.MaxHealth() ) );
+		Box_Health->AddChild( HealthRow );
+	}
 
 	if ( cDO->IsA<ADefensiveBuilding>() )
 	{
+		auto AddStatRow = [&]( EStatsType Type, const FString& Name, const FString& Value )
+		{
+			if ( StatRowClass && Box_Stats )
+			{
+				UBuildingTooltipStatRow* Row = CreateWidget<UBuildingTooltipStatRow>( PC, StatRowClass );
+				Row->Setup( GetStatIcon( Type ), Name, Value );
+				Box_Stats->AddChild( Row );
+			}
+		};
+
 		AddStatRow( EStatsType::AttackDamage, TEXT( "Damage" ), FString::FromInt( stats.AttackDamage() ) );
 		AddStatRow(
-		    EStatsType::AttackCooldown, TEXT( "Value damage" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
+		    EStatsType::AttackCooldown, TEXT( "Speed" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
 		);
-		AddStatRow( EStatsType::AttackRange, TEXT( "radius" ), FString::Printf( TEXT( "%.0f" ), stats.AttackRange() ) );
+		AddStatRow( EStatsType::AttackRange, TEXT( "Radius" ), FString::Printf( TEXT( "%.0f" ), stats.AttackRange() ) );
 		AddStatRow(
-		    EStatsType::SplashRadius, TEXT( "area damage" ),
-		    stats.SplashRadius() > 0.0f ? TEXT( "Yes" ) : TEXT( "No" )
+		    EStatsType::SplashRadius, TEXT( "Area damage" ), stats.SplashRadius() > 0.0f ? TEXT( "Yes" ) : TEXT( "No" )
 		);
 	}
 

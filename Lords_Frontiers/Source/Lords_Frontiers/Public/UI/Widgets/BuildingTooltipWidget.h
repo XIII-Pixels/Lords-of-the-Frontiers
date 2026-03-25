@@ -41,6 +41,19 @@ public:
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_Suffix;
 };
 
+// str health
+UCLASS( Abstract )
+class LORDS_FRONTIERS_API UBuildingTooltipHealthRow : public UUserWidget
+{
+	GENERATED_BODY()
+public:
+	void Setup( UTexture2D* Icon, const FString& HealthValue );
+
+protected:
+	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_HealthIcon;
+	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_HealthValue;
+};
+
 // str stats
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipStatRow : public UUserWidget
@@ -112,6 +125,7 @@ protected:
 	TSubclassOf<UBuildingTooltipResourceRow> ResourceRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipStatRow> StatRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipBonusRow> BonusRowClass;
+	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipHealthRow> HealthRowClass;
 
 	// elem main widgeth
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UOverlay> AnimationContainer;
@@ -121,6 +135,8 @@ protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Description;
 
 	// containers
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Health;
+
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Stats;
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Cost;
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Maintenance;
