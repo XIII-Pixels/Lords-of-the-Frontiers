@@ -64,10 +64,7 @@ void UFollowComponent::TickComponent(
 		Sway( deltaTime );
 	}
 
-	if ( !Velocity.IsNearlyZero() )
-	{
-		RotateForward( deltaTime );
-	}
+	Rotate( deltaTime );
 
 	if ( CapsuleComponent_.IsValid() )
 	{
@@ -216,10 +213,39 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 	}
 }
 
+void UFollowComponent::Rotate( float deltaTime )
+{
+	if ( Unit_.IsValid() && Unit_->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	{
+		RotateTowardsAttackTarget( deltaTime );
+	}
+	else
+	{
+		RotateForward( deltaTime );
+	}
+}
+
+void UFollowComponent::RotateTowardsAttackTarget( float deltaTime )
+{
+	if ( !Unit_.IsValid() || !Unit_->AttackTarget().IsValid() )
+	{
+		return;
+	}
+
+	const FVector targetLocation = Unit_->AttackTarget()->GetActorLocation();
+	const FRotator targetRotation = ( targetLocation - GetActorLocation() ).GetSafeNormal().Rotation();
+	const FRotator currentRotation = PawnOwner->GetActorRotation();
+
+	FRotator newRotation = FMath::RInterpTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
+	newRotation.Pitch = 0.0f;
+
+	PawnOwner->SetActorRotation( newRotation );
+}
+
 void UFollowComponent::RotateForward( float deltaTime )
 {
-	FRotator targetRotation = CurrentDirection_.Rotation();
-	FRotator currentRotation = PawnOwner->GetActorRotation();
+	const FRotator targetRotation = CurrentDirection_.Rotation();
+	const FRotator currentRotation = PawnOwner->GetActorRotation();
 
 	FRotator newRotation = FMath::RInterpTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
 	newRotation.Pitch = 0.0f;
