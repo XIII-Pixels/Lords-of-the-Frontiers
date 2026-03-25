@@ -32,7 +32,7 @@ public:
 
 	virtual FEntityStats& Stats() override;
 
-	virtual ETeam Team() override;
+	virtual ETeam Team() const override;
 
 	virtual void TakeDamage( float damage ) override;
 

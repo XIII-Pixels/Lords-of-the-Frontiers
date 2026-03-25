@@ -55,18 +55,9 @@ public:
 		return Stats_;
 	}
 
-	virtual ETeam Team() override
+	virtual ETeam Team() const override
 	{
 		return Stats_.Team();
-	}
-
-	virtual TObjectPtr<AActor> EnemyInSight() const override
-	{
-		if ( AttackComponent_ )
-		{
-			return AttackComponent_->EnemyInSight();
-		}
-		return nullptr;
 	}
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override
@@ -80,25 +71,36 @@ public:
 		return FollowedTarget_;
 	}
 
+	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget )
+	{
+		FollowedTarget_ = newTarget;
+	}
+
+	// Target that unit might attack
+	virtual TWeakObjectPtr<const AActor> AttackTarget() const override
+	{
+		return AttackTarget_;
+	}
+
+	virtual void SetAttackTarget( TWeakObjectPtr<const AActor> newTarget ) override
+	{
+		AttackTarget_ = newTarget;
+	}
+
 	// Path destination
 	TWeakObjectPtr<const ABuilding> TargetBuilding() const
 	{
 		return TargetBuilding_;
 	}
 
-	void SetTargetBuilding(TWeakObjectPtr<const ABuilding> newTarget)
+	void SetTargetBuilding( TWeakObjectPtr<const ABuilding> newTarget )
 	{
 		TargetBuilding_ = newTarget;
 	}
 
-	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget )
-	{
-		FollowedTarget_ = newTarget;
-	}
-
 	UPath* Path() const
 	{
-		if ( const UEnemyAggressionComponent* aggression = GetComponentByClass<UEnemyAggressionComponent>())
+		if ( const UEnemyAggressionComponent* aggression = GetComponentByClass<UEnemyAggressionComponent>() )
 		{
 			return aggression->Path();
 		}
@@ -124,6 +126,9 @@ protected:
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<const AActor> FollowedTarget_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<const AActor> AttackTarget_;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<const ABuilding> TargetBuilding_;

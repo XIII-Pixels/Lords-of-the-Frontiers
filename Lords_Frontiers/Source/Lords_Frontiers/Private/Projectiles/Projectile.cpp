@@ -24,7 +24,7 @@ AProjectile::AProjectile()
 	CollisionComponent_->OnComponentBeginOverlap.AddDynamic( this, &AProjectile::OnCollisionStart );
 }
 
-void AProjectile::Initialize( TObjectPtr<AActor> target, float damage, float speed, bool splash )
+void AProjectile::Initialize( TObjectPtr<const AActor> target, float damage, float speed, bool splash )
 {
 	Target_ = target;
 	Damage_ = FMath::Max( damage, 0.0f );

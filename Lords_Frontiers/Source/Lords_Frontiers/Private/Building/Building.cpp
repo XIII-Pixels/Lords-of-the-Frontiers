@@ -89,7 +89,7 @@ FEntityStats& ABuilding::Stats()
 	return Stats_;
 }
 
-ETeam ABuilding::Team()
+ETeam ABuilding::Team() const
 {
 	return Stats_.Team();
 }

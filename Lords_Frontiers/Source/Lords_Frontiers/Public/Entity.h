@@ -31,5 +31,5 @@ public:
 
 	virtual FEntityStats& Stats() = 0;
 
-	virtual ETeam Team() = 0;
+	virtual ETeam Team() const = 0;
 };

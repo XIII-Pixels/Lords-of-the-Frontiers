@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AttackComponent.h"
+#include "Attacker.h"
 
 #include "CoreMinimal.h"
 
@@ -25,7 +26,14 @@ public:
 	// Launch projectile
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+	virtual TObjectPtr<const AActor> AttackTarget() const override
+	{
+		if ( const IAttacker* attacker = GetOwner<IAttacker>() )
+		{
+			return attacker->AttackTarget().Get();
+		}
+		return nullptr;
+	}
 
 	virtual void ActivateSight() override;
 
@@ -46,13 +54,8 @@ protected:
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
-	bool EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) const;
-
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
-
-	UPROPERTY( VisibleAnywhere, Category = "Settings|Attack" )
-	TObjectPtr<AActor> EnemyInSight_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	bool bCanAttackBackward_ = true;
@@ -71,5 +74,5 @@ protected:
 
 	FTimerHandle SightTimerHandle_;
 
-	EAttackMode AttackMode_ = EAttackMode::Normal;
+	EAttackFilter AttackFilter_ = EAttackFilter::Everything;
 };

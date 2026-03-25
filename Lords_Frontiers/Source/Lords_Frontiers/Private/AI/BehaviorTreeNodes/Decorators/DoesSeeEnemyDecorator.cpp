@@ -26,7 +26,7 @@ bool UDoesSeeEnemyDecorator::CalculateRawConditionValue( UBehaviorTreeComponent&
 		return false;
 	}
 
-	if ( attacker->EnemyInSight() )
+	if ( attacker->AttackTarget().IsValid() )
 	{
 		return true;
 	}

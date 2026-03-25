@@ -18,7 +18,7 @@ class LORDS_FRONTIERS_API AProjectile : public AActor
 public:
 	AProjectile();
 
-	void Initialize( TObjectPtr<AActor> target, float damage, float speed, bool splash = false );
+	void Initialize( TObjectPtr<const AActor> target, float damage, float speed, bool splash = false );
 
 	void Launch();
 
@@ -37,7 +37,7 @@ protected:
 	TObjectPtr<USphereComponent> CollisionComponent_;
 
 	UPROPERTY()
-	TObjectPtr<AActor> Target_;
+	TObjectPtr<const AActor> Target_;
 
 	float Damage_ = 0.0f;
 

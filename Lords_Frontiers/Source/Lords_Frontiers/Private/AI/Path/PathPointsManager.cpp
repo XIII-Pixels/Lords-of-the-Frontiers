@@ -173,3 +173,33 @@ void UPathPointsManager::HidePoint( APathTargetPoint* point ) const
 	}
 	point->Hide();
 }
+
+bool UPathPointsManager::ActorIsOnPath( const AActor* actor, const UPath* path ) const
+{
+	if ( !actor || !path )
+	{
+		return false;
+	}
+
+	const AGridManager* grid = nullptr;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		grid = core->GetGridManager();
+	}
+	if ( !grid )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::EnemyIsOnPath: grid not found" ) );
+		return false;
+	}
+
+	const FIntPoint enemyCoords = grid->GetCellCoords( actor->GetActorLocation() );
+	// Path points storage will probably be reimplemented so this may be optimized in future
+	for ( const FIntPoint& point : path->GetPoints() )
+	{
+		if ( point == enemyCoords )
+		{
+			return true;
+		}
+	}
+	return false;
+}

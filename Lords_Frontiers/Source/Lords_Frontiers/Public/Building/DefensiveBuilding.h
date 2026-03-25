@@ -38,13 +38,22 @@ public:
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+	virtual TWeakObjectPtr<const AActor> AttackTarget() const override
+	{
+		return AttackTarget_;
+	}
+
+	virtual void SetAttackTarget( TWeakObjectPtr<const AActor> newTarget ) override
+	{
+		AttackTarget_ = newTarget;
+	}
 
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void OnDeath() override;
 
+protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	FWallMeshSet WallMeshSet_;
 
@@ -53,6 +62,9 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> BuildingBehaviorTree_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<const AActor> AttackTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;

@@ -3,7 +3,9 @@
 #include "Components/Attack/AttackRangedComponent.h"
 
 #include "AI/Path/Path.h"
+#include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Entity.h"
 #include "Grid/GridManager.h"
@@ -30,13 +32,10 @@ void UAttackRangedComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	if ( GetOwner() )
+	if ( IEntity* entity = GetOwner<IEntity>() )
 	{
 		SightSphere_->SetupAttachment( GetOwner()->GetRootComponent() );
-		if ( OwnerEntity_ )
-		{
-			SightSphere_->SetSphereRadius( OwnerEntity_->Stats().AttackRange() );
-		}
+		SightSphere_->SetSphereRadius( entity->Stats().AttackRange() );
 	}
 }
 
@@ -55,12 +54,15 @@ void UAttackRangedComponent::LookTick()
 
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 {
-	if ( !OwnerIsValid() )
+	IEntity* ownerEntity = GetOwner<IEntity>();
+	IAttacker* ownerAttacker = GetOwner<IAttacker>();
+	if ( !ownerEntity || !ownerAttacker )
 	{
+		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::Attack: owner must be IEntity and IAttacker" ) );
 		return;
 	}
 
-	if ( OwnerEntity_->Stats().OnCooldown() )
+	if ( ownerEntity->Stats().OnCooldown() )
 	{
 		return;
 	}
@@ -74,19 +76,14 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	FTransform spawnTransform = GetOwner()->GetTransform();
 	spawnTransform.AddToTranslation( ProjectileSpawnPosition_ );
 
-	if ( IsValid( EnemyInSight_ ) && ProjectileClass_ )
+	if ( ProjectileClass_ )
 	{
 		const FActorSpawnParameters spawnParams;
 		const auto projectile = world->SpawnActor<AProjectile>( ProjectileClass_, spawnTransform, spawnParams );
-		projectile->Initialize( EnemyInSight(), OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_ );
+		projectile->Initialize( AttackTarget(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_ );
 		projectile->Launch();
-		OwnerEntity_->Stats().StartCooldown();
+		ownerEntity->Stats().StartCooldown();
 	}
-}
-
-TObjectPtr<AActor> UAttackRangedComponent::EnemyInSight() const
-{
-	return EnemyInSight_;
 }
 
 void UAttackRangedComponent::ActivateSight()
@@ -99,17 +96,30 @@ void UAttackRangedComponent::ActivateSight()
 void UAttackRangedComponent::DeactivateSight()
 {
 	GetWorld()->GetTimerManager().ClearTimer( SightTimerHandle_ );
-	EnemyInSight_ = nullptr;
+	if ( IAttacker* ownerAttacker = GetOwner<IAttacker>() )
+	{
+		ownerAttacker->SetAttackTarget( nullptr );
+	}
 }
 
 void UAttackRangedComponent::Look()
 {
-	if ( !OwnerIsValid() )
+	IAttacker* ownerAttacker = GetOwner<IAttacker>();
+	if ( !ownerAttacker )
 	{
 		return;
 	}
 
-	EnemyInSight_ = nullptr;
+	const UPathPointsManager* pathPointsManager = nullptr;
+	if ( const UCoreManager* coreManager = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* aiManager = coreManager->GetUnitAIManager() )
+		{
+			pathPointsManager = aiManager->PathPointsManager();
+		}
+	}
+
+	ownerAttacker->SetAttackTarget( nullptr );
 
 	TArray<AActor*> overlappingActors;
 	SightSphere_->GetOverlappingActors( overlappingActors, AActor::StaticClass() );
@@ -122,12 +132,25 @@ void UAttackRangedComponent::Look()
 			continue;
 		}
 
-		if ( CanSeeEnemy( actor ) && ( AttackMode_ == EAttackMode::BeatEverything || EnemyIsOnPath( actor ) ) )
+		bool enemyPositionAttackable = false;
+		if ( AttackFilter_ == EAttackFilter::Everything )
 		{
-			float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
-			if ( !IsValid( EnemyInSight_ ) || distance < minDistance )
+			enemyPositionAttackable = true;
+		}
+		else if ( AttackFilter_ == EAttackFilter::WhatIsOnPath && pathPointsManager )
+		{
+			if ( const AUnit* unit = GetOwner<AUnit>() )
 			{
-				EnemyInSight_ = actor;
+				enemyPositionAttackable = pathPointsManager->ActorIsOnPath( actor, unit->Path() );
+			}
+		}
+
+		if ( enemyPositionAttackable && CanSeeEnemy( actor ) )
+		{
+			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
+			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
+			{
+				ownerAttacker->SetAttackTarget( actor );
 				minDistance = distance;
 			}
 		}
@@ -136,27 +159,32 @@ void UAttackRangedComponent::Look()
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	if ( !IsValid( EnemyInSight_ ) && OwnerEntity_ &&
-	     Cast<AActor>( OwnerEntity_ )->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	const IAttacker* ownerAttacker = GetOwner<IAttacker>();
+	if ( ownerAttacker && !ownerAttacker->AttackTarget().IsValid() &&
+	     GetOwner()->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
 	{
-		AttackMode_ = EAttackMode::BeatEverything;
+		// Super bad (unclear) code: buildings and standing units start attacking everything
+		// Left in peace due to time constraints (laziness)
+		// Components for unit and for building must be separated
+		AttackFilter_ = EAttackFilter::Everything;
 	}
 	else
 	{
-		AttackMode_ = EAttackMode::Normal;
+		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 }
 
 bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 {
 	// it is assumed the actor is inside the sight sphere
-	if ( !OwnerIsValid() )
+	const IEntity* ownerEntity = GetOwner<IEntity>();
+	if ( !ownerEntity )
 	{
 		return false;
 	}
 
 	const auto enemy = Cast<IEntity>( enemyActor );
-	if ( enemy && enemy->Stats().IsAlive() && enemy->Team() != OwnerEntity_->Team() )
+	if ( enemy && enemy->Stats().IsAlive() && enemy->Team() != ownerEntity->Team() )
 	{
 		if ( !bCanAttackBackward_ ) // look in half-circle in front of unit
 		{
@@ -171,48 +199,6 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 		else // look around unit
 		{
 			return true;
-		}
-	}
-	return false;
-}
-
-bool UAttackRangedComponent::EnemyIsOnPath( TObjectPtr<AActor> enemyActor ) const
-{
-	// Path destination is on path as well
-
-	if ( !OwnerIsValid() )
-	{
-		return false;
-	}
-
-	const AUnit* unit = GetOwner<AUnit>();
-	if ( !unit )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::EnemyIsOnPath: owner unit not found" ) );
-		return false;
-	}
-
-	const AGridManager* grid = nullptr;
-	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
-	{
-		grid = core->GetGridManager();
-	}
-	if ( !grid )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::EnemyIsOnPath: grid not found" ) );
-		return false;
-	}
-
-	if ( const UPath* path = unit->Path() )
-	{
-		const FIntPoint enemyCoords = grid->GetCellCoords( enemyActor->GetActorLocation() );
-		for ( const FIntPoint& point : path->GetPoints() )
-		{
-			// Path points storage will probably be reimplemented so this may be optimized in future
-			if ( point == enemyCoords )
-			{
-				return true;
-			}
 		}
 	}
 	return false;
