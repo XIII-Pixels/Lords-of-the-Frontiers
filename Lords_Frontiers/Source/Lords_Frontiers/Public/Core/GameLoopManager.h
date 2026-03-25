@@ -444,6 +444,9 @@ protected:
 	UFUNCTION()
 	void HandleAllWavesCompleted();
 
+	UFUNCTION()
+	void HandleWaveEndScheduled( float secondsRemaining );
+
 	/** Broadcasts current state of all action buttons. */
 	void BroadcastButtonStates();
 
@@ -470,6 +473,8 @@ protected:
 	void ProceedToNextWave();
 
 private:
+
+	void RefreshDependencies();
 
 	/** Configuration data asset. Owned by this manager if created internally. */
 	UPROPERTY()
