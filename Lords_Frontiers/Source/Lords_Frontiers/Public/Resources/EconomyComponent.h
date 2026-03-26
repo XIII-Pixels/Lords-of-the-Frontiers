@@ -23,6 +23,9 @@ class LORDS_FRONTIERS_API UEconomyComponent : public UActorComponent
 public:
 	UEconomyComponent();
 
+	UFUNCTION( BlueprintCallable, Category = "Settings|Economy" )
+	void ResetEconomy();
+
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Economy|Events" )
 	FOnNetIncomeChanged OnNetIncomeChanged;
 

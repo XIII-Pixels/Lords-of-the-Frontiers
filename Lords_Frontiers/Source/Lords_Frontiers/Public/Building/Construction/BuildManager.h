@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Building/Construction/BuildingPlacementUtils.h"
+#include "Building/Construction/BuildingPlacementAnimComponent.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -85,6 +86,9 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TObjectPtr<UBonusIconsData> BonusIconsData;
 
+	UPROPERTY( EditAnywhere, Category = "Settings|PlacementAnimation" )
+	FBuildPlacementAnimParams PlacementAnimParams_;
+
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 protected:
@@ -162,4 +166,10 @@ private:
 	void UpdateHoveredCell();
 
 	void UpdatePreviewVisual( const FVector& worldLocation, bool bCanBuild );
+
+	void PlayPlacementAnimation( AActor* building );
+
+	bool bHidingPreviewForAnimation_ = false;
+
+	FIntPoint LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 };

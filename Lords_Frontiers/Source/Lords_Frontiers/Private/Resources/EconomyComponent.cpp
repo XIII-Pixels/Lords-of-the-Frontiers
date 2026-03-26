@@ -19,6 +19,7 @@ void UEconomyComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	FindSystems();
+	SubscribeToCardEvents();
 }
 
 void UEconomyComponent::FindSystems()
@@ -153,6 +154,23 @@ FResourceProduction UEconomyComponent::CalculateTotalMaintenance() const
 		if ( !IsValid( building ) )
 		{
 			continue;
+		}
+
+		FResourceProduction costs = building->GetMaintenanceCost();
+		if ( costs.Gold > 0 )
+		{
+			totalMaintenance.ModifyByType( EResourceType::Gold, costs.Gold );
+		}
+		if ( costs.Food > 0 )
+		{
+			totalMaintenance.ModifyByType( EResourceType::Food, costs.Food );
+		}
+		if ( costs.Population > 0 )
+		{
+			totalMaintenance.ModifyByType( EResourceType::Population, costs.Population );
+		}
+		if ( costs.Progress > 0 )
+		{
 		}
 
 		FResourceProduction costs = building->GetMaintenanceCost();
@@ -322,4 +340,13 @@ void UEconomyComponent::HandleCardsApplied( const TArray<UCardDataAsset*>& appli
 void UEconomyComponent::HandleEconomyBonusesChanged( const FEconomyBonuses& newBonuses )
 {
 	RecalculateAndBroadcastNetIncome();
+}
+
+void UEconomyComponent::ResetEconomy()
+{
+	RegisteredBuildings_.Empty();
+	bInitialScanDone = false;
+	CachedNetIncome_ = FResourceProduction();
+
+	FindSystems();
 }
