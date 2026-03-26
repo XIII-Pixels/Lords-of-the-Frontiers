@@ -25,7 +25,7 @@ void UBuildingTooltipResourceRow::Setup( int32 Amount, UTexture2D* Icon, FSlateC
 		Img_ResourceIcon->SetBrushFromTexture( Icon );
 	if ( Text_Suffix )
 	{
-		Text_Suffix->SetText( FText::FromString( TEXT( "/move" ) ) ); //TODO - language Russian!!!
+		Text_Suffix->SetText( FText::FromString( TEXT( "/ход  " ) ) );
 		Text_Suffix->SetVisibility(
 		    bShowTurnSuffix ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
 		);
