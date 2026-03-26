@@ -146,25 +146,9 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
-	if ( EconomyTooltipClass && !ActiveEconomyTooltip )
-	{
-		ActiveEconomyTooltip = CreateWidget<UBuildingTooltipWidget>( this, EconomyTooltipClass );
-		if ( ActiveEconomyTooltip )
-		{
-			ActiveEconomyTooltip->AddToViewport( 99 );
-			ActiveEconomyTooltip->ForceHide();
-		}
-	}
 
-	if ( DefensiveTooltipClass && !ActiveDefensiveTooltip )
-	{
-		ActiveDefensiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, DefensiveTooltipClass );
-		if ( ActiveDefensiveTooltip )
-		{
-			ActiveDefensiveTooltip->AddToViewport( 99 );
-			ActiveDefensiveTooltip->ForceHide();
-		}
-	}
+	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
+	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
 	
 	InitIncomeDisplay();
 
@@ -1206,5 +1190,20 @@ void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClas
 			ActiveDefensiveTooltip->HideTooltip();
 		if ( ActiveEconomyTooltip )
 			ActiveEconomyTooltip->ShowTooltip( buildingClass );
+	}
+}
+
+void UGameHUDWidget::InitializeTooltipWidget(
+    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
+)
+{
+	if ( TooltipClass && !OutTooltip )
+	{
+		OutTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
+		if ( OutTooltip )
+		{
+			OutTooltip->AddToViewport( 99 );
+			OutTooltip->ForceHide();
+		}
 	}
 }

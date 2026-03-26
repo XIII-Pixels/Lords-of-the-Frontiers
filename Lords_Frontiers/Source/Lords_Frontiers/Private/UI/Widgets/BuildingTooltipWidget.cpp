@@ -12,17 +12,19 @@
 #include "Components/TextBlock.h"
 
 //logic mini-widgeth
-void UBuildingTooltipResourceRow::Setup( int32 Amount, UTexture2D* Icon, FSlateColor TextColor, bool bShowTurnSuffix )
+void UBuildingTooltipResourceRow::Setup(
+    int32 amount, UTexture2D* icon, FSlateColor textColor, bool bShowTurnSuffix, bool bShowPlusSign
+)
 {
-	FString Sign = ( TextColor.GetSpecifiedColor() == FLinearColor::White ) ? TEXT( "" )
-	                                                                        : ( Amount > 0 ? TEXT( "+" ) : TEXT( "" ) );
+	FString Sign = ( bShowPlusSign && amount > 0 ) ? TEXT( "+" ) : TEXT( "" );
+
 	if ( Text_Amount )
 	{
-		Text_Amount->SetText( FText::FromString( FString::Printf( TEXT( "%s%d" ), *Sign, Amount ) ) );
-		Text_Amount->SetColorAndOpacity( TextColor );
+		Text_Amount->SetText( FText::FromString( FString::Printf( TEXT( "%s%d" ), *Sign, amount ) ) );
+		Text_Amount->SetColorAndOpacity( textColor );
 	}
-	if ( Img_ResourceIcon && Icon )
-		Img_ResourceIcon->SetBrushFromTexture( Icon );
+	if ( Img_ResourceIcon && icon )
+		Img_ResourceIcon->SetBrushFromTexture( icon );
 	if ( Text_Suffix )
 	{
 		Text_Suffix->SetText( FText::FromString( TEXT( "/ход  " ) ) );
@@ -32,51 +34,66 @@ void UBuildingTooltipResourceRow::Setup( int32 Amount, UTexture2D* Icon, FSlateC
 	}
 }
 
-void UBuildingTooltipStatRow::Setup( UTexture2D* Icon, const FString& StatName, const FString& Value )
+void UBuildingTooltipStatRow::Setup( UTexture2D* icon, const FString& statName, const FString& value )
 {
-	if ( Img_StatIcon && Icon )
-		Img_StatIcon->SetBrushFromTexture( Icon );
+	if ( Img_StatIcon && icon )
+	{
+		Img_StatIcon->SetBrushFromTexture( icon );
+	}
 	if ( Text_StatName )
-		Text_StatName->SetText( FText::FromString( StatName ) );
+	{
+		Text_StatName->SetText( FText::FromString( statName ) );
+	}
 	if ( Text_Value )
-		Text_Value->SetText( FText::FromString( Value ) );
+	{
+		Text_Value->SetText( FText::FromString( value ) );
+	}	
 }
 
-void UBuildingTooltipHealthRow::Setup( UTexture2D* Icon, const FString& HealthValue )
+void UBuildingTooltipHealthRow::Setup( UTexture2D* icon, const FString& healthValue )
 {
-	if ( Img_HealthIcon && Icon )
-		Img_HealthIcon->SetBrushFromTexture( Icon );
-
+	if ( Img_HealthIcon && icon )
+	{
+		Img_HealthIcon->SetBrushFromTexture( icon );
+	}
 	if ( Text_HealthValue )
-		Text_HealthValue->SetText( FText::FromString( HealthValue ) );
+	{
+		Text_HealthValue->SetText( FText::FromString( healthValue ) );
+	}
 }
 
 void UBuildingTooltipBonusRow::Setup(
-    UTexture2D* TargetIcon, UTexture2D* SourceIcon, float Value, UTexture2D* ResourceIcon
+    UTexture2D* targetIcon, UTexture2D* sourceIcon, float value, UTexture2D* resourceIcon
 )
 {
-	if ( Img_TargetBuilding && TargetIcon )
-		Img_TargetBuilding->SetBrushFromTexture( TargetIcon );
-	if ( Img_SourceBuilding && SourceIcon )
-		Img_SourceBuilding->SetBrushFromTexture( SourceIcon );
-	if ( Img_ResourceIcon && ResourceIcon )
-		Img_ResourceIcon->SetBrushFromTexture( ResourceIcon );
+	if ( Img_TargetBuilding && targetIcon )
+	{
+		Img_TargetBuilding->SetBrushFromTexture( targetIcon );
+	}
+	if ( Img_SourceBuilding && sourceIcon )
+	{
+		Img_SourceBuilding->SetBrushFromTexture( sourceIcon );
+	}	
+	if ( Img_ResourceIcon && resourceIcon )
+	{
+		Img_ResourceIcon->SetBrushFromTexture( resourceIcon );
+	}
 
-	FString Sign = Value > 0 ? TEXT( "+" ) : TEXT( "" );
+	FString Sign = value > 0 ? TEXT( "+" ) : TEXT( "" );
 	if ( Text_Value )
-		Text_Value->SetText( FText::FromString( FString::Printf( TEXT( "%s%.0f" ), *Sign, Value ) ) );
+		Text_Value->SetText( FText::FromString( FString::Printf( TEXT( "%s%.0f" ), *Sign, value ) ) );
 }
 
 //logic main widgeth
 
-void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime )
+void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDeltaTime )
 {
-	Super::NativeTick( MyGeometry, InDeltaTime );
+	Super::NativeTick( myGeometry, inDeltaTime );
 
 	switch ( CurrentState )
 	{
 	case ETooltipState::DelayShow:
-		StateTimer -= InDeltaTime;
+		StateTimer -= inDeltaTime;
 		if ( StateTimer <= 0.0f )
 		{
 			if ( CurrentBuildingClass != PendingBuildingClass )
@@ -91,7 +108,7 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		break;
 
 	case ETooltipState::AnimatingIn:
-		AnimProgress = FMath::Clamp( AnimProgress + ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
+		AnimProgress = FMath::Clamp( AnimProgress + ( inDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		ApplyAnimation();
 
 		if ( AnimProgress >= 1.0f )
@@ -102,7 +119,7 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		break;
 
 	case ETooltipState::HoldFlash:
-		StateTimer -= InDeltaTime;
+		StateTimer -= inDeltaTime;
 		if ( StateTimer <= 0.0f )
 		{
 			CurrentState = ETooltipState::FadeFlash;
@@ -111,7 +128,7 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 		break;
 
 	case ETooltipState::FadeFlash:
-		FlashProgress = FMath::Clamp( FlashProgress - ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
+		FlashProgress = FMath::Clamp( FlashProgress - ( inDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		if ( WhiteFlash )
 			WhiteFlash->SetRenderOpacity( FlashProgress );
 
@@ -123,14 +140,14 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 
 	case ETooltipState::DelayHide:
 
-		StateTimer -= InDeltaTime;
+		StateTimer -= inDeltaTime;
 		if ( StateTimer <= 0.0f )
 			CurrentState = ETooltipState::AnimatingOut;
 		break;
 
 	case ETooltipState::AnimatingOut:
 
-		AnimProgress = FMath::Clamp( AnimProgress - ( InDeltaTime / AnimDuration ), 0.0f, 1.0f );
+		AnimProgress = FMath::Clamp( AnimProgress - ( inDeltaTime / AnimDuration ), 0.0f, 1.0f );
 		ApplyAnimation();
 
 		if ( AnimProgress <= 0.0f )
@@ -143,12 +160,12 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& MyGeometry, float InDe
 	}
 }
 
-void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> BuildingClass, bool bInstantSwitch )
+void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 {
-	if ( !BuildingClass )
+	if ( !buildingClass )
 		return;
 
-	PendingBuildingClass = BuildingClass;
+	PendingBuildingClass = buildingClass;
 
 	SetVisibility( ESlateVisibility::HitTestInvisible );
 
@@ -164,7 +181,9 @@ void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> BuildingClass, 
 	          CurrentState == ETooltipState::HoldFlash )
 	{
 		if ( WhiteFlash )
+		{
 			WhiteFlash->SetRenderOpacity( 1.0f );
+		}
 
 		if ( CurrentBuildingClass != PendingBuildingClass )
 		{
@@ -199,7 +218,9 @@ void UBuildingTooltipWidget::ForceHide()
 void UBuildingTooltipWidget::ApplyAnimation()
 {
 	if ( !AnimationContainer || !WhiteFlash )
+	{
 		return;
+	}
 	float alpha = AnimationCurve ? AnimationCurve->GetFloatValue( AnimProgress ) : AnimProgress;
 	AnimationContainer->SetRenderTranslation( FVector2D( FMath::Lerp( SlideOffsetX, 0.0f, alpha ), 0.0f ) );
 	SetRenderOpacity( alpha );
@@ -210,64 +231,100 @@ void UBuildingTooltipWidget::ApplyAnimation()
 	}
 }
 
-UTexture2D* UBuildingTooltipWidget::GetResourceIcon( EResourceType Type )
+UTexture2D* UBuildingTooltipWidget::GetResourceIcon( EResourceType type )
 {
-	if ( UIConfig && UIConfig->ResourceIcons.Contains( Type ) )
-		return UIConfig->ResourceIcons[Type];
+	if ( UIConfig && UIConfig->ResourceIcons.Contains( type ) )
+	{
+		return UIConfig->ResourceIcons[type];
+	}
 	return nullptr;
 }
 
-UTexture2D* UBuildingTooltipWidget::GetStatIcon( EStatsType Type )
+UTexture2D* UBuildingTooltipWidget::GetStatIcon( EStatsType type )
 {
-	if ( UIConfig && UIConfig->StatIcons.Contains( Type ) )
-		return UIConfig->StatIcons[Type];
+	if ( UIConfig && UIConfig->StatIcons.Contains( type ) )
+	{
+		return UIConfig->StatIcons[type];
+	}
 	return nullptr;
 }
 
 void UBuildingTooltipWidget::UpdateContent()
 {
-	if ( !CurrentBuildingClass )
+	if (!CurrentBuildingClass)
+	{
 		return;
+	}
+		
 	const ABuilding* cDO = CurrentBuildingClass->GetDefaultObject<ABuilding>();
 	if ( !cDO )
+	{
 		return;
+	}
+		
+	ClearContainers();
+	UpdateHeader( cDO );
+	UpdateEconomy( cDO );
+	UpdateStats( cDO );
+	UpdateBonuses();
+}
 
-	//clean
+void UBuildingTooltipWidget::ClearContainers()
+{
 	if ( Box_Cost )
+	{
 		Box_Cost->ClearChildren();
+	}
 	if ( Box_Maintenance )
+	{
 		Box_Maintenance->ClearChildren();
+	}
 	if ( Box_Production )
+	{
 		Box_Production->ClearChildren();
+	}
 	if ( Box_Stats )
+	{
 		Box_Stats->ClearChildren();
+	}
 	if ( Box_Bonus )
+	{
 		Box_Bonus->ClearChildren();
+	}
 	if ( Box_Health )
+	{
 		Box_Health->ClearChildren();
+	}
+}
 
-	//name and icon
-	UTexture2D* BuildingIconTex = nullptr;
+void UBuildingTooltipWidget::UpdateHeader( const ABuilding* cDO )
+{
 	if ( UIConfig && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
 	{
 		const FBuildingUIData& data = UIConfig->BuildingsData[CurrentBuildingClass];
 		Text_Name->SetText( data.Name );
 		Text_Description->SetText( data.Description );
-		BuildingIconTex = data.Icon;
 		if ( Img_Icon )
+		{
 			Img_Icon->SetBrushFromTexture( data.Icon );
+		}
 	}
 	else
 	{
 		Text_Name->SetText( FText::FromString( const_cast<ABuilding*>( cDO )->GetNameBuild() ) );
+		// TODO: Russian language
 		Text_Description->SetText( FText::FromString( TEXT( "No description" ) ) );
 	}
+}
 
+void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cDO )
+{
 	APlayerController* PC = GetOwningPlayer();
 	if ( !PC )
+	{
 		return;
+	}
 
-	//economy
 	int32 costG = cDO->GetBuildingCost().Gold;
 	int32 costF = cDO->GetBuildingCost().Food;
 	int32 costP = cDO->GetBuildingCost().Population;
@@ -295,29 +352,38 @@ void UBuildingTooltipWidget::UpdateContent()
 		maintP = 0;
 	}
 
-	auto AddResRow = [&]( UPanelWidget* Box, int32 Amount, EResourceType ResType, FSlateColor Color, bool bSuffix )
+	auto AddResRow = [&]( UPanelWidget* Box, int32 Amount, EResourceType ResType, FSlateColor Color, bool bSuffix,
+	                      bool bShowPlus = true )
 	{
 		if ( Amount != 0 && ResourceRowClass && Box )
 		{
 			UBuildingTooltipResourceRow* Row = CreateWidget<UBuildingTooltipResourceRow>( PC, ResourceRowClass );
-			Row->Setup( Amount, GetResourceIcon( ResType ), Color, bSuffix );
+			Row->Setup( Amount, GetResourceIcon( ResType ), Color, bSuffix, bShowPlus );
 			Box->AddChild( Row );
 		}
 	};
 
-	AddResRow( Box_Cost, costG, EResourceType::Gold, NeutralColor, false );
-	AddResRow( Box_Cost, costF, EResourceType::Food, NeutralColor, false );
-	AddResRow( Box_Cost, costP, EResourceType::Population, NeutralColor, false );
+	AddResRow( Box_Cost, costG, EResourceType::Gold, NeutralColor, false, false );
+	AddResRow( Box_Cost, costF, EResourceType::Food, NeutralColor, false, false );
+	AddResRow( Box_Cost, costP, EResourceType::Population, NeutralColor, false, false );
 
-	AddResRow( Box_Maintenance, -maintG, EResourceType::Gold, ExpenseColor, true );
-	AddResRow( Box_Maintenance, -maintF, EResourceType::Food, ExpenseColor, true );
-	AddResRow( Box_Maintenance, -maintP, EResourceType::Population, ExpenseColor, false );
+	AddResRow( Box_Maintenance, -maintG, EResourceType::Gold, ExpenseColor, true, false );
+	AddResRow( Box_Maintenance, -maintF, EResourceType::Food, ExpenseColor, true, false );
+	AddResRow( Box_Maintenance, -maintP, EResourceType::Population, ExpenseColor, false, false );
 
 	AddResRow( Box_Production, prodG, EResourceType::Gold, IncomeColor, true );
 	AddResRow( Box_Production, prodF, EResourceType::Food, IncomeColor, true );
 	AddResRow( Box_Production, prodP, EResourceType::Population, IncomeColor, false );
+}
 
-	//stats
+void UBuildingTooltipWidget::UpdateStats( const ABuilding* cDO )
+{
+	APlayerController* PC = GetOwningPlayer();
+	if ( !PC )
+	{
+		return;
+	}
+
 	FEntityStats stats = const_cast<ABuilding*>( cDO )->Stats();
 
 	if ( HealthRowClass && Box_Health )
@@ -339,6 +405,7 @@ void UBuildingTooltipWidget::UpdateContent()
 			}
 		};
 
+		//TODO: Russian language
 		AddStatRow( EStatsType::AttackDamage, TEXT( "Damage" ), FString::FromInt( stats.AttackDamage() ) );
 		AddStatRow(
 		    EStatsType::AttackCooldown, TEXT( "Speed" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
@@ -348,20 +415,32 @@ void UBuildingTooltipWidget::UpdateContent()
 		    EStatsType::SplashRadius, TEXT( "Area damage" ), stats.SplashRadius() > 0.0f ? TEXT( "Yes" ) : TEXT( "No" )
 		);
 	}
+}
 
-	//bonus
+void UBuildingTooltipWidget::UpdateBonuses()
+{
+	APlayerController* PC = GetOwningPlayer();
+	if ( !PC )
+	{
+		return;
+	}
+		
+	UTexture2D* BuildingIconTex = nullptr;
+	if ( UIConfig && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
+	{
+		BuildingIconTex = UIConfig->BuildingsData[CurrentBuildingClass].Icon;
+	}
+
 	UBuildingBonusComponent* bonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
 	if ( bonusComp && bonusComp->GetBonusEntries().Num() > 0 && BonusRowClass && Box_Bonus )
 	{
 		for ( const FBuildingBonusEntry& Entry : bonusComp->GetBonusEntries() )
 		{
 			UTexture2D* SourceIcon = nullptr;
-			if ( Entry.SourceBuildingClass )
+			if ( Entry.SourceBuildingClass && UIConfig &&
+			     UIConfig->BuildingsData.Contains( Entry.SourceBuildingClass ) )
 			{
-				if ( UIConfig && UIConfig->BuildingsData.Contains( Entry.SourceBuildingClass ) )
-				{
-					SourceIcon = UIConfig->BuildingsData[Entry.SourceBuildingClass].Icon;
-				}
+				SourceIcon = UIConfig->BuildingsData[Entry.SourceBuildingClass].Icon;
 			}
 
 			UTexture2D* ResIcon = nullptr;

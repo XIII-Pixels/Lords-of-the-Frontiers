@@ -34,7 +34,8 @@ class LORDS_FRONTIERS_API UBuildingTooltipResourceRow : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void Setup( int32 Amount, UTexture2D* Icon, FSlateColor TextColor, bool bShowTurnSuffix );
+	void
+	Setup( int32 amount, UTexture2D* icon, FSlateColor textColor, bool bShowTurnSuffix, bool bShowPlusSign = true );
 
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Amount;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_ResourceIcon;
@@ -47,7 +48,7 @@ class LORDS_FRONTIERS_API UBuildingTooltipHealthRow : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void Setup( UTexture2D* Icon, const FString& HealthValue );
+	void Setup( UTexture2D* icon, const FString& healthValue );
 
 protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_HealthIcon;
@@ -60,7 +61,7 @@ class LORDS_FRONTIERS_API UBuildingTooltipStatRow : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void Setup( UTexture2D* Icon, const FString& StatName, const FString& Value );
+	void Setup( UTexture2D* icon, const FString& statName, const FString& value );
 
 protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_StatIcon;
@@ -74,7 +75,7 @@ class LORDS_FRONTIERS_API UBuildingTooltipBonusRow : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	void Setup( UTexture2D* TargetIcon, UTexture2D* SourceIcon, float Value, UTexture2D* ResourceIcon );
+	void Setup( UTexture2D* targetIcon, UTexture2D* sourceIcon, float value, UTexture2D* resourceIcon );
 
 protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_TargetBuilding;
@@ -90,10 +91,10 @@ class LORDS_FRONTIERS_API UBuildingTooltipWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
+	virtual void NativeTick( const FGeometry& myGeometry, float inDeltaTime ) override;
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
-	void ShowTooltip( TSubclassOf<ABuilding> BuildingClass, bool bInstantSwitch = false );
+	void ShowTooltip( TSubclassOf<ABuilding> buildingClass );
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void HideTooltip();
@@ -154,7 +155,12 @@ private:
 
 	void ApplyAnimation();
 	void UpdateContent();
+	void ClearContainers();
+	void UpdateHeader( const ABuilding* cDO );
+	void UpdateEconomy( const ABuilding* cDO );
+	void UpdateStats( const ABuilding* cDO );
+	void UpdateBonuses();
 
-	UTexture2D* GetResourceIcon( EResourceType Type );
-	UTexture2D* GetStatIcon( EStatsType Type );
+	UTexture2D* GetResourceIcon( EResourceType type );
+	UTexture2D* GetStatIcon( EStatsType type );
 };

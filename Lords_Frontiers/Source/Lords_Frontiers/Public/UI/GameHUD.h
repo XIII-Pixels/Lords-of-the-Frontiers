@@ -353,6 +353,10 @@ protected:
 
 	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 
+	void InitializeTooltipWidget(
+	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
+	);
+
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
 		ShowTooltipForBuilding( WoodenHouseClass );
