@@ -6,9 +6,7 @@
 
 #include "SessionLoggerTypes.generated.h"
 
-// ============================================================================
 // Resource Snapshot
-// ============================================================================
 
 USTRUCT()
 struct FLogResourceSnapshot
@@ -29,9 +27,7 @@ struct FLogResourceSnapshot
 	static FLogResourceSnapshot FromProduction( const FResourceProduction& Prod );
 };
 
-// ============================================================================
 // Bonus Record
-// ============================================================================
 
 USTRUCT()
 struct FLogBonusRecord
@@ -49,9 +45,7 @@ struct FLogBonusRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Building Placement Record
-// ============================================================================
 
 USTRUCT()
 struct FLogBuildingPlacementRecord
@@ -68,9 +62,7 @@ struct FLogBuildingPlacementRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Building Characteristics (without adjacency bonuses)
-// ============================================================================
 
 USTRUCT()
 struct FLogBuildingCharacteristics
@@ -95,9 +87,7 @@ struct FLogBuildingCharacteristics
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Building Destroyed Record
-// ============================================================================
 
 USTRUCT()
 struct FLogBuildingDestroyedRecord
@@ -111,9 +101,7 @@ struct FLogBuildingDestroyedRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Tower Damage Record
-// ============================================================================
 
 USTRUCT()
 struct FLogTowerDamageRecord
@@ -132,9 +120,7 @@ struct FLogTowerDamageRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Building Damage Record (per-building damage during combat)
-// ============================================================================
 
 USTRUCT()
 struct FLogBuildingDamageRecord
@@ -150,9 +136,7 @@ struct FLogBuildingDamageRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Combat Summary (aggregated combat results)
-// ============================================================================
 
 USTRUCT()
 struct FLogCombatSummary
@@ -168,9 +152,7 @@ struct FLogCombatSummary
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Defensive Turn Data
-// ============================================================================
 
 USTRUCT()
 struct FLogDefensiveTurnData
@@ -188,9 +170,7 @@ struct FLogDefensiveTurnData
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Turn Data
-// ============================================================================
 
 USTRUCT()
 struct FLogTurnData
@@ -224,9 +204,7 @@ struct FLogTurnData
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Enemy Spawn Record
-// ============================================================================
 
 USTRUCT()
 struct FLogEnemySpawnRecord
@@ -241,9 +219,7 @@ struct FLogEnemySpawnRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Enemy Type Stats
-// ============================================================================
 
 USTRUCT()
 struct FLogEnemyTypeStats
@@ -283,9 +259,7 @@ struct FLogEnemyTypeStats
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Card Selection Record
-// ============================================================================
 
 USTRUCT()
 struct FLogCardSelectionRecord
@@ -299,9 +273,7 @@ struct FLogCardSelectionRecord
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Cell State (for build map snapshot)
-// ============================================================================
 
 USTRUCT()
 struct FLogCellState
@@ -319,9 +291,7 @@ struct FLogCellState
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Build Map Snapshot
-// ============================================================================
 
 USTRUCT()
 struct FLogBuildMapSnapshot
@@ -339,9 +309,7 @@ struct FLogBuildMapSnapshot
 	TSharedPtr<FJsonObject> ToDeltaJson( const FLogBuildMapSnapshot& Base ) const;
 };
 
-// ============================================================================
 // Wave Metrics (calculated balance analytics)
-// ============================================================================
 
 USTRUCT()
 struct FLogWaveMetrics
@@ -358,9 +326,7 @@ struct FLogWaveMetrics
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Wave Data (aggregation of all data for one wave)
-// ============================================================================
 
 USTRUCT()
 struct FLogWaveData
@@ -389,9 +355,7 @@ struct FLogWaveData
 	TSharedPtr<FJsonObject> ToJson( const FLogBuildMapSnapshot& BaseMap ) const;
 };
 
-// ============================================================================
 // Session Data (top-level)
-// ============================================================================
 
 USTRUCT()
 struct FLogSessionData
@@ -432,9 +396,7 @@ struct FLogSessionData
 	TSharedPtr<FJsonObject> ToJson() const;
 };
 
-// ============================================================================
 // Damage Accumulator (internal helper for combat damage tracking)
-// ============================================================================
 
 struct FLogDamageAccumulator
 {

@@ -171,23 +171,6 @@ FResourceProduction UEconomyComponent::CalculateTotalMaintenance() const
 		}
 		if ( costs.Progress > 0 )
 		{
-		}
-
-		FResourceProduction costs = building->GetMaintenanceCost();
-		if ( costs.Gold > 0 )
-		{
-			totalMaintenance.ModifyByType( EResourceType::Gold, costs.Gold );
-		}
-		if ( costs.Food > 0 )
-		{
-			totalMaintenance.ModifyByType( EResourceType::Food, costs.Food );
-		}
-		if ( costs.Population > 0 )
-		{
-			totalMaintenance.ModifyByType( EResourceType::Population, costs.Population );
-		}
-		if ( costs.Progress > 0 )
-		{
 			totalMaintenance.ModifyByType( EResourceType::Progress, costs.Progress );
 		}
 	}
