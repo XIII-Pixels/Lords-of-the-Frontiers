@@ -18,18 +18,11 @@ public class Lords_Frontiers : ModuleRules
             "AIModule",
             "NavigationSystem",
             "Slate",
-            "AIModule",
             "SlateCore",
-            "NavigationSystem",
-            "Blutility",
-            "UMGEditor",
-            "UnrealEd",
             "EnhancedInput"
         });
 
-        PrivateDependencyModuleNames.AddRange(new string[] { });
-
-        // Uncomment if you are using Slate UI
+        PrivateDependencyModuleNames.AddRange(new string[] { });        // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
         // Uncomment if you are using online features
