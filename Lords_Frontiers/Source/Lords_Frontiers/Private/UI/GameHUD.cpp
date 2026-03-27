@@ -1115,13 +1115,6 @@ void UGameHUDWidget::HandleGameEnded( bool bVictory )
 			Cam->SetCameraInputDisabled( true );
 		}
 	}
-	if ( ActiveOverlay )
-	{
-		ActiveOverlay->OnResumeRequested.RemoveDynamic( this, &UGameHUDWidget::TogglePauseMenu );
-		
-		ActiveOverlay->RemoveFromParent();
-		ActiveOverlay = nullptr;
-	}
 }
 
 void UGameHUDWidget::TogglePauseMenu()
