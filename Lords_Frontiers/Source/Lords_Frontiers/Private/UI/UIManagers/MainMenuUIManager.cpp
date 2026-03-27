@@ -3,6 +3,8 @@
 #include "UI/UIManagers/MainMenuUIManager.h"
 
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
+#include "Core/DefaultGameInstance.h"
+#include "Engine/GameInstance.h"
 #include "UI/Widgets/MainMenuWidget.h"
 
 #include "Blueprint/UserWidget.h"
@@ -36,5 +38,29 @@ void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 
 void UMainMenuUIManager::OnNewGameButtonClicked()
 {
-	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadRunLevel();
+	auto* world = GetWorld();
+	if ( !world )
+	{
+		return;
+	}
+
+	auto* gameInstance = world->GetGameInstance();
+	if ( !gameInstance )
+	{
+		return;
+	}
+	if ( !gameInstance )
+	{
+		return;
+	}
+
+	auto* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>();
+	if ( !levelSubsystem )
+	{
+		return;
+	}
+
+	levelSubsystem->SetShowTutorialOnNextLevel( true );
+
+	levelSubsystem->LoadRunLevel();
 }
