@@ -1,5 +1,5 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
-
+#include "Lords_Frontiers/Public/UI/HealthBarManager.h"
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "DrawDebugHelpers.h"
@@ -33,6 +33,33 @@ void AWaveManager::BeginPlay()
 	{
 		StartWaves();
 	}
+	UWorld* world = GetWorld();
+
+	world->GetTimerManager().SetTimerForNextTick( FTimerDelegate::CreateLambda(
+	    [this]()
+	    {
+		    AHealthBarManager* found = this->CacheHealthBarManager();
+
+		    if ( IsValid( found ) )
+		    {
+			    UE_LOG(
+			        LogTemp, Log,
+			        TEXT(
+			            "AWaveManager::BeginPlay: HealthBarManager cached successfully for %s -> %s (ptr=%p)"
+			        ),
+			        *GetNameSafe( this ), *GetNameSafe( found ), found
+			    );
+		    }
+		    else
+		    {
+			    UE_LOG(
+			        LogTemp, Warning,
+			        TEXT( "AWaveManager::BeginPlay: HealthBarManager NOT found / NOT cached yet for %s" ),
+			        *GetNameSafe( this )
+			    );
+		    }
+	    }
+	) );
 }
 
 int32 AWaveManager::ClampWaveIndex( int32 waveIndex ) const
@@ -418,17 +445,46 @@ void AWaveManager::AdvanceToNextWave()
 
 void AWaveManager::CancelCurrentWave()
 {
-	ClearActiveTimers();
+    ClearActiveTimers();
 
-	int32 destroyedAmount = DestroyAllEnemies();
-	if ( bLogSpawning )
-	{
-		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
-	}
+    int32 destroyedAmount = DestroyAllEnemies();
+    if ( bLogSpawning )
+    {
+        UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
+    }
+
+    bIsWaveActive_ = false;
+
+    if ( UWorld* world = GetWorld() )
+    {
+		AHealthBarManager* manager = CachedHealthBarManager_.Get();
+
+		if ( !IsValid( manager ) )
+		{
+			manager = CacheHealthBarManager();
+		}
+		if ( IsValid( manager ) )
+		{
+            UE_LOG( LogTemp, Verbose, TEXT( "WaveManager: asking HealthBarManager to remove all widgets." ) );
+			manager->HideAllRegistered();
+        }
+		else
+		{
+			UE_LOG(
+			    LogTemp, Warning,
+			    TEXT( "AWaveManager::CancelCurrentWave: HealthBarManager not available for actor %s � "
+			          "skipping UI update" ),
+			    *GetNameSafe( this )
+			);
+		}
+    }
+
+    if ( bLogSpawning )
+    {
+        UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
+    }
 
 	PathPointsManager->Empty();
-
-	bIsWaveActive_ = false;
 
 	if ( bLogSpawning )
 	{
@@ -713,6 +769,63 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 	}
 }
 
+AHealthBarManager* AWaveManager::CacheHealthBarManager()
+{
+	CachedHealthBarManager_.Reset();
+
+	UWorld* World = GetWorld();
+	if ( !World )
+	{
+		UE_LOG(
+		    LogTemp, Error, TEXT( "CacheHealthBarManager: GetWorld() == nullptr (Actor=%s)" ), *GetNameSafe( this )
+		);
+		return nullptr;
+	}
+
+	AActor* Found = UGameplayStatics::GetActorOfClass( World, AHealthBarManager::StaticClass() );
+
+	UE_LOG(
+	    LogTemp, Verbose, TEXT( "CacheHealthBarManager: GetActorOfClass -> ptr=%p name=%s class=%s" ), Found,
+	    *GetNameSafe( Found ), Found ? *Found->GetClass()->GetName() : TEXT( "null" )
+	);
+
+	if ( !Found )
+	{
+		return nullptr;
+	}
+
+	if ( Found->HasAnyFlags( RF_ClassDefaultObject ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: GetActorOfClass returned CDO (Default__), ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	if ( !Found->IsA( AHealthBarManager::StaticClass() ) )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CacheHealthBarManager: Found actor is NOT AHealthBarManager: ptr=%p class=%s name=%s" ), Found,
+		    *GetNameSafe( Found->GetClass() ), *GetNameSafe( Found )
+		);
+		return nullptr;
+	}
+
+	AHealthBarManager* Mgr = Cast<AHealthBarManager>( Found );
+	if ( !IsValid( Mgr ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "CacheHealthBarManager: Cast succeeded but object is invalid (ptr=%p)" ), Found );
+		return nullptr;
+	}
+
+	CachedHealthBarManager_ = Mgr;
+	UE_LOG(
+	    LogTemp, Log, TEXT( "CacheHealthBarManager: cached HealthBarManager = %s (ptr=%p)" ), *GetNameSafe( Mgr ), Mgr
+	);
+	return Mgr;
 TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targetWaveIndex ) const
 {
 	TMap<TSubclassOf<AUnit>, int32> enemyCounts;
