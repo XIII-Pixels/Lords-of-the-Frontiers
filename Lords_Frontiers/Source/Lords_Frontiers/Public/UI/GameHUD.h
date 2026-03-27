@@ -340,58 +340,65 @@ protected:
 	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
-	TSubclassOf<UBuildingTooltipWidget> TooltipClass;
+	TSubclassOf<UBuildingTooltipWidget> EconomyTooltipClass;
 
-	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
+	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
 
-	FTimerHandle TooltipTimerHandle;
-	TSubclassOf<ABuilding> PendingBuildingClass;
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveEconomyTooltip;
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveDefensiveTooltip;
+
+	bool bIsBuildingLocked = false;
+	UPROPERTY() TSubclassOf<ABuilding> LockedBuildingClass;
+
+	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
+
+	void InitializeTooltipWidget(
+	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
+	);
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
-		StartTooltipTimer( WoodenHouseClass );
+		ShowTooltipForBuilding( WoodenHouseClass );
 	}
 	UFUNCTION() void OnHoverStrawHouse()
 	{
-		StartTooltipTimer( StrawHouseClass );
+		ShowTooltipForBuilding( StrawHouseClass );
 	}
 	UFUNCTION() void OnHoverFarm()
 	{
-		StartTooltipTimer( FarmClass );
+		ShowTooltipForBuilding( FarmClass );
 	}
 	UFUNCTION() void OnHoverLawnHouse()
 	{
-		StartTooltipTimer( LawnHouseClass );
+		ShowTooltipForBuilding( LawnHouseClass );
 	}
 	UFUNCTION() void OnHoverMagicHouse()
 	{
-		StartTooltipTimer( MagicHouseClass );
+		ShowTooltipForBuilding( MagicHouseClass );
 	}
 	UFUNCTION() void OnHoverWoodWall()
 	{
-		StartTooltipTimer( WoodWallClass );
+		ShowTooltipForBuilding( WoodWallClass );
 	}
 	UFUNCTION() void OnHoverStoneWall()
 	{
-		StartTooltipTimer( StoneWallClass );
+		ShowTooltipForBuilding( StoneWallClass );
 	}
 	UFUNCTION() void OnHoverTowerT0()
 	{
-		StartTooltipTimer( TowerT0Class );
+		ShowTooltipForBuilding( TowerT0Class );
 	}
 	UFUNCTION() void OnHoverTowerT1()
 	{
-		StartTooltipTimer( TowerT1Class );
+		ShowTooltipForBuilding( TowerT1Class );
 	}
 	UFUNCTION() void OnHoverTowerT2()
 	{
-		StartTooltipTimer( TowerT2Class );
+		ShowTooltipForBuilding( TowerT2Class );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
-	UFUNCTION() void ShowTooltipInternal();
-
-	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
 
 	struct FIncomeAnimState
 	{

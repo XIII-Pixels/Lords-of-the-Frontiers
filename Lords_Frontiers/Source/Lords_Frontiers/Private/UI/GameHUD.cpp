@@ -1,6 +1,7 @@
 ﻿#include "Lords_Frontiers/Public/UI/GameHUD.h"
 
 #include "Building/Building.h"
+#include "Building/DefensiveBuilding.h"
 #include "Building/Construction/BuildManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
@@ -8,6 +9,8 @@
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "Camera/StrategyCamera.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
+
 
 #include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
@@ -143,6 +146,9 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
+
+	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
+	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
 	
 	InitIncomeDisplay();
 
@@ -343,20 +349,31 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 			{
 				rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 				eC->OnNetIncomeChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
-
 				UpdateResources();
 				InitIncomeDisplay();
-
 				bIsEconomySubscribed_ = true;
 			}
 		}
 	}
 
-	if ( ActiveBonusIcons_.Num() > 0 )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		UpdateBonusIconPositions();
+		if ( ABuildManager* bM = core->GetBuildManager() )
+		{
+			if ( !bM->IsPlacing() && bIsBuildingLocked )
+			{
+				bIsBuildingLocked = false;
+				LockedBuildingClass = nullptr;
+				if ( ActiveEconomyTooltip )
+					ActiveEconomyTooltip->HideTooltip();
+				if ( ActiveDefensiveTooltip )
+					ActiveDefensiveTooltip->HideTooltip();
+			}
+		}
 	}
 
+	if ( ActiveBonusIcons_.Num() > 0 )
+		UpdateBonusIconPositions();
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -633,24 +650,20 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 {
 	if ( !BuildingClass )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildingClass is null" ) );
 		return;
 	}
 
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	}
-
-	ABuildManager* bM = core->GetBuildManager();
+	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
 	if ( !bM )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildManager is null" ) );
 		return;
 	}
 
 	bM->StartPlacingBuilding( BuildingClass );
+
+	bIsBuildingLocked = true;
+	LockedBuildingClass = BuildingClass;
 }
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
@@ -772,19 +785,22 @@ void UGameHUDWidget::UpdateBuildingUIVisibility()
 void UGameHUDWidget::CancelCurrentBuilding()
 {
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	}
-	ABuildManager* bM = core->GetBuildManager();
-	if ( !bM )
-	{
-		return;
-	};
+	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
 
-	if ( bM->IsPlacing() )
+	if ( bM && bM->IsPlacing() )
 	{
 		bM->CancelPlacing();
+	}
+
+	bIsBuildingLocked = false;
+	LockedBuildingClass = nullptr;
+	if ( ActiveEconomyTooltip )
+	{
+		ActiveEconomyTooltip->HideTooltip();
+	}
+	if ( ActiveDefensiveTooltip )
+	{
+		ActiveDefensiveTooltip->HideTooltip();
 	}
 }
 
@@ -839,52 +855,19 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
 }
 
-void UGameHUDWidget::StartTooltipTimer( TSubclassOf<ABuilding> buildingClass )
-{
-	PendingBuildingClass = buildingClass;
-	GetWorld()->GetTimerManager().SetTimer(
-	    TooltipTimerHandle, this, &UGameHUDWidget::ShowTooltipInternal, 0.5f, false
-	);
-}
 
 void UGameHUDWidget::OnBuildingUnhovered()
 {
-	GetWorld()->GetTimerManager().ClearTimer( TooltipTimerHandle );
-	if ( ActiveTooltip )
-		ActiveTooltip->SetVisibility( ESlateVisibility::Collapsed );
-	PendingBuildingClass = nullptr;
-}
-
-void UGameHUDWidget::ShowTooltipInternal()
-{
-	if ( !PendingBuildingClass || !TooltipClass )
+	if ( bIsBuildingLocked && LockedBuildingClass )
 	{
-		return;
+		ShowTooltipForBuilding( LockedBuildingClass );
 	}
-
-	if ( !ActiveTooltip )
+	else
 	{
-		ActiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
-		ActiveTooltip->AddToViewport( 99 );
-	}
-
-	ActiveTooltip->UpdateTooltip( PendingBuildingClass->GetDefaultObject<ABuilding>() );
-	ActiveTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
-
-	FVector2D mousePos;
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		pc->GetMousePosition( mousePos.X, mousePos.Y );
-
-		FVector2D viewportSize;
-		if ( GEngine && GEngine->GameViewport )
-		{
-			GEngine->GameViewport->GetViewportSize( viewportSize );
-		}
-
-		float offsetYa = ( mousePos.Y > ( viewportSize.Y / 2.f ) ) ? -180.f : 25.f;
-
-		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->HideTooltip();
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->HideTooltip();
 	}
 }
 
@@ -1173,7 +1156,6 @@ void UGameHUDWidget::TogglePauseMenu()
 		if ( ActiveOverlay )
 		{
 			ActiveOverlay->AddToViewport( 100 );
-
 			ActiveOverlay->OnResumeRequested.AddDynamic( this, &UGameHUDWidget::TogglePauseMenu );
 		}
 
@@ -1184,6 +1166,44 @@ void UGameHUDWidget::TogglePauseMenu()
 				Cam->SetCameraInputDisabled( true );
 			}	
 		}
-			
+	}
+}
+
+void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !buildingClass )
+		return;
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	if ( !cdo )
+		return;
+
+	if ( cdo->IsA<ADefensiveBuilding>() )
+	{
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->HideTooltip();
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->ShowTooltip( buildingClass );
+	}
+	else
+	{
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->HideTooltip();
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->ShowTooltip( buildingClass );
+	}
+}
+
+void UGameHUDWidget::InitializeTooltipWidget(
+    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
+)
+{
+	if ( TooltipClass && !OutTooltip )
+	{
+		OutTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
+		if ( OutTooltip )
+		{
+			OutTooltip->AddToViewport( 99 );
+			OutTooltip->ForceHide();
+		}
 	}
 }
