@@ -312,8 +312,7 @@ void UBuildingTooltipWidget::UpdateHeader( const ABuilding* cDO )
 	else
 	{
 		Text_Name->SetText( FText::FromString( const_cast<ABuilding*>( cDO )->GetNameBuild() ) );
-		// TODO: Russian language
-		Text_Description->SetText( FText::FromString( TEXT( "No description" ) ) );
+		Text_Description->SetText( FText::FromString( TEXT( "Нет описания" ) ) );
 	}
 }
 
@@ -405,14 +404,13 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* cDO )
 			}
 		};
 
-		//TODO: Russian language
-		AddStatRow( EStatsType::AttackDamage, TEXT( "Damage" ), FString::FromInt( stats.AttackDamage() ) );
+		AddStatRow( EStatsType::AttackDamage, TEXT( "Урон" ), FString::FromInt( stats.AttackDamage() ) );
 		AddStatRow(
-		    EStatsType::AttackCooldown, TEXT( "Speed" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
+		    EStatsType::AttackCooldown, TEXT( "Скорость" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
 		);
-		AddStatRow( EStatsType::AttackRange, TEXT( "Radius" ), FString::Printf( TEXT( "%.0f" ), stats.AttackRange() ) );
+		AddStatRow( EStatsType::AttackRange, TEXT( "Радиус" ), FString::Printf( TEXT( "%.0f" ), stats.AttackRange() ) );
 		AddStatRow(
-		    EStatsType::SplashRadius, TEXT( "Area damage" ), stats.SplashRadius() > 0.0f ? TEXT( "Yes" ) : TEXT( "No" )
+		    EStatsType::SplashRadius, TEXT( "Область" ), stats.SplashRadius() > 0.0f ? TEXT( "Да" ) : TEXT( "Нет" )
 		);
 	}
 }
