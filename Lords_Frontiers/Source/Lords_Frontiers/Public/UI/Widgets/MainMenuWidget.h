@@ -19,4 +19,7 @@ class LORDS_FRONTIERS_API UMainMenuWidget : public UUserWidget
 public:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> NewGameButton;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UButton> ExitGameButton;
 };
