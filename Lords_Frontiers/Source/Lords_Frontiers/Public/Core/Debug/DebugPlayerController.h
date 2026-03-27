@@ -30,7 +30,10 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "UI" )
 	void ToggleTutorial();
+
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;
 
