@@ -8,6 +8,7 @@
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "Camera/StrategyCamera.h"
+#include "Core/Debug/DebugPlayerController.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
@@ -114,6 +115,10 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
 		ButtonBuildingTowerT2->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
 		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
+	if ( TutorialButton )
+	{
+		TutorialButton->OnClicked.AddDynamic( this, &UGameHUDWidget::HandleTutorialButtonClicked );
 	}
 
 	ABuildManager* buildManager =
@@ -1185,5 +1190,13 @@ void UGameHUDWidget::TogglePauseMenu()
 			}	
 		}
 			
+	}
+}
+
+void UGameHUDWidget::HandleTutorialButtonClicked()
+{
+	if ( ADebugPlayerController* pc = Cast<ADebugPlayerController>( GetOwningPlayer() ) )
+	{
+		pc->ToggleTutorial();
 	}
 }

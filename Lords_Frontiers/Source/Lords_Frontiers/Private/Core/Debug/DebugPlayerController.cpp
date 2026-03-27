@@ -5,6 +5,9 @@
 #include "Building/Construction/BuildManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Cards/CardSelectionHUDComponent.h"
+#include "UI/Widgets/TutorialWidget.h"
+#include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
+#include "Blueprint/UserWidget.h"
 
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
@@ -18,6 +21,28 @@ ADebugPlayerController::ADebugPlayerController()
 	SelectionManagerComponent_ = CreateDefaultSubobject<USelectionManagerComponent>( TEXT( "SelectionManager" ) );
 
 	CardSelectionHUDComponent_ = CreateDefaultSubobject<UCardSelectionHUDComponent>( TEXT( "CardSelectionHUD" ) );
+}
+
+void ADebugPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	auto* gameInstance = GetWorld()->GetGameInstance();
+	if ( !gameInstance )
+	{
+		return;
+	}
+
+	auto* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>();
+	if ( !levelSubsystem )
+	{
+		return;
+	}
+
+	if ( levelSubsystem->ConsumeShowTutorialOnNextLevel() )
+	{
+		ToggleTutorial();
+	}
 }
 
 USelectionManagerComponent* ADebugPlayerController::GetSelectionManager() const
@@ -149,4 +174,71 @@ void ADebugPlayerController::HandleEscape()
 	{
 		BuildManager_->CancelPlacing();
 	}
+}
+
+void ADebugPlayerController::ToggleTutorial()
+{
+	if ( TutorialWidgetInstance && TutorialWidgetInstance->IsInViewport() )
+	{
+		CloseTutorial();
+	}
+	else
+	{
+		OpenTutorial();
+	}
+}
+
+void ADebugPlayerController::OpenTutorial()
+{
+	if ( !TutorialWidgetClass )
+	{
+		return;
+	}
+
+	if ( !TutorialWidgetInstance )
+	{
+		TutorialWidgetInstance = CreateWidget<UTutorialWidget>( this, TutorialWidgetClass );
+		if ( TutorialWidgetInstance )
+		{
+			TutorialWidgetInstance->OnTutorialClosed.AddDynamic( this, &ADebugPlayerController::HandleTutorialClosed );
+		}
+	}
+
+	if ( !TutorialWidgetInstance )
+	{
+		return;
+	}
+
+	TutorialWidgetInstance->AddToViewport( 1000 );
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetWidgetToFocus( TutorialWidgetInstance->TakeWidget() );
+	InputMode.SetHideCursorDuringCapture( false );
+
+	SetInputMode( InputMode );
+	bShowMouseCursor = true;
+
+	TutorialWidgetInstance->SetUserFocus( this );
+	TutorialWidgetInstance->SetKeyboardFocus();
+}
+
+void ADebugPlayerController::CloseTutorial()
+{
+	if ( TutorialWidgetInstance )
+	{
+		TutorialWidgetInstance->CloseTutorial();
+	}
+}
+
+void ADebugPlayerController::HandleTutorialClosed()
+{
+	if ( TutorialWidgetInstance )
+	{
+		TutorialWidgetInstance->OnTutorialClosed.RemoveDynamic( this, &ADebugPlayerController::HandleTutorialClosed );
+	}
+
+	SetInputMode( FInputModeGameAndUI() );
+	bShowMouseCursor = true;
+
+	TutorialWidgetInstance = nullptr;
 }
