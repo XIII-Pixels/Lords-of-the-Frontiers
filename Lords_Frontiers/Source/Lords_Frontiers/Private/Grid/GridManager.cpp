@@ -142,9 +142,9 @@ FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 	return coords;
 }
 
-FIntPoint AGridManager::FindClosestWalkableCell( const FVector& location ) const
+FIntPoint AGridManager::FindClosestWalkableCellCoords( FVector location ) const
 {
-	FIntPoint currentCoords = GetCellCoords( location );
+	FIntPoint currentCoords = GetClosestCellCoords( location );
 	if ( !IsValidCoords( currentCoords.X, currentCoords.Y ) )
 	{
 		return { -1, -1 };

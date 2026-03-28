@@ -104,7 +104,7 @@ public:
 	FIntPoint GetClosestCellCoords( FVector location ) const;
 
 	/// @brief Find the closest cell with bWalkable = true
-	FIntPoint FindClosestWalkableCell( const FVector& location ) const;
+	FIntPoint FindClosestWalkableCellCoords( FVector location ) const;
 
 	/// @brief Get array the cell's neighbors
 	/// @param[in] FGridCell 
