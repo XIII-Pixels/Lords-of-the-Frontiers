@@ -165,7 +165,7 @@ void UAttackRangedComponent::ChooseAttackMode()
 	{
 		// Super bad (unclear) code: buildings and standing units start attacking everything
 		// Left in peace due to time constraints (laziness)
-		// Components for unit and for building must be separated
+		// TODO: Separate components for unit and for building
 		AttackFilter_ = EAttackFilter::Everything;
 	}
 	else

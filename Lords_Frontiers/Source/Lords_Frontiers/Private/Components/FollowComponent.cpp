@@ -142,7 +142,7 @@ void UFollowComponent::Sway( float deltaTime )
 	{
 		float targetRoll = 0.0f;
 
-		if ( Unit_.Get()->GetVelocity().Size() > 10.0f )
+		if ( !Unit_.Get()->GetVelocity().IsNearlyZero() )
 		{
 			float time = GetWorld()->GetTimeSeconds();
 			targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
@@ -164,9 +164,11 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 		return;
 	}
 
+	const FVector location = Unit_->GetActorLocation();
+
 	const float cellSize = Grid_->GetCellSize();
 
-	const FIntPoint currentCellCoords = Grid_->GetCellCoords( Unit_->GetActorLocation() );
+	const FIntPoint currentCellCoords = Grid_->GetCellCoords( location );
 	FVector currentCellCenter;
 	Grid_->GetCellWorldCenter( currentCellCoords, currentCellCenter );
 
@@ -183,15 +185,14 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 			FVector cellCenter;
 			Grid_->GetCellWorldCenter( cellCoords, cellCenter );
 
-			const float dx = cellCenter.X - Unit_->GetActorLocation().X;
-			const float dy = cellCenter.Y - Unit_->GetActorLocation().Y;
+			const float dx = cellCenter.X - location.X;
+			const float dy = cellCenter.Y - location.Y;
 
 			const bool xIsInside = FMath::Abs( dx ) < cellSize / 2.0f;
 			const bool yIsInside = FMath::Abs( dy ) < cellSize / 2.0f;
 
 			if ( xIsInside && yIsInside && FMath::Abs( dx ) < FMath::Abs( dy ) )
 			{
-				const FVector location = Unit_->GetActorLocation();
 				const float x = cellCenter.X - FMath::Sign( dx ) * cellSize / 2.0f;
 				const FVector targetLocation = { x, location.Y, location.Z };
 				Unit_->SetActorLocation(
@@ -201,7 +202,6 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 			}
 			if ( xIsInside && yIsInside )
 			{
-				const FVector location = Unit_->GetActorLocation();
 				const float y = cellCenter.Y - FMath::Sign( dy ) * cellSize / 2.0f;
 				const FVector targetLocation = { location.X, y, location.Z };
 				Unit_->SetActorLocation(
@@ -215,7 +215,7 @@ void UFollowComponent::ResolveUnitOnUnwalkableCell()
 
 void UFollowComponent::Rotate( float deltaTime )
 {
-	if ( Unit_.IsValid() && Unit_->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	if ( Unit_.IsValid() && Unit_->GetVelocity().IsNearlyZero() )
 	{
 		RotateTowardsAttackTarget( deltaTime );
 	}
@@ -244,6 +244,11 @@ void UFollowComponent::RotateTowardsAttackTarget( float deltaTime )
 
 void UFollowComponent::RotateForward( float deltaTime )
 {
+	if ( !IsValid( PawnOwner ) )
+	{
+		return;
+	}
+
 	const FRotator targetRotation = CurrentDirection_.Rotation();
 	const FRotator currentRotation = PawnOwner->GetActorRotation();
 
