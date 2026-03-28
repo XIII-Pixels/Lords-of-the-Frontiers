@@ -325,6 +325,7 @@ void ABaseProjectile::OnLifetimeExpired()
 }
 
 
+
 void ABaseProjectile::SpawnHitVFX( AActor* hitActor ) const
 {
 	if ( !hitActor )

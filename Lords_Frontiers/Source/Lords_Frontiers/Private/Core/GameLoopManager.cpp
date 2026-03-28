@@ -641,11 +641,17 @@ void UGameLoopManager::GrantStartingResources()
 	const FResourceReward& start = Config_->StartingResources;
 
 	if ( start.Gold > 0 )
+	{
 		rm->AddResource( EResourceType::Gold, start.Gold );
+	}
 	if ( start.Food > 0 )
+	{
 		rm->AddResource( EResourceType::Food, start.Food );
+	}
 	if ( start.Population > 0 )
+	{
 		rm->AddResource( EResourceType::Population, start.Population );
+	}
 
 	OnResourcesGranted.Broadcast( start );
 }
