@@ -42,10 +42,10 @@ void UDStarLite::Initialize( const FPathConfig& config )
 		return;
 	}
 
-	Start_ = Grid_->FindClosestWalkableCell( config.Start );
+	Start_ = Grid_->FindClosestWalkableCellCoords( config.Start );
 	Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
 
-	Goal_ = Grid_->FindClosestWalkableCell( config.Goal );
+	Goal_ = Grid_->FindClosestWalkableCellCoords( config.Goal );
 	FDStarNode& goalNode = Nodes_.FindOrAdd( Goal_, FDStarNode( Goal_ ) );
 	goalNode.RHS = 0.0f;
 

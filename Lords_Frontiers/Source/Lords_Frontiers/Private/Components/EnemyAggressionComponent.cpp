@@ -128,7 +128,7 @@ bool UEnemyAggressionComponent::IsCloseToTarget() const
 	if ( !unit->FollowedTarget().IsValid() || !UnitAIManager_.IsValid() ||
 	     !IsValid( UnitAIManager_->PathPointsManager() ) )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::IsCloseToTarget: somethi" ) );
+		UE_LOG( LogTemp, Error, TEXT( "UEnemyAggressionComponent::IsCloseToTarget: something is invalid" ) );
 		return false;
 	}
 
