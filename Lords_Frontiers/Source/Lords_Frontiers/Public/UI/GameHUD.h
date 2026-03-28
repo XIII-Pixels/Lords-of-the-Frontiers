@@ -413,10 +413,9 @@ protected:
 	{
 		ShowTooltipForBuilding( TowerT2Class );
 	}
-
 	UFUNCTION() void OnHoverTowerMortira()
 	{
-		StartTooltipTimer( TowerMortiraClass );
+		ShowTooltipForBuilding( TowerMortiraClass );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
