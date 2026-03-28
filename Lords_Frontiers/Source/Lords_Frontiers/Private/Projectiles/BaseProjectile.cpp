@@ -163,7 +163,7 @@ void ABaseProjectile::Tick( float deltaTime )
 
 		if ( bTrackTarget_ && Target_.IsValid() )
 		{
-			SpawnHitVFX( Target_ );
+			SpawnHitVFX( Target_.Get() );
 			DealDamage( Target_.Get() );
 		}
 		else

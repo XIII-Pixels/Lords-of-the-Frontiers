@@ -215,12 +215,6 @@ void AUnit::ResolveVFXDefaults()
 	}
 }
 
-
-TObjectPtr<USceneComponent> AUnit::VisualMesh()
-{
-	return VisualMesh_;
-}
-
 void AUnit::ChangeStats( FEnemyBuff* buff )
 {
 	Stats_.SetMaxHealth(

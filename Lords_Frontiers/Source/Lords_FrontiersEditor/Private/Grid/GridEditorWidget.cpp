@@ -1,5 +1,6 @@
 // GridEditorWidget.cpp
 
+#if WITH_EDITOR
 
 #include "Grid/GridEditorWidget.h"
 
@@ -950,3 +951,4 @@ void UGridEditorWidget::OnRefreshClicked()
 	RefreshGrid();
 }
 
+#endif
