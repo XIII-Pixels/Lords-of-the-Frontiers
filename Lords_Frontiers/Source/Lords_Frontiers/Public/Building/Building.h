@@ -16,6 +16,8 @@ class UEconomyComponent;
 class UBoxComponent;
 class UNiagaraSystem;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
 {
@@ -77,6 +79,9 @@ public:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	TObjectPtr<UTexture2D> BuildingIcon;
+
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingDeath OnBuildingDied;
 
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )

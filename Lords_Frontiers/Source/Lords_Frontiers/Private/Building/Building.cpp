@@ -164,6 +164,8 @@ void ABuilding::FinalizeRuin()
 
 	SetCanAffectNavigationGeneration( false );
 
+	OnBuildingDied.Broadcast( this );
+
 	if ( EconomyComponent_ )
 	{
 		EconomyComponent_->RecalculateAndBroadcastNetIncome();

@@ -319,6 +319,8 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 
 	RecalculateBonusesAroundBuilding( newBuilding, CurrentCellCoords_ );
 	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
+
+	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
 	PlayPlacementAnimation( newBuilding );
 
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );

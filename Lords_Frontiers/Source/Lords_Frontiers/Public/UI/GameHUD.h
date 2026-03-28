@@ -79,6 +79,9 @@ public:
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonBuildingTowerT2;
 
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> ButtonBuildingMortira;
+
 	// Panels where we will add building cards
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UPanelWidget> BuildingClassGrid;
@@ -180,6 +183,9 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT2Class;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
+	TSubclassOf<ABuilding> TowerMortiraClass;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
@@ -210,6 +216,7 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
 
+	UPROPERTY()
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
@@ -325,6 +332,9 @@ protected:
 	UFUNCTION()
 	void OnBuildTowerT2Clicked();
 
+	UFUNCTION()
+	void OnBuildTowerMortiraClicked();
+
 	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
@@ -345,6 +355,11 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
 	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
 
+	FTimerHandle TooltipTimerHandle;
+
+	UPROPERTY()
+	TSubclassOf<ABuilding> PendingBuildingClass;
+
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveEconomyTooltip;
 	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveDefensiveTooltip;
 
@@ -356,6 +371,7 @@ protected:
 	void InitializeTooltipWidget(
 	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
 	);
+
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
@@ -396,6 +412,10 @@ protected:
 	UFUNCTION() void OnHoverTowerT2()
 	{
 		ShowTooltipForBuilding( TowerT2Class );
+	}
+	UFUNCTION() void OnHoverTowerMortira()
+	{
+		ShowTooltipForBuilding( TowerMortiraClass );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();

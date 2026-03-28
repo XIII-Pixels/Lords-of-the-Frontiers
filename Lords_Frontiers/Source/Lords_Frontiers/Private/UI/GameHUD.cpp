@@ -119,6 +119,13 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 
+	if ( ButtonBuildingMortira )
+	{
+		ButtonBuildingMortira->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+		ButtonBuildingMortira->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
+		ButtonBuildingMortira->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
+
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
 	if ( buildManager )
@@ -141,7 +148,7 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
 	}
-	
+
 	if ( BtnToggleWaveInfo )
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
@@ -150,6 +157,8 @@ void UGameHUDWidget::NativeConstruct()
 	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
 	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
 	
+	InitIncomeDisplay();
+
 	InitIncomeDisplay();
 
 	UpdateDayText();
@@ -198,6 +207,9 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	if ( ButtonBuildingMortira )
+		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+
 	if ( BtnToggleWaveInfo )
 		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 
@@ -222,6 +234,7 @@ void UGameHUDWidget::NativeDestruct()
 		{
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
+
 		
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
@@ -264,7 +277,6 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
-
 
 	if ( TextTimer )
 	{
@@ -406,7 +418,6 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			}
 		}
 	}
-	
 
 	const float baseOrthoWigth = 2048.0f;
 	const float baseScale = 0.5f;
@@ -716,6 +727,11 @@ void UGameHUDWidget::OnBuildTowerT2Clicked()
 	StartBuilding( TowerT2Class );
 }
 
+void UGameHUDWidget::OnBuildTowerMortiraClicked()
+{
+	StartBuilding( TowerMortiraClass );
+}
+
 void UGameHUDWidget::UpdateBuildingUIVisibility()
 {
 	UCoreManager* core = UCoreManager::Get( this );
@@ -832,6 +848,7 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 	UpdateButtonAvailability( ButtonBuildingTowerT0, TowerT0Class );
 	UpdateButtonAvailability( ButtonBuildingTowerT1, TowerT1Class );
 	UpdateButtonAvailability( ButtonBuildingTowerT2, TowerT2Class );
+	UpdateButtonAvailability( ButtonBuildingMortira, TowerMortiraClass );
 }
 
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
@@ -877,12 +894,12 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 	{
 		return;
 	}
-		
+
 	if ( bIsWavePanelAnimating )
 	{
 		return;
 	}
-		
+
 	if ( !ActiveWavePanel )
 	{
 		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
@@ -899,7 +916,8 @@ void UGameHUDWidget::ToggleWaveInfoPanel()
 
 	bIsWavePanelAnimating = true;
 
-	GetWorld()->GetTimerManager().SetTimer(WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
+	GetWorld()->GetTimerManager().SetTimer(
+	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
 	);
 
 	bIsWavePanelOpen = !bIsWavePanelOpen;
@@ -952,6 +970,7 @@ void UGameHUDWidget::UnlockWaveInfoButton()
 {
 	bIsWavePanelAnimating = false;
 }
+
 void UGameHUDWidget::InitIncomeDisplay()
 {
 	if ( Arrow_Gold )
@@ -970,6 +989,9 @@ void UGameHUDWidget::InitIncomeDisplay()
 	{
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
+			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+			eC->OnNetIncomeChanged.AddDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+
 			FResourceProduction netIncome = eC->CalculateNetIncome();
 			GoldIncomeAnim_.DisplayedValue = netIncome.Gold;
 			GoldIncomeAnim_.TargetValue = netIncome.Gold;

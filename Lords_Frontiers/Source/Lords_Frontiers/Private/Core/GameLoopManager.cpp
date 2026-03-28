@@ -3,17 +3,18 @@
 #include "Building/Building.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
+#include "Core/CoreManager.h"
+#include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
-#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameStateBase.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -191,7 +192,6 @@ void UGameLoopManager::StartGame()
 		return;
 	}
 
-
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
 	bWaitingForCardSelection_ = false;
@@ -211,7 +211,13 @@ void UGameLoopManager::StartGame()
 void UGameLoopManager::RestartGame()
 {
 	Log( TEXT( "=== GAME RESTARTING ===" ) );
-
+	if ( UWorld* world = GetWorldSafe() )
+	{
+		if ( USessionLoggerSubsystem* logger = world->GetSubsystem<USessionLoggerSubsystem>() )
+		{
+			logger->FinalizeSessionOnRestart();
+		}
+	}
 	UnbindFromWaveManager();
 
 	CurrentPhase_ = EGameLoopPhase::None;
@@ -625,7 +631,7 @@ void UGameLoopManager::GrantStartingResources()
 	{
 		return;
 	}
-		
+
 	const FResourceReward& start = Config_->StartingResources;
 
 	if ( start.Gold > 0 )
