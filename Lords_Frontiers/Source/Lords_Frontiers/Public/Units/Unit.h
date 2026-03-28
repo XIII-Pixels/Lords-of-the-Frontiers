@@ -53,7 +53,7 @@ public:
 		return Stats_;
 	}
 
-	virtual FEntityStats Stats() const override
+	virtual const FEntityStats& Stats() const override
 	{
 		return Stats_;
 	}

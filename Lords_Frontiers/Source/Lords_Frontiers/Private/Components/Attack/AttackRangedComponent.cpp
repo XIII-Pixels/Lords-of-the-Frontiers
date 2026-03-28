@@ -72,13 +72,6 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 		return;
 	}
 
-	if ( !EnemyInSight_ || !ProjectileClass_ )
-	{
-		return;
-	}
-
-	const int32 burstCount = OwnerEntity_->Stats().BurstCount();
-
 	const int32 burstCount = ownerEntity->Stats().BurstCount();
 	if ( burstCount <= 1 )
 	{
@@ -315,7 +308,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 
 void UAttackRangedComponent::FireNextBurstShot()
 {
-	const IEntity* ownerEntity = GetOwner<IEntity>();
+	IEntity* ownerEntity = GetOwner<IEntity>();
 	const IAttacker* ownerAttacker = GetOwner<IAttacker>();
 	if ( !ownerEntity || !ownerAttacker || !bBurstInProgress_ )
 	{

@@ -103,7 +103,7 @@ FEntityStats& ABuilding::Stats()
 	return Stats_;
 }
 
-FEntityStats ABuilding::Stats() const
+const FEntityStats& ABuilding::Stats() const
 {
 	return Stats_;
 }

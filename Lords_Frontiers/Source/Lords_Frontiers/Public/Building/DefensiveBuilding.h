@@ -52,16 +52,11 @@ public:
 
 	virtual void FullRestore() override;
 
-	virtual void RestoreFromRuins() override;
-
-	virtual void FullRestore() override;
-
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void OnDeath() override;
 
-protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	FWallMeshSet WallMeshSet_;
 
