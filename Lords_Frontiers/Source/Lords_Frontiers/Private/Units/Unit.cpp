@@ -73,11 +73,6 @@ void AUnit::BeginPlay()
 	ResolveVFXDefaults();
 }
 
-void AUnit::Tick( float deltaSeconds )
-{
-	Super::Tick( deltaSeconds );
-}
-
 void AUnit::StartFollowing() const
 {
 	if ( FollowComponent_ )

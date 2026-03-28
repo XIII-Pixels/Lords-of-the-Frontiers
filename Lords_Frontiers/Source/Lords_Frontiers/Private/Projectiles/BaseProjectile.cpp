@@ -164,7 +164,7 @@ void ABaseProjectile::Tick( float deltaTime )
 		if ( bTrackTarget_ && Target_.IsValid() )
 		{
 			SpawnHitVFX( Target_ );
-			DealDamage( Target_ );
+			DealDamage( Target_.Get() );
 		}
 		else
 		{
@@ -323,6 +323,7 @@ void ABaseProjectile::OnLifetimeExpired()
 {
 	ReturnToPool();
 }
+
 
 void ABaseProjectile::SpawnHitVFX( AActor* hitActor ) const
 {

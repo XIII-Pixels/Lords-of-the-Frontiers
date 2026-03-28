@@ -45,8 +45,6 @@ public:
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
-	void ChangeStats( FEnemyBuff* buff );
-
 	virtual void TakeDamage( int damage ) override;
 
 	void ChangeStats( FEnemyBuff* buff );
@@ -77,9 +75,16 @@ public:
 		return FollowedTarget_;
 	}
 
-	TWeakObjectPtr<const AActor> FollowedTarget() const;
+	// Target that unit moves to
+	TWeakObjectPtr<const AActor> FollowedTarget() const
+	{
+		return FollowedTarget_;
+	}
 
-	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget );
+	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget )
+	{
+		FollowedTarget_ = newTarget;
+	}
 
 	void ChangeStats( FEnemyBuff* buff );
 
