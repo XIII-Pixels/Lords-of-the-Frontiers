@@ -418,38 +418,75 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* cDO )
 void UBuildingTooltipWidget::UpdateBonuses()
 {
 	APlayerController* PC = GetOwningPlayer();
-	if ( !PC )
+	if ( !PC || !BonusRowClass || !Box_Bonus || !UIConfig )
 	{
 		return;
 	}
-		
-	UTexture2D* BuildingIconTex = nullptr;
-	if ( UIConfig && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
+
+	UTexture2D* MyBuildingIconTex = nullptr;
+	if ( UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
 	{
-		BuildingIconTex = UIConfig->BuildingsData[CurrentBuildingClass].Icon;
+		MyBuildingIconTex = UIConfig->BuildingsData[CurrentBuildingClass].Icon;
 	}
 
-	UBuildingBonusComponent* bonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
-	if ( bonusComp && bonusComp->GetBonusEntries().Num() > 0 && BonusRowClass && Box_Bonus )
+	auto AddBonusRow = [&]( UTexture2D* TargetIcon, UTexture2D* SourceIcon, float Value, EBonusCategory Category,
+	                        EResourceType ResType, EStatsType StatType )
 	{
-		for ( const FBuildingBonusEntry& Entry : bonusComp->GetBonusEntries() )
+		UTexture2D* FinalIcon = nullptr;
+		if ( Category == EBonusCategory::Stats )
+		{
+			FinalIcon = GetStatIcon( StatType );
+		}
+		else
+		{
+			FinalIcon = GetResourceIcon( ResType );
+		}
+
+		UBuildingTooltipBonusRow* Row = CreateWidget<UBuildingTooltipBonusRow>( PC, BonusRowClass );
+		Row->Setup( TargetIcon, SourceIcon, Value, FinalIcon );
+		Box_Bonus->AddChild( Row );
+	};
+
+	UBuildingBonusComponent* myBonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
+	if ( myBonusComp )
+	{
+		for ( const FBuildingBonusEntry& Entry : myBonusComp->GetBonusEntries() )
 		{
 			UTexture2D* SourceIcon = nullptr;
-			if ( Entry.SourceBuildingClass && UIConfig &&
-			     UIConfig->BuildingsData.Contains( Entry.SourceBuildingClass ) )
+			if ( Entry.SourceBuildingClass && UIConfig->BuildingsData.Contains( Entry.SourceBuildingClass ) )
 			{
 				SourceIcon = UIConfig->BuildingsData[Entry.SourceBuildingClass].Icon;
 			}
 
-			UTexture2D* ResIcon = nullptr;
-			if ( Entry.Category == EBonusCategory::Production || Entry.Category == EBonusCategory::Maintenance )
-			{
-				ResIcon = GetResourceIcon( Entry.ResourceType );
-			}
+			AddBonusRow(
+			    MyBuildingIconTex, SourceIcon, Entry.Value, Entry.Category, Entry.ResourceType, Entry.StatType
+			);
+		}
+	}
 
-			UBuildingTooltipBonusRow* Row = CreateWidget<UBuildingTooltipBonusRow>( PC, BonusRowClass );
-			Row->Setup( BuildingIconTex, SourceIcon, Entry.Value, ResIcon );
-			Box_Bonus->AddChild( Row );
+	for ( const auto& Kvp : UIConfig->BuildingsData )
+	{
+		TSubclassOf<ABuilding> OtherBuildingClass = Kvp.Key;
+		if ( !OtherBuildingClass || OtherBuildingClass == CurrentBuildingClass )
+		{
+			continue;
+		}
+			
+		UBuildingBonusComponent* otherBonusComp = UBuildingBonusComponent::FindInBlueprintClass( OtherBuildingClass );
+		if ( otherBonusComp )
+		{
+			for ( const FBuildingBonusEntry& Entry : otherBonusComp->GetBonusEntries() )
+			{
+				if ( Entry.SourceBuildingClass == CurrentBuildingClass )
+				{
+					UTexture2D* OtherBuildingIcon = Kvp.Value.Icon;
+
+					AddBonusRow(
+					    OtherBuildingIcon, MyBuildingIconTex, Entry.Value, Entry.Category, Entry.ResourceType,
+					    Entry.StatType
+					);
+				}
+			}
 		}
 	}
 }
