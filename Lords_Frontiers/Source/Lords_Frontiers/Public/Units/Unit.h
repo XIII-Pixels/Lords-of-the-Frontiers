@@ -88,6 +88,8 @@ protected:
 
 	void FinalizeDestroy();
 
+	void ResolveVFXDefaults();
+
 	void FollowNextPathTarget();
 
 	bool IsCloseToTarget() const;
@@ -98,14 +100,14 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX" )
+	UPROPERTY()	
 	TObjectPtr<UNiagaraSystem> DeathVFX_;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX" )
+	UPROPERTY() 
 	TObjectPtr<UNiagaraSystem> HitVFX_;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX", meta = ( ClampMin = "0.0", Units = "s" ) )
-	float DeathDestroyDelay_ = 1.0f;
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX", meta = ( Units = "s" ) )
+	float DeathDestroyDelay_ = -1.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
@@ -137,4 +139,12 @@ protected:
 	int PathPointIndex_ = -1;
 
 	FTimerHandle DeathTimerHandle_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedDeathVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
+
+	float ResolvedDeathDestroyDelay_ = 1.0f;
 };

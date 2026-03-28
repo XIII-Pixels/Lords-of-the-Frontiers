@@ -4,9 +4,9 @@
 #include "Building/Construction/BuildPreviewActor.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
-#include "Building/Construction/BuildingVFXConfig.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
@@ -502,35 +502,53 @@ void ABuildManager::PlayPlacementAnimation( AActor* building )
 		animComp->StartAnimation( PlacementAnimParams_ );
 	}
 
-	if ( VFXConfig_ && VFXConfig_->ConstructionVFX )
+	UNiagaraSystem* constructionVFX = nullptr;
+	float constructionDelay = 0.0f;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			constructionVFX = config->DefaultBuildingConstructionVFX;
+			constructionDelay = config->DefaultConstructionDelay;
+
+			if ( const FBuildingVFXOverride* classOverride = config->BuildingOverrides.Find( building->GetClass() ) )
+			{
+				if ( classOverride->ConstructionVFX )
+				{
+					constructionVFX = classOverride->ConstructionVFX;
+				}
+
+				if ( classOverride->ConstructionDelay >= 0.0f )
+				{
+					constructionDelay = classOverride->ConstructionDelay;
+				}
+			}
+		}
+	}
+
+	if ( constructionVFX )
 	{
 		const FVector spawnLocation = building->GetActorLocation();
 		const FRotator spawnRotation = building->GetActorRotation();
 
-		if ( VFXConfig_->ConstructionDelay > 0.0f )
+		if ( constructionDelay > 0.0f )
 		{
 			FTimerHandle constructionVFXTimer;
 			GetWorldTimerManager().SetTimer(
 			    constructionVFXTimer,
-			    [this, spawnLocation, spawnRotation]()
+			    [this, constructionVFX, spawnLocation, spawnRotation]()
 			    {
-				    if ( VFXConfig_ && VFXConfig_->ConstructionVFX )
-				    {
-					    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-					        GetWorld(), VFXConfig_->ConstructionVFX, spawnLocation, spawnRotation, FVector( 1.0f ),
-					      true
-					    );
-				    }
+				    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				        GetWorld(), constructionVFX, spawnLocation, spawnRotation
+				    );
 			    },
-			    VFXConfig_->ConstructionDelay, false
+			    constructionDelay, false
 			);
 		}
 		else
 		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			    GetWorld(), VFXConfig_->ConstructionVFX, spawnLocation, spawnRotation, FVector( 1.0f ),
-			   true
-			);
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), constructionVFX, spawnLocation, spawnRotation );
 		}
 	}
 

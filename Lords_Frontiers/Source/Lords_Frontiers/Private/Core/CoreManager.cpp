@@ -148,6 +148,7 @@ void UCoreManager::ClearAllReferences()
 	CachedPlayerIndex_ = -1;
 
 	GameLoopManager_ = nullptr;
+	EntityVFXConfig_ = nullptr;
 }
 
 void UCoreManager::UpdateGameLoopDependencies()
@@ -214,6 +215,16 @@ APathPointsManager* UCoreManager::GetPathPointsManager() const
 UGameLoopManager* UCoreManager::GetGameLoop() const
 {
 	return GameLoopManager_.Get();
+}
+
+UEntityVFXConfig* UCoreManager::GetEntityVFXConfig() const
+{
+	return EntityVFXConfig_;
+}
+
+void UCoreManager::SetEntityVFXConfig( UEntityVFXConfig* config )
+{
+	EntityVFXConfig_ = config;
 }
 
 UWorld* UCoreManager::GetWorldSafe() const
@@ -447,8 +458,7 @@ void UCoreManager::SetupManagerConnections()
 	if ( GameLoopManager_ )
 	{
 		GameLoopManager_->Initialize(
-		    nullptr, WaveManager_.Get(), ResourceManager_.Get(),
-		    EconomyComponent_.Get(), PathPointsManager_.Get()
+		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), PathPointsManager_.Get()
 		);
 		UE_LOG( LogCoreManager, Log, TEXT( "GameLoopManager initialized (default config)" ) );
 	}

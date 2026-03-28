@@ -6,6 +6,8 @@
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
@@ -62,6 +64,8 @@ void AUnit::BeginPlay()
 	}
 
 	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
+
+	ResolveVFXDefaults();
 }
 
 void AUnit::Tick( float deltaSeconds )
@@ -175,9 +179,11 @@ void AUnit::OnDeath()
 	}
 	SpawnDeathVFX();
 
-	if ( DeathDestroyDelay_ > 0.0f )
+	if ( ResolvedDeathDestroyDelay_ > 0.0f )
 	{
-		GetWorldTimerManager().SetTimer( DeathTimerHandle_, this, &AUnit::FinalizeDestroy, DeathDestroyDelay_, false );
+		GetWorldTimerManager().SetTimer(
+		    DeathTimerHandle_, this, &AUnit::FinalizeDestroy, ResolvedDeathDestroyDelay_, false
+		);
 	}
 	else
 	{
@@ -187,12 +193,14 @@ void AUnit::OnDeath()
 
 void AUnit::SpawnDeathVFX()
 {
-	if ( !DeathVFX_ )
+	if ( !ResolvedDeathVFX_ )
 	{
 		return;
 	}
 
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), DeathVFX_, GetActorLocation(), GetActorRotation() );
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	    GetWorld(), ResolvedDeathVFX_, GetActorLocation(), GetActorRotation()
+	);
 }
 
 void AUnit::FinalizeDestroy()
@@ -202,7 +210,53 @@ void AUnit::FinalizeDestroy()
 
 UNiagaraSystem* AUnit::GetHitVFX() const
 {
-	return HitVFX_;
+	return ResolvedHitVFX_;
+}
+
+void AUnit::ResolveVFXDefaults()
+{
+	ResolvedDeathVFX_ = DeathVFX_;
+	ResolvedHitVFX_ = HitVFX_;
+	ResolvedDeathDestroyDelay_ = DeathDestroyDelay_ >= 0.0f ? DeathDestroyDelay_ : 1.0f;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			if ( const FUnitVFXOverride* override = config->UnitOverrides.Find( GetClass() ) )
+			{
+				if ( !ResolvedDeathVFX_ && override->DeathVFX )
+				{
+					ResolvedDeathVFX_ = override->DeathVFX;
+				}
+
+				if ( !ResolvedHitVFX_ && override->HitVFX )
+				{
+					ResolvedHitVFX_ = override->HitVFX;
+				}
+
+				if ( DeathDestroyDelay_ < 0.0f && override->DeathDestroyDelay >= 0.0f )
+				{
+					ResolvedDeathDestroyDelay_ = override->DeathDestroyDelay;
+				}
+			}
+
+			if ( !ResolvedDeathVFX_ )
+			{
+				ResolvedDeathVFX_ = config->DefaultUnitDeathVFX;
+			}
+
+			if ( !ResolvedHitVFX_ )
+			{
+				ResolvedHitVFX_ = config->DefaultUnitHitVFX;
+			}
+
+			if ( DeathDestroyDelay_ < 0.0f && ResolvedDeathDestroyDelay_ <= 0.0f )
+			{
+				ResolvedDeathDestroyDelay_ = config->DefaultDeathDestroyDelay;
+			}
+		}
+	}
 }
 
 void AUnit::FollowNextPathTarget()

@@ -1,8 +1,8 @@
 #include "Building/Building.h"
 
-#include "Building/Construction/BuildManager.h"
-#include "Building/Construction/BuildingVFXConfig.h"
 #include "Cards/CardSubsystem.h"
+#include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -55,6 +55,7 @@ void ABuilding::BeginPlay()
 	if ( EconomyComponent_ )
 	{
 	}
+	ResolveVFXDefaults();
 }
 
 void ABuilding::OnDeath()
@@ -66,20 +67,9 @@ void ABuilding::OnDeath()
 
 	SpawnDestructionVFX();
 
-	float ruinDelay = 0.0f;
-
-	if ( const ABuildManager* buildManager =
-	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
+	if ( ResolvedRuinDelay_ > 0.0f )
 	{
-		if ( const UBuildingVFXConfig* vfxConfig = buildManager->VFXConfig_ )
-		{
-			ruinDelay = vfxConfig->RuinDelay;
-		}
-	}
-
-	if ( ruinDelay > 0.0f )
-	{
-		GetWorldTimerManager().SetTimer( RuinTimerHandle_, this, &ABuilding::FinalizeRuin, ruinDelay, true );
+		GetWorldTimerManager().SetTimer( RuinTimerHandle_, this, &ABuilding::FinalizeRuin, ResolvedRuinDelay_, true );
 	}
 	else
 	{
@@ -89,18 +79,64 @@ void ABuilding::OnDeath()
 
 UNiagaraSystem* ABuilding::GetHitVFX() const
 {
-	return HitVFX_;
+	return ResolvedHitVFX_;
+}
+
+void ABuilding::ResolveVFXDefaults()
+{
+	ResolvedHitVFX_ = HitVFX_;
+	ResolvedDestructionVFX_ = DestructionVFX_;
+	ResolvedRuinDelay_ = 0.0f;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			if ( const FBuildingVFXOverride* classOverride = config->BuildingOverrides.Find( GetClass() ) )
+			{
+				if ( !ResolvedHitVFX_ && classOverride->HitVFX )
+				{
+					ResolvedHitVFX_ = classOverride->HitVFX;
+				}
+
+				if ( !ResolvedDestructionVFX_ && classOverride->DestructionVFX )
+				{
+					ResolvedDestructionVFX_ = classOverride->DestructionVFX;
+				}
+
+				if ( classOverride->RuinDelay >= 0.0f )
+				{
+					ResolvedRuinDelay_ = classOverride->RuinDelay;
+				}
+			}
+
+			if ( !ResolvedHitVFX_ )
+			{
+				ResolvedHitVFX_ = config->DefaultBuildingHitVFX;
+			}
+
+			if ( !ResolvedDestructionVFX_ )
+			{
+				ResolvedDestructionVFX_ = config->DefaultBuildingDestructionVFX;
+			}
+
+			if ( ResolvedRuinDelay_ <= 0.0f )
+			{
+				ResolvedRuinDelay_ = config->DefaultRuinDelay;
+			}
+		}
+	}
 }
 
 void ABuilding::SpawnDestructionVFX()
 {
-	if ( !DestructionVFX_ )
+	if ( !ResolvedDestructionVFX_ )
 	{
 		return;
 	}
 
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-	    GetWorld(), DestructionVFX_, GetActorLocation(), GetActorRotation(), FVector( 1.0f ), true
+	    GetWorld(), ResolvedDestructionVFX_, GetActorLocation(), GetActorRotation(), FVector( 1.0f ), true
 	);
 }
 
