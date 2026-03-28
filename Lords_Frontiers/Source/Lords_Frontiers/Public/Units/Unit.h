@@ -64,6 +64,11 @@ public:
 		return Stats_.Team();
 	}
 
+	virtual ETeam Team() override
+	{
+		return Stats_.Team();
+	}
+
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override
 	{
 		return UnitBehaviorTree_;

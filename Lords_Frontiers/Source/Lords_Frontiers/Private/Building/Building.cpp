@@ -195,6 +195,10 @@ const FEntityStats& ABuilding::Stats() const
 {
 	return Stats_;
 }
+ETeam ABuilding::Team()
+{
+	return Stats_.Team();
+}
 
 ETeam ABuilding::Team() const
 {

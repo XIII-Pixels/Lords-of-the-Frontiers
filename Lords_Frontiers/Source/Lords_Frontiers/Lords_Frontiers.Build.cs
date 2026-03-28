@@ -10,20 +10,20 @@ public class Lords_Frontiers : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[]
         {
-            "Core",
-            "CoreUObject",
-            "Engine",
-            "InputCore",
-            "UMG",
-            "NavigationSystem",
-            "Slate",
-            "SlateCore",
-            "EnhancedInput",
-            "Json",
-            "JsonUtilities",
-            "Niagara",
-            "AIModule",
-            "GameplayTasks"
+	        "Core",
+	        "CoreUObject",
+	        "Engine",
+	        "InputCore",
+	        "UMG",
+	        "NavigationSystem",
+	        "Slate",
+	        "SlateCore",
+	        "EnhancedInput",
+	        "Json",
+	        "JsonUtilities",
+	        "Niagara",
+	        "AIModule",
+	        "GameplayTasks"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });
