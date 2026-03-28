@@ -8,11 +8,13 @@
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -48,6 +50,7 @@ void UGameLoopManager::Initialize(
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
 		BindToWaveManager();
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsInitialized_ = ResourceManager_.IsValid();
@@ -485,6 +488,7 @@ void UGameLoopManager::EnterBuildingPhase()
 
 	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
 	{
+		ec->PerformInitialScan();
 		ec->RecalculateAndBroadcastNetIncome();
 	}
 }
@@ -642,10 +646,6 @@ void UGameLoopManager::GrantStartingResources()
 	}
 
 	OnResourcesGranted.Broadcast( start );
-
-	Log( FString::Printf(
-	    TEXT( "Starting resources granted: Gold=%d, Food=%d, Pop=%d" ), start.Gold, start.Food, start.Population
-	) );
 }
 
 void UGameLoopManager::GrantCombatReward()

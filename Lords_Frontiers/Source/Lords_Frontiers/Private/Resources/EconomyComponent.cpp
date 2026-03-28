@@ -19,6 +19,7 @@ void UEconomyComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	FindSystems();
+	SubscribeToCardEvents();
 }
 
 void UEconomyComponent::FindSystems()

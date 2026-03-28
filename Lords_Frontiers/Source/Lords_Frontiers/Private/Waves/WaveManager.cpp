@@ -1,7 +1,6 @@
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
-#include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
@@ -278,6 +277,16 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
+	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
+	{
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
+		    groupIndex
+		);
+		return;
+	}
+
+	SpawnedUnits_.Add( spawned );
 	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
 	{
 		UE_LOG(

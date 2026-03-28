@@ -59,7 +59,7 @@ void ABaseProjectile::ActivateFromPool()
 {
 	StartLocation_ = GetActorLocation();
 
-	if ( IsValid( Target_ ) )
+	if ( Target_.IsValid() )
 	{
 		TargetLocation_ = Target_->GetActorLocation();
 	}
@@ -84,13 +84,12 @@ void ABaseProjectile::ActivateFromPool()
 	);
 }
 
-bool ABaseProjectile::InitializeProjectile(
-    AActor* inInstigator, AActor* inTarget, int inDamage, float inSpeed, const FVector& spawnOffset,
+bool ABaseProjectile::Initialize(
+    AActor* inInstigator, TWeakObjectPtr<AActor> inTarget, int inDamage, float inSpeed, const FVector& spawnOffset,
     float inSplashRadius, float inMaxRange, bool bTrackTarget
 )
 {
-
-	if ( !IsValid( inInstigator ) || !IsValid( inTarget ) )
+	if ( !IsValid( inInstigator ) || !inTarget.IsValid() )
 	{
 		return false;
 	}
@@ -110,7 +109,7 @@ bool ABaseProjectile::InitializeProjectile(
 	FCollisionQueryParams GroundTraceParams;
 	GroundTraceParams.AddIgnoredActor( this );
 	GroundTraceParams.AddIgnoredActor( inInstigator );
-	GroundTraceParams.AddIgnoredActor( inTarget );
+	GroundTraceParams.AddIgnoredActor( inTarget.Get() );
 
 	if ( GetWorld()->LineTraceSingleByChannel(
 	         GroundHit, TargetPos, TargetPos - FVector( 0, 0, 1000.f ), ECC_Visibility, GroundTraceParams
@@ -141,11 +140,11 @@ void ABaseProjectile::Tick( float deltaTime )
 		return;
 	}
 
-	if ( bTrackTarget_ && IsValid( Target_ ) )
+	if ( bTrackTarget_ && IsValid( Target_.Get() ) )
 	{
 		TargetLocation_ = Target_->GetActorLocation();
 
-		IEntity* entity = Cast<IEntity>( Target_ );
+		const IEntity* entity = Cast<IEntity>( Target_.Get() );
 		if ( entity && !entity->Stats().IsAlive() )
 		{
 			Target_ = nullptr;
@@ -159,9 +158,9 @@ void ABaseProjectile::Tick( float deltaTime )
 		const FVector ImpactLocation( TargetLocation_.X, TargetLocation_.Y, GroundZ_ );
 		SetActorLocation( ImpactLocation );
 
-		if ( bTrackTarget_ && IsValid( Target_ ) )
+		if ( bTrackTarget_ && Target_.IsValid() )
 		{
-			DealDamage( Target_ );
+			DealDamage( Target_.Get() );
 		}
 		else
 		{
@@ -196,12 +195,12 @@ void ABaseProjectile::OnCollisionStart(
 		return;
 	}
 
-	if ( IsValid( Target_ ) && otherActor == Target_ )
+	if ( Target_.IsValid() && otherActor == Target_ )
 	{
 		DealDamage( otherActor );
 		ReturnToPool();
 	}
-	else if ( !bTrackTarget_ || !IsValid( Target_ ) )
+	else if ( !bTrackTarget_ || !Target_.IsValid() )
 	{
 		IEntity* enemy = Cast<IEntity>( otherActor );
 		if ( !enemy || !enemy->Stats().IsAlive() )

@@ -32,10 +32,13 @@ protected:
 	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
 	void MoveTowardsTarget( float deltaTime );
-	void RotateForward( float deltaTime );
 	void SnapToGround() const;
 	void Sway( float deltaTime );
 	void ResolveUnitOnUnwalkableCell();
+
+	void Rotate( float deltaTime );
+	void RotateTowardsAttackTarget( float deltaTime );
+	void RotateForward( float deltaTime );
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float RotationSpeed_ = 5.0f;
