@@ -4,11 +4,9 @@
 
 #include "AIController.h"
 #include "Attacker.h"
-#include "Building/Building.h"
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
-
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggressionComponent.h"
 #include "CoreMinimal.h"

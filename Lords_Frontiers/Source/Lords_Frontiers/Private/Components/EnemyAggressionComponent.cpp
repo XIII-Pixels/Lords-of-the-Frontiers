@@ -105,12 +105,12 @@ void UEnemyAggressionComponent::FollowPath() const
 			unit->SetFollowedTarget( nullptr );
 		}
 	}
-	else
+	else if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor().IsValid() )
 	{
 		if ( IsValid( UnitAIManager_->PathPointsManager() ) )
 		{
 			unit->SetFollowedTarget(
-			    Cast<AActor>( UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ) )
+				Cast<AActor>( UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ) )
 			);
 		}
 	}

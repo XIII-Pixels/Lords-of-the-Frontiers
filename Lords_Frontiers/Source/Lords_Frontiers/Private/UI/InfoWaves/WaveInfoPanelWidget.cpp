@@ -1,0 +1,39 @@
+#include "UI/InfoWaves/WaveInfoPanelWidget.h"
+
+#include "UI/InfoWaves/EnemyInfoDataAsset.h"
+#include "UI/InfoWaves/EnemyRowWidget.h"
+
+#include "Components/HorizontalBox.h"
+#include "Units/Unit.h"
+
+void UWaveInfoPanelWidget::PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>& waveData )
+{
+	if ( !EnemyListContainer || !EnemyRowClass )
+		return;
+
+	EnemyListContainer->ClearChildren();
+
+	for ( const auto& Pair : waveData )
+	{
+		TSubclassOf<AUnit> EnemyClass = Pair.Key;
+		int32 Count = Pair.Value;
+
+		if ( EnemyDataAsset && EnemyDataAsset->EnemyDataMap.Contains( EnemyClass ) )
+		{
+			FEnemyUIData UIData = EnemyDataAsset->EnemyDataMap[EnemyClass];
+
+			UEnemyRowWidget* RowWidget = CreateWidget<UEnemyRowWidget>( this, EnemyRowClass );
+			if ( RowWidget )
+			{
+				RowWidget->SetupRow( UIData, Count );
+				EnemyListContainer->AddChildToHorizontalBox( RowWidget );
+			}
+		}
+		else
+		{
+			UE_LOG(
+			    LogTemp, Warning, TEXT( "Enemy data not found in DataAsset for class: %s" ), *EnemyClass->GetName()
+			);
+		}
+	}
+}

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AttackComponent.h"
+#include "EntityStats.h"
 #include "Attacker.h"
 
 #include "CoreMinimal.h"
@@ -11,7 +12,7 @@
 
 class IEntity;
 class USphereComponent;
-class AProjectile;
+class ABaseProjectile;
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
@@ -54,6 +55,12 @@ protected:
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
+	void FireSingleProjectile( TObjectPtr<AActor> target );
+
+	void FireNextBurstShot();
+
+	TArray<TObjectPtr<AActor>> FindNeighborTargets( int32 count ) const;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
 
@@ -61,7 +68,7 @@ protected:
 	bool bCanAttackBackward_ = true;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	TSubclassOf<AProjectile> ProjectileClass_;
+	TSubclassOf<ABaseProjectile> ProjectileClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float ProjectileSpeed_ = 1500.0f;
@@ -69,10 +76,20 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	FVector ProjectileSpawnPosition_;
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	bool bTrackTarget_ = true;
+
 	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;
 
 	EAttackFilter AttackFilter_ = EAttackFilter::Everything;
+
+	int32 CurrentBurstIndex_ = 0;
+	bool bBurstInProgress_ = false;
+
+	UPROPERTY()
+	TArray<TObjectPtr<AActor>> BurstTargets_;
+
+	FTimerHandle BurstTimerHandle_;
 };

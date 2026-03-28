@@ -8,11 +8,13 @@
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -48,6 +50,7 @@ void UGameLoopManager::Initialize(
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
 		BindToWaveManager();
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsInitialized_ = ResourceManager_.IsValid();
@@ -92,6 +95,8 @@ void UGameLoopManager::UpdateDependencies(
 		BindToWaveManager();
 	}
 
+	bIsInitialized_ = ResourceManager_.IsValid();
+
 	Log( FString::Printf(
 	    TEXT( "Dependencies updated. WaveManager: %s, ResourceManager: %s" ),
 	    WaveManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
@@ -113,6 +118,11 @@ void UGameLoopManager::Cleanup()
 	{
 		world->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
 		world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
+
+		if ( UCardSubsystem* cardSub = UCardSubsystem::Get( world ) )
+		{
+			cardSub->ResetCardHistory();
+		}
 	}
 
 	CurrentPhase_ = EGameLoopPhase::None;
@@ -172,21 +182,25 @@ void UGameLoopManager::Tick( float deltaTime )
 
 void UGameLoopManager::StartGame()
 {
+	RefreshDependencies();
+
+	if ( ResourceManager_.IsValid() )
+		ResourceManager_->ResetResources();
+	if ( EconomyComponent_.IsValid() )
+		EconomyComponent_->ResetEconomy();
+
 	if ( !bIsInitialized_ )
 	{
 		Log( TEXT( "ERROR: Cannot start - not initialized!" ) );
 		return;
 	}
 
-	if ( bIsGameStarted_ )
-	{
-		Log( TEXT( "WARNING: Game already started" ) );
-		return;
-	}
 
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
 	bWaitingForCardSelection_ = false;
+
+	CurrentPhase_ = EGameLoopPhase::None;
 	CurrentWave_ = 1;
 	CurrentBuildTurn_ = 0;
 	bPerfectWave_ = true;
@@ -471,6 +485,12 @@ void UGameLoopManager::EnterBuildingPhase()
 	OnBuildTurnChanged.Broadcast( CurrentBuildTurn_, GetMaxBuildTurns() );
 
 	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
+
+	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+	{
+		ec->PerformInitialScan();
+		ec->RecalculateAndBroadcastNetIncome();
+	}
 }
 
 void UGameLoopManager::EnterCombatPhase()
@@ -582,10 +602,6 @@ void UGameLoopManager::EnterVictoryPhase()
 	OnGameEnded.Broadcast( true );
 
 	Log( TEXT( "=== VICTORY! ===" ) );
-
-	const FName levelName = FName( TEXT( "Win" ) );
-	UWorld* world = GetWorldSafe();
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::EnterDefeatPhase()
@@ -603,27 +619,18 @@ void UGameLoopManager::EnterDefeatPhase()
 	OnGameEnded.Broadcast( false );
 
 	Log( TEXT( "=== DEFEAT ===" ) );
-
-	const FName levelName = FName( TEXT( "Lose" ) );
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::GrantStartingResources()
 {
-	if ( !Config_ )
-	{
-		Log( TEXT( "WARNING: No config for starting resources" ) );
-		return;
-	}
+	UResourceManager* rm = ResourceManager_.Get();
 
-	if ( !ResourceManager_.IsValid() )
+	if ( !Config_ || !rm )
 	{
-		Log( TEXT( "ERROR: ResourceManager is INVALID!" ) );
 		return;
 	}
 
 	const FResourceReward& start = Config_->StartingResources;
-	UResourceManager* rm = ResourceManager_.Get();
 
 	if ( start.Gold > 0 )
 	{
@@ -639,10 +646,6 @@ void UGameLoopManager::GrantStartingResources()
 	}
 
 	OnResourcesGranted.Broadcast( start );
-
-	Log( FString::Printf(
-	    TEXT( "Starting resources granted: Gold=%d, Food=%d, Pop=%d" ), start.Gold, start.Food, start.Population
-	) );
 }
 
 void UGameLoopManager::GrantCombatReward()
@@ -779,6 +782,7 @@ void UGameLoopManager::BindToWaveManager()
 	{
 		wm->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.AddDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 		bIsBoundToWaveManager_ = true;
 
 		Log( TEXT( "Bound to WaveManager" ) );
@@ -796,6 +800,7 @@ void UGameLoopManager::UnbindFromWaveManager()
 	{
 		wm->OnWaveEnded.RemoveDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.RemoveDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.RemoveDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsBoundToWaveManager_ = false;
@@ -841,5 +846,40 @@ void UGameLoopManager::ExecuteHealingPulse()
 		{
 			world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
 		}
+
+		if ( UEconomyComponent* ec = EconomyComponent_.Get() )
+		{
+			ec->RecalculateAndBroadcastNetIncome();
+		}
 	}
+}
+void UGameLoopManager::HandleWaveEndScheduled( float secondsRemaining )
+{
+	if ( GetWorld() )
+	{
+		GetWorld()->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
+	}
+
+	CombatTimeRemaining_ = secondsRemaining;
+
+	OnCombatTimerUpdated.Broadcast( CombatTimeRemaining_, CombatTimeRemaining_ );
+}
+
+void UGameLoopManager::RefreshDependencies()
+{
+	UCoreManager* core = UCoreManager::Get( GetWorldSafe() );
+	if ( !core )
+		return;
+
+	ResourceManager_ = core->GetResourceManager();
+	EconomyComponent_ = core->GetEconomyComponent();
+	WaveManager_ = core->GetWaveManager();
+
+	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
+	{
+		BindToWaveManager();
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
+	}
+
+	bIsInitialized_ = ResourceManager_.IsValid();
 }

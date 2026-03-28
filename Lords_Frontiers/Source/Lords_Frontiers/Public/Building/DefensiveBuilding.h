@@ -26,7 +26,7 @@ class LORDS_FRONTIERS_API ADefensiveBuilding : public ABuilding, public IAttacke
 public:
 	ADefensiveBuilding();
 
-	virtual void OnConstruction(const FTransform& transform) override;
+	virtual void OnConstruction( const FTransform& transform ) override;
 
 	UFUNCTION( BlueprintCallable, BlueprintPure, Category = "Settings|Wall" )
 	const FWallMeshSet& GetWallMeshes() const
@@ -34,7 +34,7 @@ public:
 		return WallMeshSet_;
 	}
 
-	virtual void Attack(TObjectPtr<AActor> hitActor) override;
+	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
@@ -47,6 +47,10 @@ public:
 	{
 		AttackTarget_ = newTarget;
 	}
+
+	virtual void RestoreFromRuins() override;
+
+	virtual void FullRestore() override;
 
 protected:
 	virtual void BeginPlay() override;

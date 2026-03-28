@@ -1,17 +1,18 @@
 #pragma once
 
+#include "Building/Bonus/BuildingBonusComponent.h"
 #include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
-#include "Building/Bonus/BuildingBonusComponent.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
 #include "Building.generated.h"
 
+class UEconomyComponent;
 class UBoxComponent;
 
 UCLASS( Abstract )
@@ -24,9 +25,9 @@ public:
 
 	bool IsDestroyed() const;
 
-	void RestoreFromRuins();
+	virtual void RestoreFromRuins();
 
-	void FullRestore();
+	virtual void FullRestore();
 
 	virtual FString GetNameBuild();
 
@@ -34,7 +35,7 @@ public:
 
 	virtual ETeam Team() const override;
 
-	virtual void TakeDamage( float damage ) override;
+	virtual void TakeDamage( int damage ) override;
 
 	virtual void OnSelected_Implementation() override;
 
@@ -112,6 +113,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> DefaultMesh_;
+
+	UPROPERTY()
+	TObjectPtr<UEconomyComponent> EconomyComponent_;
 
 private:
 	FResourceProduction OriginalMaintenanceCost_;
