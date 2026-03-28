@@ -140,10 +140,18 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedDestructionVFX_;
 
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedConstructionVFX_;
+
 	float ResolvedRuinDelay_ = 0.0f;
+	float ResolvedConstructionDelay_ = 0.0f;
+
+	void SpawnConstructionVFX();
 
 private:
 	FTimerHandle RuinTimerHandle_;
+	FTimerHandle ConstructionVFXTimerHandle_;
+
 
 	FResourceProduction OriginalMaintenanceCost_;
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
