@@ -33,15 +33,6 @@ TObjectPtr<UBehaviorTree> ADefensiveBuilding::BehaviorTree() const
 	return BuildingBehaviorTree_;
 }
 
-TObjectPtr<AActor> ADefensiveBuilding::EnemyInSight() const
-{
-	if ( AttackComponent_ )
-	{
-		return AttackComponent_->EnemyInSight();
-	}
-	return nullptr;
-}
-
 void ADefensiveBuilding::BeginPlay()
 {
 	Super::BeginPlay();

@@ -36,7 +36,7 @@ EBTNodeResult::Type UGetEnemyInSightTask::ExecuteTask( UBehaviorTreeComponent& o
 		return EBTNodeResult::Failed;
 	}
 
-	blackboard->SetValueAsObject( GetSelectedBlackboardKey(), attacker->EnemyInSight() );
+	blackboard->SetValueAsObject( GetSelectedBlackboardKey(), const_cast<AActor*>( attacker->AttackTarget().Get() ) );
 
 	return EBTNodeResult::Succeeded;
 }

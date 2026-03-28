@@ -38,7 +38,15 @@ public:
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+	virtual TWeakObjectPtr<AActor> AttackTarget() const override
+	{
+		return AttackTarget_;
+	}
+
+	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
+	{
+		AttackTarget_ = newTarget;
+	}
 
 	virtual void RestoreFromRuins() override;
 
@@ -57,6 +65,9 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> BuildingBehaviorTree_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<AActor> AttackTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;

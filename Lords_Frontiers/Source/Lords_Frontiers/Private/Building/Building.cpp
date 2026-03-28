@@ -1,14 +1,20 @@
 #include "Building/Building.h"
 
 #include "Cards/CardSubsystem.h"
+
+#include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/EntityVFXConfig.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Utilities/TraceChannelMappings.h"
+
+#include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
+
 ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -185,7 +191,12 @@ FEntityStats& ABuilding::Stats()
 	return Stats_;
 }
 
-ETeam ABuilding::Team()
+const FEntityStats& ABuilding::Stats() const
+{
+	return Stats_;
+}
+
+ETeam ABuilding::Team() const
 {
 	return Stats_.Team();
 }

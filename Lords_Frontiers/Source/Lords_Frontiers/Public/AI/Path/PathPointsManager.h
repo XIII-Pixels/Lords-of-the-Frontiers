@@ -39,9 +39,12 @@ public:
 	 * @param point - point
 	 * @param buildingAware - if true points on cells with buildings are not visible */
 	void ShowPoint( APathTargetPoint* point, bool buildingAware = true ) const;
-
 	// Make point mesh invisible
 	void HidePoint( APathTargetPoint* point ) const;
+
+	// True if actor is on one of the cells that path steps on
+	// Path destination is on path as well
+	bool ActorIsOnPath( const AActor* enemyActor, const UPath* path ) const;
 
 	void SetGoalActor( const TWeakObjectPtr<AActor>& goalActor )
 	{

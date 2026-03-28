@@ -31,7 +31,9 @@ public:
 	virtual void TakeDamage( int damage ) = 0;
 
 	virtual FEntityStats& Stats() = 0;
+	virtual const FEntityStats& Stats() const = 0;
 
+	virtual ETeam Team() const = 0;
 	virtual ETeam Team() = 0;
 
 	virtual UNiagaraSystem* GetHitVFX() const
