@@ -92,7 +92,7 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 	}
 }
 
-void AUnit::TakeDamage( float damage )
+void AUnit::TakeDamage( int damage )
 {
 	if ( !Stats_.IsAlive() )
 	{

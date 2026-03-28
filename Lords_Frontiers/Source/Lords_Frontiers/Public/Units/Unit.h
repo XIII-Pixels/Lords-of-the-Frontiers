@@ -44,11 +44,16 @@ public:
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
-	virtual void TakeDamage( float damage ) override;
+	virtual void TakeDamage( int damage ) override;
 
 	void ChangeStats( FEnemyBuff* buff );
 
 	virtual FEntityStats& Stats() override
+	{
+		return Stats_;
+	}
+
+	virtual FEntityStats Stats() const override
 	{
 		return Stats_;
 	}
@@ -75,12 +80,12 @@ public:
 	}
 
 	// Target that unit might attack
-	virtual TWeakObjectPtr<const AActor> AttackTarget() const override
+	virtual TWeakObjectPtr<AActor> AttackTarget() const override
 	{
 		return AttackTarget_;
 	}
 
-	virtual void SetAttackTarget( TWeakObjectPtr<const AActor> newTarget ) override
+	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
 	{
 		AttackTarget_ = newTarget;
 	}
@@ -126,7 +131,7 @@ protected:
 	TWeakObjectPtr<const AActor> FollowedTarget_;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
-	TWeakObjectPtr<const AActor> AttackTarget_;
+	TWeakObjectPtr<AActor> AttackTarget_;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<const ABuilding> TargetBuilding_;

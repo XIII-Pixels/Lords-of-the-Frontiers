@@ -22,6 +22,6 @@ class LORDS_FRONTIERS_API IAttacker
 public:
 	virtual void Attack( TObjectPtr<AActor> hitActor ) = 0;
 
-	virtual TWeakObjectPtr<const AActor> AttackTarget() const = 0;
-	virtual void SetAttackTarget( TWeakObjectPtr<const AActor> newTarget ) = 0;
+	virtual TWeakObjectPtr<AActor> AttackTarget() const = 0;
+	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) = 0;
 };

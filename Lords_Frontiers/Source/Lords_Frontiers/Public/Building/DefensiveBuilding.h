@@ -38,12 +38,12 @@ public:
 
 	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
 
-	virtual TWeakObjectPtr<const AActor> AttackTarget() const override
+	virtual TWeakObjectPtr<AActor> AttackTarget() const override
 	{
 		return AttackTarget_;
 	}
 
-	virtual void SetAttackTarget( TWeakObjectPtr<const AActor> newTarget ) override
+	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
 	{
 		AttackTarget_ = newTarget;
 	}
@@ -68,7 +68,7 @@ protected:
 	TObjectPtr<UBehaviorTree> BuildingBehaviorTree_;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
-	TWeakObjectPtr<const AActor> AttackTarget_;
+	TWeakObjectPtr<AActor> AttackTarget_;
 
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;

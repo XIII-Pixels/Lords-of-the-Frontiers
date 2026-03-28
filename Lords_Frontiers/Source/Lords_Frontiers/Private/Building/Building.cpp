@@ -1,10 +1,11 @@
 #include "Building/Building.h"
-#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
-#include "Kismet/GameplayStatics.h"
+
 #include "Cards/CardSubsystem.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Utilities/TraceChannelMappings.h"
 
 #include "Components/BoxComponent.h"
-#include "Utilities/TraceChannelMappings.h"
+#include "Kismet/GameplayStatics.h"
 
 ABuilding::ABuilding()
 {
@@ -42,7 +43,6 @@ void ABuilding::BeginPlay()
 		EconomyComponent_->RegisterBuilding( this );
 
 		EconomyComponent_->RecalculateAndBroadcastNetIncome();
-
 	}
 
 	if ( UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this ) )
@@ -92,13 +92,18 @@ void ABuilding::OnDeath()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 3.0f, FColor::Orange,
-			FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
+		    -1, 3.0f, FColor::Orange,
+		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
 }
 
 FEntityStats& ABuilding::Stats()
+{
+	return Stats_;
+}
+
+FEntityStats ABuilding::Stats() const
 {
 	return Stats_;
 }
@@ -145,7 +150,7 @@ void ABuilding::OnSelected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
+		    -1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
 		);
 	}
 
@@ -160,7 +165,7 @@ void ABuilding::OnDeselected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
+		    -1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
 		);
 	}
 

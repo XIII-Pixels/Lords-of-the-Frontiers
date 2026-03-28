@@ -9,9 +9,7 @@
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "Entity.h"
-#include "Grid/GridManager.h"
 #include "Projectiles/BaseProjectile.h"
-#include "Projectiles/Projectile.h"
 #include "Units/Unit.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -86,27 +84,18 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	const int32 burstCount = ownerEntity->Stats().BurstCount();
 	if ( burstCount <= 1 )
 	{
-		FireSingleProjectile( ownerAttacker->AttackTarget() );
+		FireSingleProjectile( ownerAttacker->AttackTarget().Get() );
 		ownerEntity->Stats().StartCooldown();
 		return;
 	}
 
-	if ( ProjectileClass_ )
-	{
-		const FActorSpawnParameters spawnParams;
-		const auto projectile = world->SpawnActor<AProjectile>( ProjectileClass_, spawnTransform, spawnParams );
-		projectile->Initialize( AttackTarget(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_ );
-		projectile->Launch();
-		ownerEntity->Stats().StartCooldown();
-	}
-
 	BurstTargets_.Empty();
 
-	if ( OwnerEntity_->Stats().BurstTargetMode() == EBurstTargetMode::SameTarget )
+	if ( ownerEntity->Stats().BurstTargetMode() == EBurstTargetMode::SameTarget )
 	{
 		for ( int32 i = 0; i < burstCount; ++i )
 		{
-			BurstTargets_.Add( EnemyInSight_ );
+			BurstTargets_.Add( ownerAttacker->AttackTarget() );
 		}
 	}
 	else
@@ -138,6 +127,7 @@ void UAttackRangedComponent::ActivateSight()
 void UAttackRangedComponent::DeactivateSight()
 {
 	GetWorld()->GetTimerManager().ClearTimer( SightTimerHandle_ );
+	GetWorld()->GetTimerManager().ClearTimer( BurstTimerHandle_ );
 	bBurstInProgress_ = false;
 	BurstTargets_.Empty();
 	if ( IAttacker* ownerAttacker = GetOwner<IAttacker>() )
@@ -248,10 +238,16 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 	return false;
 }
 
-void UAttackRangedComponent::FireSingleProjectile( TObjectPtr<AActor> target )
+void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target ) const
 {
 	UWorld* world = GetOwner()->GetWorld();
-	if ( !world || !target || !ProjectileClass_ )
+	if ( !world || !target.IsValid() || !ProjectileClass_ )
+	{
+		return;
+	}
+
+	const IEntity* ownerEntity = GetOwner<IEntity>();
+	if ( !ownerEntity )
 	{
 		return;
 	}
@@ -268,9 +264,9 @@ void UAttackRangedComponent::FireSingleProjectile( TObjectPtr<AActor> target )
 		return;
 	}
 
-	const bool bInitialized = projectile->InitializeProjectile(
-	    GetOwner(), target, OwnerEntity_->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    OwnerEntity_->Stats().SplashRadius(), OwnerEntity_->Stats().AttackRange(), bTrackTarget_
+	const bool bInitialized = projectile->Initialize(
+	    GetOwner(), target.Get(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
+	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bTrackTarget_
 	);
 
 	if ( !bInitialized )
@@ -321,7 +317,9 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 
 void UAttackRangedComponent::FireNextBurstShot()
 {
-	if ( !OwnerIsValid() || !bBurstInProgress_ )
+	const IEntity* ownerEntity = GetOwner<IEntity>();
+	const IAttacker* ownerAttacker = GetOwner<IAttacker>();
+	if ( !ownerEntity || !ownerAttacker || !bBurstInProgress_ )
 	{
 		bBurstInProgress_ = false;
 		BurstTargets_.Empty();
@@ -330,34 +328,34 @@ void UAttackRangedComponent::FireNextBurstShot()
 
 	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )
 	{
-		OwnerEntity_->Stats().StartCooldown();
+		ownerEntity->Stats().StartCooldown();
 		bBurstInProgress_ = false;
 		BurstTargets_.Empty();
 		return;
 	}
 
-	TObjectPtr<AActor> target = BurstTargets_[CurrentBurstIndex_];
+	TWeakObjectPtr<AActor> target = BurstTargets_[CurrentBurstIndex_];
 
-	if ( !IsValid( target ) || !Cast<IEntity>( target ) || !Cast<IEntity>( target )->Stats().IsAlive() )
+	if ( !target.IsValid() || !Cast<IEntity>( target ) || !Cast<IEntity>( target )->Stats().IsAlive() )
 	{
-		target = EnemyInSight_;
+		target = ownerAttacker->AttackTarget();
 	}
 
-	if ( IsValid( target ) )
+	if ( target.IsValid() )
 	{
 		FireSingleProjectile( target );
 	}
 	++CurrentBurstIndex_;
 	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )
 	{
-		OwnerEntity_->Stats().StartCooldown();
+		ownerEntity->Stats().StartCooldown();
 		bBurstInProgress_ = false;
 		BurstTargets_.Empty();
 	}
 	else
 	{
 		GetWorld()->GetTimerManager().SetTimer(
-		    BurstTimerHandle_, this, &UAttackRangedComponent::FireNextBurstShot, OwnerEntity_->Stats().BurstDelay(),
+		    BurstTimerHandle_, this, &UAttackRangedComponent::FireNextBurstShot, ownerEntity->Stats().BurstDelay(),
 		    false
 		);
 	}

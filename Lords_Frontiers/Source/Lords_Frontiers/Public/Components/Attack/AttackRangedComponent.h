@@ -55,7 +55,7 @@ protected:
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
-	void FireSingleProjectile( TObjectPtr<AActor> target );
+	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
 	void FireNextBurstShot();
 
@@ -89,7 +89,7 @@ protected:
 	bool bBurstInProgress_ = false;
 
 	UPROPERTY()
-	TArray<TObjectPtr<AActor>> BurstTargets_;
+	TArray<TWeakObjectPtr<AActor>> BurstTargets_;
 
 	FTimerHandle BurstTimerHandle_;
 };

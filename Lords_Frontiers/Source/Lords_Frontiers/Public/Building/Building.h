@@ -33,6 +33,8 @@ public:
 
 	virtual FEntityStats& Stats() override;
 
+	virtual FEntityStats Stats() const override;
+
 	virtual ETeam Team() const override;
 
 	virtual void TakeDamage( int damage ) override;
