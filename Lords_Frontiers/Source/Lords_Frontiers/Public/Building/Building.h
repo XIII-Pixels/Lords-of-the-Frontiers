@@ -14,6 +14,7 @@
 
 class UEconomyComponent;
 class UBoxComponent;
+class UNiagaraSystem;
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -91,7 +92,19 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
 	FResourceProduction MaintenanceCost;
 
+	virtual UNiagaraSystem* GetHitVFX() const override;
+	void ResolveVFXDefaults();
+
 	virtual void OnDeath();
+
+	void FinalizeRuin();
+
+	void SpawnDestructionVFX();
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> DestructionVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> HitVFX_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UStaticMesh> RuinedMesh_;
@@ -116,8 +129,17 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UEconomyComponent> EconomyComponent_;
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedDestructionVFX_;
+
+	float ResolvedRuinDelay_ = 0.0f;
 
 private:
+	FTimerHandle RuinTimerHandle_;
+
 	FResourceProduction OriginalMaintenanceCost_;
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;

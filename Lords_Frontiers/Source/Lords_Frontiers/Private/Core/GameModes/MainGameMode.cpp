@@ -4,13 +4,13 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "Core/GameLoopManager.h"
 #include "Grid/GridManager.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
-
 AMainGameMode::AMainGameMode()
 {
 }
@@ -41,6 +41,7 @@ void AMainGameMode::InitializeGameSystems()
 
 	Core->InitializeSystems();
 	Core->RefreshSystemReferences();
+	Core->SetEntityVFXConfig( EntityVFXConfig );
 
 	UGameLoopManager* GL = Core->GetGameLoop();
 	if ( !GL )

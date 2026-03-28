@@ -17,7 +17,7 @@ class USelectionManagerComponent;
 class UGameLoopManager;
 class UGameLoopConfig;
 class UWorld;
-
+class UEntityVFXConfig;
 /** Broadcast when all critical systems are initialized and ready. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnCoreSystemsReady );
 
@@ -179,6 +179,10 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	UGameLoopManager* GetGameLoop() const;
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Config" )
+	UEntityVFXConfig* GetEntityVFXConfig() const;
+
+	void SetEntityVFXConfig( UEntityVFXConfig* config );
 	/**
 	 * Registers a WaveManager with CoreManager.
 	 * Called by WaveManager::BeginPlay().
@@ -302,6 +306,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UGameLoopManager> GameLoopManager_;
 
+	UPROPERTY()
+	TObjectPtr<UEntityVFXConfig> EntityVFXConfig_;
 	/** Cached PlayerController to avoid repeated lookups. Mutable for const getters. */
 	mutable TWeakObjectPtr<APlayerController> CachedPlayerController_;
 
