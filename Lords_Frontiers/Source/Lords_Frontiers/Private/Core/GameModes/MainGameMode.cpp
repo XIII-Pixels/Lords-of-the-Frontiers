@@ -17,6 +17,12 @@ AMainGameMode::AMainGameMode()
 
 void AMainGameMode::StartPlay()
 {
+
+	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	{
+		Core->SetEntityVFXConfig( EntityVFXConfig );
+	}
+
 	Super::StartPlay();
 
 	SetupCamera();
