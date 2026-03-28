@@ -1,11 +1,14 @@
 #include "Building/Building.h"
-#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Cards/CardSubsystem.h"
 
-#include "Components/BoxComponent.h"
+#include "Cards/CardSubsystem.h"
+#include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 
+#include "Components/BoxComponent.h"
+#include "Kismet/GameplayStatics.h"
 ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -42,7 +45,6 @@ void ABuilding::BeginPlay()
 		EconomyComponent_->RegisterBuilding( this );
 
 		EconomyComponent_->RecalculateAndBroadcastNetIncome();
-
 	}
 
 	if ( UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this ) )
@@ -53,6 +55,7 @@ void ABuilding::BeginPlay()
 	if ( EconomyComponent_ )
 	{
 	}
+	ResolveVFXDefaults();
 }
 
 void ABuilding::OnDeath()
@@ -62,6 +65,83 @@ void ABuilding::OnDeath()
 		return;
 	}
 
+	SpawnDestructionVFX();
+
+	if ( ResolvedRuinDelay_ > 0.0f )
+	{
+		GetWorldTimerManager().SetTimer( RuinTimerHandle_, this, &ABuilding::FinalizeRuin, ResolvedRuinDelay_, true );
+	}
+	else
+	{
+		FinalizeRuin();
+	}
+}
+
+UNiagaraSystem* ABuilding::GetHitVFX() const
+{
+	return ResolvedHitVFX_;
+}
+
+void ABuilding::ResolveVFXDefaults()
+{
+	ResolvedHitVFX_ = HitVFX_;
+	ResolvedDestructionVFX_ = DestructionVFX_;
+	ResolvedRuinDelay_ = 0.0f;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			if ( const FBuildingVFXOverride* classOverride = config->BuildingOverrides.Find( GetClass() ) )
+			{
+				if ( !ResolvedHitVFX_ && classOverride->HitVFX )
+				{
+					ResolvedHitVFX_ = classOverride->HitVFX;
+				}
+
+				if ( !ResolvedDestructionVFX_ && classOverride->DestructionVFX )
+				{
+					ResolvedDestructionVFX_ = classOverride->DestructionVFX;
+				}
+
+				if ( classOverride->RuinDelay >= 0.0f )
+				{
+					ResolvedRuinDelay_ = classOverride->RuinDelay;
+				}
+			}
+
+			if ( !ResolvedHitVFX_ )
+			{
+				ResolvedHitVFX_ = config->DefaultBuildingHitVFX;
+			}
+
+			if ( !ResolvedDestructionVFX_ )
+			{
+				ResolvedDestructionVFX_ = config->DefaultBuildingDestructionVFX;
+			}
+
+			if ( ResolvedRuinDelay_ <= 0.0f )
+			{
+				ResolvedRuinDelay_ = config->DefaultRuinDelay;
+			}
+		}
+	}
+}
+
+void ABuilding::SpawnDestructionVFX()
+{
+	if ( !ResolvedDestructionVFX_ )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	    GetWorld(), ResolvedDestructionVFX_, GetActorLocation(), GetActorRotation(), FVector( 1.0f ), true
+	);
+}
+
+void ABuilding::FinalizeRuin()
+{
 	bIsRuined_ = true;
 
 	if ( BuildingMesh_ && RuinedMesh_ )
@@ -94,8 +174,8 @@ void ABuilding::OnDeath()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 3.0f, FColor::Orange,
-			FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
+		    -1, 3.0f, FColor::Orange,
+		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
 }
@@ -147,7 +227,7 @@ void ABuilding::OnSelected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
+		    -1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
 		);
 	}
 
@@ -162,7 +242,7 @@ void ABuilding::OnDeselected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
+		    -1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
 		);
 	}
 
@@ -189,6 +269,8 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 
 void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
+	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
+
 	if ( EconomyComponent_ )
 	{
 		EconomyComponent_->UnregisterBuilding( this );

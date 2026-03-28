@@ -15,15 +15,10 @@ public class Lords_Frontiers : ModuleRules
             "Engine",
             "InputCore",
             "UMG",
-            "AIModule",
             "NavigationSystem",
             "Slate",
-            "AIModule",
             "SlateCore",
             "NavigationSystem",
-            "Blutility",
-            "UMGEditor",
-            "UnrealEd",
             "EnhancedInput",
             "Json",
             "JsonUtilities"
@@ -35,6 +30,11 @@ public class Lords_Frontiers : ModuleRules
 
 
         // Uncomment if you are using Slate UI
+            "EnhancedInput",
+            "Niagara"
+        });
+
+        PrivateDependencyModuleNames.AddRange(new string[] { });        // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
         // Uncomment if you are using online features

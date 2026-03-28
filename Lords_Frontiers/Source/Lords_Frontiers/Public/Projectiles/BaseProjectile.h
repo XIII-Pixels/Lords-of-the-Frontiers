@@ -83,6 +83,8 @@ protected:
 
 	virtual void DealDamage( AActor* hitActor ) const;
 
+	void SpawnHitVFX( AActor* hitActor ) const;
+
 	void ReturnToPool();
 
 	void OnLifetimeExpired();

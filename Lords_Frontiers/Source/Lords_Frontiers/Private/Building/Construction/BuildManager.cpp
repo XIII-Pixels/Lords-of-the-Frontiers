@@ -6,10 +6,12 @@
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "NiagaraFunctionLibrary.h"
 #include "UI/BonusNeighborhood/BonusIconsData.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +22,6 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
-
 ABuildManager::ABuildManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -501,6 +502,56 @@ void ABuildManager::PlayPlacementAnimation( AActor* building )
 	{
 		animComp->RegisterComponent();
 		animComp->StartAnimation( PlacementAnimParams_ );
+	}
+
+	UNiagaraSystem* constructionVFX = nullptr;
+	float constructionDelay = 0.0f;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			constructionVFX = config->DefaultBuildingConstructionVFX;
+			constructionDelay = config->DefaultConstructionDelay;
+
+			if ( const FBuildingVFXOverride* classOverride = config->BuildingOverrides.Find( building->GetClass() ) )
+			{
+				if ( classOverride->ConstructionVFX )
+				{
+					constructionVFX = classOverride->ConstructionVFX;
+				}
+
+				if ( classOverride->ConstructionDelay >= 0.0f )
+				{
+					constructionDelay = classOverride->ConstructionDelay;
+				}
+			}
+		}
+	}
+
+	if ( constructionVFX )
+	{
+		const FVector spawnLocation = building->GetActorLocation();
+		const FRotator spawnRotation = building->GetActorRotation();
+
+		if ( constructionDelay > 0.0f )
+		{
+			FTimerHandle constructionVFXTimer;
+			GetWorldTimerManager().SetTimer(
+			    constructionVFXTimer,
+			    [this, constructionVFX, spawnLocation, spawnRotation]()
+			    {
+				    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				        GetWorld(), constructionVFX, spawnLocation, spawnRotation
+				    );
+			    },
+			    constructionDelay, false
+			);
+		}
+		else
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), constructionVFX, spawnLocation, spawnRotation );
+		}
 	}
 
 	if ( PreviewActor_ )

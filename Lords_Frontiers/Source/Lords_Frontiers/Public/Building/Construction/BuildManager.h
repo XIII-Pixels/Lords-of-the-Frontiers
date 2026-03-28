@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
+#include "Building/Construction/BuildingPlacementUtils.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
