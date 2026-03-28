@@ -302,12 +302,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	spawnParams.Owner = this;
 	spawnParams.Instigator = GetInstigator();
 
-
-	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>(
-	    enemyClass, FinalTransform,
-	    this,           
-	    GetInstigator()
-	);
+	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>( enemyClass, FinalTransform, this, GetInstigator() );
 
 	if ( FEnemyBuff* buff = EnemyBuffs.Find( enemyClass ) )
 	{
@@ -366,6 +361,13 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager::OnWaveEndTimerElapsed: Wave %d ended." ), waveIndex );
 	}
 
+	if ( SpawnedUnits.IsEmpty() )
+	{
+		UE_LOG(
+		    LogTemp, Log, TEXT( "WaveManager: All enemies already dead at wave end, broadcasting OnWaveEndScheduled." )
+		);
+		OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
+	}
 	if ( waveIndex >= Waves.Num() - 1 )
 	{
 		BroadcastAllWavesCompleted();
@@ -699,15 +701,17 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 
 			if ( UWorld* world = GetWorld() )
 			{
-			// set timer to 1 second so existing logic could finish the wave
-			// timer calls OnWaveEndTimerElapsed
-			FTimerDelegate del =
-				FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
-			world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
+				// set timer to 1 second so existing logic could finish the wave
+				// timer calls OnWaveEndTimerElapsed
+				FTimerDelegate del =
+				    FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
 
-			UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+				UE_LOG(
+				    LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex
+				);
 
-			OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
+				OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
 			}
 		}
 	}
