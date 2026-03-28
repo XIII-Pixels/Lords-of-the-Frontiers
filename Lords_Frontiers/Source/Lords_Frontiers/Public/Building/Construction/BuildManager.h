@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
+#include "Building/Construction/BuildingPlacementUtils.h"
+#include "Building/Construction/BuildingVFXConfig.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -84,6 +85,9 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|PlacementAnimation" )
 	FBuildPlacementAnimParams PlacementAnimParams_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|VFX" )
+	TObjectPtr<UBuildingVFXConfig> VFXConfig_;
 
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 

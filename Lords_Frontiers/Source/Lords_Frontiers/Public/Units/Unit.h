@@ -7,6 +7,7 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
+
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggroComponent.h"
 #include "CoreMinimal.h"
@@ -19,6 +20,7 @@ class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
 class UFollowComponent;
+class UNiagaraSystem;
 struct FEnemyBuff;
 
 /** (Gregory-hub)
@@ -77,8 +79,14 @@ public:
 
 	TObjectPtr<USceneComponent> VisualMesh();
 
+	virtual UNiagaraSystem* GetHitVFX() const override;
+
 protected:
 	void OnDeath();
+
+	void SpawnDeathVFX();
+
+	void FinalizeDestroy();
 
 	void FollowNextPathTarget();
 
@@ -89,6 +97,15 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX" )
+	TObjectPtr<UNiagaraSystem> DeathVFX_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX" )
+	TObjectPtr<UNiagaraSystem> HitVFX_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX", meta = ( ClampMin = "0.0", Units = "s" ) )
+	float DeathDestroyDelay_ = 1.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
@@ -118,4 +135,6 @@ protected:
 	TObjectPtr<USceneComponent> VisualMesh_;
 
 	int PathPointIndex_ = -1;
+
+	FTimerHandle DeathTimerHandle_;
 };

@@ -5,6 +5,8 @@
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "DrawDebugHelpers.h"
 #include "Entity.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/SphereComponent.h"
@@ -161,6 +163,7 @@ void ABaseProjectile::Tick( float deltaTime )
 
 		if ( bTrackTarget_ && IsValid( Target_ ) )
 		{
+			SpawnHitVFX( Target_ );
 			DealDamage( Target_ );
 		}
 		else
@@ -198,6 +201,7 @@ void ABaseProjectile::OnCollisionStart(
 
 	if ( IsValid( Target_ ) && otherActor == Target_ )
 	{
+		SpawnHitVFX( otherActor );
 		DealDamage( otherActor );
 		ReturnToPool();
 	}
@@ -212,6 +216,7 @@ void ABaseProjectile::OnCollisionStart(
 		IEntity* ownerEntity = Cast<IEntity>( GetInstigator() );
 		if ( ownerEntity && enemy->Team() != ownerEntity->Team() )
 		{
+			SpawnHitVFX( otherActor );
 			DealDamage( otherActor );
 			ReturnToPool();
 		}
@@ -315,4 +320,28 @@ void ABaseProjectile::ReturnToPool()
 void ABaseProjectile::OnLifetimeExpired()
 {
 	ReturnToPool();
+}
+
+void ABaseProjectile::SpawnHitVFX( AActor* hitActor ) const
+{
+	if ( !hitActor )
+	{
+		return;
+	}
+
+	IEntity* entity = Cast<IEntity>( hitActor );
+
+	if ( !entity )
+	{
+		return;
+	}
+
+	UNiagaraSystem* hitVFX = entity->GetHitVFX();
+
+	if ( !hitVFX )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), hitVFX, GetActorLocation(), GetActorRotation() );
 }

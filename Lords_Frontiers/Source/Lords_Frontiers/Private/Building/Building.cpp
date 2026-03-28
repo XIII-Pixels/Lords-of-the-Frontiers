@@ -1,11 +1,14 @@
 #include "Building/Building.h"
-#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Cards/CardSubsystem.h"
 
-#include "Components/BoxComponent.h"
+#include "Building/Construction/BuildManager.h"
+#include "Building/Construction/BuildingVFXConfig.h"
+#include "Cards/CardSubsystem.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 
+#include "Components/BoxComponent.h"
+#include "Kismet/GameplayStatics.h"
 ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -42,7 +45,6 @@ void ABuilding::BeginPlay()
 		EconomyComponent_->RegisterBuilding( this );
 
 		EconomyComponent_->RecalculateAndBroadcastNetIncome();
-
 	}
 
 	if ( UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this ) )
@@ -62,6 +64,48 @@ void ABuilding::OnDeath()
 		return;
 	}
 
+	SpawnDestructionVFX();
+
+	float ruinDelay = 0.0f;
+
+	if ( const ABuildManager* buildManager =
+	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
+	{
+		if ( const UBuildingVFXConfig* vfxConfig = buildManager->VFXConfig_ )
+		{
+			ruinDelay = vfxConfig->RuinDelay;
+		}
+	}
+
+	if ( ruinDelay > 0.0f )
+	{
+		GetWorldTimerManager().SetTimer( RuinTimerHandle_, this, &ABuilding::FinalizeRuin, ruinDelay, true );
+	}
+	else
+	{
+		FinalizeRuin();
+	}
+}
+
+UNiagaraSystem* ABuilding::GetHitVFX() const
+{
+	return HitVFX_;
+}
+
+void ABuilding::SpawnDestructionVFX()
+{
+	if ( !DestructionVFX_ )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	    GetWorld(), DestructionVFX_, GetActorLocation(), GetActorRotation(), FVector( 1.0f ), true
+	);
+}
+
+void ABuilding::FinalizeRuin()
+{
 	bIsRuined_ = true;
 
 	if ( BuildingMesh_ && RuinedMesh_ )
@@ -92,8 +136,8 @@ void ABuilding::OnDeath()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 3.0f, FColor::Orange,
-			FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
+		    -1, 3.0f, FColor::Orange,
+		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
 }
@@ -145,7 +189,7 @@ void ABuilding::OnSelected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
+		    -1, 1.0f, FColor::Green, FString::Printf( TEXT( "OnSelected: %s" ), *GetName() )
 		);
 	}
 
@@ -160,7 +204,7 @@ void ABuilding::OnDeselected_Implementation()
 	if ( GEngine )
 	{
 		GEngine->AddOnScreenDebugMessage(
-			-1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
+		    -1, 1.0f, FColor::Red, FString::Printf( TEXT( "OnDeselected: %s" ), *GetName() )
 		);
 	}
 
@@ -187,6 +231,8 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 
 void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 {
+	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
+
 	if ( EconomyComponent_ )
 	{
 		EconomyComponent_->UnregisterBuilding( this );

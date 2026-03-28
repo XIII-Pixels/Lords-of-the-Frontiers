@@ -6,6 +6,8 @@
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "Waves/EnemyBuff.h"
@@ -163,7 +165,44 @@ void AUnit::OnDeath()
 		FollowComponent_->Deactivate();
 	}
 
+	if ( VisualMesh_ )
+	{
+		VisualMesh_->SetVisibility( false, true );
+	}
+	if ( CollisionComponent_ )
+	{
+		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	}
+	SpawnDeathVFX();
+
+	if ( DeathDestroyDelay_ > 0.0f )
+	{
+		GetWorldTimerManager().SetTimer( DeathTimerHandle_, this, &AUnit::FinalizeDestroy, DeathDestroyDelay_, false );
+	}
+	else
+	{
+		Destroy();
+	}
+}
+
+void AUnit::SpawnDeathVFX()
+{
+	if ( !DeathVFX_ )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), DeathVFX_, GetActorLocation(), GetActorRotation() );
+}
+
+void AUnit::FinalizeDestroy()
+{
 	Destroy();
+}
+
+UNiagaraSystem* AUnit::GetHitVFX() const
+{
+	return HitVFX_;
 }
 
 void AUnit::FollowNextPathTarget()
@@ -264,5 +303,4 @@ void AUnit::ChangeStats( FEnemyBuff* buff )
 	);
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
 	Stats_.Heal( Stats_.MaxHealth() );
-
 }

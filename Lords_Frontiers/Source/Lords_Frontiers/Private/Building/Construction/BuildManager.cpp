@@ -4,12 +4,14 @@
 #include "Building/Construction/BuildPreviewActor.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
+#include "Building/Construction/BuildingVFXConfig.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "NiagaraFunctionLibrary.h"
 #include "UI/BonusNeighborhood/BonusIconsData.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +22,6 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
-
 ABuildManager::ABuildManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -499,6 +500,38 @@ void ABuildManager::PlayPlacementAnimation( AActor* building )
 	{
 		animComp->RegisterComponent();
 		animComp->StartAnimation( PlacementAnimParams_ );
+	}
+
+	if ( VFXConfig_ && VFXConfig_->ConstructionVFX )
+	{
+		const FVector spawnLocation = building->GetActorLocation();
+		const FRotator spawnRotation = building->GetActorRotation();
+
+		if ( VFXConfig_->ConstructionDelay > 0.0f )
+		{
+			FTimerHandle constructionVFXTimer;
+			GetWorldTimerManager().SetTimer(
+			    constructionVFXTimer,
+			    [this, spawnLocation, spawnRotation]()
+			    {
+				    if ( VFXConfig_ && VFXConfig_->ConstructionVFX )
+				    {
+					    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					        GetWorld(), VFXConfig_->ConstructionVFX, spawnLocation, spawnRotation, FVector( 1.0f ),
+					      true
+					    );
+				    }
+			    },
+			    VFXConfig_->ConstructionDelay, false
+			);
+		}
+		else
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			    GetWorld(), VFXConfig_->ConstructionVFX, spawnLocation, spawnRotation, FVector( 1.0f ),
+			   true
+			);
+		}
 	}
 
 	if ( PreviewActor_ )
