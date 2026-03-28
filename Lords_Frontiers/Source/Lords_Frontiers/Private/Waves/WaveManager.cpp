@@ -277,6 +277,15 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
+	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
+	{
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
+		    groupIndex
+		);
+		return;
+	}
+
 	SpawnedUnits_.Add( spawned );
 	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
 	{
@@ -632,7 +641,7 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 	// Remove from SpawnedUnits
 	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
-		if ( SpawnedUnits_[i].Get() == destroyedActor )
+		if ( SpawnedUnits_[i].Get() == destroyedActor /* || !SpawnedUnits[i].IsValid*/ )
 		{
 			SpawnedUnits_.RemoveAtSwap( i );
 			break;

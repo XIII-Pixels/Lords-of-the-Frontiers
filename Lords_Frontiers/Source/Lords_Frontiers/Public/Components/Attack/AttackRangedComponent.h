@@ -61,6 +61,12 @@ protected:
 
 	TArray<TObjectPtr<AActor>> FindNeighborTargets( int32 count ) const;
 
+	void FireSingleProjectile( TObjectPtr<AActor> target );
+
+	void FireNextBurstShot();
+
+	TArray<TObjectPtr<AActor>> FindNeighborTargets( int32 count ) const;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
 

@@ -72,14 +72,12 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 		return;
 	}
 
-	UWorld* world = GetOwner()->GetWorld();
-	if ( !world )
+	if ( !EnemyInSight_ || !ProjectileClass_ )
 	{
 		return;
 	}
 
-	FTransform spawnTransform = GetOwner()->GetTransform();
-	spawnTransform.AddToTranslation( ProjectileSpawnPosition_ );
+	const int32 burstCount = OwnerEntity_->Stats().BurstCount();
 
 	const int32 burstCount = ownerEntity->Stats().BurstCount();
 	if ( burstCount <= 1 )

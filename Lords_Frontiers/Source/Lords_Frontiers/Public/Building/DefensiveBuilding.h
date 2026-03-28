@@ -52,6 +52,10 @@ public:
 
 	virtual void FullRestore() override;
 
+	virtual void RestoreFromRuins() override;
+
+	virtual void FullRestore() override;
+
 protected:
 	virtual void BeginPlay() override;
 
