@@ -153,7 +153,7 @@ FIntPoint AGridManager::FindClosestWalkableCell( const FVector& location ) const
 	constexpr int maxDistance = 100;
 
 	FIntPoint closestCoords = { -1, -1 };
-	float distToClosest = TNumericLimits<float>::Max();
+	float distToClosest = std::numeric_limits<float>::max();
 	bool found = false;
 
 	auto processCell = [this, &closestCoords, &location, &distToClosest, &found]( const FIntPoint coords )
@@ -212,8 +212,8 @@ FIntPoint AGridManager::FindClosestWalkableCell( const FVector& location ) const
 FIntPoint AGridManager::GetCellCoordsRaw( FVector location ) const
 {
 	location -= GetActorLocation();
-	const int32 y = FMath::FloorToInt( location.Y / CellSize_ );
-	const int32 x = FMath::FloorToInt( location.X / CellSize_ );
+	const int32 y = static_cast<int32>( location.Y / CellSize_ );
+	const int32 x = static_cast<int32>( location.X / CellSize_ );
 	return FIntPoint( x, y );
 }
 

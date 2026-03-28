@@ -118,40 +118,6 @@ void AUnit::TakeDamage( int damage )
 	}
 }
 
-FEntityStats& AUnit::Stats()
-{
-	return Stats_;
-}
-
-ETeam AUnit::Team()
-{
-	return Stats_.Team();
-}
-
-TObjectPtr<AActor> AUnit::EnemyInSight() const
-{
-	if ( AttackComponent_ )
-	{
-		return AttackComponent_->EnemyInSight();
-	}
-	return nullptr;
-}
-
-TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
-{
-	return UnitBehaviorTree_;
-}
-
-TWeakObjectPtr<const AActor> AUnit::FollowedTarget() const
-{
-	return FollowedTarget_;
-}
-
-void AUnit::SetFollowedTarget( TWeakObjectPtr<const AActor> followedTarget )
-{
-	FollowedTarget_ = followedTarget;
-}
-
 void AUnit::OnDeath()
 {
 	// When HP becomes 0

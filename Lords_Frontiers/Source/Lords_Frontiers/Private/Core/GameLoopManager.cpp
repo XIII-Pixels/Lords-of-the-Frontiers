@@ -10,12 +10,14 @@
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 

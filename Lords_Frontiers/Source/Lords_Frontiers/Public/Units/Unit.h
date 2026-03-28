@@ -7,13 +7,14 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
-
 #include "Components/Attack/AttackComponent.h"
+#include "Components/EnemyAggressionComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
 #include "Unit.generated.h"
 
+class ABuilding;
 class AUnitAIManager;
 class UPath;
 class UCapsuleComponent;
@@ -38,8 +39,6 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void Tick( float deltaSeconds ) override;
-
 	void StartFollowing() const;
 
 	void StopFollowing() const;
@@ -50,15 +49,31 @@ public:
 
 	void ChangeStats( FEnemyBuff* buff );
 
-	// Getters and setters
+	virtual FEntityStats& Stats() override
+	{
+		return Stats_;
+	}
 
-	virtual FEntityStats& Stats() override;
+	virtual const FEntityStats& Stats() const override
+	{
+		return Stats_;
+	}
 
-	virtual ETeam Team() override;
+	virtual ETeam Team() const override
+	{
+		return Stats_.Team();
+	}
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override
+	{
+		return UnitBehaviorTree_;
+	}
 
-	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
+	// Target that unit moves to
+	TWeakObjectPtr<const AActor> FollowedTarget() const
+	{
+		return FollowedTarget_;
+	}
 
 	TWeakObjectPtr<AActor> FollowedTarget() const;
 	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
@@ -70,7 +85,35 @@ public:
 
 	void SetFollowedTarget( AActor* newTarget );
 
-	TObjectPtr<USceneComponent> VisualMesh();
+	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
+	{
+		AttackTarget_ = newTarget;
+	}
+
+	// Path destination
+	TWeakObjectPtr<const ABuilding> TargetBuilding() const
+	{
+		return TargetBuilding_;
+	}
+
+	void SetTargetBuilding( TWeakObjectPtr<const ABuilding> newTarget )
+	{
+		TargetBuilding_ = newTarget;
+	}
+
+	UPath* Path() const
+	{
+		if ( const UEnemyAggressionComponent* aggression = GetComponentByClass<UEnemyAggressionComponent>() )
+		{
+			return aggression->Path();
+		}
+		return nullptr;
+	}
+
+	TObjectPtr<USceneComponent> VisualMesh()
+	{
+		return VisualMesh_;
+	}
 
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
@@ -105,8 +148,14 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings" )
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<const AActor> FollowedTarget_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<AActor> AttackTarget_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<const ABuilding> TargetBuilding_;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;

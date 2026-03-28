@@ -4,6 +4,7 @@
 
 #include "AttackComponent.h"
 #include "EntityStats.h"
+#include "Attacker.h"
 
 #include "CoreMinimal.h"
 
@@ -11,7 +12,6 @@
 
 class IEntity;
 class USphereComponent;
-class AProjectile;
 class ABaseProjectile;
 
 /** (Gregory-hub)
@@ -27,7 +27,14 @@ public:
 	// Launch projectile
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+	virtual TObjectPtr<const AActor> AttackTarget() const override
+	{
+		if ( const IAttacker* attacker = GetOwner<IAttacker>() )
+		{
+			return attacker->AttackTarget().Get();
+		}
+		return nullptr;
+	}
 
 	virtual void ActivateSight() override;
 
@@ -38,12 +45,17 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	// Look around at given time intervals
+	// Runs at given time intervals
+	void LookTick();
+
+	// Look around
 	void Look();
 
-	bool CanSeeEnemy( TObjectPtr<AActor> actor ) const;
+	void ChooseAttackMode();
 
-	void FireSingleProjectile( TObjectPtr<AActor> target );
+	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
+
+	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
 	void FireNextBurstShot();
 
@@ -51,9 +63,6 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	float LookForwardTimeInterval_ = 0.2f;
-
-	UPROPERTY( VisibleAnywhere, Category = "Settings|Attack" )
-	TObjectPtr<AActor> EnemyInSight_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	bool bCanAttackBackward_ = true;
@@ -74,11 +83,13 @@ protected:
 
 	FTimerHandle SightTimerHandle_;
 
+	EAttackFilter AttackFilter_ = EAttackFilter::Everything;
+
 	int32 CurrentBurstIndex_ = 0;
 	bool bBurstInProgress_ = false;
 
 	UPROPERTY()
-	TArray<TObjectPtr<AActor>> BurstTargets_;
+	TArray<TWeakObjectPtr<AActor>> BurstTargets_;
 
 	FTimerHandle BurstTimerHandle_;
 };
