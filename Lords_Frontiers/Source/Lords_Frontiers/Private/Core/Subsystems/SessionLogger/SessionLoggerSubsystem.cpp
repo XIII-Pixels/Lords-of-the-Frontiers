@@ -45,9 +45,7 @@ static constexpr float cPathProgressDistanceScale = 1.5f;
 static constexpr float cCellSizeCm = 100.0f;
 static constexpr float cDifficultyScoreMultiplier = 5.0f;
 
-// ============================================================================
 // Index-Based Wave/Turn Accessors
-// ============================================================================
 
 FLogWaveData* USessionLoggerSubsystem::GetCurrentWaveData()
 {
@@ -87,9 +85,7 @@ const FLogTurnData* USessionLoggerSubsystem::GetCurrentTurnData() const
 	return nullptr;
 }
 
-// ============================================================================
 // Lifecycle
-// ============================================================================
 
 void USessionLoggerSubsystem::Initialize( FSubsystemCollectionBase& Collection )
 {
@@ -119,9 +115,7 @@ void USessionLoggerSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-// ============================================================================
 // System Binding
-// ============================================================================
 
 void USessionLoggerSubsystem::BindToSystems()
 {
@@ -217,21 +211,19 @@ void USessionLoggerSubsystem::UnbindFromSystems()
 	bIsBound_ = false;
 }
 
-// ============================================================================
 // Extensibility
-// ============================================================================
 
-void USessionLoggerSubsystem::RegisterCollector( ISessionDataCollector* Collector )
+void USessionLoggerSubsystem::RegisterCollector( ISessionDataCollector* collector )
 {
-	if ( Collector )
+	if ( collector )
 	{
-		DataCollectors_.AddUnique( Collector );
+		DataCollectors_.AddUnique( collector );
 	}
 }
 
-void USessionLoggerSubsystem::UnregisterCollector( ISessionDataCollector* Collector )
+void USessionLoggerSubsystem::UnregisterCollector( ISessionDataCollector* collector )
 {
-	DataCollectors_.Remove( Collector );
+	DataCollectors_.Remove( collector );
 }
 
 int32 USessionLoggerSubsystem::GetCurrentWaveNumber() const
@@ -239,25 +231,23 @@ int32 USessionLoggerSubsystem::GetCurrentWaveNumber() const
 	return CurrentWaveNumber_;
 }
 
-// ============================================================================
 // Phase Changed Handler
-// ============================================================================
 
-void USessionLoggerSubsystem::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
+void USessionLoggerSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
 {
 	for ( ISessionDataCollector* collector : DataCollectors_ )
 	{
 		if ( collector )
 		{
-			collector->OnPhaseChanged( OldPhase, NewPhase );
+			collector->OnPhaseChanged( oldPhase, newPhase );
 		}
 	}
 
-	switch ( NewPhase )
+	switch ( newPhase )
 	{
 	case EGameLoopPhase::Building:
 	{
-		if ( OldPhase == EGameLoopPhase::Startup || OldPhase == EGameLoopPhase::None )
+		if ( oldPhase == EGameLoopPhase::Startup || oldPhase == EGameLoopPhase::None )
 		{
 			bIsLogging_ = true;
 			SessionStartTime_ = FPlatformTime::Seconds();
@@ -279,7 +269,7 @@ void USessionLoggerSubsystem::HandlePhaseChanged( EGameLoopPhase OldPhase, EGame
 			BeginNewWave( CurrentWaveNumber_ );
 			BeginNewTurn( 1, TEXT( "Build" ) );
 		}
-		else if ( OldPhase == EGameLoopPhase::Reward )
+		else if ( oldPhase == EGameLoopPhase::Reward )
 		{
 			BeginNewWave( CurrentWaveNumber_ );
 			BeginNewTurn( 1, TEXT( "Build" ) );
@@ -335,119 +325,107 @@ void USessionLoggerSubsystem::HandlePhaseChanged( EGameLoopPhase OldPhase, EGame
 	}
 }
 
-// ============================================================================
 // Turn Changed Handler
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleBuildTurnChanged( int32 CurrentTurn, int32 MaxTurns )
+void USessionLoggerSubsystem::HandleBuildTurnChanged( int32 currentTurn, int32 maxTurns )
 {
 	for ( ISessionDataCollector* collector : DataCollectors_ )
 	{
 		if ( collector )
 		{
-			collector->OnTurnChanged( CurrentTurn, MaxTurns );
+			collector->OnTurnChanged( currentTurn, maxTurns );
 		}
 	}
 
 	EndCurrentTurn();
-	BeginNewTurn( CurrentTurn, TEXT( "Build" ) );
+	BeginNewTurn( currentTurn, TEXT( "Build" ) );
 }
 
-// ============================================================================
 // Wave Changed Handler
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleWaveChanged( int32 CurrentWave, int32 TotalWaves )
+void USessionLoggerSubsystem::HandleWaveChanged( int32 currentWave, int32 totalWaves )
 {
-	CurrentWaveNumber_ = CurrentWave;
+	CurrentWaveNumber_ = currentWave;
 
 	for ( ISessionDataCollector* collector : DataCollectors_ )
 	{
 		if ( collector )
 		{
-			collector->OnWaveChanged( CurrentWave, TotalWaves );
+			collector->OnWaveChanged( currentWave, totalWaves );
 		}
 	}
 }
 
-// ============================================================================
 // Game Ended Handler
-// ============================================================================
 
 void USessionLoggerSubsystem::HandleGameEnded( bool bVictory )
 {
 	// No-op: FinalizeSession handles collector notification via HandlePhaseChanged (Victory/Defeat)
 }
 
-// ============================================================================
 // Wave Started Handler
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleWaveStarted( int32 WaveIndex )
+void USessionLoggerSubsystem::HandleWaveStarted( int32 waveIndex )
 {
-	CaptureEnemySpawnData( WaveIndex );
+	CaptureEnemySpawnData( waveIndex );
 }
 
-// ============================================================================
 // Building Placed Handler
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleBuildingPlaced( ABuilding* Building, FIntPoint CellCoords )
+void USessionLoggerSubsystem::HandleBuildingPlaced( ABuilding* building, FIntPoint cellCoords )
 {
 	FLogTurnData* turnData = GetCurrentTurnData();
-	if ( !turnData || !Building )
+	if ( !turnData || !building )
 	{
 		return;
 	}
 
 	FLogBuildingPlacementRecord record;
-	record.BuildingClass = Building->GetClass()->GetFName();
-	record.Category = GetBuildingCategory( Building );
-	record.CellCoords = CellCoords;
-	record.Cost = FLogResourceSnapshot::FromProduction( Building->GetBuildingCost() );
+	record.BuildingClass = building->GetClass()->GetFName();
+	record.Category = GetBuildingCategory( building );
+	record.CellCoords = cellCoords;
+	record.Cost = FLogResourceSnapshot::FromProduction( building->GetBuildingCost() );
 
-	CollectBonusDataForBuilding( Building, CellCoords, record.BonusesReceived, record.BonusesGiven );
+	CollectBonusDataForBuilding( building, cellCoords, record.BonusesReceived, record.BonusesGiven );
 
 	turnData->BuildingsPlaced.Add( record );
 
 	AccumulatedBuildCost_ += record.Cost;
 	SessionData_.TotalBuildingsPlaced++;
 
-	int32& count = SessionData_.CellPopularity.FindOrAdd( CellCoords );
+	int32& count = SessionData_.CellPopularity.FindOrAdd( cellCoords );
 	count++;
 
-	if ( Cast<ADefensiveBuilding>( Building ) )
+	if ( Cast<ADefensiveBuilding>( building ) )
 	{
 		AccumulatedDefensiveBuildCost_ += record.Cost;
 		turnData->Defensive.DefensivePlacements.Add( record );
 	}
 }
 
-// ============================================================================
 // Building Died Handler
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleBuildingDied( ABuilding* Building )
+void USessionLoggerSubsystem::HandleBuildingDied( ABuilding* building )
 {
 	FLogTurnData* turnData = GetCurrentTurnData();
-	if ( !turnData || !Building )
+	if ( !turnData || !building )
 	{
 		return;
 	}
 
 	FLogBuildingDestroyedRecord record;
-	record.BuildingClass = Building->GetClass()->GetFName();
-	record.Category = GetBuildingCategory( Building );
+	record.BuildingClass = building->GetClass()->GetFName();
+	record.Category = GetBuildingCategory( building );
 
 	if ( GridManager_.IsValid() )
 	{
-		record.CellCoords = GridManager_->GetClosestCellCoords( Building->GetActorLocation() );
+		record.CellCoords = GridManager_->GetClosestCellCoords( building->GetActorLocation() );
 	}
 
 	turnData->BuildingsDestroyed.Add( record );
 	SessionData_.TotalBuildingsLost++;
 
-	FName* lastAttacker = LastAttackerMap_.Find( Building );
+	FName* lastAttacker = LastAttackerMap_.Find( building );
 	if ( lastAttacker )
 	{
 		FLogEnemyDamageAccumulator& enemyAcc = EnemyDamageMap_.FindOrAdd( *lastAttacker );
@@ -455,14 +433,12 @@ void USessionLoggerSubsystem::HandleBuildingDied( ABuilding* Building )
 		enemyAcc.BuildingsDestroyedCounts.FindOrAdd( record.BuildingClass )++;
 	}
 
-	Building->OnBuildingDied.RemoveDynamic( this, &USessionLoggerSubsystem::HandleBuildingDied );
+	building->OnBuildingDied.RemoveDynamic( this, &USessionLoggerSubsystem::HandleBuildingDied );
 }
 
-// ============================================================================
 // Card Helpers
-// ============================================================================
 
-FLogWaveData* USessionLoggerSubsystem::GetWaveDataForCards( int32 WaveNumber )
+FLogWaveData* USessionLoggerSubsystem::GetWaveDataForCards( int32 waveNumber )
 {
 	FLogWaveData* waveData = GetCurrentWaveData();
 	if ( waveData )
@@ -471,29 +447,27 @@ FLogWaveData* USessionLoggerSubsystem::GetWaveDataForCards( int32 WaveNumber )
 	}
 
 	UE_LOG( LogSessionLogger, Warning,
-		TEXT( "CurrentWaveData is null during card event (wave %d), searching by number" ), WaveNumber );
+		TEXT( "CurrentWaveData is null during card event (wave %d), searching by number" ), waveNumber );
 
 	for ( FLogWaveData& wave : SessionData_.Waves )
 	{
-		if ( wave.WaveNumber == WaveNumber )
+		if ( wave.WaveNumber == waveNumber )
 		{
 			return &wave;
 		}
 	}
 
 	UE_LOG( LogSessionLogger, Error,
-		TEXT( "Could not find wave %d in SessionData — card data will be lost!" ), WaveNumber );
+		TEXT( "Could not find wave %d in SessionData — card data will be lost!" ), waveNumber );
 	return nullptr;
 }
 
-// ============================================================================
 // Card Handlers
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleCardSelectionRequired( const FCardChoice& Choice )
+void USessionLoggerSubsystem::HandleCardSelectionRequired( const FCardChoice& choice )
 {
 	LastOfferedCards_.Reset();
-	for ( const auto& card : Choice.AvailableCards )
+	for ( const auto& card : choice.AvailableCards )
 	{
 		if ( card )
 		{
@@ -503,18 +477,18 @@ void USessionLoggerSubsystem::HandleCardSelectionRequired( const FCardChoice& Ch
 		}
 	}
 
-	FLogWaveData* waveData = GetWaveDataForCards( Choice.WaveNumber );
+	FLogWaveData* waveData = GetWaveDataForCards( choice.WaveNumber );
 	if ( waveData )
 	{
-		waveData->CardSelection.WaveNumber = Choice.WaveNumber;
+		waveData->CardSelection.WaveNumber = choice.WaveNumber;
 		waveData->CardSelection.CardsOffered = LastOfferedCards_;
 	}
 }
 
-void USessionLoggerSubsystem::HandleCardsApplied( const TArray<UCardDataAsset*>& AppliedCards )
+void USessionLoggerSubsystem::HandleCardsApplied( const TArray<UCardDataAsset*>& appliedCards )
 {
 	TArray<FName> takenIds;
-	for ( const UCardDataAsset* card : AppliedCards )
+	for ( const UCardDataAsset* card : appliedCards )
 	{
 		if ( card )
 		{
@@ -531,59 +505,55 @@ void USessionLoggerSubsystem::HandleCardsApplied( const TArray<UCardDataAsset*>&
 	}
 }
 
-// ============================================================================
 // Damage Handler (dispatcher)
-// ============================================================================
 
-void USessionLoggerSubsystem::HandleDamageDealt( AActor* Instigator, AActor* Target, int Damage, bool bIsSplash )
+void USessionLoggerSubsystem::HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash )
 {
-	if ( !bIsLogging_ || !Instigator || !Target )
+	if ( !bIsLogging_ || !instigator || !target )
 	{
 		return;
 	}
 
-	if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( Instigator ) )
+	if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( instigator ) )
 	{
-		AccumulateTowerDamage( tower, Target, Damage, bIsSplash );
+		AccumulateTowerDamage( tower, target, damage, bIsSplash );
 	}
 
-	if ( AUnit* enemy = Cast<AUnit>( Instigator ) )
+	if ( AUnit* enemy = Cast<AUnit>( instigator ) )
 	{
-		AccumulateEnemyDamage( enemy, Target, Damage );
+		AccumulateEnemyDamage( enemy, target, damage );
 	}
 }
 
-// ============================================================================
 // Tower Damage Accumulation
-// ============================================================================
 
 void USessionLoggerSubsystem::AccumulateTowerDamage(
-	ADefensiveBuilding* Tower, AActor* Target, int Damage, bool bIsSplash
+	ADefensiveBuilding* tower, AActor* target, int damage, bool bIsSplash
 )
 {
-	FName instigatorClass = Tower->GetClass()->GetFName();
+	FName instigatorClass = tower->GetClass()->GetFName();
 	FLogDamageAccumulator& acc = TowerDamageMap_.FindOrAdd( instigatorClass );
 	acc.InstigatorClass = instigatorClass;
 
 	if ( acc.AttackType.IsEmpty() )
 	{
-		acc.AttackType = Tower->FindComponentByClass<UAttackRangedComponent>()
+		acc.AttackType = tower->FindComponentByClass<UAttackRangedComponent>()
 			? TEXT( "Ranged" )
 			: TEXT( "Melee" );
 	}
 
 	if ( bIsSplash )
 	{
-		acc.SplashDamage += Damage;
+		acc.SplashDamage += damage;
 	}
 	else
 	{
-		acc.DirectDamage += Damage;
+		acc.DirectDamage += damage;
 		acc.ShotsTotal++;
 		acc.ShotsHit++;
 	}
 
-	AUnit* targetUnit = Cast<AUnit>( Target );
+	AUnit* targetUnit = Cast<AUnit>( target );
 	if ( !targetUnit )
 	{
 		return;
@@ -629,40 +599,36 @@ void USessionLoggerSubsystem::AccumulateTowerDamage(
 	}
 }
 
-// ============================================================================
 // Enemy Damage Accumulation
-// ============================================================================
 
-void USessionLoggerSubsystem::AccumulateEnemyDamage( AUnit* Enemy, AActor* Target, int Damage )
+void USessionLoggerSubsystem::AccumulateEnemyDamage( AUnit* enemy, AActor* target, int damage )
 {
-	FName instigatorClass = Enemy->GetClass()->GetFName();
+	FName instigatorClass = enemy->GetClass()->GetFName();
 	FLogEnemyDamageAccumulator& enemyAcc = EnemyDamageMap_.FindOrAdd( instigatorClass );
 	enemyAcc.EnemyClass = instigatorClass;
-	enemyAcc.TotalDamage += Damage;
+	enemyAcc.TotalDamage += damage;
 
-	FString targetClassName = Target->GetClass()->GetName();
+	FString targetClassName = target->GetClass()->GetName();
 	if ( targetClassName.Contains( TEXT( "Wall" ) ) )
 	{
-		enemyAcc.DamageToWalls += Damage;
+		enemyAcc.DamageToWalls += damage;
 	}
-	else if ( Cast<ADefensiveBuilding>( Target ) )
+	else if ( Cast<ADefensiveBuilding>( target ) )
 	{
-		enemyAcc.DamageToDefensive += Damage;
+		enemyAcc.DamageToDefensive += damage;
 	}
-	else if ( Cast<ABuilding>( Target ) )
+	else if ( Cast<ABuilding>( target ) )
 	{
-		enemyAcc.DamageToEconomic += Damage;
+		enemyAcc.DamageToEconomic += damage;
 	}
 
-	if ( ABuilding* targetBuilding = Cast<ABuilding>( Target ) )
+	if ( ABuilding* targetBuilding = Cast<ABuilding>( target ) )
 	{
 		LastAttackerMap_.Add( targetBuilding, instigatorClass );
 	}
 }
 
-// ============================================================================
 // Bonus Helpers
-// ============================================================================
 
 void USessionLoggerSubsystem::ForEachBonusApplication(
 	ABuilding* building,
@@ -723,9 +689,7 @@ FLogBonusRecord USessionLoggerSubsystem::MakeBonusRecord(
 	return rec;
 }
 
-// ============================================================================
 // Data Capture Methods
-// ============================================================================
 
 FLogResourceSnapshot USessionLoggerSubsystem::CaptureCurrentResources() const
 {
@@ -1203,9 +1167,7 @@ FString USessionLoggerSubsystem::GetBuildingCategory( const ABuilding* building 
 	return TEXT( "Other" );
 }
 
-// ============================================================================
 // Wave/Turn Lifecycle
-// ============================================================================
 
 void USessionLoggerSubsystem::BeginNewWave( int32 waveNumber )
 {
@@ -1243,9 +1205,7 @@ void USessionLoggerSubsystem::BeginNewTurn( int32 turnNumber, const FString& tur
 	CurrentTurnIndex_ = waveData->Turns.Num() - 1;
 }
 
-// ============================================================================
 // EndCurrentTurn (orchestrator)
-// ============================================================================
 
 void USessionLoggerSubsystem::EndCurrentTurn()
 {
@@ -1284,9 +1244,7 @@ void USessionLoggerSubsystem::EndCurrentTurn()
 	CurrentTurnIndex_ = INDEX_NONE;
 }
 
-// ============================================================================
 // Turn Economy Capture
-// ============================================================================
 
 void USessionLoggerSubsystem::CaptureTurnEconomy()
 {
@@ -1382,9 +1340,7 @@ void USessionLoggerSubsystem::CaptureTurnEconomy()
 	turnData->IncomeFromTransition = computedIncome;
 }
 
-// ============================================================================
 // Defensive Turn Data Capture
-// ============================================================================
 
 void USessionLoggerSubsystem::CaptureDefensiveTurnData()
 {
@@ -1446,9 +1402,7 @@ void USessionLoggerSubsystem::CaptureDefensiveTurnData()
 	}
 }
 
-// ============================================================================
 // Combat Turn Data Capture
-// ============================================================================
 
 void USessionLoggerSubsystem::CaptureCombatTurnData()
 {
@@ -1485,9 +1439,7 @@ void USessionLoggerSubsystem::CaptureCombatTurnData()
 	}
 }
 
-// ============================================================================
 // FinalizeWave
-// ============================================================================
 
 void USessionLoggerSubsystem::FinalizeWave()
 {
@@ -1565,9 +1517,7 @@ void USessionLoggerSubsystem::FinalizeWave()
 	// write to the current wave. CurrentWaveIndex_ is reset in BeginNewWave.
 }
 
-// ============================================================================
 // FinalizeSession
-// ============================================================================
 
 void USessionLoggerSubsystem::FinalizeSession( bool bVictory )
 {
@@ -1588,6 +1538,7 @@ void USessionLoggerSubsystem::FinalizeSession( bool bVictory )
 
 	SessionData_.bVictory = bVictory;
 	SessionData_.WavesSurvived = CurrentWaveNumber_;
+	SessionOutcome_ = bVictory ? TEXT( "Victory" ) : TEXT( "Defeat" );
 
 	SessionData_.FinalFieldState = CaptureBuildMapState( CurrentWaveNumber_ );
 
@@ -1608,9 +1559,49 @@ void USessionLoggerSubsystem::FinalizeSession( bool bVictory )
 	bIsLogging_ = false;
 }
 
-// ============================================================================
+// FinalizeSessionOnRestart
+
+void USessionLoggerSubsystem::FinalizeSessionOnRestart()
+{
+	if ( !bIsLogging_ )
+	{
+		return;
+	}
+
+	if ( GetCurrentTurnData() )
+	{
+		EndCurrentTurn();
+	}
+
+	if ( GetCurrentWaveData() )
+	{
+		FinalizeWave();
+	}
+
+	SessionData_.bVictory = false;
+	SessionData_.WavesSurvived = CurrentWaveNumber_;
+	SessionOutcome_ = TEXT( "Restart" );
+
+	SessionData_.FinalFieldState = CaptureBuildMapState( CurrentWaveNumber_ );
+
+	CalculateSessionMetrics();
+
+	for ( ISessionDataCollector* collector : DataCollectors_ )
+	{
+		if ( collector )
+		{
+			collector->OnGameEnded( false );
+		}
+	}
+
+	WriteSessionToFile();
+
+	OnSessionFinalized.Broadcast( SessionData_ );
+
+	bIsLogging_ = false;
+}
+
 // JSON Output (GZip compressed)
-// ============================================================================
 
 void USessionLoggerSubsystem::WriteSessionToFile()
 {
@@ -1694,7 +1685,9 @@ FString USessionLoggerSubsystem::GetOutputFilePath() const
 	// Sanitize for filesystem safety
 	mapName = FPaths::MakeValidFileName( mapName );
 
-	const FString outcome = SessionData_.bVictory ? TEXT( "Victory" ) : TEXT( "Defeat" );
+	const FString outcome = SessionOutcome_.IsEmpty()
+		? ( SessionData_.bVictory ? FString( TEXT( "Victory" ) ) : FString( TEXT( "Defeat" ) ) )
+		: SessionOutcome_;
 	const FString timestamp = FDateTime::Now().ToString( TEXT( "%Y-%m-%d_%H-%M-%S" ) );
 	const FString fileName = FString::Printf( TEXT( "%s_%s_%s.json.gz" ), *mapName, *outcome, *timestamp );
 	return FPaths::ProjectSavedDir() / TEXT( "SessionLogs" ) / fileName;

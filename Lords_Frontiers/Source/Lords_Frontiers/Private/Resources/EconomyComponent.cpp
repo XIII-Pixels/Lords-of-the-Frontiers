@@ -19,6 +19,7 @@ void UEconomyComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	FindSystems();
+	SubscribeToCardEvents();
 }
 
 void UEconomyComponent::FindSystems()
@@ -322,4 +323,13 @@ void UEconomyComponent::HandleCardsApplied( const TArray<UCardDataAsset*>& appli
 void UEconomyComponent::HandleEconomyBonusesChanged( const FEconomyBonuses& newBonuses )
 {
 	RecalculateAndBroadcastNetIncome();
+}
+
+void UEconomyComponent::ResetEconomy()
+{
+	RegisteredBuildings_.Empty();
+	bInitialScanDone = false;
+	CachedNetIncome_ = FResourceProduction();
+
+	FindSystems();
 }

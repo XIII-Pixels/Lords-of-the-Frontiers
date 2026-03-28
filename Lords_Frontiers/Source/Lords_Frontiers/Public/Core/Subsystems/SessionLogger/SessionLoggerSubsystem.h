@@ -46,20 +46,22 @@ public:
 	virtual void Deinitialize() override;
 	virtual bool ShouldCreateSubsystem( UObject* Outer ) const override { return true; }
 
-	// === Extensibility ===
+	// Extensibility
 
-	void RegisterCollector( ISessionDataCollector* Collector );
-	void UnregisterCollector( ISessionDataCollector* Collector );
+	void RegisterCollector( ISessionDataCollector* collector );
+	void UnregisterCollector( ISessionDataCollector* collector );
 
 	const FLogSessionData& GetSessionData() const { return SessionData_; }
 	int32 GetCurrentWaveNumber() const;
 	bool IsLogging() const { return bIsLogging_; }
 
+	void FinalizeSessionOnRestart();
+
 	FOnWaveDataFinalized OnWaveDataFinalized;
 	FOnSessionFinalized OnSessionFinalized;
 
 private:
-	// === System Binding ===
+	// System Binding
 
 	UFUNCTION()
 	void OnCoreSystemsReady();
@@ -67,47 +69,47 @@ private:
 	void BindToSystems();
 	void UnbindFromSystems();
 
-	// === Delegate Handlers ===
+	// Delegate Handlers
 
 	UFUNCTION()
-	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
+	void HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase );
 
 	UFUNCTION()
-	void HandleBuildTurnChanged( int32 CurrentTurn, int32 MaxTurns );
+	void HandleBuildTurnChanged( int32 currentTurn, int32 maxTurns );
 
 	UFUNCTION()
-	void HandleWaveChanged( int32 CurrentWave, int32 TotalWaves );
+	void HandleWaveChanged( int32 currentWave, int32 totalWaves );
 
 	UFUNCTION()
 	void HandleGameEnded( bool bVictory );
 
 	UFUNCTION()
-	void HandleWaveStarted( int32 WaveIndex );
+	void HandleWaveStarted( int32 waveIndex );
 
 	UFUNCTION()
-	void HandleBuildingPlaced( ABuilding* Building, FIntPoint CellCoords );
+	void HandleBuildingPlaced( ABuilding* building, FIntPoint cellCoords );
 
 	UFUNCTION()
-	void HandleBuildingDied( ABuilding* Building );
+	void HandleBuildingDied( ABuilding* building );
 
 	UFUNCTION()
-	void HandleCardSelectionRequired( const FCardChoice& Choice );
+	void HandleCardSelectionRequired( const FCardChoice& choice );
 
 	UFUNCTION()
-	void HandleCardsApplied( const TArray<UCardDataAsset*>& AppliedCards );
+	void HandleCardsApplied( const TArray<UCardDataAsset*>& appliedCards );
 
-	void HandleDamageDealt( AActor* Instigator, AActor* Target, int Damage, bool bIsSplash );
+	void HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash );
 
-	// === Damage Sub-Handlers ===
+	// Damage Sub-Handlers
 
-	void AccumulateTowerDamage( ADefensiveBuilding* Tower, AActor* Target, int Damage, bool bIsSplash );
-	void AccumulateEnemyDamage( AUnit* Enemy, AActor* Target, int Damage );
+	void AccumulateTowerDamage( ADefensiveBuilding* tower, AActor* target, int damage, bool bIsSplash );
+	void AccumulateEnemyDamage( AUnit* enemy, AActor* target, int damage );
 
-	// === Card Data Helpers ===
+	// Card Data Helpers
 
-	FLogWaveData* GetWaveDataForCards( int32 WaveNumber );
+	FLogWaveData* GetWaveDataForCards( int32 waveNumber );
 
-	// === Bonus Helpers ===
+	// Bonus Helpers
 
 	// Iterates validated bonus applications on a building, calling callback for each
 	void ForEachBonusApplication(
@@ -123,7 +125,7 @@ private:
 		float value
 	) const;
 
-	// === Data Capture Methods ===
+	// Data Capture Methods
 
 	FLogResourceSnapshot CaptureCurrentResources() const;
 	FLogBuildMapSnapshot CaptureBuildMapState( int32 waveNumber ) const;
@@ -140,13 +142,13 @@ private:
 	FLogWaveMetrics CalculateWaveMetrics() const;
 	void CalculateSessionMetrics();
 
-	// === Turn Economy Sub-Methods ===
+	// Turn Economy Sub-Methods
 
 	void CaptureTurnEconomy();
 	void CaptureDefensiveTurnData();
 	void CaptureCombatTurnData();
 
-	// === Wave/Turn Lifecycle ===
+	// Wave/Turn Lifecycle
 
 	void BeginNewWave( int32 waveNumber );
 	void BeginNewTurn( int32 turnNumber, const FString& turnType );
@@ -154,12 +156,12 @@ private:
 	void FinalizeWave();
 	void FinalizeSession( bool bVictory );
 
-	// === JSON Output ===
+	// JSON Output
 
 	void WriteSessionToFile();
 	FString GetOutputFilePath() const;
 
-	// === Index-Based Wave/Turn Access ===
+	// Index-Based Wave/Turn Access
 
 	// Returns pointer to current wave data, or nullptr if no active wave
 	FLogWaveData* GetCurrentWaveData();
@@ -169,7 +171,7 @@ private:
 	FLogTurnData* GetCurrentTurnData();
 	const FLogTurnData* GetCurrentTurnData() const;
 
-	// === State ===
+	// State
 
 	FLogSessionData SessionData_;
 
@@ -211,6 +213,7 @@ private:
 	bool bIsLogging_ = false;
 	bool bIsBound_ = false;
 	int32 CurrentWaveNumber_ = 0;
+	FString SessionOutcome_;
 
 	// Cached system references
 	TWeakObjectPtr<UGameLoopManager> GameLoop_;

@@ -2,6 +2,7 @@
 
 #include "Building/Building.h"
 #include "Building/Construction/BuildPreviewActor.h"
+#include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
@@ -222,6 +223,9 @@ void ABuildManager::CancelPlacing()
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
 
+	bHidingPreviewForAnimation_ = false;
+	LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
+
 	if ( GridVisualizer_ )
 	{
 		GridVisualizer_->HideGrid();
@@ -282,7 +286,11 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 		return false;
 	}
 
-	UResourceManager* resManager = CachedResourceManager_.Get();
+	UResourceManager* resManager = nullptr;
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		resManager = core->GetResourceManager();
+	}
 
 	const ABuilding* cdo = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
 	check( cdo );
@@ -307,10 +315,12 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 	{
 		resManager->SpendResources( cdo->GetBuildingCost() );
 	}
+
 	RecalculateBonusesAroundBuilding( newBuilding, CurrentCellCoords_ );
 	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
 
 	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
+	PlayPlacementAnimation( newBuilding );
 
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
 	return true;
@@ -350,6 +360,7 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 		RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 		RecalculateBonusesFromNeighbors( MaxBonusRadius, OriginalCellCoords_ );
 	}
+	PlayPlacementAnimation( RelocatedBuilding_ );
 
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
 }
@@ -375,6 +386,9 @@ void ABuildManager::ResetPlacementState()
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
+
+	bHidingPreviewForAnimation_ = false;
+	LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 }
 
 void ABuildManager::ConfirmPlacing()
@@ -433,6 +447,12 @@ void ABuildManager::UpdateHoveredCell()
 	const bool bCellChanged = ( CurrentCellCoords_ != placementResult.CellCoords );
 	CurrentCellCoords_ = placementResult.CellCoords;
 	bCanBuildHere_ = BuildingPlacementUtils::CanBuildAtCell( GridManager_, CurrentCellCoords_ );
+
+	if ( bCellChanged && bHidingPreviewForAnimation_ )
+	{
+		bHidingPreviewForAnimation_ = false;
+	}
+
 	UpdatePreviewVisual( placementResult.CellWorldLocation, bCanBuildHere_ );
 
 	if ( bCellChanged )
@@ -459,9 +479,36 @@ void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const boo
 		return;
 	}
 
+	if ( bHidingPreviewForAnimation_ )
+	{
+		return;
+	}
+
 	PreviewActor_->SetActorHiddenInGame( false );
 	PreviewActor_->SetActorLocation( worldLocation );
 	PreviewActor_->SetCanBuild( bCanBuild ); // метод внутри ABuildPreviewActor (зелёный/красный и т.п.)
+}
+
+void ABuildManager::PlayPlacementAnimation( AActor* building )
+{
+	if ( !building )
+	{
+		return;
+	}
+
+	UBuildingPlacementAnimComponent* animComp = NewObject<UBuildingPlacementAnimComponent>( building );
+	if ( animComp )
+	{
+		animComp->RegisterComponent();
+		animComp->StartAnimation( PlacementAnimParams_ );
+	}
+
+	if ( PreviewActor_ )
+	{
+		PreviewActor_->SetActorHiddenInGame( true );
+	}
+	bHidingPreviewForAnimation_ = true;
+	LastPlacedCellCoords_ = CurrentCellCoords_;
 }
 
 static const FIntPoint Offsets4[] = {

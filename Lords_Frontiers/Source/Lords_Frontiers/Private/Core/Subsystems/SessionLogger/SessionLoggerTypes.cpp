@@ -3,9 +3,7 @@
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
 
-// ============================================================================
 // Helpers
-// ============================================================================
 
 namespace SessionLogHelper
 {
@@ -41,9 +39,7 @@ namespace SessionLogHelper
 	}
 } // namespace SessionLogHelper
 
-// ============================================================================
 // FLogResourceSnapshot
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogResourceSnapshot::ToJson() const
 {
@@ -94,9 +90,7 @@ FLogResourceSnapshot FLogResourceSnapshot::FromProduction( const FResourceProduc
 	return Snap;
 }
 
-// ============================================================================
 // FLogBonusRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogBonusRecord::ToJson() const
 {
@@ -111,9 +105,7 @@ TSharedPtr<FJsonObject> FLogBonusRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogBuildingPlacementRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogBuildingPlacementRecord::ToJson() const
 {
@@ -127,9 +119,7 @@ TSharedPtr<FJsonObject> FLogBuildingPlacementRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogBuildingCharacteristics
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogBuildingCharacteristics::ToJson() const
 {
@@ -168,9 +158,7 @@ TSharedPtr<FJsonObject> FLogBuildingCharacteristics::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogBuildingDestroyedRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogBuildingDestroyedRecord::ToJson() const
 {
@@ -181,9 +169,7 @@ TSharedPtr<FJsonObject> FLogBuildingDestroyedRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogTowerDamageRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogTowerDamageRecord::ToJson() const
 {
@@ -199,9 +185,7 @@ TSharedPtr<FJsonObject> FLogTowerDamageRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogBuildingDamageRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogBuildingDamageRecord::ToJson() const
 {
@@ -214,9 +198,7 @@ TSharedPtr<FJsonObject> FLogBuildingDamageRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogCombatSummary
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogCombatSummary::ToJson() const
 {
@@ -229,9 +211,7 @@ TSharedPtr<FJsonObject> FLogCombatSummary::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogDefensiveTurnData
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogDefensiveTurnData::ToJson() const
 {
@@ -249,9 +229,7 @@ TSharedPtr<FJsonObject> FLogDefensiveTurnData::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogTurnData
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogTurnData::ToJson() const
 {
@@ -279,9 +257,7 @@ TSharedPtr<FJsonObject> FLogTurnData::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogEnemySpawnRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogEnemySpawnRecord::ToJson() const
 {
@@ -293,9 +269,7 @@ TSharedPtr<FJsonObject> FLogEnemySpawnRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogEnemyTypeStats
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogEnemyTypeStats::ToJson() const
 {
@@ -356,9 +330,7 @@ TSharedPtr<FJsonObject> FLogEnemyTypeStats::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogCardSelectionRecord
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogCardSelectionRecord::ToJson() const
 {
@@ -369,9 +341,7 @@ TSharedPtr<FJsonObject> FLogCardSelectionRecord::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogCellState
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogCellState::ToJson() const
 {
@@ -390,9 +360,7 @@ TSharedPtr<FJsonObject> FLogCellState::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogBuildMapSnapshot
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogBuildMapSnapshot::ToJson() const
 {
@@ -440,9 +408,7 @@ TSharedPtr<FJsonObject> FLogBuildMapSnapshot::ToDeltaJson( const FLogBuildMapSna
 	return Obj;
 }
 
-// ============================================================================
 // FLogWaveMetrics
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogWaveMetrics::ToJson() const
 {
@@ -456,9 +422,7 @@ TSharedPtr<FJsonObject> FLogWaveMetrics::ToJson() const
 	return Obj;
 }
 
-// ============================================================================
 // FLogWaveData
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogWaveData::ToJson() const
 {
@@ -495,9 +459,7 @@ TSharedPtr<FJsonObject> FLogWaveData::ToJson( const FLogBuildMapSnapshot& BaseMa
 	return Obj;
 }
 
-// ============================================================================
 // FLogSessionData
-// ============================================================================
 
 TSharedPtr<FJsonObject> FLogSessionData::ToJson() const
 {

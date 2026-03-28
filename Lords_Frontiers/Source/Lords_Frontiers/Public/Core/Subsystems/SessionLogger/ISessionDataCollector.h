@@ -25,15 +25,15 @@ class LORDS_FRONTIERS_API ISessionDataCollector
 	GENERATED_BODY()
 
 public:
-	virtual void OnPhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
+	virtual void OnPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
 	{
 	}
 
-	virtual void OnTurnChanged( int32 Turn, int32 MaxTurns )
+	virtual void OnTurnChanged( int32 turn, int32 maxTurns )
 	{
 	}
 
-	virtual void OnWaveChanged( int32 Wave, int32 TotalWaves )
+	virtual void OnWaveChanged( int32 wave, int32 totalWaves )
 	{
 	}
 
@@ -41,7 +41,7 @@ public:
 	{
 	}
 
-	virtual void AppendToJson( TSharedPtr<FJsonObject> RootJson )
+	virtual void AppendToJson( TSharedPtr<FJsonObject> rootJson )
 	{
 	}
 
