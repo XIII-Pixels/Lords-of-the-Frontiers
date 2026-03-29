@@ -1,14 +1,12 @@
 #pragma once
 
 #include "Building/Bonus/BuildingBonusComponent.h"
-#include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 
 #include "Building.generated.h"
 
@@ -36,7 +34,11 @@ public:
 
 	virtual FEntityStats& Stats() override;
 
+	virtual const FEntityStats& Stats() const override;
+
 	virtual ETeam Team() override;
+
+	virtual ETeam Team() const override;
 
 	virtual void TakeDamage( int damage ) override;
 

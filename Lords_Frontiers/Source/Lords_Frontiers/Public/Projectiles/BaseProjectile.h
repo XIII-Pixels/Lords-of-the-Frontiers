@@ -41,8 +41,8 @@ public:
 
 	virtual void Tick( float deltaTime ) override;
 
-	bool InitializeProjectile(
-	    AActor* inInstigator, AActor* inTarget, int inDamage, float inSpeed,
+	bool Initialize(
+	    AActor* inInstigator, TWeakObjectPtr<AActor> inTarget, int inDamage, float inSpeed,
 	    const FVector& spawnOffset = FVector::ZeroVector, float inSplashRadius = 0.f, float inMaxRange = 0.f,
 	    bool bTrackTarget = true
 	);
@@ -55,7 +55,7 @@ protected:
 	TObjectPtr<USphereComponent> CollisionComp_;
 
 	UPROPERTY()
-	TObjectPtr<AActor> Target_;
+	TWeakObjectPtr<AActor> Target_;
 
 	float Damage_ = 0;
 	float Speed_ = 0.0f;

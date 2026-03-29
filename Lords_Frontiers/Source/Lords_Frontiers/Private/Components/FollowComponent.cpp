@@ -2,15 +2,49 @@
 
 #include "Components/FollowComponent.h"
 
+#include "AI/UnitAIManager.h"
+#include "Core/CoreManager.h"
+#include "Grid/GridManager.h"
 #include "Units/Unit.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 
 UFollowComponent::UFollowComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+
 	SwayPhaseOffset_ = FMath::FRandRange( 0.0f, 2.0f * PI );
 	StreamRandom_ = FRandomStream( FPlatformTime::Cycles64() );
+}
+
+void UFollowComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Unit_ = Cast<AUnit>( GetOwner() );
+
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		Grid_ = core->GetGridManager();
+	}
+
+	if ( PawnOwner )
+	{
+		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
+	}
+
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* aiManager = core->GetUnitAIManager() )
+		{
+			GroundHeight_ = aiManager->GroundHeight();
+		}
+		else
+			UE_LOG( LogTemp, Error, TEXT( "UFollowComponent::SnapToGround: UnitAIManager not found" ) );
+	}
 }
 
 void UFollowComponent::TickComponent(
@@ -30,28 +64,24 @@ void UFollowComponent::TickComponent(
 		Sway( deltaTime );
 	}
 
-	if ( !Velocity.IsNearlyZero() )
+	Rotate( deltaTime );
+
+	if ( CapsuleComponent_.IsValid() )
 	{
-		RotateForward( deltaTime );
-		SnapToGround();
+		const float halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
+		if ( Unit_.IsValid() &&
+		     FMath::Abs( Unit_->GetActorLocation().Z - halfHeight - GroundHeight_ ) > KINDA_SMALL_NUMBER )
+		{
+			SnapToGround();
+		}
 	}
-}
 
-void UFollowComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	Unit_ = Cast<AUnit>( GetOwner() );
-
-	if ( PawnOwner )
-	{
-		CapsuleComponent_ = PawnOwner->FindComponentByClass<UCapsuleComponent>();
-	}
+	ResolveUnitOnUnwalkableCell();
 }
 
 void UFollowComponent::StartFollowing()
 {
-	if ( Unit_ && Unit_->FollowedTarget().IsValid() )
+	if ( Unit_.IsValid() && Unit_->FollowedTarget().IsValid() )
 	{
 		bFollowTarget_ = true;
 	}
@@ -69,7 +99,7 @@ void UFollowComponent::SetMaxSpeed( float maxSpeed )
 
 void UFollowComponent::MoveTowardsTarget( float deltaTime )
 {
-	if ( !Unit_ || !Unit_->FollowedTarget().IsValid() )
+	if ( !Unit_.IsValid() || !Unit_->FollowedTarget().IsValid() )
 	{
 		return;
 	}
@@ -88,39 +118,31 @@ void UFollowComponent::MoveTowardsTarget( float deltaTime )
 	AddInputVector( CurrentDirection_ );
 }
 
-void UFollowComponent::SnapToGround()
+void UFollowComponent::SnapToGround() const
 {
-	if ( !PawnOwner || !CapsuleComponent_ )
+	if ( !PawnOwner )
 	{
 		return;
 	}
 
-	float halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
-	FVector location = PawnOwner->GetActorLocation();
-	location.Z -= halfHeight;
-
-	FVector start = location + FVector( 0, 0, SnapToGroundDistance_ );
-	FVector end = location - FVector( 0, 0, SnapToGroundDistance_ );
-
-	FHitResult hit;
-	FCollisionQueryParams params;
-	params.AddIgnoredActor( PawnOwner );
-
-	if ( GetWorld()->LineTraceSingleByChannel( hit, start, end, ECC_Visibility, params ) )
+	float halfHeight = 0.0f;
+	if ( CapsuleComponent_.IsValid() )
 	{
-		FVector groundLocation = hit.ImpactPoint;
-		location.Z = groundLocation.Z + halfHeight;
-		PawnOwner->SetActorLocation( location );
+		halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
 	}
+
+	FVector location = PawnOwner->GetActorLocation();
+	location.Z = GroundHeight_ + halfHeight;
+	PawnOwner->SetActorLocation( location );
 }
 
 void UFollowComponent::Sway( float deltaTime )
 {
-	if ( IsValid( Unit_ ) && Unit_.Get()->VisualMesh() )
+	if ( Unit_.IsValid() && Unit_.Get()->VisualMesh() )
 	{
 		float targetRoll = 0.0f;
 
-		if ( Unit_.Get()->GetVelocity().Size() > 10.0f )
+		if ( !Unit_.Get()->GetVelocity().IsNearlyZero() )
 		{
 			float time = GetWorld()->GetTimeSeconds();
 			targetRoll = FMath::Sin( time * SwaySpeed_ + SwayPhaseOffset_ ) * SwayAmplitude_;
@@ -135,10 +157,100 @@ void UFollowComponent::Sway( float deltaTime )
 	}
 }
 
+void UFollowComponent::ResolveUnitOnUnwalkableCell()
+{
+	if ( !bAvoidUnwalkableCells_ || !Grid_.IsValid() || !Unit_.IsValid() || !CapsuleComponent_.IsValid() )
+	{
+		return;
+	}
+
+	const FVector location = Unit_->GetActorLocation();
+
+	const float cellSize = Grid_->GetCellSize();
+
+	const FIntPoint currentCellCoords = Grid_->GetCellCoords( location );
+	FVector currentCellCenter;
+	Grid_->GetCellWorldCenter( currentCellCoords, currentCellCenter );
+
+	TArray suspectedCoords{
+	    currentCellCoords, currentCellCoords + FIntPoint( 1, 0 ), currentCellCoords + FIntPoint( -1, 0 ),
+	    currentCellCoords + FIntPoint( 0, 1 ), currentCellCoords + FIntPoint( 0, -1 )
+	};
+
+	for ( const auto& cellCoords : suspectedCoords )
+	{
+		const FGridCell* cell = Grid_->GetCell( cellCoords.X, cellCoords.Y );
+		if ( cell && !cell->bIsWalkable )
+		{
+			FVector cellCenter;
+			Grid_->GetCellWorldCenter( cellCoords, cellCenter );
+
+			const float dx = cellCenter.X - location.X;
+			const float dy = cellCenter.Y - location.Y;
+
+			const bool xIsInside = FMath::Abs( dx ) < cellSize / 2.0f;
+			const bool yIsInside = FMath::Abs( dy ) < cellSize / 2.0f;
+
+			if ( xIsInside && yIsInside && FMath::Abs( dx ) < FMath::Abs( dy ) )
+			{
+				const float x = cellCenter.X - FMath::Sign( dx ) * cellSize / 2.0f;
+				const FVector targetLocation = { x, location.Y, location.Z };
+				Unit_->SetActorLocation(
+				    FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ )
+				);
+				return;
+			}
+			if ( xIsInside && yIsInside )
+			{
+				const float y = cellCenter.Y - FMath::Sign( dy ) * cellSize / 2.0f;
+				const FVector targetLocation = { location.X, y, location.Z };
+				Unit_->SetActorLocation(
+				    FMath::VInterpTo( location, targetLocation, GetWorld()->GetDeltaSeconds(), UnwalkablePushSpeed_ )
+				);
+				return;
+			}
+		}
+	}
+}
+
+void UFollowComponent::Rotate( float deltaTime )
+{
+	if ( Unit_.IsValid() && Unit_->GetVelocity().IsNearlyZero() )
+	{
+		RotateTowardsAttackTarget( deltaTime );
+	}
+	else
+	{
+		RotateForward( deltaTime );
+	}
+}
+
+void UFollowComponent::RotateTowardsAttackTarget( float deltaTime )
+{
+	if ( !Unit_.IsValid() || !Unit_->AttackTarget().IsValid() )
+	{
+		return;
+	}
+
+	const FVector targetLocation = Unit_->AttackTarget()->GetActorLocation();
+	const FRotator targetRotation = ( targetLocation - GetActorLocation() ).GetSafeNormal().Rotation();
+	const FRotator currentRotation = PawnOwner->GetActorRotation();
+
+	FRotator newRotation = FMath::RInterpTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
+	newRotation.Pitch = 0.0f;
+
+	PawnOwner->SetActorRotation( newRotation );
+}
+
 void UFollowComponent::RotateForward( float deltaTime )
 {
-	FRotator targetRotation = CurrentDirection_.Rotation();
-	FRotator currentRotation = PawnOwner->GetActorRotation();
+	if ( !IsValid( PawnOwner ) )
+	{
+		return;
+	}
+
+	const FRotator targetRotation = CurrentDirection_.Rotation();
+	const FRotator currentRotation = PawnOwner->GetActorRotation();
 
 	FRotator newRotation = FMath::RInterpTo( currentRotation, targetRotation, deltaTime, RotationSpeed_ );
 	newRotation.Pitch = 0.0f;

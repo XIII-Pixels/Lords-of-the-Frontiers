@@ -23,7 +23,6 @@
 #include "Waves/EnemyBuff.h"
 #include "Units/Unit.h"
 #include "Components/Attack/AttackRangedComponent.h"
-#include "Components/Attack/AttackMeleeComponent.h"
 
 #include "Async/Async.h"
 #include "Dom/JsonObject.h"

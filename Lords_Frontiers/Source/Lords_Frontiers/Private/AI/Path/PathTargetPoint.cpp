@@ -13,6 +13,8 @@ APathTargetPoint::APathTargetPoint()
 	Mesh_->SetMobility( EComponentMobility::Movable );
 	Mesh_->CastShadow = false;
 	Mesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+
+	Hide();
 }
 
 void APathTargetPoint::Show()

@@ -1,0 +1,52 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+
+#include "TargetBuildingTracker.generated.h"
+
+class AUnit;
+class ABuilding;
+
+USTRUCT( BlueprintType )
+struct FBuildingSet
+{
+	GENERATED_BODY()
+
+	TSet<TWeakObjectPtr<const ABuilding>> Buildings;
+};
+
+/** (Gregory-hub)
+ * Tracks target buildings that are on a level
+ * On wave start: for each unit type finds all building objects that unit can attack
+ * On building destruction: removes building from building list
+ * Used to find next unit target */
+UCLASS()
+class LORDS_FRONTIERS_API UTargetBuildingTracker : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	void Initialize();
+
+	// Scans level for all buildings that can be attacked by each unit types
+	// Puts buildings into PriorityBuildings_
+	void ScanLevelForBuildings();
+
+	// Finds closest building that unit can target
+	TWeakObjectPtr<const ABuilding> FindClosestBuilding( const AUnit* unit ) const;
+
+protected:
+	// Registers all AUnit subclasses
+	// Needs to be called before searching for building
+	void FindUnitClasses();
+
+	bool BuildingIsUnitTarget( const AActor* buildingActor, const TSubclassOf<AUnit>& unitClass ) const;
+
+	TWeakObjectPtr<const ABuilding> GetDefaultTargetBuilding() const;
+
+	UPROPERTY()
+	TMap<TSubclassOf<AUnit>, FBuildingSet> TargetBuildings_;
+};

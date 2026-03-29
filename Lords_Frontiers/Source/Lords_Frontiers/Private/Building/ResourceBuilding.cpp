@@ -1,5 +1,6 @@
 #include "Lords_Frontiers/Public/Building/ResourceBuilding.h"
 
+#include "Cards/CardTypes.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 

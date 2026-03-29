@@ -8,17 +8,17 @@ public class Lords_FrontiersEditor : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[]
         {
-            "Core",
-            "CoreUObject",
-            "Engine",
-            "InputCore",
-            "UMG",
-            "Slate",
-            "SlateCore",
-            "Blutility",
-            "UMGEditor",
-            "UnrealEd",
-            "Lords_Frontiers"
+	        "Core",
+	        "CoreUObject",
+	        "Engine",
+	        "InputCore",
+	        "UMG",
+	        "Slate",
+	        "SlateCore",
+	        "Blutility",
+	        "UMGEditor",
+	        "UnrealEd",
+	        "Lords_Frontiers"
         });
     }
 }

@@ -1,5 +1,6 @@
 #include "Core/GameLoopManager.h"
 
+#include "AI/UnitAIManager.h"
 #include "Building/Building.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
@@ -9,12 +10,14 @@
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -29,7 +32,7 @@ UGameLoopManager::~UGameLoopManager()
 
 void UGameLoopManager::Initialize(
     UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
+    UEconomyComponent* inEconomyComponent, AUnitAIManager* inUnitAIManager
 )
 {
 	if ( inConfig )
@@ -45,7 +48,7 @@ void UGameLoopManager::Initialize(
 	WaveManager_ = inWaveManager;
 	ResourceManager_ = inResourceManager;
 	EconomyComponent_ = inEconomyComponent;
-	PathPointsManager_ = inPathPointsManager;
+	UnitAIManager_ = inUnitAIManager;
 
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
@@ -56,9 +59,12 @@ void UGameLoopManager::Initialize(
 	bIsInitialized_ = ResourceManager_.IsValid();
 
 	Log( FString::Printf(
-	    TEXT( "Initialized. Config: %s, WaveManager: %s, ResourceManager: %s" ),
+	    TEXT( "Initialized. Config: %s, WaveManager: %s, ResourceManager: %s, EconomyComponent: %s, UnitAIManager: %s"
+	    ),
 	    Config_ ? TEXT( "OK" ) : TEXT( "MISSING" ), WaveManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
-	    ResourceManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" )
+	    ResourceManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
+	    EconomyComponent_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
+	    UnitAIManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" )
 	) );
 }
 
@@ -687,6 +693,12 @@ void UGameLoopManager::StartWave()
 {
 	if ( AWaveManager* wm = WaveManager_.Get() )
 	{
+		if ( UnitAIManager_.IsValid() )
+		{
+			UnitAIManager_->OnPreWaveStart();
+			UnitAIManager_->PathPointsManager()->ShowAll();
+		}
+
 		const int32 waveIndex = CurrentWave_ - 1;
 		wm->StartWaveAtIndex( waveIndex );
 
@@ -736,6 +748,11 @@ void UGameLoopManager::OnCombatTimerExpired()
 
 void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 {
+	if ( UnitAIManager_.IsValid() )
+	{
+		UnitAIManager_->PathPointsManager()->Empty();
+	}
+
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
 
 	bWaveCompleted_ = true;
@@ -763,6 +780,7 @@ void UGameLoopManager::BindToWaveManager()
 	{
 		wm->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.AddDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 		bIsBoundToWaveManager_ = true;
 
 		Log( TEXT( "Bound to WaveManager" ) );

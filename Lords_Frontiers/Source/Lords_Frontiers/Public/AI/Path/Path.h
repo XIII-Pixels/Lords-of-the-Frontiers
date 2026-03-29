@@ -25,9 +25,7 @@ public:
 
 	virtual void PostInitProperties() override;
 
-	void Initialize( const FDStarLiteConfig& config );
-
-	bool IsInitialized() const;
+	void Initialize( const FPathConfig& config );
 
 	// Update cell values. Path needs to be updated after calling this
 	void OnUpdateCell( const FIntPoint& cell );
