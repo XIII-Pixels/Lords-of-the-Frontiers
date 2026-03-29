@@ -43,6 +43,7 @@ class LORDS_FRONTIERS_API USessionLoggerSubsystem : public UWorldSubsystem
 
 public:
 	virtual void Initialize( FSubsystemCollectionBase& Collection ) override;
+	virtual void OnWorldBeginPlay( UWorld& InWorld ) override;
 	virtual void Deinitialize() override;
 	virtual bool ShouldCreateSubsystem( UObject* Outer ) const override { return true; }
 
@@ -224,4 +225,7 @@ private:
 	TWeakObjectPtr<ABuildManager> BuildManager_;
 
 	FDelegateHandle DamageEventHandle_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
+	float RangedAttackThreshold_ = 300.0f;
 };
