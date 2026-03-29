@@ -35,7 +35,10 @@ void ABuildPreviewActor::SetCanBuild( const bool bCanBuild )
 
 	if ( newMat )
 	{
-		MeshComponent_->SetMaterial( 0, newMat );
+		for ( int i = 0; i < MeshComponent_->GetMaterials().Num(); i++ )
+		{
+			MeshComponent_->SetMaterial( i, newMat );
+		}
 	}
 }
 

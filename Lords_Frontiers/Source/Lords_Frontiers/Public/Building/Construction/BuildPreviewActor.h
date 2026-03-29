@@ -31,6 +31,7 @@ public:
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UStaticMeshComponent> MeshComponent_ = nullptr;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )
 	TObjectPtr<UMaterialInterface> ValidMaterial_ = nullptr;
 
