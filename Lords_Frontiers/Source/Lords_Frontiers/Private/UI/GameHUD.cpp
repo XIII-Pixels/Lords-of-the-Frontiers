@@ -1,23 +1,23 @@
 ﻿#include "Lords_Frontiers/Public/UI/GameHUD.h"
 
 #include "Building/Building.h"
-#include "Building/DefensiveBuilding.h"
 #include "Building/Construction/BuildManager.h"
+#include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
-#include "UI/Widgets/GameStateOverlayWidget.h"
-#include "Camera/StrategyCamera.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
-
+#include "UI/Widgets/StageProgressWidget.h"
+#include "UI/Widgets/GameStateOverlayWidget.h"
 
 #include "Camera/CameraComponent.h"
+#include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
-#include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameStateBase.h"
+#include "Kismet/GameplayStatics.h"
 
 void UGameHUDWidget::NativeConstruct()
 {
@@ -156,7 +156,7 @@ void UGameHUDWidget::NativeConstruct()
 
 	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
 	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
-	
+
 	InitIncomeDisplay();
 
 	InitIncomeDisplay();
@@ -235,7 +235,6 @@ void UGameHUDWidget::NativeDestruct()
 			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
 
-		
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
 			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
@@ -253,6 +252,12 @@ void UGameHUDWidget::NativeDestruct()
 void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 {
 	UpdateStatusText();
+
+	if ( StageProgressBar && MaxTurns > 0 )
+	{
+		float progress = static_cast<float>( CurrentTurn - 1 ) / static_cast<float>( MaxTurns );
+		StageProgressBar->SetTargetProgress( FMath::Clamp( progress, 0.0f, 1.0f ) );
+	}
 }
 
 void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
@@ -287,6 +292,18 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	if ( NewPhase == EGameLoopPhase::Combat )
 	{
 		CancelCurrentBuilding();
+	}
+
+	if ( StageProgressBar )
+	{
+		if ( NewPhase == EGameLoopPhase::Combat )
+		{
+			StageProgressBar->SetTargetProgress( 1.0f );
+		}
+		else if ( NewPhase != EGameLoopPhase::Building )
+		{
+			StageProgressBar->ResetProgressImmediate();
+		}
 	}
 }
 
@@ -872,7 +889,6 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
 }
 
-
 void UGameHUDWidget::OnBuildingUnhovered()
 {
 	if ( bIsBuildingLocked && LockedBuildingClass )
@@ -1159,8 +1175,8 @@ void UGameHUDWidget::TogglePauseMenu()
 			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
 			{
 				Cam->SetCameraInputDisabled( false );
-			}	
-		}		
+			}
+		}
 	}
 	else
 	{
@@ -1179,7 +1195,7 @@ void UGameHUDWidget::TogglePauseMenu()
 			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
 			{
 				Cam->SetCameraInputDisabled( true );
-			}	
+			}
 		}
 	}
 }
