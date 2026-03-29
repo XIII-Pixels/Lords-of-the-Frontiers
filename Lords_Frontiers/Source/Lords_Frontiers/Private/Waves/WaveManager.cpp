@@ -91,8 +91,10 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	{
 		UE_LOG(
 		    LogTemp, Warning,
-		    TEXT( "WaveManager: Wave %d is not valid (  no enemy groups ) . "
-		          "Skipping." ),
+		    TEXT(
+		        "WaveManager: Wave %d is not valid (  no enemy groups ) . "
+		        "Skipping."
+		    ),
 		    CurrentWaveIndex
 		);
 
@@ -180,8 +182,10 @@ void AWaveManager::ScheduleWaveSpawns( const FWave& wave, int32 waveIndex )
 			{
 				UE_LOG(
 				    LogTemp, Log,
-				    TEXT( "WaveManager: Scheduled spawn Wave[%d] Group[%d] Enemy[%d] "
-				          "at +%f s" ),
+				    TEXT(
+				        "WaveManager: Scheduled spawn Wave[%d] Group[%d] Enemy[%d] "
+				        "at +%f s"
+				    ),
 				    waveIndex, groupIndex, enemyIndex, timeFromWaveStart
 				);
 			}
@@ -286,7 +290,6 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
-	SpawnedUnits_.Add( spawned );
 	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
 	{
 		UE_LOG(
@@ -530,8 +533,10 @@ bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functi
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
-		    TEXT( "WaveManager: SubscribeToAllWavesCompleted - already "
-		          "subscribed: %s" ),
+		    TEXT(
+		        "WaveManager: SubscribeToAllWavesCompleted - already "
+		        "subscribed: %s"
+		    ),
 		    *GetNameSafe( listener )
 		);
 		return false;
@@ -579,8 +584,10 @@ void AWaveManager::BroadcastAllWavesCompleted()
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
-		    TEXT( "WaveManager: BroadcastAllWavesCompleted - already "
-		          "broadcasted, skipping." )
+		    TEXT(
+		        "WaveManager: BroadcastAllWavesCompleted - already "
+		        "broadcasted, skipping."
+		    )
 		);
 		return;
 	}
@@ -648,21 +655,41 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 		}
 	}
 
-	if ( !bIsWaveActive_ )
+	if ( SpawnedUnits_.IsEmpty() )
 	{
-		if ( SpawnedUnits_.IsEmpty() )
+		bool bHasPendingSpawns = false;
+		if ( bIsWaveActive_ )
 		{
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
 
 			if ( UWorld* world = GetWorld() )
 			{
-				// set timer to 1 second so existing logic could finish the wave
-				// timer calls OnWaveEndTimerElapsed
-				FTimerDelegate del =
-					FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
-				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
+				FTimerManager& tm = world->GetTimerManager();
+				for ( const FTimerHandle& h : ActiveSpawnTimers_ )
+				{
+					if ( tm.IsTimerActive( h ) )
+					{
+						bHasPendingSpawns = true;
+						break;
+					}
+				}
+			}
+		}
 
-				UE_LOG( LogTemp, Log, TEXT( "WaveManager: end-of-wave timer set (1s) for wave %d." ), CurrentWaveIndex );
+		if ( !bHasPendingSpawns )
+		{
+
+			if ( bIsWaveActive_ )
+			{
+				bIsWaveActive_ = false;
+				ClearActiveTimers();
+				OnWaveEnded.Broadcast( CurrentWaveIndex );
+			}
+			if ( UWorld* world = GetWorld() )
+			{
+				FTimerDelegate del =
+				    FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
 
 				OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
 			}
