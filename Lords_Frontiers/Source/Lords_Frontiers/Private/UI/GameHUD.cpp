@@ -266,9 +266,47 @@ void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
 
 void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount )
 {
-
 	UpdateResources();
 	UpdateAllBuildingButtons();
+
+	if ( ActiveEconomyTooltip && ActiveEconomyTooltip->GetVisibility() != ESlateVisibility::Hidden )
+	{
+		ActiveEconomyTooltip->UpdateContent();
+	}
+	if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->GetVisibility() != ESlateVisibility::Hidden )
+	{
+		ActiveDefensiveTooltip->UpdateContent();
+	}
+	if ( bIsBuildingLocked && LockedBuildingClass )
+	{
+		UCoreManager* core = UCoreManager::Get( this );
+		UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
+		if ( rM )
+		{
+			const ABuilding* buildingCDO = LockedBuildingClass->GetDefaultObject<ABuilding>();
+			if ( buildingCDO && !rM->CanAfford( buildingCDO->GetBuildingCost() ) )
+			{
+				if ( ABuildManager* bM = core->GetBuildManager() )
+				{
+					bM->CancelPlacing();
+				}
+
+				bIsBuildingLocked = false;
+				LockedBuildingClass = nullptr;
+
+				if ( ActiveEconomyTooltip )
+				{
+					ActiveEconomyTooltip->SetLocked( false );
+					ActiveEconomyTooltip->StartAutoHideTimer();
+				}
+				if ( ActiveDefensiveTooltip )
+				{
+					ActiveDefensiveTooltip->SetLocked( false );
+					ActiveDefensiveTooltip->StartAutoHideTimer();
+				}
+			}
+		}
+	}
 }
 
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
@@ -368,24 +406,10 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 		}
 	}
 
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-	{
-		if ( ABuildManager* bM = core->GetBuildManager() )
-		{
-			if ( !bM->IsPlacing() && bIsBuildingLocked )
-			{
-				bIsBuildingLocked = false;
-				LockedBuildingClass = nullptr;
-				if ( ActiveEconomyTooltip )
-					ActiveEconomyTooltip->HideTooltip();
-				if ( ActiveDefensiveTooltip )
-					ActiveDefensiveTooltip->HideTooltip();
-			}
-		}
-	}
-
 	if ( ActiveBonusIcons_.Num() > 0 )
+	{
 		UpdateBonusIconPositions();
+	}	
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -671,6 +695,19 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 		return;
 	}
 
+	if ( UResourceManager* rM = core->GetResourceManager() )
+	{
+		const ABuilding* buildingCDO = BuildingClass->GetDefaultObject<ABuilding>();
+		if ( buildingCDO && !rM->CanAfford( buildingCDO->GetBuildingCost() ) )
+		{
+			if ( GEngine )
+			{
+				GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Red, TEXT( "Not enough resources!" ) );
+			}	
+			return;
+		}
+	}
+
 	bM->StartPlacingBuilding( BuildingClass );
 
 	bIsBuildingLocked = true;
@@ -810,13 +847,14 @@ void UGameHUDWidget::CancelCurrentBuilding()
 
 	bIsBuildingLocked = false;
 	LockedBuildingClass = nullptr;
+
 	if ( ActiveEconomyTooltip )
 	{
-		ActiveEconomyTooltip->HideTooltip();
+		ActiveEconomyTooltip->SetLocked( false );
 	}
 	if ( ActiveDefensiveTooltip )
 	{
-		ActiveDefensiveTooltip->HideTooltip();
+		ActiveDefensiveTooltip->SetLocked( false );
 	}
 }
 
@@ -854,21 +892,22 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
 {
 	if ( !button || !buildingClass )
+	{
 		return;
-
+	}
+		
 	UCoreManager* core = UCoreManager::Get( this );
 	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
 
 	if ( !rM )
+	{
 		return;
+	}
 
 	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
 	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
 
-	button->SetIsEnabled( bCanAfford );
-
 	button->SetRenderOpacity( bCanAfford ? 1.0f : 0.4f );
-
 	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
 }
 

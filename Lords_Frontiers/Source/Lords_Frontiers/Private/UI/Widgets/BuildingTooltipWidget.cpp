@@ -5,6 +5,8 @@
 #include "Building/DefensiveBuilding.h"
 #include "Building/ResourceBuilding.h"
 #include "UI/Widgets/BuildingUIConfig.h"
+#include "Core/CoreManager.h" 
+#include "Resources/ResourceManager.h"
 
 #include "Components/Image.h"
 #include "Components/Overlay.h"
@@ -155,6 +157,16 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 		break;
 
 	case ETooltipState::Visible:
+		if ( bIsAutoHiding )
+		{
+			AutoHideTimer -= inDeltaTime;
+			if ( AutoHideTimer <= 0.0f )
+			{
+				bIsAutoHiding = false;
+				HideTooltip();
+			}
+		}
+		break;
 	case ETooltipState::Hidden:
 		break;
 	}
@@ -163,8 +175,12 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 {
 	if ( !buildingClass )
+	{
 		return;
+	}
 
+	bIsAutoHiding = false;
+		
 	PendingBuildingClass = buildingClass;
 
 	SetVisibility( ESlateVisibility::HitTestInvisible );
@@ -324,6 +340,17 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cDO )
 		return;
 	}
 
+	int32 playerGold = 0, playerFood = 0, playerPop = 0;
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UResourceManager* rM = core->GetResourceManager() )
+		{
+			playerGold = rM->GetResourceAmount( EResourceType::Gold );
+			playerFood = rM->GetResourceAmount( EResourceType::Food );
+			playerPop = rM->GetResourceAmount( EResourceType::Population );
+		}
+	}
+
 	int32 costG = cDO->GetBuildingCost().Gold;
 	int32 costF = cDO->GetBuildingCost().Food;
 	int32 costP = cDO->GetBuildingCost().Population;
@@ -362,9 +389,13 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cDO )
 		}
 	};
 
-	AddResRow( Box_Cost, costG, EResourceType::Gold, NeutralColor, false, false );
-	AddResRow( Box_Cost, costF, EResourceType::Food, NeutralColor, false, false );
-	AddResRow( Box_Cost, costP, EResourceType::Population, NeutralColor, false, false );
+	FSlateColor ColorG = ( playerGold >= costG ) ? AffordableCostColor : TooExpensiveCostColor;
+	FSlateColor ColorF = ( playerFood >= costF ) ? AffordableCostColor : TooExpensiveCostColor;
+	FSlateColor ColorP = ( playerPop >= costP ) ? AffordableCostColor : TooExpensiveCostColor;
+
+	AddResRow( Box_Cost, costG, EResourceType::Gold, ColorG, false, false );
+	AddResRow( Box_Cost, costF, EResourceType::Food, ColorF, false, false );
+	AddResRow( Box_Cost, costP, EResourceType::Population, ColorP, false, false );
 
 	AddResRow( Box_Maintenance, -maintG, EResourceType::Gold, ExpenseColor, true, false );
 	AddResRow( Box_Maintenance, -maintF, EResourceType::Food, ExpenseColor, true, false );
@@ -488,5 +519,14 @@ void UBuildingTooltipWidget::UpdateBonuses()
 				}
 			}
 		}
+	}
+}
+
+void UBuildingTooltipWidget::StartAutoHideTimer()
+{
+	if ( CurrentState == ETooltipState::Visible || CurrentState == ETooltipState::FadeFlash )
+	{
+		bIsAutoHiding = true;
+		AutoHideTimer = AutoHideDelay;
 	}
 }
