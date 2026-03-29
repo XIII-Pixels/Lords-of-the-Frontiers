@@ -458,8 +458,6 @@ protected:
 
 	void HandleDelayedBuildingRestoration();
 
-	void ExecuteHealingPulse();
-
 	/**
 	 * Checks if CardSubsystem has a valid pool and can offer cards.
 	 * Used to decide whether to wait for card selection in Reward phase.
@@ -543,8 +541,4 @@ private:
 
 	/** Unsubscribes from WaveManager events. Safe to call if not bound. */
 	void UnbindFromWaveManager();
-
-	FTimerHandle BuildingRestoreTimerHandle_;
-
-	int32 RemainingHealingPulses_ = 0;
 };
