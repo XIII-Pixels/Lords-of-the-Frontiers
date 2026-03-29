@@ -152,23 +152,13 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		}
 	}
 
-	// Настроим меш превью под выбранное здание.
 	if ( PreviewActor_ )
 	{
-		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
-
-		if ( buildingCDO )
+		if ( const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>() )
 		{
-			// Берём первый StaticMeshComponent у здания (в т.ч. BP-потомков).
-			const UStaticMeshComponent* buildingMeshComp = buildingCDO->FindComponentByClass<UStaticMeshComponent>();
-
-			if ( buildingMeshComp )
+			if ( UStaticMesh* buildingMesh = buildingCDO->GetBuildingMesh() )
 			{
-				UStaticMesh* buildingMesh = buildingMeshComp->GetStaticMesh();
-				if ( buildingMesh )
-				{
-					PreviewActor_->SetPreviewMesh( buildingMesh );
-				}
+				PreviewActor_->SetPreviewMesh( buildingMesh );
 			}
 		}
 

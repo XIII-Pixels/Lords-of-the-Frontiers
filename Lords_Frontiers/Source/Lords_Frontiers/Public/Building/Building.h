@@ -48,9 +48,14 @@ public:
 
 	virtual FVector GetSelectionLocation_Implementation() const override;
 
+	TObjectPtr<UStaticMesh> GetBuildingMesh() const
+	{
+		return BuildingMesh_;
+	}
+
 	const FResourceProduction& GetMaintenanceCost() const
 	{
-		return MaintenanceCost;
+		return MaintenanceCost_;
 	}
 
 	const FResourceProduction& GetBuildingCost() const
@@ -92,36 +97,42 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
-	FResourceProduction MaintenanceCost;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
 	virtual UNiagaraSystem* GetHitVFX() const override;
+
 	void ResolveVFXDefaults();
+
+	void SpawnDestructionVFX();
 
 	virtual void OnDeath();
 
 	void FinalizeRuin();
 
-	void SpawnDestructionVFX();
-	UPROPERTY()
-	TObjectPtr<UNiagaraSystem> DestructionVFX_;
+	void ActivateBuildingMesh();
 
-	UPROPERTY()
-	TObjectPtr<UNiagaraSystem> HitVFX_;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
-	TObjectPtr<UStaticMesh> RuinedMesh_;
-
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|State" )
-	bool bIsRuined_ = false;
+	void ActivateRuinsMesh();
 
 	UPROPERTY()
 	TObjectPtr<UBoxComponent> CollisionComponent_;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
-	UStaticMeshComponent* BuildingMesh_;
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly )
+	USkeletalMeshComponent* SkeletalMeshComponent_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly )
+	UStaticMeshComponent* StaticMeshComponent_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMesh> RuinedMesh_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMesh> BuildingMesh_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	FVector2D AnimationRateRange_ = FVector2D( 0.8f, 1.2f );
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|State" )
+	bool bIsRuined_ = false;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
@@ -129,11 +140,18 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
 	FResourceProduction BuildingCost_;
 
-	UPROPERTY()
-	TObjectPtr<UStaticMesh> DefaultMesh_;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
+	FResourceProduction MaintenanceCost_;
 
 	UPROPERTY()
 	TObjectPtr<UEconomyComponent> EconomyComponent_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> DestructionVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> HitVFX_;
+
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
 
@@ -146,6 +164,7 @@ private:
 	FTimerHandle RuinTimerHandle_;
 
 	FResourceProduction OriginalMaintenanceCost_;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;
 };

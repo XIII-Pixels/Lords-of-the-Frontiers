@@ -9,6 +9,7 @@
 
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
+
 ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -17,8 +18,15 @@ ABuilding::ABuilding()
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 	SetRootComponent( CollisionComponent_ );
 
-	BuildingMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "BuildingMesh" ) );
-	BuildingMesh_->SetupAttachment( RootComponent );
+	StaticMeshComponent_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "StaticMesh" ) );
+	StaticMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	StaticMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	StaticMeshComponent_->SetupAttachment( RootComponent );
+
+	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
+	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	SkeletalMeshComponent_->SetupAttachment( RootComponent );
 }
 
 void ABuilding::BeginPlay()
@@ -28,12 +36,11 @@ void ABuilding::BeginPlay()
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
 	// Save original maintenance for card reset on game restart
-	OriginalMaintenanceCost_ = MaintenanceCost;
+	OriginalMaintenanceCost_ = MaintenanceCost_;
 
-	if ( BuildingMesh_ )
-	{
-		DefaultMesh_ = BuildingMesh_->GetStaticMesh();
-	}
+	ActivateBuildingMesh();
+
+	SkeletalMeshComponent_->SetPlayRate( FMath::RandRange( AnimationRateRange_.X, AnimationRateRange_.Y ) );
 
 	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
 	{
@@ -43,7 +50,6 @@ void ABuilding::BeginPlay()
 	if ( EconomyComponent_ )
 	{
 		EconomyComponent_->RegisterBuilding( this );
-
 		EconomyComponent_->RecalculateAndBroadcastNetIncome();
 	}
 
@@ -52,9 +58,6 @@ void ABuilding::BeginPlay()
 		cardSubsystem->OnBuildingPlaced( this );
 	}
 
-	if ( EconomyComponent_ )
-	{
-	}
 	ResolveVFXDefaults();
 }
 
@@ -144,22 +147,12 @@ void ABuilding::FinalizeRuin()
 {
 	bIsRuined_ = true;
 
-	if ( BuildingMesh_ && RuinedMesh_ )
-	{
-		BuildingMesh_->SetStaticMesh( RuinedMesh_ );
-		BuildingMesh_->SetRenderCustomDepth( false );
-	}
+	ActivateRuinsMesh();
 
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	}
-
-	if ( BuildingMesh_ )
-	{
-		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Ignore );
 	}
 
 	SetCanAffectNavigationGeneration( false );
@@ -177,6 +170,32 @@ void ABuilding::FinalizeRuin()
 		    -1, 3.0f, FColor::Orange,
 		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
+	}
+}
+
+void ABuilding::ActivateBuildingMesh()
+{
+	if ( SkeletalMeshComponent_->GetSkeletalMeshAsset() )
+	{
+		StaticMeshComponent_->SetVisibility( false );
+		SkeletalMeshComponent_->SetVisibility( true );
+	}
+	else
+	{
+		StaticMeshComponent_->SetStaticMesh( BuildingMesh_ );
+		SkeletalMeshComponent_->SetVisibility( false );
+		StaticMeshComponent_->SetVisibility( true );
+	}
+}
+
+void ABuilding::ActivateRuinsMesh()
+{
+	if ( RuinedMesh_ )
+	{
+		StaticMeshComponent_->SetStaticMesh( RuinedMesh_ );
+		StaticMeshComponent_->SetRenderCustomDepth( false );
+		SkeletalMeshComponent_->SetVisibility( false );
+		StaticMeshComponent_->SetVisibility( true );
 	}
 }
 
@@ -233,7 +252,7 @@ void ABuilding::OnSelected_Implementation()
 
 	if ( BuildingMesh_ )
 	{
-		BuildingMesh_->SetRenderCustomDepth( true );
+		StaticMeshComponent_->SetRenderCustomDepth( true );
 	}
 }
 
@@ -246,10 +265,7 @@ void ABuilding::OnDeselected_Implementation()
 		);
 	}
 
-	if ( BuildingMesh_ )
-	{
-		BuildingMesh_->SetRenderCustomDepth( false );
-	}
+	StaticMeshComponent_->SetRenderCustomDepth( false );
 }
 
 bool ABuilding::CanBeSelected_Implementation() const
@@ -259,15 +275,10 @@ bool ABuilding::CanBeSelected_Implementation() const
 
 FVector ABuilding::GetSelectionLocation_Implementation() const
 {
-	if ( BuildingMesh_ )
-	{
-		return BuildingMesh_->Bounds.Origin;
-	}
-
-	return GetActorLocation();
+	return StaticMeshComponent_->Bounds.Origin;
 }
 
-void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
+void ABuilding::EndPlay( const EEndPlayReason::Type endPlayReason )
 {
 	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
 
@@ -275,7 +286,7 @@ void ABuilding::EndPlay( const EEndPlayReason::Type EndPlayReason )
 	{
 		EconomyComponent_->UnregisterBuilding( this );
 	}
-	Super::EndPlay( EndPlayReason );
+	Super::EndPlay( endPlayReason );
 }
 
 void ABuilding::RestoreFromRuins()
@@ -287,10 +298,7 @@ void ABuilding::RestoreFromRuins()
 
 	bIsRuined_ = false;
 
-	if ( BuildingMesh_ && DefaultMesh_ )
-	{
-		BuildingMesh_->SetStaticMesh( DefaultMesh_ );
-	}
+	ActivateBuildingMesh();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
@@ -299,11 +307,8 @@ void ABuilding::RestoreFromRuins()
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
 		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
 	}
-	if ( BuildingMesh_ )
-	{
-		BuildingMesh_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
-		BuildingMesh_->SetCollisionResponseToAllChannels( ECR_Block );
-	}
+
+	ActivateBuildingMesh();
 }
 
 void ABuilding::FullRestore()
@@ -311,10 +316,8 @@ void ABuilding::FullRestore()
 	if ( bIsRuined_ )
 	{
 		bIsRuined_ = false;
-		if ( BuildingMesh_ && DefaultMesh_ )
-		{
-			BuildingMesh_->SetStaticMesh( DefaultMesh_ );
-		}
+
+		ActivateBuildingMesh();
 
 		if ( CollisionComponent_ )
 		{
@@ -338,20 +341,20 @@ void ABuilding::FullRestore()
 
 void ABuilding::ModifyMaintenanceCost( EResourceType type, int32 delta )
 {
-	MaintenanceCost.ModifyByType( type, delta );
+	MaintenanceCost_.ModifyByType( type, delta );
 }
 
 void ABuilding::ModifyMaintenanceCostAll( int32 delta )
 {
 	for ( EResourceType type : CardTypeHelpers::GetAllResourceTypes() )
 	{
-		MaintenanceCost.ModifyByType( type, delta );
+		MaintenanceCost_.ModifyByType( type, delta );
 	}
 }
 
 void ABuilding::ResetMaintenanceCostToDefaults()
 {
-	MaintenanceCost = OriginalMaintenanceCost_;
+	MaintenanceCost_ = OriginalMaintenanceCost_;
 }
 
 UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass )
