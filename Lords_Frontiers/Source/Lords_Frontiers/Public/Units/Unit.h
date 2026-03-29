@@ -7,6 +7,7 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
+
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggressionComponent.h"
 #include "CoreMinimal.h"
@@ -80,18 +81,16 @@ public:
 		return FollowedTarget_;
 	}
 
-	// Target that unit moves to
-	TWeakObjectPtr<const AActor> FollowedTarget() const
-	{
-		return FollowedTarget_;
-	}
-
 	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget )
 	{
 		FollowedTarget_ = newTarget;
 	}
 
-	void ChangeStats( FEnemyBuff* buff );
+	// Target that unit might attack
+	virtual TWeakObjectPtr<AActor> AttackTarget() const override
+	{
+		return AttackTarget_;
+	}
 
 	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
 	{

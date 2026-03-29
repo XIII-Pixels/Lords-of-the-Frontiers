@@ -57,30 +57,6 @@ public:
 	}
 
 protected:
-	virtual void BeginPlay() override;
-
-	void FindGoalActor();
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Path", meta = ( AllowAbstract = "true" ) )
-	TSubclassOf<AActor> GoalActorClass_;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	TSubclassOf<APathTargetPoint> PathPointClass_;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	float PathPointReachRadius_ = 100.0f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
-	float GroundHeight_ = 10.0f;
-
-	UPROPERTY()
-	TWeakObjectPtr<AActor> GoalActor_;
-
-	UPROPERTY()
-	TObjectPtr<UPathPointsManager> PathPointsManager_;
-
-	UPROPERTY()
-	TObjectPtr<UTargetBuildingTracker> TargetBuildingTracker_;
 
 	virtual void BeginPlay() override;
 

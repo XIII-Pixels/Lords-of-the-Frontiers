@@ -40,7 +40,7 @@ public:
 
 	UPath* Path() const
 	{
-		return Path_;
+		return Path_;	
 	}
 
 	void SetPath( UPath* path )

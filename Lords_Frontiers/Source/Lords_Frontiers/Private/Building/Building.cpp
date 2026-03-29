@@ -1,20 +1,15 @@
 #include "Building/Building.h"
 
 #include "Cards/CardSubsystem.h"
-
-#include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/EntityVFXConfig.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
-#include "Utilities/TraceChannelMappings.h"
-
-#include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Resources/EconomyComponent.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-
 ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -159,7 +154,6 @@ void ABuilding::ResolveVFXDefaults()
 	}
 }
 
-
 void ABuilding::SpawnConstructionVFX()
 {
 	if ( !ResolvedConstructionVFX_ )
@@ -264,10 +258,6 @@ FEntityStats& ABuilding::Stats()
 const FEntityStats& ABuilding::Stats() const
 {
 	return Stats_;
-}
-ETeam ABuilding::Team()
-{
-	return Stats_.Team();
 }
 
 ETeam ABuilding::Team()
