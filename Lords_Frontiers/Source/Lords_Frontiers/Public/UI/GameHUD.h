@@ -8,6 +8,8 @@
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/Widgets/GameStateOverlayWidget.h"
+#include "UI/Widgets/StageProgressWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -21,8 +23,8 @@
 #include "GameHUD.generated.h"
 
 class ABuilding;
+class UStageProgressWidget;
 class UGameStateOverlayWidget;
-
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -240,6 +242,9 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> BtnToggleWaveInfo;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UStageProgressWidget> StageProgressBar;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
 	TSubclassOf<UGameStateOverlayWidget> WinWidgetClass;
 
@@ -371,7 +376,6 @@ protected:
 	void InitializeTooltipWidget(
 	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
 	);
-
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{

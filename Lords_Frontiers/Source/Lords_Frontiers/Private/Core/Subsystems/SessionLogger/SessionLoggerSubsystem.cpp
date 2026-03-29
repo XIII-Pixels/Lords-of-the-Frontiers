@@ -138,26 +138,28 @@ void USessionLoggerSubsystem::BindToSystems()
 
 	if ( GameLoop_.IsValid() )
 	{
-		GameLoop_->OnPhaseChanged.AddDynamic( this, &USessionLoggerSubsystem::HandlePhaseChanged );
-		GameLoop_->OnBuildTurnChanged.AddDynamic( this, &USessionLoggerSubsystem::HandleBuildTurnChanged );
-		GameLoop_->OnWaveChanged.AddDynamic( this, &USessionLoggerSubsystem::HandleWaveChanged );
-		GameLoop_->OnGameEnded.AddDynamic( this, &USessionLoggerSubsystem::HandleGameEnded );
+		GameLoop_->OnPhaseChanged.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandlePhaseChanged );
+		GameLoop_->OnBuildTurnChanged.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleBuildTurnChanged );
+		GameLoop_->OnWaveChanged.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleWaveChanged );
+		GameLoop_->OnGameEnded.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleGameEnded );
 	}
 
 	if ( WaveManager_.IsValid() )
 	{
-		WaveManager_->OnWaveStarted.AddDynamic( this, &USessionLoggerSubsystem::HandleWaveStarted );
+		WaveManager_->OnWaveStarted.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleWaveStarted );
 	}
 
 	if ( BuildManager_.IsValid() )
 	{
-		BuildManager_->OnBuildingConfirmed.AddDynamic( this, &USessionLoggerSubsystem::HandleBuildingPlaced );
+		BuildManager_->OnBuildingConfirmed.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleBuildingPlaced );
 	}
 
 	if ( UCardSubsystem* cardSub = UCardSubsystem::Get( this ) )
 	{
-		cardSub->OnCardSelectionRequired.AddDynamic( this, &USessionLoggerSubsystem::HandleCardSelectionRequired );
-		cardSub->OnCardsApplied.AddDynamic( this, &USessionLoggerSubsystem::HandleCardsApplied );
+		cardSub->OnCardSelectionRequired.AddUniqueDynamic(
+		    this, &USessionLoggerSubsystem::HandleCardSelectionRequired
+		);
+		cardSub->OnCardsApplied.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleCardsApplied );
 		UE_LOG( LogSessionLogger, Log, TEXT( "Bound to CardSubsystem events" ) );
 	}
 	else
@@ -296,7 +298,7 @@ void USessionLoggerSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGame
 				ABuilding* bldg = *it;
 				if ( bldg && !bldg->IsRuined() )
 				{
-					bldg->OnBuildingDied.AddDynamic( this, &USessionLoggerSubsystem::HandleBuildingDied );
+					bldg->OnBuildingDied.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleBuildingDied );
 				}
 			}
 		}

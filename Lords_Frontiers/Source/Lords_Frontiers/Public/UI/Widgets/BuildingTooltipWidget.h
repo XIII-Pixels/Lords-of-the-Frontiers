@@ -101,6 +101,20 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void ForceHide();
+	void UpdateContent();
+
+	void SetLocked( bool bLock )
+	{
+		bIsLocked = bLock;
+	}
+
+	bool IsLocked()
+	{
+		return bIsLocked;
+	}
+
+	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
+	void StartAutoHideTimer();
 
 protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.2f;
@@ -112,6 +126,12 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float SlideOffsetX = -50.0f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) TObjectPtr<UCurveFloat> AnimationCurve;
+
+	UPROPERTY(
+	    EditAnywhere, Category = "Settings|Animation",
+	    meta = ( Tooltip = "How long to show red tooltip before auto-hiding" )
+	)
+	float AutoHideDelay = 3.0f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Config" ) TObjectPtr<UBuildingUIConfig> UIConfig;
 
 	// color numbers
@@ -121,6 +141,10 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
 	FSlateColor NeutralColor = FSlateColor( FLinearColor::White );
 
+	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
+	FSlateColor AffordableCostColor = FSlateColor( FLinearColor::White );
+	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
+	FSlateColor TooExpensiveCostColor = FSlateColor( FLinearColor::Red );
 	// class sample
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" )
 	TSubclassOf<UBuildingTooltipResourceRow> ResourceRowClass;
@@ -154,12 +178,16 @@ private:
 	UPROPERTY() TSubclassOf<ABuilding> PendingBuildingClass;
 
 	void ApplyAnimation();
-	void UpdateContent();
+	
 	void ClearContainers();
 	void UpdateHeader( const ABuilding* cDO );
 	void UpdateEconomy( const ABuilding* cDO );
 	void UpdateStats( const ABuilding* cDO );
 	void UpdateBonuses();
+
+	bool bIsLocked = false;
+	bool bIsAutoHiding = false;
+	float AutoHideTimer = 0.0f;
 
 	UTexture2D* GetResourceIcon( EResourceType type );
 	UTexture2D* GetStatIcon( EStatsType type );

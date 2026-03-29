@@ -296,7 +296,14 @@ void UEconomyComponent::RestoreAllBuildings()
 	{
 		if ( ABuilding* b = Cast<ABuilding>( actor ) )
 		{
-			b->RestoreFromRuins();
+			if ( b->IsRuined() )
+			{
+				b->RestoreFromRuins();
+			}
+			else
+			{
+				b->Stats().SetHealth( b->Stats().MaxHealth() );
+			}
 		}
 	}
 
