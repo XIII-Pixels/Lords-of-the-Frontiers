@@ -59,6 +59,7 @@ void ABuilding::BeginPlay()
 	}
 
 	ResolveVFXDefaults();
+	SpawnConstructionVFX();
 }
 
 void ABuilding::OnDeath()
@@ -90,6 +91,8 @@ void ABuilding::ResolveVFXDefaults()
 	ResolvedHitVFX_ = HitVFX_;
 	ResolvedDestructionVFX_ = DestructionVFX_;
 	ResolvedRuinDelay_ = 0.0f;
+	ResolvedConstructionVFX_ = nullptr;
+	ResolvedConstructionDelay_ = 0.0f;
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
@@ -111,6 +114,16 @@ void ABuilding::ResolveVFXDefaults()
 				{
 					ResolvedRuinDelay_ = classOverride->RuinDelay;
 				}
+
+				if ( classOverride->ConstructionVFX )
+				{
+					ResolvedConstructionVFX_ = classOverride->ConstructionVFX;
+				}
+
+				if ( classOverride->ConstructionDelay >= 0.0f )
+				{
+					ResolvedConstructionDelay_ = classOverride->ConstructionDelay;
+				}
 			}
 
 			if ( !ResolvedHitVFX_ )
@@ -127,7 +140,46 @@ void ABuilding::ResolveVFXDefaults()
 			{
 				ResolvedRuinDelay_ = config->DefaultRuinDelay;
 			}
+
+			if ( !ResolvedConstructionVFX_ )
+			{
+				ResolvedConstructionVFX_ = config->DefaultBuildingConstructionVFX;
+			}
+
+			if ( ResolvedConstructionDelay_ <= 0.0f )
+			{
+				ResolvedConstructionDelay_ = config->DefaultConstructionDelay;
+			}
 		}
+	}
+}
+
+
+void ABuilding::SpawnConstructionVFX()
+{
+	if ( !ResolvedConstructionVFX_ )
+	{
+		return;
+	}
+
+	if ( ResolvedConstructionDelay_ > 0.0f )
+	{
+		GetWorldTimerManager().SetTimer(
+		    ConstructionVFXTimerHandle_,
+		    [this]()
+		    {
+			    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			        GetWorld(), ResolvedConstructionVFX_, GetActorLocation(), GetActorRotation()
+			    );
+		    },
+		    ResolvedConstructionDelay_, false
+		);
+	}
+	else
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		    GetWorld(), ResolvedConstructionVFX_, GetActorLocation(), GetActorRotation()
+		);
 	}
 }
 
@@ -281,6 +333,7 @@ FVector ABuilding::GetSelectionLocation_Implementation() const
 void ABuilding::EndPlay( const EEndPlayReason::Type endPlayReason )
 {
 	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
+	GetWorldTimerManager().ClearTimer( ConstructionVFXTimerHandle_ );
 
 	if ( EconomyComponent_ )
 	{
