@@ -14,6 +14,7 @@
 class UAttackComponent;
 class AAIController;
 class UBehaviorTree;
+class UDecalComponent;
 
 /**
  *
@@ -52,6 +53,12 @@ public:
 
 	virtual void FullRestore() override;
 
+	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
+	void ShowAttackRange();
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
+	void HideAttackRange();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -71,5 +78,11 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<UDecalComponent> RangeDecalComponent_ = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )
+	TObjectPtr<UMaterialInterface> RangeIndicatorMaterial_ = nullptr;
 };
 // DefensiveBuilding.h

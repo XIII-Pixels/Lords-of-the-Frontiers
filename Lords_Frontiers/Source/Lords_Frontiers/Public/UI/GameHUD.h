@@ -268,6 +268,9 @@ protected:
 	void UpdateBuildingUIVisibility();
 	void CancelCurrentBuilding();
 
+	UFUNCTION()
+	void OnPlacingCancelled();
+
 	bool bShowingEconomyBuildings_ = true;
 	bool bIsEconomySubscribed_ = false;
 	// Button handlers

@@ -5,6 +5,7 @@
 #include "AI/EntityAIController.h"
 
 #include "Components/Attack/AttackComponent.h"
+#include "Components/DecalComponent.h"
 
 ADefensiveBuilding::ADefensiveBuilding()
 {
@@ -12,6 +13,11 @@ ADefensiveBuilding::ADefensiveBuilding()
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	BuildingAIControllerClass_ = AEntityAIController::StaticClass();
+
+	RangeDecalComponent_ = CreateDefaultSubobject<UDecalComponent>( TEXT( "RangeDecal" ) );
+	RangeDecalComponent_->SetupAttachment( RootComponent );
+	RangeDecalComponent_->SetRelativeRotation( FRotator( -90.f, 0.f, 0.f ) );
+	RangeDecalComponent_->SetVisibility( false );
 }
 
 void ADefensiveBuilding::OnConstruction( const FTransform& transform )
@@ -80,5 +86,26 @@ void ADefensiveBuilding::FullRestore()
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->ActivateSight();
+	}
+}
+
+void ADefensiveBuilding::ShowAttackRange()
+{
+	if ( !RangeDecalComponent_ || !RangeIndicatorMaterial_ )
+	{
+		return;
+	}
+
+	const float range = Stats().AttackRange();
+	RangeDecalComponent_->DecalSize = FVector( range, range, range );
+	RangeDecalComponent_->SetDecalMaterial( RangeIndicatorMaterial_ );
+	RangeDecalComponent_->SetVisibility( true );
+}
+
+void ADefensiveBuilding::HideAttackRange()
+{
+	if ( RangeDecalComponent_ )
+	{
+		RangeDecalComponent_->SetVisibility( false );
 	}
 }

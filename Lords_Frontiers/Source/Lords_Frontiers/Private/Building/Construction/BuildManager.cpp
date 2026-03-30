@@ -152,11 +152,23 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 
 	if ( PreviewActor_ )
 	{
-		if ( const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>() )
+		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
+		if ( buildingCDO )
 		{
 			if ( UStaticMesh* buildingMesh = buildingCDO->GetBuildingMesh() )
 			{
 				PreviewActor_->SetPreviewMesh( buildingMesh );
+			}
+			if ( Cast<ADefensiveBuilding>( buildingCDO ) )
+			{
+				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
+				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
+				ShowAllDefensiveRanges();
+			}
+			else
+			{
+				CachedPreviewAttackRange_ = 0.f;
+				PreviewActor_->HideAttackRange();
 			}
 		}
 
@@ -205,7 +217,10 @@ void ABuildManager::CancelPlacing()
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( true );
+		PreviewActor_->HideAttackRange();
 	}
+
+	HideAllDefensiveRanges();
 
 	// Сбрасываем состояние переноса.
 	bIsRelocating_ = false;
@@ -213,6 +228,7 @@ void ABuildManager::CancelPlacing()
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
 
 	bHidingPreviewForAnimation_ = false;
+	CachedPreviewAttackRange_ = 0.f;
 	LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 
 	if ( GridVisualizer_ )
@@ -228,6 +244,7 @@ void ABuildManager::CancelPlacing()
 	CachedBonusIcons_.Empty();
 	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
 	GridVisualizer_->HideBonusHighlight();
+	OnPlacingCancelled.Broadcast();
 }
 
 bool ABuildManager::ValidatePlacement( FVector& outCellWorldLocation ) const
@@ -311,6 +328,8 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
 	PlayPlacementAnimation( newBuilding );
 
+	ShowAllDefensiveRanges();
+
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
 	return true;
 }
@@ -365,7 +384,10 @@ void ABuildManager::ResetPlacementState()
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( true );
+		PreviewActor_->HideAttackRange();
 	}
+
+	HideAllDefensiveRanges();
 
 	if ( GridVisualizer_ )
 	{
@@ -377,6 +399,7 @@ void ABuildManager::ResetPlacementState()
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
 
 	bHidingPreviewForAnimation_ = false;
+	CachedPreviewAttackRange_ = 0.f;
 	LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 }
 
@@ -427,8 +450,10 @@ void ABuildManager::UpdateHoveredCell()
 		if ( PreviewActor_ )
 		{
 			PreviewActor_->SetActorHiddenInGame( true );
+			PreviewActor_->HideAttackRange();
 		}
 
+		bHidingPreviewForAnimation_ = false;
 		// HideAllWallPreviews();
 		return;
 	}
@@ -475,7 +500,12 @@ void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const boo
 
 	PreviewActor_->SetActorHiddenInGame( false );
 	PreviewActor_->SetActorLocation( worldLocation );
-	PreviewActor_->SetCanBuild( bCanBuild ); // метод внутри ABuildPreviewActor (зелёный/красный и т.п.)
+	PreviewActor_->SetCanBuild( bCanBuild );
+
+	if ( CachedPreviewAttackRange_ > 0.f )
+	{
+		PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
+	}
 }
 
 void ABuildManager::PlayPlacementAnimation( AActor* building )
@@ -650,10 +680,27 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( false );
-		// Если у PreviewActor есть метод вроде SetSourceClass /
-		// SetPreviewMeshFromClass, можно здесь передать CurrentBuildingClass_,
-		// чтобы превью подстроилось под здание.
-		// PreviewActor_->InitFromBuildingClass( CurrentBuildingClass_ );
+
+		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
+		if ( buildingCDO )
+		{
+			if ( UStaticMesh* buildingMesh = buildingCDO->GetBuildingMesh() )
+			{
+				PreviewActor_->SetPreviewMesh( buildingMesh );
+			}
+
+			if ( Cast<ADefensiveBuilding>( buildingCDO ) )
+			{
+				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
+				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
+				ShowAllDefensiveRanges();
+			}
+			else
+			{
+				CachedPreviewAttackRange_ = 0.f;
+				PreviewActor_->HideAttackRange();
+			}
+		}
 	}
 
 	if ( GEngine )
@@ -902,6 +949,52 @@ void ABuildManager::ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildi
 	else
 	{
 		GridVisualizer_->HideBonusHighlight();
+	}
+}
+
+void ABuildManager::ShowAllDefensiveRanges()
+{
+	if ( !GridManager_ )
+	{
+		return;
+	}
+
+	for ( int32 y = 0; y < GridManager_->GetGridHeight(); ++y )
+	{
+		for ( int32 x = 0; x < GridManager_->GetRowWidth( y ); ++x )
+		{
+			FGridCell* cell = GridManager_->GetCell( x, y );
+			if ( cell && cell->bIsOccupied && cell->Occupant.IsValid() )
+			{
+				if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( cell->Occupant.Get() ) )
+				{
+					tower->ShowAttackRange();
+				}
+			}
+		}
+	}
+}
+
+void ABuildManager::HideAllDefensiveRanges()
+{
+	if ( !GridManager_ )
+	{
+		return;
+	}
+
+	for ( int32 y = 0; y < GridManager_->GetGridHeight(); ++y )
+	{
+		for ( int32 x = 0; x < GridManager_->GetRowWidth( y ); ++x )
+		{
+			FGridCell* cell = GridManager_->GetCell( x, y );
+			if ( cell && cell->bIsOccupied && cell->Occupant.IsValid() )
+			{
+				if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( cell->Occupant.Get() ) )
+				{
+					tower->HideAttackRange();
+				}
+			}
+		}
 	}
 }
 
