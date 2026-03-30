@@ -6,6 +6,7 @@
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
+#include "Core/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
@@ -66,6 +67,20 @@ void ABuildManager::OnCoreSystemsReady()
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		CachedResourceManager_ = core->GetResourceManager();
+
+		if ( UGameLoopManager* gameLoop = core->GetGameLoop() )
+		{
+			gameLoop->OnPhaseChanged.AddDynamic( this, &ABuildManager::OnPhaseChanged );
+		}
+	}
+}
+
+void ABuildManager::OnPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
+
+{
+	if ( oldPhase == EGameLoopPhase::Building && bIsPlacing_ )
+	{
+		CancelPlacing();
 	}
 }
 
@@ -124,6 +139,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		{
 			if ( GEngine )
 				GEngine->AddOnScreenDebugMessage( -1, 3.f, FColor::Red, TEXT( "Not enough resources to build this!" ) );
+			CancelPlacing();
 			return;
 		}
 	}
@@ -169,6 +185,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 			{
 				CachedPreviewAttackRange_ = 0.f;
 				PreviewActor_->HideAttackRange();
+				HideAllDefensiveRanges();
 			}
 		}
 
@@ -327,9 +344,10 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 
 	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
 	PlayPlacementAnimation( newBuilding );
-
-	ShowAllDefensiveRanges();
-
+	if ( CachedPreviewAttackRange_ > 0.0f )
+	{
+		ShowAllDefensiveRanges();
+	}
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
 	return true;
 }
@@ -699,6 +717,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 			{
 				CachedPreviewAttackRange_ = 0.f;
 				PreviewActor_->HideAttackRange();
+				HideAllDefensiveRanges();
 			}
 		}
 	}

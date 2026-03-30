@@ -759,6 +759,11 @@ void UCardSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase
 	{
 		if ( UGameLoopManager* gameLoop = CachedGameLoop_.Get() )
 		{
+			if ( gameLoop->IsLastWave() )
+			{
+				return;
+			}
+
 			int32 waveNumber = gameLoop->GetCurrentWave();
 			RequestCardSelection( waveNumber );
 		}
