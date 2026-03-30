@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Interfaces/IMWPoolable.h"
+#include "Projectiles/ProjectileTypes.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -9,21 +10,9 @@
 #include "Baseprojectile.generated.h"
 
 class USphereComponent;
+class UNiagaraSystem;
 
 inline const FVector PooledLocation{ 0.0f, 0.0f, -10000.0f };
-
-UENUM( BlueprintType )
-enum class EProjectileType : uint8
-{
-	Arrow_Tower,
-	Arrow_Enemy,
-	Cannonball,
-	MagicProjectile,
-	Fireball_Enemy,
-	Melee_Single,
-	Melee_AoE,
-	Catapult
-};
 
 /**
  * Maxim
@@ -83,7 +72,9 @@ protected:
 
 	virtual void DealDamage( AActor* hitActor ) const;
 
-	void SpawnHitVFX( AActor* hitActor ) const;
+	UNiagaraSystem* GetProjectileImpactVFX( bool bIsGroundHit ) const;
+
+	void SpawnHitVFX( AActor* hitActor, const FVector& impactLocation ) const;
 
 	void ReturnToPool();
 

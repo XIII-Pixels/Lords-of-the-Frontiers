@@ -1,36 +1,35 @@
 #include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
 
-#include "Core/Subsystems/SessionLogger/DamageEvent.h"
-#include "Core/Subsystems/SessionLogger/ISessionDataCollector.h"
+#include "Async/Async.h"
+#include "Building/AdditiveBuilding.h"
+#include "Building/Bonus/BuildingBonusComponent.h"
+#include "Building/Building.h"
+#include "Building/Construction/BuildManager.h"
+#include "Building/DefensiveBuilding.h"
+#include "Building/MainBase.h"
+#include "Building/ResourceBuilding.h"
+#include "Cards/CardDataAsset.h"
+#include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
-#include "Building/Building.h"
-#include "Building/DefensiveBuilding.h"
-#include "Building/ResourceBuilding.h"
-#include "Building/AdditiveBuilding.h"
-#include "Building/MainBase.h"
-#include "Building/Construction/BuildManager.h"
-#include "Building/Bonus/BuildingBonusComponent.h"
-#include "Cards/CardSubsystem.h"
-#include "Cards/CardDataAsset.h"
-#include "Grid/GridManager.h"
-#include "Grid/GridCell.h"
-#include "Resources/ResourceManager.h"
-#include "Resources/EconomyComponent.h"
-#include "Waves/WaveManager.h"
-#include "Waves/Wave.h"
-#include "Waves/EnemyGroup.h"
-#include "Waves/EnemyBuff.h"
-#include "Units/Unit.h"
-#include "Components/Attack/AttackRangedComponent.h"
-
-#include "Async/Async.h"
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
+#include "Core/Subsystems/SessionLogger/ISessionDataCollector.h"
 #include "Dom/JsonObject.h"
+#include "Grid/GridCell.h"
+#include "Grid/GridManager.h"
+#include "Resources/EconomyComponent.h"
+#include "Resources/ResourceManager.h"
+#include "Units/Unit.h"
+#include "Waves/EnemyBuff.h"
+#include "Waves/EnemyGroup.h"
+#include "Waves/Wave.h"
+#include "Waves/WaveManager.h"
+
+#include "EngineUtils.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
-#include "EngineUtils.h"
 
 #include <zlib.h>
 
@@ -95,6 +94,32 @@ void USessionLoggerSubsystem::Initialize( FSubsystemCollectionBase& Collection )
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		core->OnSystemsReady.AddDynamic( this, &USessionLoggerSubsystem::OnCoreSystemsReady );
+
+		if ( core->AreCriticalSystemsReady() )
+		{
+			OnCoreSystemsReady();
+		}
+	}
+}
+
+void USessionLoggerSubsystem::OnWorldBeginPlay( UWorld& InWorld )
+{
+	Super::OnWorldBeginPlay( InWorld );
+
+	if ( !bIsBound_ )
+	{
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		{
+			if ( !core->OnSystemsReady.IsAlreadyBound( this, &USessionLoggerSubsystem::OnCoreSystemsReady ) )
+			{
+				core->OnSystemsReady.AddDynamic( this, &USessionLoggerSubsystem::OnCoreSystemsReady );
+			}
+
+			if ( core->AreCriticalSystemsReady() )
+			{
+				OnCoreSystemsReady();
+			}
+		}
 	}
 }
 
@@ -105,6 +130,20 @@ void USessionLoggerSubsystem::OnCoreSystemsReady()
 
 void USessionLoggerSubsystem::Deinitialize()
 {
+	// If the world is torn down while a session is active (e.g. level reload),
+	// write whatever data we have. Skip full finalization — actors are already
+	// destroyed at this point, so FinalizeWave/EndCurrentTurn would crash.
+	if ( bIsLogging_ )
+	{
+		SessionData_.bVictory = false;
+		SessionData_.WavesSurvived = CurrentWaveNumber_;
+		SessionOutcome_ = TEXT( "RestartExit" );
+		SessionData_.TotalSessionDurationSeconds = static_cast<float>( FPlatformTime::Seconds() - SessionStartTime_ );
+
+		WriteSessionToFile();
+		bIsLogging_ = false;
+	}
+
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		core->OnSystemsReady.RemoveDynamic( this, &USessionLoggerSubsystem::OnCoreSystemsReady );
@@ -164,12 +203,13 @@ void USessionLoggerSubsystem::BindToSystems()
 	}
 	else
 	{
-		UE_LOG( LogSessionLogger, Warning,
-			TEXT( "CardSubsystem not found during BindToSystems — card events will not be logged!" ) );
+		UE_LOG(
+		    LogSessionLogger, Warning,
+		    TEXT( "CardSubsystem not found during BindToSystems — card events will not be logged!" )
+		);
 	}
 
-	DamageEventHandle_ =
-		FDamageEvents::OnDamageDealt.AddUObject( this, &USessionLoggerSubsystem::HandleDamageDealt );
+	DamageEventHandle_ = FDamageEvents::OnDamageDealt.AddUObject( this, &USessionLoggerSubsystem::HandleDamageDealt );
 
 	bIsBound_ = true;
 
@@ -447,8 +487,10 @@ FLogWaveData* USessionLoggerSubsystem::GetWaveDataForCards( int32 waveNumber )
 		return waveData;
 	}
 
-	UE_LOG( LogSessionLogger, Warning,
-		TEXT( "CurrentWaveData is null during card event (wave %d), searching by number" ), waveNumber );
+	UE_LOG(
+	    LogSessionLogger, Warning, TEXT( "CurrentWaveData is null during card event (wave %d), searching by number" ),
+	    waveNumber
+	);
 
 	for ( FLogWaveData& wave : SessionData_.Waves )
 	{
@@ -458,8 +500,9 @@ FLogWaveData* USessionLoggerSubsystem::GetWaveDataForCards( int32 waveNumber )
 		}
 	}
 
-	UE_LOG( LogSessionLogger, Error,
-		TEXT( "Could not find wave %d in SessionData — card data will be lost!" ), waveNumber );
+	UE_LOG(
+	    LogSessionLogger, Error, TEXT( "Could not find wave %d in SessionData — card data will be lost!" ), waveNumber
+	);
 	return nullptr;
 }
 
@@ -529,7 +572,7 @@ void USessionLoggerSubsystem::HandleDamageDealt( AActor* instigator, AActor* tar
 // Tower Damage Accumulation
 
 void USessionLoggerSubsystem::AccumulateTowerDamage(
-	ADefensiveBuilding* tower, AActor* target, int damage, bool bIsSplash
+    ADefensiveBuilding* tower, AActor* target, int damage, bool bIsSplash
 )
 {
 	FName instigatorClass = tower->GetClass()->GetFName();
@@ -538,9 +581,7 @@ void USessionLoggerSubsystem::AccumulateTowerDamage(
 
 	if ( acc.AttackType.IsEmpty() )
 	{
-		acc.AttackType = tower->FindComponentByClass<UAttackRangedComponent>()
-			? TEXT( "Ranged" )
-			: TEXT( "Melee" );
+		acc.AttackType = tower->Stats().AttackRange() >= RangedAttackThreshold_ ? TEXT( "Ranged" ) : TEXT( "Melee" );
 	}
 
 	if ( bIsSplash )
@@ -587,13 +628,9 @@ void USessionLoggerSubsystem::AccumulateTowerDamage(
 
 			if ( base )
 			{
-				const float distToBase = FVector::Dist2D(
-					targetUnit->GetActorLocation(), base->GetActorLocation()
-				);
+				const float distToBase = FVector::Dist2D( targetUnit->GetActorLocation(), base->GetActorLocation() );
 				const float maxDist = GridManager_->GetGridWidth() * cCellSizeCm * cPathProgressDistanceScale;
-				const float progress = FMath::Clamp(
-					1.0f - ( distToBase / FMath::Max( maxDist, 1.0f ) ), 0.0f, 1.0f
-				);
+				const float progress = FMath::Clamp( 1.0f - ( distToBase / FMath::Max( maxDist, 1.0f ) ), 0.0f, 1.0f );
 				enemyAcc.PathProgressValues.Add( progress );
 			}
 		}
@@ -632,8 +669,7 @@ void USessionLoggerSubsystem::AccumulateEnemyDamage( AUnit* enemy, AActor* targe
 // Bonus Helpers
 
 void USessionLoggerSubsystem::ForEachBonusApplication(
-	ABuilding* building,
-	TFunctionRef<void( const FBonusApplication&, const FBuildingBonusEntry& )> callback
+    ABuilding* building, TFunctionRef<void( const FBonusApplication&, const FBuildingBonusEntry& )> callback
 ) const
 {
 	if ( !building )
@@ -660,13 +696,11 @@ void USessionLoggerSubsystem::ForEachBonusApplication(
 }
 
 FLogBonusRecord USessionLoggerSubsystem::MakeBonusRecord(
-	const FBuildingBonusEntry& entry, FName targetClass, const FIntPoint& targetCell, float value
+    const FBuildingBonusEntry& entry, FName targetClass, const FIntPoint& targetCell, float value
 ) const
 {
 	FLogBonusRecord rec;
-	rec.SourceBuildingClass = entry.SourceBuildingClass
-		? entry.SourceBuildingClass->GetFName()
-		: NAME_None;
+	rec.SourceBuildingClass = entry.SourceBuildingClass ? entry.SourceBuildingClass->GetFName() : NAME_None;
 	rec.TargetBuildingClass = targetClass;
 	rec.TargetCell = targetCell;
 	rec.Value = value;
@@ -742,13 +776,14 @@ FLogBuildMapSnapshot USessionLoggerSubsystem::CaptureBuildMapState( int32 waveNu
 				ABuilding* bldg = cell->Occupant.Get();
 				cellState.OccupantClass = bldg->GetClass()->GetFName();
 
-				ForEachBonusApplication( bldg,
-					[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-					{
-						cellState.ActiveBonuses.Add(
-							MakeBonusRecord( entry, cellState.OccupantClass, cellState.Coords, app.AppliedValue_ )
-						);
-					}
+				ForEachBonusApplication(
+				    bldg,
+				    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+				    {
+					    cellState.ActiveBonuses.Add(
+					        MakeBonusRecord( entry, cellState.OccupantClass, cellState.Coords, app.AppliedValue_ )
+					    );
+				    }
 				);
 			}
 
@@ -789,14 +824,15 @@ TArray<FLogBuildingCharacteristics> USessionLoggerSubsystem::CaptureAllBuildingS
 		// Get stats (with cards but INCLUDING adjacency) then subtract adjacency
 		FEntityStats stats = bldg->Stats();
 
-		ForEachBonusApplication( bldg,
-			[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-			{
-				if ( entry.Category == EBonusCategory::Stats )
-				{
-					stats.AddStat( entry.StatType, -app.AppliedValue_ );
-				}
-			}
+		ForEachBonusApplication(
+		    bldg,
+		    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+		    {
+			    if ( entry.Category == EBonusCategory::Stats )
+			    {
+				    stats.AddStat( entry.StatType, -app.AppliedValue_ );
+			    }
+		    }
 		);
 
 		chars.MaxHealth = stats.MaxHealth();
@@ -810,14 +846,15 @@ TArray<FLogBuildingCharacteristics> USessionLoggerSubsystem::CaptureAllBuildingS
 
 		// Maintenance cost minus adjacency maintenance bonuses
 		FResourceProduction maint = bldg->GetMaintenanceCost();
-		ForEachBonusApplication( bldg,
-			[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-			{
-				if ( entry.Category == EBonusCategory::Maintenance )
-				{
-					maint.ModifyByType( entry.ResourceType, static_cast<int32>( -app.AppliedValue_ ) );
-				}
-			}
+		ForEachBonusApplication(
+		    bldg,
+		    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+		    {
+			    if ( entry.Category == EBonusCategory::Maintenance )
+			    {
+				    maint.ModifyByType( entry.ResourceType, static_cast<int32>( -app.AppliedValue_ ) );
+			    }
+		    }
 		);
 		chars.MaintenanceCost = FLogResourceSnapshot::FromProduction( maint );
 		chars.BuildingCost = FLogResourceSnapshot::FromProduction( bldg->GetBuildingCost() );
@@ -826,14 +863,15 @@ TArray<FLogBuildingCharacteristics> USessionLoggerSubsystem::CaptureAllBuildingS
 		if ( AResourceBuilding* resBldg = Cast<AResourceBuilding>( bldg ) )
 		{
 			FResourceProduction prod = resBldg->GetProductionConfig();
-			ForEachBonusApplication( bldg,
-				[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-				{
-					if ( entry.Category == EBonusCategory::Production )
-					{
-						prod.ModifyByType( entry.ResourceType, static_cast<int32>( -app.AppliedValue_ ) );
-					}
-				}
+			ForEachBonusApplication(
+			    bldg,
+			    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+			    {
+				    if ( entry.Category == EBonusCategory::Production )
+				    {
+					    prod.ModifyByType( entry.ResourceType, static_cast<int32>( -app.AppliedValue_ ) );
+				    }
+			    }
 			);
 			chars.Production = FLogResourceSnapshot::FromProduction( prod );
 		}
@@ -942,8 +980,8 @@ void USessionLoggerSubsystem::CaptureEnemySpawnData( int32 waveIndex )
 }
 
 void USessionLoggerSubsystem::CollectBonusDataForBuilding(
-	ABuilding* building, const FIntPoint& buildingCoords,
-	TArray<FLogBonusRecord>& OutReceived, TArray<FLogBonusRecord>& OutGiven
+    ABuilding* building, const FIntPoint& buildingCoords, TArray<FLogBonusRecord>& OutReceived,
+    TArray<FLogBonusRecord>& OutGiven
 )
 {
 	if ( !building )
@@ -951,50 +989,49 @@ void USessionLoggerSubsystem::CollectBonusDataForBuilding(
 		return;
 	}
 
-	ForEachBonusApplication( building,
-		[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-		{
-			FLogBonusRecord rec;
-			rec.SourceBuildingClass = building->GetClass()->GetFName();
-			rec.SourceCell = buildingCoords;
-			rec.Value = app.AppliedValue_;
+	ForEachBonusApplication(
+	    building,
+	    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+	    {
+		    FLogBonusRecord rec;
+		    rec.SourceBuildingClass = building->GetClass()->GetFName();
+		    rec.SourceCell = buildingCoords;
+		    rec.Value = app.AppliedValue_;
 
-			if ( app.TargetBuilding_.IsValid() )
-			{
-				rec.TargetBuildingClass = app.TargetBuilding_->GetClass()->GetFName();
-				if ( GridManager_.IsValid() )
-				{
-					rec.TargetCell = GridManager_->GetClosestCellCoords(
-						app.TargetBuilding_->GetActorLocation()
-					);
-				}
-			}
+		    if ( app.TargetBuilding_.IsValid() )
+		    {
+			    rec.TargetBuildingClass = app.TargetBuilding_->GetClass()->GetFName();
+			    if ( GridManager_.IsValid() )
+			    {
+				    rec.TargetCell = GridManager_->GetClosestCellCoords( app.TargetBuilding_->GetActorLocation() );
+			    }
+		    }
 
-			switch ( entry.Category )
-			{
-			case EBonusCategory::Production:
-				rec.Category = TEXT( "Production" );
-				rec.ResourceOrStat = UEnum::GetValueAsString( entry.ResourceType );
-				break;
-			case EBonusCategory::Maintenance:
-				rec.Category = TEXT( "Maintenance" );
-				rec.ResourceOrStat = UEnum::GetValueAsString( entry.ResourceType );
-				break;
-			case EBonusCategory::Stats:
-				rec.Category = TEXT( "Stats" );
-				rec.ResourceOrStat = UEnum::GetValueAsString( entry.StatType );
-				break;
-			}
+		    switch ( entry.Category )
+		    {
+		    case EBonusCategory::Production:
+			    rec.Category = TEXT( "Production" );
+			    rec.ResourceOrStat = UEnum::GetValueAsString( entry.ResourceType );
+			    break;
+		    case EBonusCategory::Maintenance:
+			    rec.Category = TEXT( "Maintenance" );
+			    rec.ResourceOrStat = UEnum::GetValueAsString( entry.ResourceType );
+			    break;
+		    case EBonusCategory::Stats:
+			    rec.Category = TEXT( "Stats" );
+			    rec.ResourceOrStat = UEnum::GetValueAsString( entry.StatType );
+			    break;
+		    }
 
-			if ( app.TargetBuilding_.Get() == building )
-			{
-				OutReceived.Add( rec );
-			}
-			else
-			{
-				OutGiven.Add( rec );
-			}
-		}
+		    if ( app.TargetBuilding_.Get() == building )
+		    {
+			    OutReceived.Add( rec );
+		    }
+		    else
+		    {
+			    OutGiven.Add( rec );
+		    }
+	    }
 	);
 }
 
@@ -1038,7 +1075,7 @@ FLogCombatSummary USessionLoggerSubsystem::BuildCombatSummary()
 			summary.MainBaseHealthStart = startHP ? *startHP : base->Stats().MaxHealth();
 			summary.MainBaseHealthEnd = FMath::Max( 0, base->Stats().Health() );
 			summary.MainBaseDamageReceived =
-				static_cast<float>( summary.MainBaseHealthStart - summary.MainBaseHealthEnd );
+			    static_cast<float>( summary.MainBaseHealthStart - summary.MainBaseHealthEnd );
 			break;
 		}
 	}
@@ -1089,8 +1126,7 @@ FLogWaveMetrics USessionLoggerSubsystem::CalculateWaveMetrics() const
 		metrics.TotalEnemyHP += ets.TotalCount * ets.MaxHealth;
 		if ( ets.AttackCooldown > 0.0f )
 		{
-			metrics.TotalEnemyDPS +=
-				ets.TotalCount * ( static_cast<float>( ets.AttackDamage ) / ets.AttackCooldown );
+			metrics.TotalEnemyDPS += ets.TotalCount * ( static_cast<float>( ets.AttackDamage ) / ets.AttackCooldown );
 		}
 	}
 
@@ -1104,8 +1140,7 @@ FLogWaveMetrics USessionLoggerSubsystem::CalculateWaveMetrics() const
 			{
 				if ( defStat.AttackCooldown > 0.0f )
 				{
-					metrics.TotalTowerDPS +=
-						static_cast<float>( defStat.AttackDamage ) / defStat.AttackCooldown;
+					metrics.TotalTowerDPS += static_cast<float>( defStat.AttackDamage ) / defStat.AttackCooldown;
 				}
 			}
 			break;
@@ -1132,8 +1167,7 @@ FLogWaveMetrics USessionLoggerSubsystem::CalculateWaveMetrics() const
 
 void USessionLoggerSubsystem::CalculateSessionMetrics()
 {
-	SessionData_.TotalSessionDurationSeconds =
-		static_cast<float>( FPlatformTime::Seconds() - SessionStartTime_ );
+	SessionData_.TotalSessionDurationSeconds = static_cast<float>( FPlatformTime::Seconds() - SessionStartTime_ );
 	SessionData_.ClosestCallWave = ClosestCallWave_;
 
 	int32 totalKilled = 0;
@@ -1282,14 +1316,12 @@ void USessionLoggerSubsystem::CaptureTurnEconomy()
 		turnData->CardProductionBonus.Population = bonuses.PopulationProductionBonus;
 		turnData->CardProductionBonus.Progress = bonuses.ProgressProductionBonus;
 
-		turnData->CardMaintenanceReduction.Gold =
-			FMath::Min( totalMaint.Gold, bonuses.GoldMaintenanceReduction );
-		turnData->CardMaintenanceReduction.Food =
-			FMath::Min( totalMaint.Food, bonuses.FoodMaintenanceReduction );
+		turnData->CardMaintenanceReduction.Gold = FMath::Min( totalMaint.Gold, bonuses.GoldMaintenanceReduction );
+		turnData->CardMaintenanceReduction.Food = FMath::Min( totalMaint.Food, bonuses.FoodMaintenanceReduction );
 		turnData->CardMaintenanceReduction.Population =
-			FMath::Min( totalMaint.Population, bonuses.PopulationMaintenanceReduction );
+		    FMath::Min( totalMaint.Population, bonuses.PopulationMaintenanceReduction );
 		turnData->CardMaintenanceReduction.Progress =
-			FMath::Min( totalMaint.Progress, bonuses.ProgressMaintenanceReduction );
+		    FMath::Min( totalMaint.Progress, bonuses.ProgressMaintenanceReduction );
 
 		totalMaint.Gold = FMath::Max( 0, totalMaint.Gold - bonuses.GoldMaintenanceReduction );
 		totalMaint.Food = FMath::Max( 0, totalMaint.Food - bonuses.FoodMaintenanceReduction );
@@ -1308,31 +1340,29 @@ void USessionLoggerSubsystem::CaptureTurnEconomy()
 			continue;
 		}
 
-		ForEachBonusApplication( resBldg,
-			[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-			{
-				if ( app.TargetBuilding_.Get() != resBldg )
-				{
-					return;
-				}
-				if ( entry.Category == EBonusCategory::Production )
-				{
-					FResourceProduction bonusProd;
-					bonusProd.ModifyByType( entry.ResourceType, static_cast<int32>( app.AppliedValue_ ) );
-					adjBonusIncome += FLogResourceSnapshot::FromProduction( bonusProd );
-				}
-			}
+		ForEachBonusApplication(
+		    resBldg,
+		    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+		    {
+			    if ( app.TargetBuilding_.Get() != resBldg )
+			    {
+				    return;
+			    }
+			    if ( entry.Category == EBonusCategory::Production )
+			    {
+				    FResourceProduction bonusProd;
+				    bonusProd.ModifyByType( entry.ResourceType, static_cast<int32>( app.AppliedValue_ ) );
+				    adjBonusIncome += FLogResourceSnapshot::FromProduction( bonusProd );
+			    }
+		    }
 		);
 	}
 	turnData->AdjacencyBonusIncome = adjBonusIncome;
 
 	// Computed income from resource balance equation
-	FLogResourceSnapshot computedIncome = turnData->ResourcesAtEnd
-		- turnData->ResourcesAtStart
-		+ turnData->SpentOnBuilding
-		+ turnData->MaintenancePaid
-		- turnData->AdjacencyBonusIncome
-		- turnData->CardProductionBonus;
+	FLogResourceSnapshot computedIncome = turnData->ResourcesAtEnd - turnData->ResourcesAtStart +
+	                                      turnData->SpentOnBuilding + turnData->MaintenancePaid -
+	                                      turnData->AdjacencyBonusIncome - turnData->CardProductionBonus;
 
 	computedIncome.Gold = FMath::Max( 0, computedIncome.Gold );
 	computedIncome.Food = FMath::Max( 0, computedIncome.Food );
@@ -1389,16 +1419,17 @@ void USessionLoggerSubsystem::CaptureDefensiveTurnData()
 			defCell = GridManager_->GetClosestCellCoords( def->GetActorLocation() );
 		}
 
-		ForEachBonusApplication( def,
-			[&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
-			{
-				if ( app.TargetBuilding_.Get() == def )
-				{
-					turnData->Defensive.AdjacencyBonuses.Add(
-						MakeBonusRecord( entry, def->GetClass()->GetFName(), defCell, app.AppliedValue_ )
-					);
-				}
-			}
+		ForEachBonusApplication(
+		    def,
+		    [&]( const FBonusApplication& app, const FBuildingBonusEntry& entry )
+		    {
+			    if ( app.TargetBuilding_.Get() == def )
+			    {
+				    turnData->Defensive.AdjacencyBonuses.Add(
+				        MakeBonusRecord( entry, def->GetClass()->GetFName(), defCell, app.AppliedValue_ )
+				    );
+			    }
+		    }
 		);
 	}
 }
@@ -1564,6 +1595,7 @@ void USessionLoggerSubsystem::FinalizeSession( bool bVictory )
 
 void USessionLoggerSubsystem::FinalizeSessionOnRestart()
 {
+	// Diagnostic: append state to file next to the .exe
 	if ( !bIsLogging_ )
 	{
 		return;
@@ -1619,60 +1651,52 @@ void USessionLoggerSubsystem::WriteSessionToFile()
 	FString jsonString;
 	TSharedRef<TJsonWriter<>> writer = TJsonWriterFactory<>::Create( &jsonString );
 	FJsonSerializer::Serialize( rootJson.ToSharedRef(), writer );
+	writer->Close();
 
-	const FString filePath = GetOutputFilePath();
+	const FString filePath = FPaths::ConvertRelativePathToFull( GetOutputFilePath() );
 
 	const FString dir = FPaths::GetPath( filePath );
-	IPlatformFile::GetPlatformPhysical().CreateDirectoryTree( *dir );
+	IFileManager::Get().MakeDirectory( *dir, true );
 
-	// Convert to UTF-8 bytes for gzip compression
 	FTCHARToUTF8 utf8Converter( *jsonString );
 	TArray<uint8> utf8Data;
-	utf8Data.Append(
-		reinterpret_cast<const uint8*>( utf8Converter.Get() ),
-		utf8Converter.Length()
-	);
+	utf8Data.Append( reinterpret_cast<const uint8*>( utf8Converter.Get() ), utf8Converter.Length() );
 
-	AsyncTask( ENamedThreads::AnyBackgroundThreadNormalTask, [utf8Data = MoveTemp( utf8Data ), filePath]()
+	z_stream stream = {};
+	if ( deflateInit2( &stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 | 16, 8, Z_DEFAULT_STRATEGY ) != Z_OK )
 	{
-		// Gzip compress using zlib gzip mode
-		z_stream stream = {};
-		// 15 | 16 enables gzip header (MAX_WBITS | 16)
-		if ( deflateInit2( &stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 15 | 16, 8, Z_DEFAULT_STRATEGY ) != Z_OK )
-		{
-			UE_LOG( LogSessionLogger, Error, TEXT( "Failed to initialize zlib for gzip compression" ) );
-			return;
-		}
+		UE_LOG( LogSessionLogger, Error, TEXT( "Failed to initialize zlib for gzip compression" ) );
+		return;
+	}
 
-		const uLong bound = deflateBound( &stream, utf8Data.Num() );
-		TArray<uint8> gzipData;
-		gzipData.SetNumUninitialized( bound );
+	const uLong bound = deflateBound( &stream, utf8Data.Num() );
+	TArray<uint8> gzipData;
+	gzipData.SetNumUninitialized( bound );
 
-		stream.next_in = const_cast<Bytef*>( utf8Data.GetData() );
-		stream.avail_in = utf8Data.Num();
-		stream.next_out = gzipData.GetData();
-		stream.avail_out = gzipData.Num();
+	stream.next_in = const_cast<Bytef*>( utf8Data.GetData() );
+	stream.avail_in = utf8Data.Num();
+	stream.next_out = gzipData.GetData();
+	stream.avail_out = gzipData.Num();
 
-		const int32 result = deflate( &stream, Z_FINISH );
-		deflateEnd( &stream );
+	const int32 result = deflate( &stream, Z_FINISH );
+	deflateEnd( &stream );
 
-		if ( result != Z_STREAM_END )
-		{
-			UE_LOG( LogSessionLogger, Error, TEXT( "Gzip compression failed (zlib error %d)" ), result );
-			return;
-		}
+	if ( result != Z_STREAM_END )
+	{
+		UE_LOG( LogSessionLogger, Error, TEXT( "Gzip compression failed (zlib error %d)" ), result );
+		return;
+	}
 
-		gzipData.SetNum( stream.total_out );
+	gzipData.SetNum( stream.total_out );
 
-		if ( FFileHelper::SaveArrayToFile( gzipData, *filePath ) )
-		{
-			UE_LOG( LogSessionLogger, Log, TEXT( "Session log saved to: %s" ), *filePath );
-		}
-		else
-		{
-			UE_LOG( LogSessionLogger, Error, TEXT( "Failed to save session log to: %s" ), *filePath );
-		}
-	} );
+	if ( FFileHelper::SaveArrayToFile( gzipData, *filePath ) )
+	{
+		UE_LOG( LogSessionLogger, Log, TEXT( "Session log saved to: %s" ), *filePath );
+	}
+	else
+	{
+		UE_LOG( LogSessionLogger, Error, TEXT( "Failed to save session log to: %s" ), *filePath );
+	}
 }
 
 FString USessionLoggerSubsystem::GetOutputFilePath() const
@@ -1687,9 +1711,9 @@ FString USessionLoggerSubsystem::GetOutputFilePath() const
 	mapName = FPaths::MakeValidFileName( mapName );
 
 	const FString outcome = SessionOutcome_.IsEmpty()
-		? ( SessionData_.bVictory ? FString( TEXT( "Victory" ) ) : FString( TEXT( "Defeat" ) ) )
-		: SessionOutcome_;
+	                            ? ( SessionData_.bVictory ? FString( TEXT( "Victory" ) ) : FString( TEXT( "Defeat" ) ) )
+	                            : SessionOutcome_;
 	const FString timestamp = FDateTime::Now().ToString( TEXT( "%Y-%m-%d_%H-%M-%S" ) );
 	const FString fileName = FString::Printf( TEXT( "%s_%s_%s.json.gz" ), *mapName, *outcome, *timestamp );
-	return FPaths::ProjectSavedDir() / TEXT( "SessionLogs" ) / fileName;
+	return FPaths::ProjectDir() / TEXT( "SessionLogs" ) / fileName;
 }
