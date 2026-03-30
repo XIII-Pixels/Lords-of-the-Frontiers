@@ -131,6 +131,8 @@ void UGameHUDWidget::NativeConstruct()
 	if ( buildManager )
 	{
 		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnPlacingCancelled.AddDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
+
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -218,6 +220,8 @@ void UGameHUDWidget::NativeDestruct()
 	if ( buildManager )
 	{
 		buildManager->OnBonusPreviewUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnPlacingCancelled.RemoveDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
+
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -872,6 +876,23 @@ void UGameHUDWidget::CancelCurrentBuilding()
 	if ( ActiveDefensiveTooltip )
 	{
 		ActiveDefensiveTooltip->SetLocked( false );
+	}
+}
+
+void UGameHUDWidget::OnPlacingCancelled()
+{
+	bIsBuildingLocked = false;
+	LockedBuildingClass = nullptr;
+
+	if ( ActiveEconomyTooltip )
+	{
+		ActiveEconomyTooltip->SetLocked( false );
+		ActiveEconomyTooltip->HideTooltip();
+	}
+	if ( ActiveDefensiveTooltip )
+	{
+		ActiveDefensiveTooltip->SetLocked( false );
+		ActiveDefensiveTooltip->HideTooltip();
 	}
 }
 
