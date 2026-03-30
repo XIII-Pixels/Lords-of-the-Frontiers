@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Projectiles/ProjectileTypes.h"
+
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
@@ -45,6 +47,18 @@ struct FBuildingVFXOverride
 	float ConstructionDelay = -1.0f;
 };
 
+USTRUCT( BlueprintType )
+struct FProjectileImpactVFX
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly )
+	TObjectPtr<UNiagaraSystem> ImpactVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly )
+	TObjectPtr<UNiagaraSystem> GroundImpactVFX = nullptr;
+};
+
 /**
  * m
  */
@@ -87,4 +101,10 @@ public:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Building|Overrides" )
 	TMap<TSubclassOf<ABuilding>, FBuildingVFXOverride> BuildingOverrides;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Projectile|Defaults" )
+	TObjectPtr<UNiagaraSystem> DefaultProjectileImpactVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Projectile|Overrides" )
+	TMap<EProjectileType, FProjectileImpactVFX> ProjectileVFXOverrides;
 };
