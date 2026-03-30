@@ -16,6 +16,8 @@ class ABuildPreviewActor;
 class ABuilding;
 class UResourceManager;
 class UBonusIconsData;
+enum class EGameLoopPhase : uint8;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingConfirmed, ABuilding*, Building, FIntPoint, CellCoords );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnPlacingCancelled );
@@ -119,6 +121,9 @@ private:
 
 	UFUNCTION()
 	void OnCoreSystemsReady();
+
+	UFUNCTION()
+	void OnPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase );
 
 	FIntPoint PreviousCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 
