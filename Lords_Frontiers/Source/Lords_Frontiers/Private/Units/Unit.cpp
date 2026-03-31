@@ -8,7 +8,6 @@
 #include "AI/Path/PathTargetPoint.h"
 #include "Core/CoreManager.h"
 #include "Core/EntityVFXConfig.h"
-#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -27,6 +26,9 @@ AUnit::AUnit()
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AEntityAIController::StaticClass();
+
+	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
+	SkeletalMeshComponent_->SetupAttachment( RootComponent );
 }
 
 void AUnit::OnConstruction( const FTransform& transform )
@@ -48,6 +50,8 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
+	SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
+
 	TArray<UAttackComponent*> attackComponents;
 	GetComponents( attackComponents );
 
@@ -62,8 +66,6 @@ void AUnit::BeginPlay()
 		    attackComponents.Num()
 		);
 	}
-
-	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
 
 	ResolveVFXDefaults();
 }
@@ -99,6 +101,8 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->Attack( hitActor );
+		SkeletalMeshComponent_->SetPosition( 0.0f, false );
+		SkeletalMeshComponent_->Play( false );
 	}
 }
 
@@ -169,14 +173,16 @@ void AUnit::OnDeath()
 		FollowComponent_->Deactivate();
 	}
 
-	if ( VisualMesh_ )
+	if ( SkeletalMeshComponent_ )
 	{
-		VisualMesh_->SetVisibility( false, true );
+		SkeletalMeshComponent_->SetVisibility( false, true );
 	}
+
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	}
+
 	SpawnDeathVFX();
 
 	if ( ResolvedDeathDestroyDelay_ > 0.0f )
@@ -340,7 +346,7 @@ void AUnit::SetFollowedTarget( AActor* newTarget )
 
 TObjectPtr<USceneComponent> AUnit::VisualMesh()
 {
-	return VisualMesh_;
+	return SkeletalMeshComponent_;
 }
 
 void AUnit::ChangeStats( FEnemyBuff* buff )

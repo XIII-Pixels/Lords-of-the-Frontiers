@@ -100,10 +100,10 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
 
-	UPROPERTY()	
+	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> DeathVFX_;
 
-	UPROPERTY() 
+	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> HitVFX_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX", meta = ( Units = "s" ) )
@@ -133,8 +133,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
 
-	UPROPERTY()
-	TObjectPtr<USceneComponent> VisualMesh_;
+	UPROPERTY( EditDefaultsOnly )
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent_;
 
 	int PathPointIndex_ = -1;
 
