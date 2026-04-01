@@ -10,9 +10,9 @@
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
-
-#include "Camera/CameraComponent.h"
 #include "Camera/StrategyCamera.h"
+#include "Core/Debug/DebugPlayerController.h"
+#include "Camera/CameraComponent.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -1298,3 +1298,4 @@ void UGameHUDWidget::InitializeTooltipWidget(
 		}
 	}
 }
+

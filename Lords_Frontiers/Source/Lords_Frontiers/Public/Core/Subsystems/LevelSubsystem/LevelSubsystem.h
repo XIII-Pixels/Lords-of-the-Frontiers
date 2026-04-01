@@ -24,6 +24,20 @@ public:
 
 	void SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels );
 
+	UPROPERTY()
+	bool bShowTutorialOnNextLevel_ = true;
+
+	void SetShowTutorialOnNextLevel( bool bValue )
+	{
+		bShowTutorialOnNextLevel_ = bValue;
+	}
+
+	bool ConsumeShowTutorialOnNextLevel()
+	{
+		const bool result = bShowTutorialOnNextLevel_; bShowTutorialOnNextLevel_ = false;
+		return result;
+	}
+
 protected:
 	UPROPERTY()
 	TObjectPtr<ULevelsDataAsset> Levels_;

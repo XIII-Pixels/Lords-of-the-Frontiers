@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Core/Debug/DebugPlayerController.h"
 #include "CoreMinimal.h"
 
 #include "GameStateOverlayWidget.generated.h"
@@ -20,6 +21,9 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Events" )
 	FOnResumeRequested OnResumeRequested;
 
+	UFUNCTION()
+	void HandleTutorialButtonClicked();
+
 protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> ButtonMainMenu;
@@ -32,6 +36,9 @@ protected:
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> ButtonResume;
+
+	UPROPERTY( EditAnywhere, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> TutorialButton;
 
 	UFUNCTION()
 	void OnMainMenuClicked();

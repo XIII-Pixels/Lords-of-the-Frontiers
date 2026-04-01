@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-
+#include "UI/Widgets/TutorialWidget.h"
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 
@@ -25,7 +25,15 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	USelectionManagerComponent* GetSelectionManager() const;
 
+	UPROPERTY( EditDefaultsOnly, Category = "UI" )
+	TSubclassOf<UTutorialWidget> TutorialWidgetClass;
+
+	UFUNCTION( BlueprintCallable, Category = "UI" )
+	void ToggleTutorial();
+
 protected:
+	virtual void BeginPlay() override;
+
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;
 
@@ -33,6 +41,12 @@ protected:
 	TObjectPtr<UCardSelectionHUDComponent> CardSelectionHUDComponent_ = nullptr;
 
 	virtual void SetupInputComponent() override;
+
+	UPROPERTY()
+	TObjectPtr<UTutorialWidget> TutorialWidgetInstance;
+
+	UFUNCTION()
+	void HandleTutorialClosed();
 
 private:
 	UPROPERTY()
@@ -43,4 +57,7 @@ private:
 	void HandleEscape();
 
 	void EnsureBuildManager();
+
+	void OpenTutorial();
+	void CloseTutorial();
 };
