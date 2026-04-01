@@ -10,14 +10,9 @@
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
-<<<<<<< HEAD
-=======
 #include "Camera/StrategyCamera.h"
 #include "Core/Debug/DebugPlayerController.h"
->>>>>>> e46b4d6b (single widget added #466)
-
 #include "Camera/CameraComponent.h"
-#include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -122,10 +117,6 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
 		ButtonBuildingTowerT2->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
 		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( TutorialButton )
-	{
-		TutorialButton->OnClicked.AddDynamic( this, &UGameHUDWidget::HandleTutorialButtonClicked );
 	}
 
 	if ( ButtonBuildingMortira )
@@ -1308,10 +1299,3 @@ void UGameHUDWidget::InitializeTooltipWidget(
 	}
 }
 
-void UGameHUDWidget::HandleTutorialButtonClicked()
-{
-	if ( ADebugPlayerController* pc = Cast<ADebugPlayerController>( GetOwningPlayer() ) )
-	{
-		pc->ToggleTutorial();
-	}
-}
