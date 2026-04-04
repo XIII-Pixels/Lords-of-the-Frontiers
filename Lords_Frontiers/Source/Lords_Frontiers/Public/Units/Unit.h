@@ -94,6 +94,8 @@ protected:
 
 	bool IsCloseToTarget() const;
 
+	void AnimationTick() const;
+
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
 
@@ -115,6 +117,12 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	TWeakObjectPtr<AActor> FollowedTarget_;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
+	float DelayBeforeHit_ = 0.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
+	float PlayRate_ = 1.0f;
+
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
@@ -135,6 +143,8 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly )
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent_;
+
+	FTimerHandle AttackTimerHandle_;
 
 	int PathPointIndex_ = -1;
 

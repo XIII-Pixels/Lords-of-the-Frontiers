@@ -51,6 +51,9 @@ void AUnit::BeginPlay()
 	}
 
 	SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
+	SkeletalMeshComponent_->SetPlayRate( PlayRate_ );
+	SkeletalMeshComponent_->SetPosition( 0.0f, false );
+	SkeletalMeshComponent_->Stop();
 
 	TArray<UAttackComponent*> attackComponents;
 	GetComponents( attackComponents );
@@ -98,11 +101,28 @@ void AUnit::StopFollowing()
 
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
-	if ( AttackComponent_ )
+	if ( AttackComponent_ && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
 	{
-		AttackComponent_->Attack( hitActor );
 		SkeletalMeshComponent_->SetPosition( 0.0f, false );
 		SkeletalMeshComponent_->Play( false );
+
+		if ( DelayBeforeHit_ > 0.0f )
+		{
+			GetWorldTimerManager().ClearTimer( AttackTimerHandle_ );
+			GetWorldTimerManager().SetTimer(
+                AttackTimerHandle_,
+                [this, &hitActor]()
+                {
+					AttackComponent_->Attack( hitActor );
+                },
+                DelayBeforeHit_,
+                false
+            );
+		}
+		else
+		{
+			AttackComponent_->Attack( hitActor );
+		}
 	}
 }
 
@@ -281,6 +301,11 @@ bool AUnit::IsCloseToTarget() const
 	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
 	const float radiusSq = PathPointsManager_->PointReachRadius * PathPointsManager_->PointReachRadius;
 	return distanceSq < radiusSq;
+}
+
+void AUnit::AnimationTick() const
+{
+	// if ( AttackTarget_ )
 }
 
 void AUnit::SetPath( TObjectPtr<UPath> path )
