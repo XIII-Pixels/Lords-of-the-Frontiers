@@ -96,28 +96,44 @@ void AUnit::StopFollowing() const
 
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
-	if ( AttackComponent_ && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
+	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
+	{
+		if ( DelayBeforeHit_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
+		     Stats_.CooldownRemaining() <= DelayBeforeHit_ )
+		{
+			GetWorldTimerManager().SetTimer(
+			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, DelayBeforeHit_, false
+			);
+			GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Green, TEXT( "Attack timer started" ) );
+		}
+		else if ( !Stats_.OnCooldown() )
+		{
+			AttackComponent_->Attack( hitActor );
+			GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Red, TEXT( "AttackComponent->Attack()" ) );
+		}
+	}
+}
+
+void AUnit::Animate( float deltaTime ) const
+{
+	// Only animate attack if unit can attack
+	if ( !AttackComponent_ )
+	{
+		return;
+	}
+
+	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() && Stats_.CooldownRemaining() <= DelayBeforeHit_ )
 	{
 		SkeletalMeshComponent_->SetPosition( 0.0f, false );
 		SkeletalMeshComponent_->Play( false );
+	}
+	else if ( !AttackTarget_.IsValid() )
+	{
+		SkeletalMeshComponent_->Stop();
 
-		if ( DelayBeforeHit_ > 0.0f )
-		{
-			GetWorldTimerManager().ClearTimer( AttackTimerHandle_ );
-			GetWorldTimerManager().SetTimer(
-                AttackTimerHandle_,
-                [this, &hitActor]()
-                {
-					AttackComponent_->Attack( hitActor );
-                },
-                DelayBeforeHit_,
-                false
-            );
-		}
-		else
-		{
-			AttackComponent_->Attack( hitActor );
-		}
+		const float currentPos = SkeletalMeshComponent_->GetPosition();
+		const float newPos = FMath::FInterpTo( currentPos, IdleAnimTime_, deltaTime, 0.5f );
+		SkeletalMeshComponent_->SetPosition( newPos, false );
 	}
 }
 
@@ -193,6 +209,13 @@ void AUnit::FinalizeDestroy()
 UNiagaraSystem* AUnit::GetHitVFX() const
 {
 	return ResolvedHitVFX_;
+}
+
+void AUnit::Tick( float deltaSeconds )
+{
+	Super::Tick( deltaSeconds );
+
+	Animate( deltaSeconds );
 }
 
 void AUnit::ResolveVFXDefaults()

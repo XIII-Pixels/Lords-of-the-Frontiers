@@ -117,14 +117,16 @@ public:
 		return nullptr;
 	}
 
-	TObjectPtr<USceneComponent> VisualMesh()
+	USkeletalMeshComponent* SkeletalMeshComponent()
 	{
-		return VisualMesh_;
+		return SkeletalMeshComponent_;
 	}
 
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
 protected:
+	virtual void Tick(float deltaSeconds) override;
+
 	void OnDeath();
 
 	void SpawnDeathVFX();
@@ -133,7 +135,7 @@ protected:
 
 	void ResolveVFXDefaults();
 
-	void AnimationTick() const;
+	void Animate( float deltaTime ) const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -168,6 +170,9 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
 	float PlayRate_ = 1.0f;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
+	float IdleAnimTime_ = 0.0f;
+
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
@@ -184,6 +189,8 @@ protected:
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent_;
 
 	FTimerHandle AttackTimerHandle_;
+
+	FTimerHandle AnimationTickTimerHandle_;
 
 	FTimerHandle DeathTimerHandle_;
 

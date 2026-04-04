@@ -30,6 +30,11 @@ float FEntityStats::AttackCooldown() const
 	return AttackCooldown_;
 }
 
+float FEntityStats::CooldownRemaining() const
+{
+	return FMath::Clamp( AttackCooldown_ - ( FDateTime::Now() - LastAttackTime_ ).GetTotalSeconds(), 0, AttackCooldown_ );
+}
+
 float FEntityStats::MaxSpeed() const
 {
 	return MaxSpeed_;
@@ -228,7 +233,7 @@ void FEntityStats::Heal( int amount )
 
 bool FEntityStats::OnCooldown() const
 {
-	return ( FDateTime::Now() - LastAttackTime_ ).GetTotalSeconds() < AttackCooldown_;
+	return CooldownRemaining() != 0;
 }
 
 void FEntityStats::StartCooldown()

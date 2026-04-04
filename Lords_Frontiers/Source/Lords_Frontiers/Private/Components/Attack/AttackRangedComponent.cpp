@@ -48,8 +48,12 @@ void UAttackRangedComponent::BeginPlay()
 
 void UAttackRangedComponent::LookTick()
 {
+	AActor* prevTarget = GetOwner<IAttacker>()->AttackTarget().Get();
+
 	ChooseAttackMode();
 	Look();
+
+	bDidSeeTarget_ = prevTarget && ( prevTarget == GetOwner<IAttacker>()->AttackTarget() );
 }
 
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
@@ -125,6 +129,11 @@ void UAttackRangedComponent::DeactivateSight()
 	{
 		ownerAttacker->SetAttackTarget( nullptr );
 	}
+}
+
+bool UAttackRangedComponent::DidSeeTargetLastTick()
+{
+	return bDidSeeTarget_;
 }
 
 void UAttackRangedComponent::Look()

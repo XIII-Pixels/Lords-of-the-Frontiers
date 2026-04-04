@@ -53,6 +53,8 @@ struct FEntityStats
 
 	float AttackCooldown() const;
 
+	float CooldownRemaining() const;
+
 	float MaxSpeed() const;
 
 	ETeam Team() const;
