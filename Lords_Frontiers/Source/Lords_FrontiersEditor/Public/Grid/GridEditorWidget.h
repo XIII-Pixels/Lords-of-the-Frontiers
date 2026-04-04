@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "EditorUtilityWidget.h"
 
@@ -39,8 +39,9 @@ public:
 	void OnClicked();
 };
 
-UCLASS()
-class UGridEditorWidget : public UEditorUtilityWidget
+UCLASS( Blueprintable )
+class LORDS_FRONTIERSEDITOR_API UGridEditorWidget : public UEditorUtilityWidget
+
 {
 	GENERATED_BODY()
 

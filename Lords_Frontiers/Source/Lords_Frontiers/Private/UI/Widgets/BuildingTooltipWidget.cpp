@@ -5,6 +5,8 @@
 #include "Building/DefensiveBuilding.h"
 #include "Building/ResourceBuilding.h"
 #include "UI/Widgets/BuildingUIConfig.h"
+#include "Core/CoreManager.h" 
+#include "Resources/ResourceManager.h"
 
 #include "Components/Image.h"
 #include "Components/Overlay.h"
@@ -155,6 +157,16 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 		break;
 
 	case ETooltipState::Visible:
+		if ( bIsAutoHiding )
+		{
+			AutoHideTimer -= inDeltaTime;
+			if ( AutoHideTimer <= 0.0f )
+			{
+				bIsAutoHiding = false;
+				HideTooltip();
+			}
+		}
+		break;
 	case ETooltipState::Hidden:
 		break;
 	}
@@ -163,8 +175,12 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 {
 	if ( !buildingClass )
+	{
 		return;
+	}
 
+	bIsAutoHiding = false;
+		
 	PendingBuildingClass = buildingClass;
 
 	SetVisibility( ESlateVisibility::HitTestInvisible );
@@ -324,6 +340,17 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cDO )
 		return;
 	}
 
+	int32 playerGold = 0, playerFood = 0, playerPop = 0;
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UResourceManager* rM = core->GetResourceManager() )
+		{
+			playerGold = rM->GetResourceAmount( EResourceType::Gold );
+			playerFood = rM->GetResourceAmount( EResourceType::Food );
+			playerPop = rM->GetResourceAmount( EResourceType::Population );
+		}
+	}
+
 	int32 costG = cDO->GetBuildingCost().Gold;
 	int32 costF = cDO->GetBuildingCost().Food;
 	int32 costP = cDO->GetBuildingCost().Population;
@@ -362,9 +389,13 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cDO )
 		}
 	};
 
-	AddResRow( Box_Cost, costG, EResourceType::Gold, NeutralColor, false, false );
-	AddResRow( Box_Cost, costF, EResourceType::Food, NeutralColor, false, false );
-	AddResRow( Box_Cost, costP, EResourceType::Population, NeutralColor, false, false );
+	FSlateColor ColorG = ( playerGold >= costG ) ? AffordableCostColor : TooExpensiveCostColor;
+	FSlateColor ColorF = ( playerFood >= costF ) ? AffordableCostColor : TooExpensiveCostColor;
+	FSlateColor ColorP = ( playerPop >= costP ) ? AffordableCostColor : TooExpensiveCostColor;
+
+	AddResRow( Box_Cost, costG, EResourceType::Gold, ColorG, false, false );
+	AddResRow( Box_Cost, costF, EResourceType::Food, ColorF, false, false );
+	AddResRow( Box_Cost, costP, EResourceType::Population, ColorP, false, false );
 
 	AddResRow( Box_Maintenance, -maintG, EResourceType::Gold, ExpenseColor, true, false );
 	AddResRow( Box_Maintenance, -maintF, EResourceType::Food, ExpenseColor, true, false );
@@ -418,38 +449,84 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* cDO )
 void UBuildingTooltipWidget::UpdateBonuses()
 {
 	APlayerController* PC = GetOwningPlayer();
-	if ( !PC )
+	if ( !PC || !BonusRowClass || !Box_Bonus || !UIConfig )
 	{
 		return;
 	}
-		
-	UTexture2D* BuildingIconTex = nullptr;
-	if ( UIConfig && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
+
+	UTexture2D* MyBuildingIconTex = nullptr;
+	if ( UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
 	{
-		BuildingIconTex = UIConfig->BuildingsData[CurrentBuildingClass].Icon;
+		MyBuildingIconTex = UIConfig->BuildingsData[CurrentBuildingClass].Icon;
 	}
 
-	UBuildingBonusComponent* bonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
-	if ( bonusComp && bonusComp->GetBonusEntries().Num() > 0 && BonusRowClass && Box_Bonus )
+	auto AddBonusRow = [&]( UTexture2D* TargetIcon, UTexture2D* SourceIcon, float Value, EBonusCategory Category,
+	                        EResourceType ResType, EStatsType StatType )
 	{
-		for ( const FBuildingBonusEntry& Entry : bonusComp->GetBonusEntries() )
+		UTexture2D* FinalIcon = nullptr;
+		if ( Category == EBonusCategory::Stats )
+		{
+			FinalIcon = GetStatIcon( StatType );
+		}
+		else
+		{
+			FinalIcon = GetResourceIcon( ResType );
+		}
+
+		UBuildingTooltipBonusRow* Row = CreateWidget<UBuildingTooltipBonusRow>( PC, BonusRowClass );
+		Row->Setup( TargetIcon, SourceIcon, Value, FinalIcon );
+		Box_Bonus->AddChild( Row );
+	};
+
+	UBuildingBonusComponent* myBonusComp = UBuildingBonusComponent::FindInBlueprintClass( CurrentBuildingClass );
+	if ( myBonusComp )
+	{
+		for ( const FBuildingBonusEntry& Entry : myBonusComp->GetBonusEntries() )
 		{
 			UTexture2D* SourceIcon = nullptr;
-			if ( Entry.SourceBuildingClass && UIConfig &&
-			     UIConfig->BuildingsData.Contains( Entry.SourceBuildingClass ) )
+			if ( Entry.SourceBuildingClass && UIConfig->BuildingsData.Contains( Entry.SourceBuildingClass ) )
 			{
 				SourceIcon = UIConfig->BuildingsData[Entry.SourceBuildingClass].Icon;
 			}
 
-			UTexture2D* ResIcon = nullptr;
-			if ( Entry.Category == EBonusCategory::Production || Entry.Category == EBonusCategory::Maintenance )
-			{
-				ResIcon = GetResourceIcon( Entry.ResourceType );
-			}
-
-			UBuildingTooltipBonusRow* Row = CreateWidget<UBuildingTooltipBonusRow>( PC, BonusRowClass );
-			Row->Setup( BuildingIconTex, SourceIcon, Entry.Value, ResIcon );
-			Box_Bonus->AddChild( Row );
+			AddBonusRow(
+			    MyBuildingIconTex, SourceIcon, Entry.Value, Entry.Category, Entry.ResourceType, Entry.StatType
+			);
 		}
+	}
+
+	for ( const auto& Kvp : UIConfig->BuildingsData )
+	{
+		TSubclassOf<ABuilding> OtherBuildingClass = Kvp.Key;
+		if ( !OtherBuildingClass || OtherBuildingClass == CurrentBuildingClass )
+		{
+			continue;
+		}
+			
+		UBuildingBonusComponent* otherBonusComp = UBuildingBonusComponent::FindInBlueprintClass( OtherBuildingClass );
+		if ( otherBonusComp )
+		{
+			for ( const FBuildingBonusEntry& Entry : otherBonusComp->GetBonusEntries() )
+			{
+				if ( Entry.SourceBuildingClass == CurrentBuildingClass )
+				{
+					UTexture2D* OtherBuildingIcon = Kvp.Value.Icon;
+
+					AddBonusRow(
+					    OtherBuildingIcon, MyBuildingIconTex, Entry.Value, Entry.Category, Entry.ResourceType,
+					    Entry.StatType
+					);
+				}
+			}
+		}
+	}
+}
+
+void UBuildingTooltipWidget::StartAutoHideTimer()
+{
+	if ( CurrentState == ETooltipState::Visible || CurrentState == ETooltipState::FadeFlash )
+	{
+		bIsAutoHiding = true;
+		AutoHideTimer = AutoHideDelay;
 	}
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Interfaces/IMWPoolable.h"
+#include "Projectiles/ProjectileTypes.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -9,21 +10,9 @@
 #include "Baseprojectile.generated.h"
 
 class USphereComponent;
+class UNiagaraSystem;
 
 inline const FVector PooledLocation{ 0.0f, 0.0f, -10000.0f };
-
-UENUM( BlueprintType )
-enum class EProjectileType : uint8
-{
-	Arrow_Tower,
-	Arrow_Enemy,
-	Cannonball,
-	MagicProjectile,
-	Fireball_Enemy,
-	Melee_Single,
-	Melee_AoE,
-	Catapult
-};
 
 /**
  * Maxim
@@ -41,8 +30,8 @@ public:
 
 	virtual void Tick( float deltaTime ) override;
 
-	bool InitializeProjectile(
-	    AActor* inInstigator, AActor* inTarget, int inDamage, float inSpeed,
+	bool Initialize(
+	    AActor* inInstigator, TWeakObjectPtr<AActor> inTarget, int inDamage, float inSpeed,
 	    const FVector& spawnOffset = FVector::ZeroVector, float inSplashRadius = 0.f, float inMaxRange = 0.f,
 	    bool bTrackTarget = true
 	);
@@ -55,7 +44,7 @@ protected:
 	TObjectPtr<USphereComponent> CollisionComp_;
 
 	UPROPERTY()
-	TObjectPtr<AActor> Target_;
+	TWeakObjectPtr<AActor> Target_;
 
 	float Damage_ = 0;
 	float Speed_ = 0.0f;
@@ -83,7 +72,9 @@ protected:
 
 	virtual void DealDamage( AActor* hitActor ) const;
 
-	void SpawnHitVFX( AActor* hitActor ) const;
+	UNiagaraSystem* GetProjectileImpactVFX( bool bIsGroundHit ) const;
+
+	void SpawnHitVFX( AActor* hitActor, const FVector& impactLocation ) const;
 
 	void ReturnToPool();
 

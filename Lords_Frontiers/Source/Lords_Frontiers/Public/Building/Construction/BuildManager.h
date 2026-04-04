@@ -16,8 +16,11 @@ class ABuildPreviewActor;
 class ABuilding;
 class UResourceManager;
 class UBonusIconsData;
+enum class EGameLoopPhase : uint8;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingConfirmed, ABuilding*, Building, FIntPoint, CellCoords );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnPlacingCancelled );
 
 UCLASS()
 class LORDS_FRONTIERS_API ABuildManager : public AActor
@@ -70,6 +73,9 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
 	FOnBuildingConfirmed OnBuildingConfirmed;
 
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
+	FOnPlacingCancelled OnPlacingCancelled;
+
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Bonus" )
 	FOnBonusPreviewUpdated OnBonusPreviewUpdated;
 
@@ -115,6 +121,9 @@ private:
 
 	UFUNCTION()
 	void OnCoreSystemsReady();
+
+	UFUNCTION()
+	void OnPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase );
 
 	FIntPoint PreviousCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 
@@ -167,9 +176,14 @@ private:
 
 	void UpdatePreviewVisual( const FVector& worldLocation, bool bCanBuild );
 
+	void ShowAllDefensiveRanges();
+
+	void HideAllDefensiveRanges();
+
 	void PlayPlacementAnimation( AActor* building );
 
 	bool bHidingPreviewForAnimation_ = false;
 
+	float CachedPreviewAttackRange_ = 0.f;
 	FIntPoint LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 };

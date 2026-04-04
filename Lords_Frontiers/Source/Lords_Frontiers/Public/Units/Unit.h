@@ -9,13 +9,14 @@
 #include "EntityStats.h"
 
 #include "Components/Attack/AttackComponent.h"
-#include "Components/EnemyAggroComponent.h"
+#include "Components/EnemyAggressionComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 
 #include "Unit.generated.h"
 
-class APathPointsManager;
+class ABuilding;
+class AUnitAIManager;
 class UPath;
 class UCapsuleComponent;
 class UBehaviorTree;
@@ -39,45 +40,87 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void Tick( float deltaSeconds ) override;
+	void StartFollowing() const;
 
-	void StartFollowing();
-
-	void StopFollowing();
+	void StopFollowing() const;
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual void TakeDamage( int damage ) override;
 
-	void AdvancePathPointIndex();
-
-	void SetPathPointIndex( int pathPointIndex );
-
-	void FollowPath();
-
 	void ChangeStats( FEnemyBuff* buff );
 
-	// Getters and setters
+	virtual FEntityStats& Stats() override
+	{
+		return Stats_;
+	}
 
-	virtual FEntityStats& Stats() override;
+	virtual const FEntityStats& Stats() const override
+	{
+		return Stats_;
+	}
 
-	virtual ETeam Team() override;
+	virtual ETeam Team() const override
+	{
+		return Stats_.Team();
+	}
 
-	virtual TObjectPtr<AActor> EnemyInSight() const override;
+	virtual ETeam Team() override
+	{
+		return Stats_.Team();
+	}
 
-	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override;
+	virtual TObjectPtr<UBehaviorTree> BehaviorTree() const override
+	{
+		return UnitBehaviorTree_;
+	}
 
-	TWeakObjectPtr<AActor> FollowedTarget() const;
-	void SetFollowedTarget( TObjectPtr<AActor> followedTarget );
+	// Target that unit moves to
+	TWeakObjectPtr<const AActor> FollowedTarget() const
+	{
+		return FollowedTarget_;
+	}
 
-	const TObjectPtr<UPath>& Path() const;
-	void SetPath( TObjectPtr<UPath> path );
+	void SetFollowedTarget( TWeakObjectPtr<const AActor> newTarget )
+	{
+		FollowedTarget_ = newTarget;
+	}
 
-	void SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager );
+	// Target that unit might attack
+	virtual TWeakObjectPtr<AActor> AttackTarget() const override
+	{
+		return AttackTarget_;
+	}
 
-	void SetFollowedTarget( AActor* newTarget );
+	virtual void SetAttackTarget( TWeakObjectPtr<AActor> newTarget ) override
+	{
+		AttackTarget_ = newTarget;
+	}
 
-	TObjectPtr<USceneComponent> VisualMesh();
+	// Path destination
+	TWeakObjectPtr<const ABuilding> TargetBuilding() const
+	{
+		return TargetBuilding_;
+	}
+
+	void SetTargetBuilding( TWeakObjectPtr<const ABuilding> newTarget )
+	{
+		TargetBuilding_ = newTarget;
+	}
+
+	UPath* Path() const
+	{
+		if ( const UEnemyAggressionComponent* aggression = GetComponentByClass<UEnemyAggressionComponent>() )
+		{
+			return aggression->Path();
+		}
+		return nullptr;
+	}
+
+	TObjectPtr<USceneComponent> VisualMesh()
+	{
+		return VisualMesh_;
+	}
 
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
@@ -89,10 +132,6 @@ protected:
 	void FinalizeDestroy();
 
 	void ResolveVFXDefaults();
-
-	void FollowNextPathTarget();
-
-	bool IsCloseToTarget() const;
 
 	void AnimationTick() const;
 
@@ -114,8 +153,14 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings" )
-	TWeakObjectPtr<AActor> FollowedTarget_;
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<const AActor> FollowedTarget_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<AActor> AttackTarget_;
+
+	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
+	TWeakObjectPtr<const ABuilding> TargetBuilding_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
 	float DelayBeforeHit_ = 0.0f;
@@ -133,20 +178,12 @@ protected:
 	TObjectPtr<UAttackComponent> AttackComponent_;
 
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
-
-	UPROPERTY()
-	TObjectPtr<UPath> Path_;
-
-	UPROPERTY()
-	TObjectPtr<UEnemyAggroComponent> AggroComponent_;
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
 	UPROPERTY( EditDefaultsOnly )
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent_;
 
 	FTimerHandle AttackTimerHandle_;
-
-	int PathPointIndex_ = -1;
 
 	FTimerHandle DeathTimerHandle_;
 

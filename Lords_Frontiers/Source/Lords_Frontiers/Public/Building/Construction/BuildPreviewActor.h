@@ -28,12 +28,25 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
 	void SetPreviewMesh( UStaticMesh* mesh );
 
+	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
+	void ShowAttackRange( float Radius );
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
+	void HideAttackRange();
+
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UStaticMeshComponent> MeshComponent_ = nullptr;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )
 	TObjectPtr<UMaterialInterface> ValidMaterial_ = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )
 	TObjectPtr<UMaterialInterface> InvalidMaterial_ = nullptr;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<UDecalComponent> RangeDecalComponent_ = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )
+	TObjectPtr<UMaterialInterface> RangeIndicatorMaterial_ = nullptr;
 };

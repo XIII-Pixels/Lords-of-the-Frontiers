@@ -2,6 +2,8 @@
 
 #include "Projectiles/BaseProjectile.h"
 
+#include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "DrawDebugHelpers.h"
@@ -62,7 +64,7 @@ void ABaseProjectile::ActivateFromPool()
 {
 	StartLocation_ = GetActorLocation();
 
-	if ( IsValid( Target_ ) )
+	if ( Target_.IsValid() )
 	{
 		TargetLocation_ = Target_->GetActorLocation();
 	}
@@ -87,13 +89,12 @@ void ABaseProjectile::ActivateFromPool()
 	);
 }
 
-bool ABaseProjectile::InitializeProjectile(
-    AActor* inInstigator, AActor* inTarget, int inDamage, float inSpeed, const FVector& spawnOffset,
+bool ABaseProjectile::Initialize(
+    AActor* inInstigator, TWeakObjectPtr<AActor> inTarget, int inDamage, float inSpeed, const FVector& spawnOffset,
     float inSplashRadius, float inMaxRange, bool bTrackTarget
 )
 {
-
-	if ( !IsValid( inInstigator ) || !IsValid( inTarget ) )
+	if ( !IsValid( inInstigator ) || !inTarget.IsValid() )
 	{
 		return false;
 	}
@@ -113,7 +114,7 @@ bool ABaseProjectile::InitializeProjectile(
 	FCollisionQueryParams GroundTraceParams;
 	GroundTraceParams.AddIgnoredActor( this );
 	GroundTraceParams.AddIgnoredActor( inInstigator );
-	GroundTraceParams.AddIgnoredActor( inTarget );
+	GroundTraceParams.AddIgnoredActor( inTarget.Get() );
 
 	if ( GetWorld()->LineTraceSingleByChannel(
 	         GroundHit, TargetPos, TargetPos - FVector( 0, 0, 1000.f ), ECC_Visibility, GroundTraceParams
@@ -144,11 +145,11 @@ void ABaseProjectile::Tick( float deltaTime )
 		return;
 	}
 
-	if ( bTrackTarget_ && IsValid( Target_ ) )
+	if ( bTrackTarget_ && IsValid( Target_.Get() ) )
 	{
 		TargetLocation_ = Target_->GetActorLocation();
 
-		IEntity* entity = Cast<IEntity>( Target_ );
+		const IEntity* entity = Cast<IEntity>( Target_.Get() );
 		if ( entity && !entity->Stats().IsAlive() )
 		{
 			Target_ = nullptr;
@@ -162,13 +163,25 @@ void ABaseProjectile::Tick( float deltaTime )
 		const FVector ImpactLocation( TargetLocation_.X, TargetLocation_.Y, GroundZ_ );
 		SetActorLocation( ImpactLocation );
 
-		if ( bTrackTarget_ && IsValid( Target_ ) )
+		if ( bTrackTarget_ && Target_.IsValid() )
 		{
-			SpawnHitVFX( Target_ );
-			DealDamage( Target_ );
+			SpawnHitVFX( Target_.Get(), ImpactLocation );
+
+			if ( SplashRadius_ > 0.0f )
+			{
+				if ( UNiagaraSystem* groundVFX = GetProjectileImpactVFX( true ) )
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					    GetWorld(), groundVFX, ImpactLocation, GetActorRotation()
+					);
+				}
+			}
+
+			DealDamage( Target_.Get() );
 		}
 		else
 		{
+			SpawnHitVFX( nullptr, ImpactLocation );
 			DealDamage( nullptr );
 		}
 
@@ -200,13 +213,13 @@ void ABaseProjectile::OnCollisionStart(
 		return;
 	}
 
-	if ( IsValid( Target_ ) && otherActor == Target_ )
+	if ( Target_.IsValid() && otherActor == Target_ )
 	{
-		SpawnHitVFX( otherActor );
+		SpawnHitVFX( otherActor, GetActorLocation() );
 		DealDamage( otherActor );
 		ReturnToPool();
 	}
-	else if ( !bTrackTarget_ || !IsValid( Target_ ) )
+	else if ( !bTrackTarget_ || !Target_.IsValid() )
 	{
 		IEntity* enemy = Cast<IEntity>( otherActor );
 		if ( !enemy || !enemy->Stats().IsAlive() )
@@ -217,7 +230,7 @@ void ABaseProjectile::OnCollisionStart(
 		IEntity* ownerEntity = Cast<IEntity>( GetInstigator() );
 		if ( ownerEntity && enemy->Team() != ownerEntity->Team() )
 		{
-			SpawnHitVFX( otherActor );
+			SpawnHitVFX( otherActor, GetActorLocation() );
 			DealDamage( otherActor );
 			ReturnToPool();
 		}
@@ -325,26 +338,55 @@ void ABaseProjectile::OnLifetimeExpired()
 	ReturnToPool();
 }
 
-void ABaseProjectile::SpawnHitVFX( AActor* hitActor ) const
+UNiagaraSystem* ABaseProjectile::GetProjectileImpactVFX( bool bIsGroundHit ) const
 {
-	if ( !hitActor )
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
 	{
-		return;
+		return nullptr;
 	}
 
-	IEntity* entity = Cast<IEntity>( hitActor );
-
-	if ( !entity )
+	UEntityVFXConfig* vfxConfig = core->GetEntityVFXConfig();
+	if ( !vfxConfig )
 	{
-		return;
+		return nullptr;
 	}
 
-	UNiagaraSystem* hitVFX = entity->GetHitVFX();
+	if ( const FProjectileImpactVFX* override = vfxConfig->ProjectileVFXOverrides.Find( ProjectileType ) )
+	{
+		UNiagaraSystem* vfx = bIsGroundHit ? override->GroundImpactVFX.Get() : override->ImpactVFX.Get();
+		if ( vfx )
+		{
+			return vfx;
+		}
+
+		vfx = bIsGroundHit ? override->ImpactVFX.Get() : override->GroundImpactVFX.Get();
+		if ( vfx )
+		{
+			return vfx;
+		}
+	}
+
+	return vfxConfig->DefaultProjectileImpactVFX;
+}
+
+void ABaseProjectile::SpawnHitVFX( AActor* hitActor, const FVector& impactLocation ) const
+{
+	const bool bIsGroundHit = ( hitActor == nullptr );
+	UNiagaraSystem* hitVFX = GetProjectileImpactVFX( bIsGroundHit );
+
+	if ( !hitVFX && hitActor )
+	{
+		if ( IEntity* entity = Cast<IEntity>( hitActor ) )
+		{
+			hitVFX = entity->GetHitVFX();
+		}
+	}
 
 	if ( !hitVFX )
 	{
 		return;
 	}
 
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), hitVFX, GetActorLocation(), GetActorRotation() );
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation( GetWorld(), hitVFX, impactLocation, GetActorRotation() );
 }

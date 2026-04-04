@@ -17,6 +17,12 @@ AMainGameMode::AMainGameMode()
 
 void AMainGameMode::StartPlay()
 {
+
+	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	{
+		Core->SetEntityVFXConfig( EntityVFXConfig );
+	}
+
 	Super::StartPlay();
 
 	SetupCamera();
@@ -54,7 +60,7 @@ void AMainGameMode::InitializeGameSystems()
 	{
 		GL->Initialize(
 		    GameLoopConfig, Core->GetWaveManager(), Core->GetResourceManager(), Core->GetEconomyComponent(),
-		    Core->GetPathPointsManager()
+		    Core->GetUnitAIManager()
 		);
 		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with config" ) );
 	}
