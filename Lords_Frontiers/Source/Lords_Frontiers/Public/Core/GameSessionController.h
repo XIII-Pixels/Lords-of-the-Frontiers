@@ -94,7 +94,10 @@ private:
 	void EnterDefeatPhase();
 
 	UFUNCTION()
-	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
+	void HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase );
+
+	UFUNCTION()
+	void HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave );
 
 	UPROPERTY()
 	TObjectPtr<UGameLoopManager> GameLoopManager_;

@@ -13,6 +13,7 @@ void UGameSessionController::Initialize( FSubsystemCollectionBase& Collection )
 	if ( GameLoopManager_ )
 	{
 		GameLoopManager_->OnPhaseChanged.AddDynamic( this, &UGameSessionController::HandlePhaseChanged );
+		GameLoopManager_->OnLastWaveCompleted.AddDynamic( this, &UGameSessionController::HandleLastWaveCompleted );
 	}
 }
 
@@ -123,9 +124,14 @@ float UGameSessionController::GetTimerScale() const
 	return 1.0f;
 }
 
-void UGameSessionController::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
+void UGameSessionController::HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave )
 {
-	if ( OldPhase == EGameLoopPhase::Combat && NewPhase != EGameLoopPhase::Combat )
+	EndGame( EGameResult::Win );
+}
+
+void UGameSessionController::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
+{
+	if ( oldPhase == EGameLoopPhase::Combat && newPhase != EGameLoopPhase::Combat )
 	{
 		ResetSpeed();
 	}
@@ -145,9 +151,9 @@ void UGameSessionController::CycleSpeed()
 	{
 		next = 2.0f;
 	}
-	else if ( current < 3.0f )
+	else if ( current < 7.0f )
 	{
-		next = 4.0f;
+		next = 8.0f;
 	}
 
 	SetTimerScale( next );
