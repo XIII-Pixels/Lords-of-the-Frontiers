@@ -11,7 +11,7 @@
 #include "Cards/CardDataAsset.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Core/Subsystems/SessionLogger/ISessionDataCollector.h"
 #include "Dom/JsonObject.h"
@@ -169,6 +169,7 @@ void USessionLoggerSubsystem::BindToSystems()
 	}
 
 	GameLoop_ = core->GetGameLoop();
+	SessionController_ = GetWorld()->GetGameInstance()->GetSubsystem<UGameSessionController>();
 	WaveManager_ = core->GetWaveManager();
 	ResourceManager_ = core->GetResourceManager();
 	EconomyComponent_ = core->GetEconomyComponent();
@@ -180,7 +181,11 @@ void USessionLoggerSubsystem::BindToSystems()
 		GameLoop_->OnPhaseChanged.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandlePhaseChanged );
 		GameLoop_->OnBuildTurnChanged.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleBuildTurnChanged );
 		GameLoop_->OnWaveChanged.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleWaveChanged );
-		GameLoop_->OnGameEnded.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleGameEnded );
+	}
+
+	if ( SessionController_.IsValid() )
+	{
+		SessionController_->OnGameEndDelegate.AddUniqueDynamic( this, &USessionLoggerSubsystem::HandleGameEnded );
 	}
 
 	if ( WaveManager_.IsValid() )
@@ -228,7 +233,11 @@ void USessionLoggerSubsystem::UnbindFromSystems()
 		GameLoop_->OnPhaseChanged.RemoveDynamic( this, &USessionLoggerSubsystem::HandlePhaseChanged );
 		GameLoop_->OnBuildTurnChanged.RemoveDynamic( this, &USessionLoggerSubsystem::HandleBuildTurnChanged );
 		GameLoop_->OnWaveChanged.RemoveDynamic( this, &USessionLoggerSubsystem::HandleWaveChanged );
-		GameLoop_->OnGameEnded.RemoveDynamic( this, &USessionLoggerSubsystem::HandleGameEnded );
+	}
+
+	if ( SessionController_.IsValid() )
+	{
+		SessionController_->OnGameEndDelegate.RemoveDynamic( this, &USessionLoggerSubsystem::HandleGameEnded );
 	}
 
 	if ( WaveManager_.IsValid() )
@@ -351,16 +360,6 @@ void USessionLoggerSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGame
 		FinalizeWave();
 		break;
 	}
-	case EGameLoopPhase::Victory:
-	{
-		FinalizeSession( true );
-		break;
-	}
-	case EGameLoopPhase::Defeat:
-	{
-		FinalizeSession( false );
-		break;
-	}
 	default:
 		break;
 	}
@@ -399,9 +398,9 @@ void USessionLoggerSubsystem::HandleWaveChanged( int32 currentWave, int32 totalW
 
 // Game Ended Handler
 
-void USessionLoggerSubsystem::HandleGameEnded( bool bVictory )
+void USessionLoggerSubsystem::HandleGameEnded( EGameResult Result )
 {
-	// No-op: FinalizeSession handles collector notification via HandlePhaseChanged (Victory/Defeat)
+	FinalizeSession( Result == EGameResult::Win );
 }
 
 // Wave Started Handler

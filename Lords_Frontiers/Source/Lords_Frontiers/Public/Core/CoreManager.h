@@ -121,7 +121,7 @@ public:
 	 * Use when completely restarting the game session.
 	 */
 	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Setup" )
-	void ResetSystems();
+	void ResetGameState();
 
 	/**
 	 * Returns true if ALL systems are initialized and valid.
@@ -223,6 +223,7 @@ public:
 	/** Unregisters GridManager. Called from GridManager::EndPlay(). */
 	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Registration" )
 	void UnregisterGridManager( AGridManager* InGridManager );
+
 
 	/**
 	 * Broadcast when critical systems become ready.

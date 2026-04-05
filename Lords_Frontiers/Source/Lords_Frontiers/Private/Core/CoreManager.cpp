@@ -2,7 +2,8 @@
 
 #include "AI/UnitAIManager.h"
 #include "Building/Construction/BuildManager.h"
-#include "Core/GameLoopManager.h"
+#include "Cards/CardSubsystem.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
@@ -56,7 +57,7 @@ void UCoreManager::Deinitialize()
 {
 	if ( GameLoopManager_ )
 	{
-		GameLoopManager_->Cleanup();
+		GameLoopManager_->Reset();
 	}
 
 	ClearAllReferences();
@@ -123,17 +124,44 @@ void UCoreManager::RefreshSystemReferences()
 	}
 }
 
-void UCoreManager::ResetSystems()
+void UCoreManager::ResetGameState()
 {
-	UE_LOG( LogCoreManager, Log, TEXT( "CoreManager: Resetting all systems..." ) );
-
-	if ( GameLoopManager_ )
+	if ( ResourceManager_.IsValid() )
 	{
-		GameLoopManager_->Cleanup();
+		ResourceManager_->ResetResources();
+	}
+	else
+	{
+		UE_LOG( LogCore, Warning, TEXT( "ResetGameState: ResourceManager is invalid" ) );
 	}
 
-	ClearAllReferences();
-	bIsInitialized_ = false;
+	if ( EconomyComponent_.IsValid() )
+	{
+		EconomyComponent_->ResetEconomy();
+	}
+	else
+	{
+		UE_LOG( LogCore, Warning, TEXT( "ResetGameState: EconomyComponent is invalid" ) );
+	}
+
+	if ( WaveManager_.IsValid() )
+	{
+		WaveManager_->CancelCurrentWave();
+	}
+	else
+	{
+		UE_LOG( LogCore, Warning, TEXT( "ResetGameState: WaveManager is invalid" ) );
+	}
+
+	UCardSubsystem* cardSub = UCardSubsystem::Get( GetWorld() );
+	if ( cardSub )
+	{
+		cardSub->ResetCardHistory();
+	}
+	else
+	{
+		UE_LOG( LogCore, Warning, TEXT( "ResetGameState: cardSub is invalid" ) );
+	}
 }
 
 void UCoreManager::ClearAllReferences()
@@ -158,8 +186,6 @@ void UCoreManager::UpdateGameLoopDependencies()
 	{
 		return;
 	}
-
-	GameLoopManager_->UpdateDependencies( WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get() );
 }
 
 bool UCoreManager::AreAllSystemsReady() const
@@ -433,7 +459,8 @@ void UCoreManager::CreateInternalManagers()
 {
 	if ( !GameLoopManager_ )
 	{
-		GameLoopManager_ = NewObject<UGameLoopManager>( this, TEXT( "GameLoopManager" ) );
+		GameLoopManager_ = GetGameInstance()->GetSubsystem<UGameLoopManager>();
+
 		UE_LOG( LogCoreManager, Log, TEXT( "Created GameLoopManager" ) );
 	}
 }
@@ -458,8 +485,8 @@ void UCoreManager::SetupManagerConnections()
 
 	if ( GameLoopManager_ )
 	{
-		GameLoopManager_->Initialize(
-		    nullptr, WaveManager_.Get(), ResourceManager_.Get(), EconomyComponent_.Get(), UnitAIManager_.Get()
+		GameLoopManager_->InitGameLoop(
+		    nullptr, UnitAIManager_.Get()
 		);
 		UE_LOG( LogCoreManager, Log, TEXT( "GameLoopManager initialized (default config)" ) );
 	}

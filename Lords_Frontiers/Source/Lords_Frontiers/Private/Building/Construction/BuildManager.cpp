@@ -6,7 +6,7 @@
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"

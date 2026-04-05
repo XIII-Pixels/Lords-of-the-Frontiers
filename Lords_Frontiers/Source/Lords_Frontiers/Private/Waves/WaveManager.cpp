@@ -2,7 +2,7 @@
 
 #include "AI/Path/Path.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 
@@ -129,12 +129,9 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		{
 			if ( const UGameLoopManager* loopManager = core->GetGameLoop() )
 			{
-				if ( const UGameLoopConfig* config = loopManager->GetConfig() )
-				{
-					GetWorld()->GetTimerManager().SetTimer(
-					    WaveEndTimerHandle_, endDelegate, config->CombatDuration, false
-					);
-				}
+				GetWorld()->GetTimerManager().SetTimer(
+				    WaveEndTimerHandle_, endDelegate, loopManager->GetCombatTotalTime(), false
+				);
 			}
 		}
 	}

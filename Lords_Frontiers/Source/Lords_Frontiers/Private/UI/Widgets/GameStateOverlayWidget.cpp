@@ -1,7 +1,6 @@
 #include "UI/Widgets/GameStateOverlayWidget.h"
 
-#include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameSessionController.h"
 
 #include "Camera/StrategyCamera.h"
 #include "Components/Button.h"
@@ -23,28 +22,29 @@ void UGameStateOverlayWidget::NativeConstruct()
 
 void UGameStateOverlayWidget::OnMainMenuClicked()
 {
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-		if ( UGameLoopManager* gL = core->GetGameLoop() )
-			gL->Cleanup();
-
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+	{
+		session->EndGame( EGameResult::Abandoned );
+	}
 	UGameplayStatics::OpenLevel( this, mainMenuLevelName );
 }
 
 void UGameStateOverlayWidget::OnRestartClicked()
 {
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-		if ( UGameLoopManager* gL = core->GetGameLoop() )
-			gL->Cleanup();
-
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+	{
+		session->EndGame( EGameResult::Abandoned );
+	}
 	FString CurrentLevelName = GetWorld()->GetName();
 	UGameplayStatics::OpenLevel( this, FName( *CurrentLevelName ) );
 }
 
 void UGameStateOverlayWidget::OnNextLevelClicked()
 {
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-		if ( UGameLoopManager* gL = core->GetGameLoop() )
-			gL->Cleanup();
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+	{
+		session->EndGame( EGameResult::Abandoned );
+	}
 
 	UGameplayStatics::OpenLevel( this, nextLevelName );
 }
