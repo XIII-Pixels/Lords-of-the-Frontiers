@@ -43,6 +43,7 @@ void UAttackRangedComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ChooseAttackMode();
 	ActivateSight();
 }
 
@@ -50,7 +51,6 @@ void UAttackRangedComponent::LookTick()
 {
 	AActor* prevTarget = GetOwner<IAttacker>()->AttackTarget().Get();
 
-	ChooseAttackMode();
 	Look();
 
 	bDidSeeTarget_ = prevTarget && ( prevTarget == GetOwner<IAttacker>()->AttackTarget() );
@@ -193,18 +193,15 @@ void UAttackRangedComponent::Look()
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	const IAttacker* ownerAttacker = GetOwner<IAttacker>();
-	if ( ownerAttacker && !ownerAttacker->AttackTarget().IsValid() &&
-	     GetOwner()->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	if ( GetOwner()->IsA( AUnit::StaticClass() ) )
 	{
-		// Super bad (unclear) code: buildings and standing units start attacking everything
-		// Left in peace due to time constraints (laziness)
+		// Not good: coupling with AUnit class. No owner class dependencies should be in this class
 		// TODO: Separate components for unit and for building
-		AttackFilter_ = EAttackFilter::Everything;
+		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 	else
 	{
-		AttackFilter_ = EAttackFilter::WhatIsOnPath;
+		AttackFilter_ = EAttackFilter::Everything;
 	}
 }
 
