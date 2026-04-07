@@ -263,7 +263,7 @@ void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target
 
 	const bool bInitialized = projectile->Initialize(
 	    GetOwner(), target.Get(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bTrackTarget_
+	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_
 	);
 
 	if ( !bInitialized )

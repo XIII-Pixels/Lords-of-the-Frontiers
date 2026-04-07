@@ -170,9 +170,6 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
 	float PlayRate_ = 1.0f;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
-	float IdleAnimTime_ = 0.0f;
-
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 

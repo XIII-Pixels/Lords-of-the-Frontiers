@@ -127,10 +127,13 @@ bool ABaseProjectile::Initialize(
 		GroundZ_ = TargetPos.Z;
 	}
 
-	const FVector SpawnLocation = inInstigator->GetActorLocation() + spawnOffset;
-	const FVector ToTarget = inTarget->GetActorLocation() - SpawnLocation;
+	const FVector spawnLocation =
+	    inInstigator->GetActorLocation() +
+	    spawnOffset.RotateAngleAxis( inInstigator->GetActorRotation().Yaw, FVector::UpVector );
 
-	SetActorLocationAndRotation( SpawnLocation, ToTarget.Rotation() );
+	const FVector toTarget = inTarget->GetActorLocation() - spawnLocation;
+
+	SetActorLocationAndRotation( spawnLocation, toTarget.Rotation() );
 
 	ActivateFromPool();
 

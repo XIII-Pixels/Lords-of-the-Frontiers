@@ -104,12 +104,10 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 			GetWorldTimerManager().SetTimer(
 			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, DelayBeforeHit_, false
 			);
-			GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Green, TEXT( "Attack timer started" ) );
 		}
 		else if ( !Stats_.OnCooldown() )
 		{
 			AttackComponent_->Attack( hitActor );
-			GEngine->AddOnScreenDebugMessage( -1, 1.0f, FColor::Red, TEXT( "AttackComponent->Attack()" ) );
 		}
 	}
 }
@@ -132,7 +130,7 @@ void AUnit::Animate( float deltaTime ) const
 		SkeletalMeshComponent_->Stop();
 
 		const float currentPos = SkeletalMeshComponent_->GetPosition();
-		const float newPos = FMath::FInterpTo( currentPos, IdleAnimTime_, deltaTime, 0.5f );
+		const float newPos = FMath::FInterpTo( currentPos, 0.0f, deltaTime, 2.5f );
 		SkeletalMeshComponent_->SetPosition( newPos, false );
 	}
 }

@@ -78,7 +78,7 @@ protected:
 	FVector ProjectileSpawnPosition_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	bool bTrackTarget_ = true;
+	bool bProjectileTracksTarget_ = true;
 
 	TObjectPtr<USphereComponent> SightSphere_;
 
