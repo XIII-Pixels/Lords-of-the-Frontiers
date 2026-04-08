@@ -19,6 +19,8 @@ void UGameStateOverlayWidget::NativeConstruct()
 		ButtonNextLevel->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnNextLevelClicked );
 	if ( ButtonResume )
 		ButtonResume->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnResumeClicked );
+	if ( TutorialButton )
+		TutorialButton->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::HandleTutorialButtonClicked );
 }
 
 void UGameStateOverlayWidget::OnMainMenuClicked()
@@ -52,4 +54,12 @@ void UGameStateOverlayWidget::OnNextLevelClicked()
 void UGameStateOverlayWidget::OnResumeClicked()
 {
 	OnResumeRequested.Broadcast();
+}
+
+void UGameStateOverlayWidget::HandleTutorialButtonClicked()
+{
+	if ( ADebugPlayerController* pc = Cast<ADebugPlayerController>( GetOwningPlayer() ) )
+	{
+		pc->ToggleTutorial();
+	}
 }
