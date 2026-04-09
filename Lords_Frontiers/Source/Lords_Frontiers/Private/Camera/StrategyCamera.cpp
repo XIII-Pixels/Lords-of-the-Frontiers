@@ -38,6 +38,7 @@ AStrategyCamera::AStrategyCamera()
 
 	Camera->ProjectionMode = ECameraProjectionMode::Orthographic;
 	Camera->OrthoWidth = 2048.0f;
+	SpringArm->TargetArmLength = 2000.0f;
 
 	Camera->OrthoNearClipPlane = -2000.0f;
 	Camera->OrthoFarClipPlane = 10000.0f;
@@ -47,12 +48,40 @@ AStrategyCamera::AStrategyCamera()
 	TargetZoom_ = 2048.0f;
 	TargetYaw_ = CameraYaw_;
 	CurrentYaw_ = CameraYaw_;
+
+	if ( GetWorld() )
+	{
+		UKismetSystemLibrary::ExecuteConsoleCommand(
+		    GetWorld(), TEXT( "r.Shadow.Virtual.ResolutionLodBiasDirectional -2" )
+		);
+
+		UKismetSystemLibrary::ExecuteConsoleCommand( GetWorld(), TEXT( "r.Shadow.Virtual.ClipMargin 0.25" ) );
+
+		UKismetSystemLibrary::ExecuteConsoleCommand(
+		    GetWorld(), TEXT( "r.Shadow.Virtual.SMRT.RayCountDirectional 4" )
+		);
+	}
 }
 
 // Called when the game starts or when spawned
 void AStrategyCamera::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Camera->SetProjectionMode( ProjectionMode_ );
+
+	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
+	{
+		Camera->OrthoWidth = InitialOrthoWidth_;
+		TargetZoom_ = InitialOrthoWidth_;
+		SpringArm->TargetArmLength = 3000.0f; //fix
+	}
+	else //Perspective
+	{
+		Camera->SetFieldOfView( FieldOfView_ );
+		SpringArm->TargetArmLength = InitialTargetArmLength_;
+		TargetZoom_ = InitialTargetArmLength_;
+	}
 
 	if ( APlayerController* pc = Cast<APlayerController>( GetController() ) )
 	{
@@ -135,7 +164,15 @@ void AStrategyCamera::Tick( float deltaTime )
 	MovementComponent->Acceleration = MoveAcceleration_ * TimeScale;
 	MovementComponent->Deceleration = MoveDeceleration_ * TimeScale;
 
-	Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, RealDeltaTime, ZoomInterpSpeed_ );
+	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
+	{
+		Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, RealDeltaTime, ZoomInterpSpeed_ );
+	}
+	else
+	{
+		SpringArm->TargetArmLength =
+		    FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom_, RealDeltaTime, ZoomInterpSpeed_ );
+	}
 
 	FRotator currentRot = SpringArm->GetRelativeRotation();
 	FRotator targetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
