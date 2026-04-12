@@ -2,32 +2,38 @@
 
 #include "Building/Building.h"
 #include "Building/Construction/BuildManager.h"
+#include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
+#include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/Widgets/StageProgressWidget.h"
+#include "UI/Widgets/GameStateOverlayWidget.h"
 
 #include "Camera/CameraComponent.h"
+#include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
 
 void UGameHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
-	if ( pc )
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		UResourceManager* rM = pc->FindComponentByClass<UResourceManager>();
-		if ( !rM )
+		if ( UResourceManager* rM = core->GetResourceManager() )
 		{
-			rM = NewObject<UResourceManager>( pc, TEXT( "GlobalResourceManager" ) );
-			rM->RegisterComponent();
+			rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
 		}
-		rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
-		rM->OnResourceChanged.AddDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+
+		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
+		{
+			eC->OnNetIncomeChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+		}
 	}
 
 	if ( ButtonRelocateBuilding )
@@ -113,11 +119,20 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 
+	if ( ButtonBuildingMortira )
+	{
+		ButtonBuildingMortira->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+		ButtonBuildingMortira->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
+		ButtonBuildingMortira->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
+
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
 	if ( buildManager )
 	{
 		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnPlacingCancelled.AddDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
+
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -127,6 +142,7 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			gL->OnGameEnded.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 	}
 
@@ -140,6 +156,11 @@ void UGameHUDWidget::NativeConstruct()
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
 
+	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
+	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
+
+	InitIncomeDisplay();
+
 	InitIncomeDisplay();
 
 	UpdateDayText();
@@ -150,7 +171,6 @@ void UGameHUDWidget::NativeConstruct()
 
 	ShowEconomyBuildings();
 
-	UpdateResources();
 	UpdateAllBuildingButtons();
 	UpdateWaveInfoButtonVisuals();
 }
@@ -189,6 +209,9 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
 	if ( ButtonBuildingTowerT2 )
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	if ( ButtonBuildingMortira )
+		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+
 	if ( BtnToggleWaveInfo )
 		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 
@@ -197,6 +220,8 @@ void UGameHUDWidget::NativeDestruct()
 	if ( buildManager )
 	{
 		buildManager->OnBonusPreviewUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnPlacingCancelled.RemoveDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
+
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -206,6 +231,7 @@ void UGameHUDWidget::NativeDestruct()
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
+			gL->OnGameEnded.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
 		}
 
 		if ( UResourceManager* rM = core->GetResourceManager() )
@@ -230,6 +256,12 @@ void UGameHUDWidget::NativeDestruct()
 void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 {
 	UpdateStatusText();
+
+	if ( StageProgressBar && MaxTurns > 0 )
+	{
+		float progress = static_cast<float>( CurrentTurn - 1 ) / static_cast<float>( MaxTurns );
+		StageProgressBar->SetTargetProgress( FMath::Clamp( progress, 0.0f, 1.0f ) );
+	}
 }
 
 void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
@@ -243,9 +275,47 @@ void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
 
 void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount )
 {
-	UE_LOG( LogTemp, Warning, TEXT( "HandleResourceChanged: Type=%d, Amount=%d" ), (int32) Type, NewAmount );
 	UpdateResources();
 	UpdateAllBuildingButtons();
+
+	if ( ActiveEconomyTooltip && ActiveEconomyTooltip->GetVisibility() != ESlateVisibility::Hidden )
+	{
+		ActiveEconomyTooltip->UpdateContent();
+	}
+	if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->GetVisibility() != ESlateVisibility::Hidden )
+	{
+		ActiveDefensiveTooltip->UpdateContent();
+	}
+	if ( bIsBuildingLocked && LockedBuildingClass )
+	{
+		UCoreManager* core = UCoreManager::Get( this );
+		UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
+		if ( rM )
+		{
+			const ABuilding* buildingCDO = LockedBuildingClass->GetDefaultObject<ABuilding>();
+			if ( buildingCDO && !rM->CanAfford( buildingCDO->GetBuildingCost() ) )
+			{
+				if ( ABuildManager* bM = core->GetBuildManager() )
+				{
+					bM->CancelPlacing();
+				}
+
+				bIsBuildingLocked = false;
+				LockedBuildingClass = nullptr;
+
+				if ( ActiveEconomyTooltip )
+				{
+					ActiveEconomyTooltip->SetLocked( false );
+					ActiveEconomyTooltip->StartAutoHideTimer();
+				}
+				if ( ActiveDefensiveTooltip )
+				{
+					ActiveDefensiveTooltip->SetLocked( false );
+					ActiveDefensiveTooltip->StartAutoHideTimer();
+				}
+			}
+		}
+	}
 }
 
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
@@ -264,6 +334,18 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	if ( NewPhase == EGameLoopPhase::Combat )
 	{
 		CancelCurrentBuilding();
+	}
+
+	if ( StageProgressBar )
+	{
+		if ( NewPhase == EGameLoopPhase::Combat )
+		{
+			StageProgressBar->SetTargetProgress( 1.0f );
+		}
+		else if ( NewPhase != EGameLoopPhase::Building )
+		{
+			StageProgressBar->ResetProgressImmediate();
+		}
 	}
 }
 
@@ -327,11 +409,28 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 {
 	Super::NativeTick( MyGeometry, InDeltaTime );
 
+	if ( !bIsEconomySubscribed_ )
+	{
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		{
+			UResourceManager* rM = core->GetResourceManager();
+			UEconomyComponent* eC = core->GetEconomyComponent();
+
+			if ( rM && eC )
+			{
+				rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
+				eC->OnNetIncomeChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+				UpdateResources();
+				InitIncomeDisplay();
+				bIsEconomySubscribed_ = true;
+			}
+		}
+	}
+
 	if ( ActiveBonusIcons_.Num() > 0 )
 	{
 		UpdateBonusIconPositions();
-	}
-
+	}	
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -489,18 +588,10 @@ void UGameHUDWidget::UpdateResources()
 	UE_LOG( LogTemp, Warning, TEXT( "=== UpdateResources ===" ) );
 
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "Core is NULL" ) );
-		return;
-	}
+	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
 
-	UResourceManager* rM = core->GetResourceManager();
 	if ( !rM )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "ResourceManager is NULL" ) );
 		return;
-	}
 
 	int32 gold = rM->GetResourceAmount( EResourceType::Gold );
 	int32 food = rM->GetResourceAmount( EResourceType::Food );
@@ -615,24 +706,33 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 {
 	if ( !BuildingClass )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildingClass is null" ) );
 		return;
 	}
 
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
+	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
+	if ( !bM )
 	{
 		return;
 	}
 
-	ABuildManager* bM = core->GetBuildManager();
-	if ( !bM )
+	if ( UResourceManager* rM = core->GetResourceManager() )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "StartBuilding: BuildManager is null" ) );
-		return;
+		const ABuilding* buildingCDO = BuildingClass->GetDefaultObject<ABuilding>();
+		if ( buildingCDO && !rM->CanAfford( buildingCDO->GetBuildingCost() ) )
+		{
+			if ( GEngine )
+			{
+				GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Red, TEXT( "Not enough resources!" ) );
+			}	
+			return;
+		}
 	}
 
 	bM->StartPlacingBuilding( BuildingClass );
+
+	bIsBuildingLocked = true;
+	LockedBuildingClass = BuildingClass;
 }
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
@@ -683,6 +783,11 @@ void UGameHUDWidget::OnBuildTowerT1Clicked()
 void UGameHUDWidget::OnBuildTowerT2Clicked()
 {
 	StartBuilding( TowerT2Class );
+}
+
+void UGameHUDWidget::OnBuildTowerMortiraClicked()
+{
+	StartBuilding( TowerMortiraClass );
 }
 
 void UGameHUDWidget::UpdateBuildingUIVisibility()
@@ -754,19 +859,40 @@ void UGameHUDWidget::UpdateBuildingUIVisibility()
 void UGameHUDWidget::CancelCurrentBuilding()
 {
 	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	}
-	ABuildManager* bM = core->GetBuildManager();
-	if ( !bM )
-	{
-		return;
-	};
+	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
 
-	if ( bM->IsPlacing() )
+	if ( bM && bM->IsPlacing() )
 	{
 		bM->CancelPlacing();
+	}
+
+	bIsBuildingLocked = false;
+	LockedBuildingClass = nullptr;
+
+	if ( ActiveEconomyTooltip )
+	{
+		ActiveEconomyTooltip->SetLocked( false );
+	}
+	if ( ActiveDefensiveTooltip )
+	{
+		ActiveDefensiveTooltip->SetLocked( false );
+	}
+}
+
+void UGameHUDWidget::OnPlacingCancelled()
+{
+	bIsBuildingLocked = false;
+	LockedBuildingClass = nullptr;
+
+	if ( ActiveEconomyTooltip )
+	{
+		ActiveEconomyTooltip->SetLocked( false );
+		ActiveEconomyTooltip->HideTooltip();
+	}
+	if ( ActiveDefensiveTooltip )
+	{
+		ActiveDefensiveTooltip->SetLocked( false );
+		ActiveDefensiveTooltip->HideTooltip();
 	}
 }
 
@@ -798,6 +924,7 @@ void UGameHUDWidget::UpdateAllBuildingButtons()
 	UpdateButtonAvailability( ButtonBuildingTowerT0, TowerT0Class );
 	UpdateButtonAvailability( ButtonBuildingTowerT1, TowerT1Class );
 	UpdateButtonAvailability( ButtonBuildingTowerT2, TowerT2Class );
+	UpdateButtonAvailability( ButtonBuildingMortira, TowerMortiraClass );
 }
 
 void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
@@ -806,8 +933,10 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	{
 		return;
 	}
+		
 	UCoreManager* core = UCoreManager::Get( this );
 	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
+
 	if ( !rM )
 	{
 		return;
@@ -816,59 +945,22 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
 	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
 
-	button->SetIsEnabled( bCanAfford );
-
 	button->SetRenderOpacity( bCanAfford ? 1.0f : 0.4f );
-
 	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
-}
-
-void UGameHUDWidget::StartTooltipTimer( TSubclassOf<ABuilding> buildingClass )
-{
-	PendingBuildingClass = buildingClass;
-	GetWorld()->GetTimerManager().SetTimer(
-	    TooltipTimerHandle, this, &UGameHUDWidget::ShowTooltipInternal, 0.5f, false
-	);
 }
 
 void UGameHUDWidget::OnBuildingUnhovered()
 {
-	GetWorld()->GetTimerManager().ClearTimer( TooltipTimerHandle );
-	if ( ActiveTooltip )
-		ActiveTooltip->SetVisibility( ESlateVisibility::Collapsed );
-	PendingBuildingClass = nullptr;
-}
-
-void UGameHUDWidget::ShowTooltipInternal()
-{
-	if ( !PendingBuildingClass || !TooltipClass )
+	if ( bIsBuildingLocked && LockedBuildingClass )
 	{
-		return;
+		ShowTooltipForBuilding( LockedBuildingClass );
 	}
-
-	if ( !ActiveTooltip )
+	else
 	{
-		ActiveTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
-		ActiveTooltip->AddToViewport( 99 );
-	}
-
-	ActiveTooltip->UpdateTooltip( PendingBuildingClass->GetDefaultObject<ABuilding>() );
-	ActiveTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
-
-	FVector2D mousePos;
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
-	{
-		pc->GetMousePosition( mousePos.X, mousePos.Y );
-
-		FVector2D viewportSize;
-		if ( GEngine && GEngine->GameViewport )
-		{
-			GEngine->GameViewport->GetViewportSize( viewportSize );
-		}
-
-		float offsetYa = ( mousePos.Y > ( viewportSize.Y / 2.f ) ) ? -180.f : 25.f;
-
-		ActiveTooltip->SetPositionInViewport( mousePos + FVector2D( 25, offsetYa ) );
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->HideTooltip();
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->HideTooltip();
 	}
 }
 
@@ -1095,4 +1187,114 @@ void UGameHUDWidget::ApplyIncomeText( UTextBlock* textBlock, int32 value )
 	}
 
 	textBlock->SetText( FText::FromString( displayText ) );
+}
+void UGameHUDWidget::HandleGameEnded( bool bVictory )
+{
+	if ( ActiveOverlay )
+	{
+		ActiveOverlay->RemoveFromParent();
+		ActiveOverlay = nullptr;
+	}
+
+	TSubclassOf<UGameStateOverlayWidget> ClassToUse = bVictory ? WinWidgetClass : LoseWidgetClass;
+	if ( !ClassToUse )
+		return;
+
+	ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, ClassToUse );
+	if ( ActiveOverlay )
+	{
+		ActiveOverlay->AddToViewport( 100 );
+	}
+
+	if ( APlayerController* PC = GetOwningPlayer() )
+	{
+		if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+		{
+			Cam->SetCameraInputDisabled( true );
+		}
+	}
+}
+
+void UGameHUDWidget::TogglePauseMenu()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( core && core->GetGameLoop() && !core->GetGameLoop()->IsGameStarted() )
+	{
+		return;
+	}
+
+	if ( ActiveOverlay )
+	{
+		ActiveOverlay->OnResumeRequested.RemoveDynamic( this, &UGameHUDWidget::TogglePauseMenu );
+
+		ActiveOverlay->RemoveFromParent();
+		ActiveOverlay = nullptr;
+
+		if ( APlayerController* PC = GetOwningPlayer() )
+		{
+			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+			{
+				Cam->SetCameraInputDisabled( false );
+			}
+		}
+	}
+	else
+	{
+		if ( !PauseWidgetClass )
+			return;
+
+		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, PauseWidgetClass );
+		if ( ActiveOverlay )
+		{
+			ActiveOverlay->AddToViewport( 100 );
+			ActiveOverlay->OnResumeRequested.AddDynamic( this, &UGameHUDWidget::TogglePauseMenu );
+		}
+
+		if ( APlayerController* PC = GetOwningPlayer() )
+		{
+			if ( AStrategyCamera* Cam = Cast<AStrategyCamera>( PC->GetPawn() ) )
+			{
+				Cam->SetCameraInputDisabled( true );
+			}
+		}
+	}
+}
+
+void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
+{
+	if ( !buildingClass )
+		return;
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	if ( !cdo )
+		return;
+
+	if ( cdo->IsA<ADefensiveBuilding>() )
+	{
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->HideTooltip();
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->ShowTooltip( buildingClass );
+	}
+	else
+	{
+		if ( ActiveDefensiveTooltip )
+			ActiveDefensiveTooltip->HideTooltip();
+		if ( ActiveEconomyTooltip )
+			ActiveEconomyTooltip->ShowTooltip( buildingClass );
+	}
+}
+
+void UGameHUDWidget::InitializeTooltipWidget(
+    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
+)
+{
+	if ( TooltipClass && !OutTooltip )
+	{
+		OutTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
+		if ( OutTooltip )
+		{
+			OutTooltip->AddToViewport( 99 );
+			OutTooltip->ForceHide();
+		}
+	}
 }

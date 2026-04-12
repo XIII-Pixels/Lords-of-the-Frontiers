@@ -1,17 +1,23 @@
 #include "Core/GameLoopManager.h"
 
+#include "AI/UnitAIManager.h"
 #include "Building/Building.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
+#include "Core/CoreManager.h"
+#include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+#include "Core/CoreManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameStateBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -26,7 +32,7 @@ UGameLoopManager::~UGameLoopManager()
 
 void UGameLoopManager::Initialize(
     UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
+    UEconomyComponent* inEconomyComponent, AUnitAIManager* inUnitAIManager
 )
 {
 	if ( inConfig )
@@ -42,21 +48,23 @@ void UGameLoopManager::Initialize(
 	WaveManager_ = inWaveManager;
 	ResourceManager_ = inResourceManager;
 	EconomyComponent_ = inEconomyComponent;
-	PathPointsManager_ = inPathPointsManager;
+	UnitAIManager_ = inUnitAIManager;
 
 	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
 	{
 		BindToWaveManager();
-		WaveManager_->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 	}
 
 	bIsInitialized_ = ResourceManager_.IsValid();
 
 	Log( FString::Printf(
-	    TEXT( "Initialized. Config: %s, WaveManager: %s, ResourceManager: %s" ),
+	    TEXT( "Initialized. Config: %s, WaveManager: %s, ResourceManager: %s, EconomyComponent: %s, UnitAIManager: %s"
+	    ),
 	    Config_ ? TEXT( "OK" ) : TEXT( "MISSING" ), WaveManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
-	    ResourceManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" )
+	    ResourceManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
+	    EconomyComponent_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
+	    UnitAIManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" )
 	) );
 }
 
@@ -90,6 +98,8 @@ void UGameLoopManager::UpdateDependencies(
 		BindToWaveManager();
 	}
 
+	bIsInitialized_ = ResourceManager_.IsValid();
+
 	Log( FString::Printf(
 	    TEXT( "Dependencies updated. WaveManager: %s, ResourceManager: %s" ),
 	    WaveManager_.IsValid() ? TEXT( "OK" ) : TEXT( "MISSING" ),
@@ -110,7 +120,11 @@ void UGameLoopManager::Cleanup()
 	if ( UWorld* world = GetWorldSafe() )
 	{
 		world->GetTimerManager().ClearTimer( CombatStartDelayHandle_ );
-		world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
+
+		if ( UCardSubsystem* cardSub = UCardSubsystem::Get( world ) )
+		{
+			cardSub->ResetCardHistory();
+		}
 	}
 
 	CurrentPhase_ = EGameLoopPhase::None;
@@ -170,21 +184,24 @@ void UGameLoopManager::Tick( float deltaTime )
 
 void UGameLoopManager::StartGame()
 {
+	RefreshDependencies();
+
+	if ( ResourceManager_.IsValid() )
+		ResourceManager_->ResetResources();
+	if ( EconomyComponent_.IsValid() )
+		EconomyComponent_->ResetEconomy();
+
 	if ( !bIsInitialized_ )
 	{
 		Log( TEXT( "ERROR: Cannot start - not initialized!" ) );
 		return;
 	}
 
-	if ( bIsGameStarted_ )
-	{
-		Log( TEXT( "WARNING: Game already started" ) );
-		return;
-	}
-
 	bIsGameStarted_ = true;
 	bIsPaused_ = false;
 	bWaitingForCardSelection_ = false;
+
+	CurrentPhase_ = EGameLoopPhase::None;
 	CurrentWave_ = 1;
 	CurrentBuildTurn_ = 0;
 	bPerfectWave_ = true;
@@ -199,7 +216,13 @@ void UGameLoopManager::StartGame()
 void UGameLoopManager::RestartGame()
 {
 	Log( TEXT( "=== GAME RESTARTING ===" ) );
-
+	if ( UWorld* world = GetWorldSafe() )
+	{
+		if ( USessionLoggerSubsystem* logger = world->GetSubsystem<USessionLoggerSubsystem>() )
+		{
+			logger->FinalizeSessionOnRestart();
+		}
+	}
 	UnbindFromWaveManager();
 
 	CurrentPhase_ = EGameLoopPhase::None;
@@ -472,6 +495,7 @@ void UGameLoopManager::EnterBuildingPhase()
 
 	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
 	{
+		ec->PerformInitialScan();
 		ec->RecalculateAndBroadcastNetIncome();
 	}
 }
@@ -518,12 +542,9 @@ void UGameLoopManager::EnterRewardPhase()
 
 	GrantCombatReward();
 
-	RemainingHealingPulses_ = 5;
-	if ( UWorld* world = GetWorldSafe() )
+	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
 	{
-		world->GetTimerManager().SetTimer(
-		    BuildingRestoreTimerHandle_, this, &UGameLoopManager::ExecuteHealingPulse, 0.2f, true, 1.0f
-		);
+		ec->RestoreAllBuildings();
 	}
 
 	if ( IsLastWave() )
@@ -585,10 +606,6 @@ void UGameLoopManager::EnterVictoryPhase()
 	OnGameEnded.Broadcast( true );
 
 	Log( TEXT( "=== VICTORY! ===" ) );
-
-	const FName levelName = FName( TEXT( "Win" ) );
-	UWorld* world = GetWorldSafe();
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::EnterDefeatPhase()
@@ -606,46 +623,27 @@ void UGameLoopManager::EnterDefeatPhase()
 	OnGameEnded.Broadcast( false );
 
 	Log( TEXT( "=== DEFEAT ===" ) );
-
-	const FName levelName = FName( TEXT( "Lose" ) );
-	UGameplayStatics::OpenLevel( world, levelName );
 }
 
 void UGameLoopManager::GrantStartingResources()
 {
-	if ( !Config_ )
-	{
-		Log( TEXT( "WARNING: No config for starting resources" ) );
-		return;
-	}
+	UResourceManager* rm = ResourceManager_.Get();
 
-	if ( !ResourceManager_.IsValid() )
+	if ( !Config_ || !rm )
 	{
-		Log( TEXT( "ERROR: ResourceManager is INVALID!" ) );
 		return;
 	}
 
 	const FResourceReward& start = Config_->StartingResources;
-	UResourceManager* rm = ResourceManager_.Get();
 
 	if ( start.Gold > 0 )
-	{
 		rm->AddResource( EResourceType::Gold, start.Gold );
-	}
 	if ( start.Food > 0 )
-	{
 		rm->AddResource( EResourceType::Food, start.Food );
-	}
 	if ( start.Population > 0 )
-	{
 		rm->AddResource( EResourceType::Population, start.Population );
-	}
 
 	OnResourcesGranted.Broadcast( start );
-
-	Log( FString::Printf(
-	    TEXT( "Starting resources granted: Gold=%d, Food=%d, Pop=%d" ), start.Gold, start.Food, start.Population
-	) );
 }
 
 void UGameLoopManager::GrantCombatReward()
@@ -695,6 +693,12 @@ void UGameLoopManager::StartWave()
 {
 	if ( AWaveManager* wm = WaveManager_.Get() )
 	{
+		if ( UnitAIManager_.IsValid() )
+		{
+			UnitAIManager_->OnPreWaveStart();
+			UnitAIManager_->PathPointsManager()->ShowAll();
+		}
+
 		const int32 waveIndex = CurrentWave_ - 1;
 		wm->StartWaveAtIndex( waveIndex );
 
@@ -744,6 +748,11 @@ void UGameLoopManager::OnCombatTimerExpired()
 
 void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 {
+	if ( UnitAIManager_.IsValid() )
+	{
+		UnitAIManager_->PathPointsManager()->Empty();
+	}
+
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
 
 	bWaveCompleted_ = true;
@@ -771,6 +780,7 @@ void UGameLoopManager::BindToWaveManager()
 	{
 		wm->OnWaveEnded.AddDynamic( this, &UGameLoopManager::HandleWaveEnded );
 		wm->OnAllWavesCompleted.AddDynamic( this, &UGameLoopManager::HandleAllWavesCompleted );
+		wm->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
 		bIsBoundToWaveManager_ = true;
 
 		Log( TEXT( "Bound to WaveManager" ) );
@@ -811,36 +821,6 @@ void UGameLoopManager::HandleDelayedBuildingRestoration()
 	}
 }
 
-void UGameLoopManager::ExecuteHealingPulse()
-{
-	if ( UEconomyComponent* ec = EconomyComponent_.Get() )
-	{
-		TArray<AActor*> foundActors;
-		UGameplayStatics::GetAllActorsOfClass( GetWorld(), ABuilding::StaticClass(), foundActors );
-		for ( AActor* actor : foundActors )
-		{
-			if ( ABuilding* b = Cast<ABuilding>( actor ) )
-			{
-				b->FullRestore();
-			}
-		}
-	}
-
-	RemainingHealingPulses_--;
-
-	if ( RemainingHealingPulses_ <= 0 )
-	{
-		if ( UWorld* world = GetWorldSafe() )
-		{
-			world->GetTimerManager().ClearTimer( BuildingRestoreTimerHandle_ );
-		}
-
-		if ( UEconomyComponent* ec = EconomyComponent_.Get() )
-		{
-			ec->RecalculateAndBroadcastNetIncome();
-		}
-	}
-}
 void UGameLoopManager::HandleWaveEndScheduled( float secondsRemaining )
 {
 	if ( GetWorld() )
@@ -851,4 +831,23 @@ void UGameLoopManager::HandleWaveEndScheduled( float secondsRemaining )
 	CombatTimeRemaining_ = secondsRemaining;
 
 	OnCombatTimerUpdated.Broadcast( CombatTimeRemaining_, CombatTimeRemaining_ );
+}
+
+void UGameLoopManager::RefreshDependencies()
+{
+	UCoreManager* core = UCoreManager::Get( GetWorldSafe() );
+	if ( !core )
+		return;
+
+	ResourceManager_ = core->GetResourceManager();
+	EconomyComponent_ = core->GetEconomyComponent();
+	WaveManager_ = core->GetWaveManager();
+
+	if ( WaveManager_.IsValid() && !bIsBoundToWaveManager_ )
+	{
+		BindToWaveManager();
+		WaveManager_->OnWaveEndScheduled.AddUniqueDynamic( this, &UGameLoopManager::HandleWaveEndScheduled );
+	}
+
+	bIsInitialized_ = ResourceManager_.IsValid();
 }

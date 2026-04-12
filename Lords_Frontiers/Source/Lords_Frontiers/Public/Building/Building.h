@@ -1,19 +1,20 @@
 #pragma once
 
 #include "Building/Bonus/BuildingBonusComponent.h"
-#include "Cards/CardTypes.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
 #include "Selectable.h"
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 
 #include "Building.generated.h"
 
 class UEconomyComponent;
 class UBoxComponent;
+class UNiagaraSystem;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -33,7 +34,11 @@ public:
 
 	virtual FEntityStats& Stats() override;
 
+	virtual const FEntityStats& Stats() const override;
+
 	virtual ETeam Team() override;
+
+	virtual ETeam Team() const override;
 
 	virtual void TakeDamage( int damage ) override;
 
@@ -45,9 +50,14 @@ public:
 
 	virtual FVector GetSelectionLocation_Implementation() const override;
 
+	TObjectPtr<UStaticMesh> GetBuildingMesh() const
+	{
+		return BuildingMesh_;
+	}
+
 	const FResourceProduction& GetMaintenanceCost() const
 	{
-		return MaintenanceCost;
+		return MaintenanceCost_;
 	}
 
 	const FResourceProduction& GetBuildingCost() const
@@ -77,6 +87,9 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|UI" )
 	TObjectPtr<UTexture2D> BuildingIcon;
 
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingDeath OnBuildingDied;
+
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
 	bool IsRuined() const
@@ -86,24 +99,42 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void EndPlay( const EEndPlayReason::Type EndPlayReason ) override;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
-	FResourceProduction MaintenanceCost;
+	virtual UNiagaraSystem* GetHitVFX() const override;
+
+	void ResolveVFXDefaults();
+
+	void SpawnDestructionVFX();
 
 	virtual void OnDeath();
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
-	TObjectPtr<UStaticMesh> RuinedMesh_;
+	void FinalizeRuin();
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|State" )
-	bool bIsRuined_ = false;
+	void ActivateBuildingMesh();
+
+	void ActivateRuinsMesh();
 
 	UPROPERTY()
 	TObjectPtr<UBoxComponent> CollisionComponent_;
 
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
-	UStaticMeshComponent* BuildingMesh_;
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly )
+	USkeletalMeshComponent* SkeletalMeshComponent_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly )
+	UStaticMeshComponent* StaticMeshComponent_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMesh> RuinedMesh_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMesh> BuildingMesh_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	FVector2D AnimationRateRange_ = FVector2D( 0.8f, 1.2f );
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|State" )
+	bool bIsRuined_ = false;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
@@ -111,14 +142,39 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
 	FResourceProduction BuildingCost_;
 
-	UPROPERTY()
-	TObjectPtr<UStaticMesh> DefaultMesh_;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
+	FResourceProduction MaintenanceCost_;
 
 	UPROPERTY()
 	TObjectPtr<UEconomyComponent> EconomyComponent_;
 
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> DestructionVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> HitVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedDestructionVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedConstructionVFX_;
+
+	float ResolvedRuinDelay_ = 0.0f;
+	float ResolvedConstructionDelay_ = 0.0f;
+
+	void SpawnConstructionVFX();
+
 private:
+	FTimerHandle RuinTimerHandle_;
+	FTimerHandle ConstructionVFXTimerHandle_;
+
+
 	FResourceProduction OriginalMaintenanceCost_;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;
 };

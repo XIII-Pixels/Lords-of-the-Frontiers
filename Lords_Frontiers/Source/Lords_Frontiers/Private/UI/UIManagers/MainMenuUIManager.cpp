@@ -8,6 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 {
@@ -32,9 +33,19 @@ void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 	{
 		widget->NewGameButton->OnClicked.AddDynamic( this, &UMainMenuUIManager::OnNewGameButtonClicked );
 	}
+
+	if ( widget && widget->ExitGameButton )
+	{
+		widget->ExitGameButton->OnClicked.AddDynamic( this, &UMainMenuUIManager::OnExitGameButtonClicked );
+	}
 }
 
 void UMainMenuUIManager::OnNewGameButtonClicked()
 {
 	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadRunLevel();
+}
+
+void UMainMenuUIManager::OnExitGameButtonClicked()
+{
+	UKismetSystemLibrary::QuitGame( GetWorld(), nullptr, EQuitPreference::Quit, false );
 }

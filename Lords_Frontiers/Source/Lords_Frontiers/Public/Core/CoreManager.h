@@ -6,7 +6,8 @@
 
 #include "CoreManager.generated.h"
 
-class APathPointsManager;
+class AUnitAIManager;
+class UPathPointsManager;
 // Forward declarations - minimizes header dependencies and compile times
 class AWaveManager;
 class ABuildManager;
@@ -17,7 +18,7 @@ class USelectionManagerComponent;
 class UGameLoopManager;
 class UGameLoopConfig;
 class UWorld;
-
+class UEntityVFXConfig;
 /** Broadcast when all critical systems are initialized and ready. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnCoreSystemsReady );
 
@@ -171,14 +172,18 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	USelectionManagerComponent* GetSelectionManager() const;
 
-	/** Returns PathPointsManager component. Optional - may be null. */
+	/** Returns AUnitAIManager component. Optional - may be null. */
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
-	APathPointsManager* GetPathPointsManager() const;
+	AUnitAIManager* GetUnitAIManager() const;
 
 	/** Returns GameLoopManager. Always created internally. */
 	UFUNCTION( BlueprintPure, Category = "Settings|Core|Managers" )
 	UGameLoopManager* GetGameLoop() const;
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Core|Config" )
+	UEntityVFXConfig* GetEntityVFXConfig() const;
+
+	void SetEntityVFXConfig( UEntityVFXConfig* config );
 	/**
 	 * Registers a WaveManager with CoreManager.
 	 * Called by WaveManager::BeginPlay().
@@ -291,9 +296,9 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<USelectionManagerComponent> SelectionManager_;
 
-	/** Weak ref to path points manager. */
+	/** Weak ref to unit AI manager. */
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
 	/**
 	 * Strong reference to GameLoopManager.
@@ -302,6 +307,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UGameLoopManager> GameLoopManager_;
 
+	UPROPERTY()
+	TObjectPtr<UEntityVFXConfig> EntityVFXConfig_;
 	/** Cached PlayerController to avoid repeated lookups. Mutable for const getters. */
 	mutable TWeakObjectPtr<APlayerController> CachedPlayerController_;
 

@@ -3,9 +3,11 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
-#include "AI/Path/Path.h"
-#include "AI/Path/PathPointsManager.h"
-#include "AI/Path/PathTargetPoint.h"
+#include "AI/UnitAIManager.h"
+#include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "Waves/EnemyBuff.h"
@@ -16,6 +18,8 @@
 
 AUnit::AUnit()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	SetRootComponent( CollisionComponent_ );
 
@@ -59,20 +63,17 @@ void AUnit::BeginPlay()
 		);
 	}
 
-	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
-}
-
-void AUnit::Tick( float deltaSeconds )
-{
-	Super::Tick( deltaSeconds );
-
-	if ( FollowedTarget_.Get() && FollowedTarget_.Get()->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
-		FollowNextPathTarget();
+		UnitAIManager_ = core->GetUnitAIManager();
 	}
+
+	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
+
+	ResolveVFXDefaults();
 }
 
-void AUnit::StartFollowing()
+void AUnit::StartFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -80,7 +81,7 @@ void AUnit::StartFollowing()
 	}
 }
 
-void AUnit::StopFollowing()
+void AUnit::StopFollowing() const
 {
 	if ( FollowComponent_ )
 	{
@@ -110,45 +111,6 @@ void AUnit::TakeDamage( int damage )
 	}
 }
 
-FEntityStats& AUnit::Stats()
-{
-	return Stats_;
-}
-
-ETeam AUnit::Team()
-{
-	return Stats_.Team();
-}
-
-TObjectPtr<AActor> AUnit::EnemyInSight() const
-{
-	if ( AttackComponent_ )
-	{
-		return AttackComponent_->EnemyInSight();
-	}
-	return nullptr;
-}
-
-TObjectPtr<UBehaviorTree> AUnit::BehaviorTree() const
-{
-	return UnitBehaviorTree_;
-}
-
-TWeakObjectPtr<AActor> AUnit::FollowedTarget() const
-{
-	return FollowedTarget_;
-}
-
-const TObjectPtr<UPath>& AUnit::Path() const
-{
-	return Path_;
-}
-
-void AUnit::SetFollowedTarget( TObjectPtr<AActor> followedTarget )
-{
-	FollowedTarget_ = followedTarget;
-}
-
 void AUnit::OnDeath()
 {
 	// When HP becomes 0
@@ -163,91 +125,94 @@ void AUnit::OnDeath()
 		FollowComponent_->Deactivate();
 	}
 
-	Destroy();
-}
-
-void AUnit::FollowNextPathTarget()
-{
-	AdvancePathPointIndex();
-	FollowPath();
-}
-
-bool AUnit::IsCloseToTarget() const
-{
-	if ( !FollowedTarget_.IsValid() || !PathPointsManager_.IsValid() )
+	if ( VisualMesh_ )
 	{
-		return false;
+		VisualMesh_->SetVisibility( false, true );
 	}
-
-	const float distanceSq = FVector::DistSquared( GetActorLocation(), FollowedTarget_->GetActorLocation() );
-	const float radiusSq = PathPointsManager_->PointReachRadius * PathPointsManager_->PointReachRadius;
-	return distanceSq < radiusSq;
-}
-
-void AUnit::SetPath( TObjectPtr<UPath> path )
-{
-	Path_ = path;
-	PathPointIndex_ = 0;
-}
-
-void AUnit::SetPathPointsManager( TWeakObjectPtr<APathPointsManager> pathPointsManager )
-{
-	PathPointsManager_ = pathPointsManager;
-}
-
-void AUnit::AdvancePathPointIndex()
-{
-	++PathPointIndex_;
-}
-
-void AUnit::SetPathPointIndex( int pathPointIndex )
-{
-	PathPointIndex_ = pathPointIndex;
-}
-
-void AUnit::FollowPath()
-{
-	if ( !Path_ )
+	if ( CollisionComponent_ )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid Path_. Cannot follow path" ) );
-		FollowedTarget_ = nullptr;
-		return;
+		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	}
+	SpawnDeathVFX();
 
-	if ( !PathPointsManager_.IsValid() )
+	if ( ResolvedDeathDestroyDelay_ > 0.0f )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "Unit: no valid PathPointsManager_. Cannot follow path" ) );
-		FollowedTarget_ = nullptr;
-		return;
-	}
-
-	const TArray<FIntPoint>& pathPoints = Path_->GetPoints();
-	if ( 0 > PathPointIndex_ || PathPointIndex_ >= pathPoints.Num() )
-	{
-		if ( PathPointsManager_->GoalActor.IsValid() )
-		{
-			FollowedTarget_ = PathPointsManager_->GoalActor;
-		}
-		else
-		{
-			UE_LOG( LogTemp, Error, TEXT( "Unit: PathPointIndex_ is out of range and no GoalActor specified" ) );
-			FollowedTarget_ = nullptr;
-		}
+		GetWorldTimerManager().SetTimer(
+		    DeathTimerHandle_, this, &AUnit::FinalizeDestroy, ResolvedDeathDestroyDelay_, false
+		);
 	}
 	else
 	{
-		FollowedTarget_ = PathPointsManager_->GetTargetPoint( pathPoints[PathPointIndex_] ).Get();
+		Destroy();
 	}
 }
 
-void AUnit::SetFollowedTarget( AActor* newTarget )
+void AUnit::SpawnDeathVFX()
 {
-	FollowedTarget_ = newTarget;
+	if ( !ResolvedDeathVFX_ )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	    GetWorld(), ResolvedDeathVFX_, GetActorLocation(), GetActorRotation()
+	);
 }
 
-TObjectPtr<USceneComponent> AUnit::VisualMesh()
+void AUnit::FinalizeDestroy()
 {
-	return VisualMesh_;
+	Destroy();
+}
+
+UNiagaraSystem* AUnit::GetHitVFX() const
+{
+	return ResolvedHitVFX_;
+}
+
+void AUnit::ResolveVFXDefaults()
+{
+	ResolvedDeathVFX_ = DeathVFX_;
+	ResolvedHitVFX_ = HitVFX_;
+	ResolvedDeathDestroyDelay_ = DeathDestroyDelay_ >= 0.0f ? DeathDestroyDelay_ : 1.0f;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			if ( const FUnitVFXOverride* override = config->UnitOverrides.Find( GetClass() ) )
+			{
+				if ( !ResolvedDeathVFX_ && override->DeathVFX )
+				{
+					ResolvedDeathVFX_ = override->DeathVFX;
+				}
+
+				if ( !ResolvedHitVFX_ && override->HitVFX )
+				{
+					ResolvedHitVFX_ = override->HitVFX;
+				}
+
+				if ( DeathDestroyDelay_ < 0.0f && override->DeathDestroyDelay >= 0.0f )
+				{
+					ResolvedDeathDestroyDelay_ = override->DeathDestroyDelay;
+				}
+			}
+
+			if ( !ResolvedDeathVFX_ )
+			{
+				ResolvedDeathVFX_ = config->DefaultUnitDeathVFX;
+			}
+
+			if ( !ResolvedHitVFX_ )
+			{
+				ResolvedHitVFX_ = config->DefaultUnitHitVFX;
+			}
+
+			if ( DeathDestroyDelay_ < 0.0f && ResolvedDeathDestroyDelay_ <= 0.0f )
+			{
+				ResolvedDeathDestroyDelay_ = config->DefaultDeathDestroyDelay;
+			}
+		}
+	}
 }
 
 void AUnit::ChangeStats( FEnemyBuff* buff )
@@ -264,5 +229,4 @@ void AUnit::ChangeStats( FEnemyBuff* buff )
 	);
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
 	Stats_.Heal( Stats_.MaxHealth() );
-
 }

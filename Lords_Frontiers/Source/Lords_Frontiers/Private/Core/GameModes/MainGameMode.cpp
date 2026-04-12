@@ -4,19 +4,25 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
+#include "Core/EntityVFXConfig.h"
 #include "Core/GameLoopManager.h"
 #include "Grid/GridManager.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
-
 AMainGameMode::AMainGameMode()
 {
 }
 
 void AMainGameMode::StartPlay()
 {
+
+	if ( UCoreManager* Core = UCoreManager::Get( this ) )
+	{
+		Core->SetEntityVFXConfig( EntityVFXConfig );
+	}
+
 	Super::StartPlay();
 
 	SetupCamera();
@@ -41,6 +47,7 @@ void AMainGameMode::InitializeGameSystems()
 
 	Core->InitializeSystems();
 	Core->RefreshSystemReferences();
+	Core->SetEntityVFXConfig( EntityVFXConfig );
 
 	UGameLoopManager* GL = Core->GetGameLoop();
 	if ( !GL )
@@ -53,7 +60,7 @@ void AMainGameMode::InitializeGameSystems()
 	{
 		GL->Initialize(
 		    GameLoopConfig, Core->GetWaveManager(), Core->GetResourceManager(), Core->GetEconomyComponent(),
-		    Core->GetPathPointsManager()
+		    Core->GetUnitAIManager()
 		);
 		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with config" ) );
 	}

@@ -9,13 +9,14 @@
 
 #include "GameLoopManager.generated.h"
 
+class AUnitAIManager;
 // Forward declarations
 class AWaveManager;
 class UResourceManager;
 class UEconomyComponent;
 class UGameInstance;
 class UCardSubsystem;
-class APathPointsManager;
+class UPathPointsManager;
 
 /**
  * Default values used when config is not available.
@@ -127,12 +128,22 @@ public:
 	 * @param inWaveManager - Wave spawning system. Can be null initially.
 	 * @param inResourceManager - Resource tracking. Required for initialization success.
 	 * @param inEconomyComponent - Building income. Optional but recommended.
+	 * @param inUnitAIManager - Unit AI features. Optional but recommended.
 	 */
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
 	void Initialize(
 	    UGameLoopConfig* inConfig, AWaveManager* inWaveManager, UResourceManager* inResourceManager,
-	    UEconomyComponent* inEconomyComponent, APathPointsManager* inPathPointsManager
+	    UEconomyComponent* inEconomyComponent, AUnitAIManager* inUnitAIManager
 	);
+
+	/**
+	 * Returns current game loop config.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
+	UGameLoopConfig* GetConfig() const
+	{
+		return Config_;
+	}
 
 	/**
 	 * Hot-swaps configuration without full reinitialization.
@@ -458,8 +469,6 @@ protected:
 
 	void HandleDelayedBuildingRestoration();
 
-	void ExecuteHealingPulse();
-
 	/**
 	 * Checks if CardSubsystem has a valid pool and can offer cards.
 	 * Used to decide whether to wait for card selection in Reward phase.
@@ -473,6 +482,8 @@ protected:
 	void ProceedToNextWave();
 
 private:
+
+	void RefreshDependencies();
 
 	/** Configuration data asset. Owned by this manager if created internally. */
 	UPROPERTY()
@@ -490,9 +501,9 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<UEconomyComponent> EconomyComponent_;
 
-	/** Weak ref to path points manager. */
+	/** Weak ref to unit AI manager. */
 	UPROPERTY()
-	TWeakObjectPtr<APathPointsManager> PathPointsManager_;
+	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
 	/** Current state machine phase. */
 	EGameLoopPhase CurrentPhase_ = EGameLoopPhase::None;
@@ -541,8 +552,4 @@ private:
 
 	/** Unsubscribes from WaveManager events. Safe to call if not bound. */
 	void UnbindFromWaveManager();
-
-	FTimerHandle BuildingRestoreTimerHandle_;
-
-	int32 RemainingHealingPulses_ = 0;
 };

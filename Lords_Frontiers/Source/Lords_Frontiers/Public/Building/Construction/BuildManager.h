@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
 
 #include "CoreMinimal.h"
@@ -15,7 +16,11 @@ class ABuildPreviewActor;
 class ABuilding;
 class UResourceManager;
 class UBonusIconsData;
+enum class EGameLoopPhase : uint8;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingConfirmed, ABuilding*, Building, FIntPoint, CellCoords );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnPlacingCancelled );
 
 UCLASS()
 class LORDS_FRONTIERS_API ABuildManager : public AActor
@@ -65,6 +70,12 @@ public:
 		return bIsPlacing_;
 	};
 
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
+	FOnBuildingConfirmed OnBuildingConfirmed;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
+	FOnPlacingCancelled OnPlacingCancelled;
+
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Bonus" )
 	FOnBonusPreviewUpdated OnBonusPreviewUpdated;
 
@@ -80,6 +91,9 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TObjectPtr<UBonusIconsData> BonusIconsData;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|PlacementAnimation" )
+	FBuildPlacementAnimParams PlacementAnimParams_;
 
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 
@@ -107,6 +121,9 @@ private:
 
 	UFUNCTION()
 	void OnCoreSystemsReady();
+
+	UFUNCTION()
+	void OnPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase );
 
 	FIntPoint PreviousCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 
@@ -158,4 +175,15 @@ private:
 	void UpdateHoveredCell();
 
 	void UpdatePreviewVisual( const FVector& worldLocation, bool bCanBuild );
+
+	void ShowAllDefensiveRanges();
+
+	void HideAllDefensiveRanges();
+
+	void PlayPlacementAnimation( AActor* building );
+
+	bool bHidingPreviewForAnimation_ = false;
+
+	float CachedPreviewAttackRange_ = 0.f;
+	FIntPoint LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 };

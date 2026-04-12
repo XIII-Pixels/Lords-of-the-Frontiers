@@ -1,9 +1,9 @@
 #include "Cards/CardSubsystem.h"
 
-#include "Cards/CardDataAsset.h"
-#include "Cards/CardPoolConfig.h"
 #include "Building/Building.h"
 #include "Building/ResourceBuilding.h"
+#include "Cards/CardDataAsset.h"
+#include "Cards/CardPoolConfig.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoopManager.h"
 
@@ -21,9 +21,7 @@ UCardSubsystem* UCardSubsystem::Get( const UObject* worldContextObject )
 		return nullptr;
 	}
 
-	UWorld* world = GEngine->GetWorldFromContextObject(
-		worldContextObject, EGetWorldErrorMode::LogAndReturnNull
-	);
+	UWorld* world = GEngine->GetWorldFromContextObject( worldContextObject, EGetWorldErrorMode::LogAndReturnNull );
 	if ( !world )
 	{
 		return nullptr;
@@ -64,10 +62,9 @@ void UCardSubsystem::SetPoolConfig( UCardPoolConfig* config )
 		return;
 	}
 
-	UE_LOG( LogCardSubsystem, Log, TEXT( "Pool config set: %d cards, offer %d, select %d" ),
-		PoolConfig_->CardPool.Num(),
-		PoolConfig_->CardsToOffer,
-		PoolConfig_->CardsToSelect
+	UE_LOG(
+	    LogCardSubsystem, Log, TEXT( "Pool config set: %d cards, offer %d, select %d" ), PoolConfig_->CardPool.Num(),
+	    PoolConfig_->CardsToOffer, PoolConfig_->CardsToSelect
 	);
 
 	for ( UCardDataAsset* card : PoolConfig_->StartingCards )
@@ -81,13 +78,11 @@ void UCardSubsystem::SetPoolConfig( UCardPoolConfig* config )
 	BindToGameLoop();
 }
 
-
 void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 {
 	if ( !PoolConfig_ )
 	{
-		UE_LOG( LogCardSubsystem, Error,
-			TEXT( "RequestCardSelection: No pool config set!" ) );
+		UE_LOG( LogCardSubsystem, Error, TEXT( "RequestCardSelection: No pool config set!" ) );
 		NotifyGameLoopToProceed();
 		return;
 	}
@@ -98,8 +93,7 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 
 	if ( availableCards.Num() == 0 )
 	{
-		UE_LOG( LogCardSubsystem, Warning,
-			TEXT( "RequestCardSelection: No cards available for selection" ) );
+		UE_LOG( LogCardSubsystem, Warning, TEXT( "RequestCardSelection: No cards available for selection" ) );
 		NotifyGameLoopToProceed();
 		return;
 	}
@@ -112,9 +106,9 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 	choice.CardsToSelect = PoolConfig_->CardsToSelect;
 	choice.WaveNumber = waveNumber;
 
-	UE_LOG( LogCardSubsystem, Log,
-		TEXT( "Card selection requested: %d cards, select %d, wave %d" ),
-		choice.AvailableCards.Num(), choice.CardsToSelect, choice.WaveNumber
+	UE_LOG(
+	    LogCardSubsystem, Log, TEXT( "Card selection requested: %d cards, select %d, wave %d" ),
+	    choice.AvailableCards.Num(), choice.CardsToSelect, choice.WaveNumber
 	);
 
 	OnCardSelectionRequired.Broadcast( choice );
@@ -124,15 +118,14 @@ void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selected
 {
 	if ( PoolConfig_ && selectedCards.Num() > PoolConfig_->CardsToSelect )
 	{
-		UE_LOG( LogCardSubsystem, Warning,
-			TEXT( "ApplySelectedCards: Received %d cards but max allowed is %d — clamping" ),
-			selectedCards.Num(), PoolConfig_->CardsToSelect
+		UE_LOG(
+		    LogCardSubsystem, Warning, TEXT( "ApplySelectedCards: Received %d cards but max allowed is %d — clamping" ),
+		    selectedCards.Num(), PoolConfig_->CardsToSelect
 		);
 	}
 
-	const int32 maxToApply = PoolConfig_
-		? FMath::Min( selectedCards.Num(), PoolConfig_->CardsToSelect )
-		: selectedCards.Num();
+	const int32 maxToApply =
+	    PoolConfig_ ? FMath::Min( selectedCards.Num(), PoolConfig_->CardsToSelect ) : selectedCards.Num();
 
 	TArray<ABuilding*> cachedBuildings = GetAllBuildings();
 
@@ -171,7 +164,8 @@ void UCardSubsystem::ApplySingleCard( UCardDataAsset* card, int32 waveNumber )
 }
 
 void UCardSubsystem::ApplySingleCardInternal(
-	UCardDataAsset* card, int32 waveNumber, const TArray<ABuilding*>& buildings )
+    UCardDataAsset* card, int32 waveNumber, const TArray<ABuilding*>& buildings
+)
 {
 	if ( !card )
 	{
@@ -180,18 +174,17 @@ void UCardSubsystem::ApplySingleCardInternal(
 
 	if ( !card->bCanStack && GetCardStackCount( card ) > 0 )
 	{
-		UE_LOG( LogCardSubsystem, Warning,
-			TEXT( "ApplySingleCard: Card '%s' cannot stack and is already applied — skipping" ),
-			*card->CardName.ToString()
+		UE_LOG(
+		    LogCardSubsystem, Warning,
+		    TEXT( "ApplySingleCard: Card '%s' cannot stack and is already applied — skipping" ),
+		    *card->CardName.ToString()
 		);
 		return;
 	}
 
 	const bool bIsGlobal = ( card->TargetFilter.BuildingType == EBuildingType::Any );
 
-	bool bHasBuildingTargetedMods =
-		card->HasBuildingModifiers() ||
-		( card->HasResourceModifiers() && !bIsGlobal );
+	bool bHasBuildingTargetedMods = card->HasBuildingModifiers() || ( card->HasResourceModifiers() && !bIsGlobal );
 
 	if ( bHasBuildingTargetedMods )
 	{
@@ -206,9 +199,9 @@ void UCardSubsystem::ApplySingleCardInternal(
 			}
 		}
 
-		UE_LOG( LogCardSubsystem, Log,
-			TEXT( "Applied card '%s' to %d buildings" ),
-			*card->CardName.ToString(), affectedCount
+		UE_LOG(
+		    LogCardSubsystem, Log, TEXT( "Applied card '%s' to %d buildings" ), *card->CardName.ToString(),
+		    affectedCount
 		);
 	}
 
@@ -216,9 +209,8 @@ void UCardSubsystem::ApplySingleCardInternal(
 	{
 		ApplyGlobalEconomyModifiers( card, 1 );
 
-		UE_LOG( LogCardSubsystem, Log,
-			TEXT( "Applied card '%s' as global economy modifier" ),
-			*card->CardName.ToString()
+		UE_LOG(
+		    LogCardSubsystem, Log, TEXT( "Applied card '%s' as global economy modifier" ), *card->CardName.ToString()
 		);
 	}
 
@@ -238,9 +230,7 @@ void UCardSubsystem::ApplySingleCardInternal(
 		AppliedCardHistory_.Add( FAppliedCardRecord( card, waveNumber ) );
 	}
 
-	UE_LOG( LogCardSubsystem, Log, TEXT( "Card '%s' applied (wave %d)" ),
-		*card->CardName.ToString(), waveNumber
-	);
+	UE_LOG( LogCardSubsystem, Log, TEXT( "Card '%s' applied (wave %d)" ), *card->CardName.ToString(), waveNumber );
 }
 
 TArray<UCardDataAsset*> UCardSubsystem::GenerateCardSelection( int32 count )
@@ -341,8 +331,7 @@ void UCardSubsystem::ApplyCardToBuilding( UCardDataAsset* card, ABuilding* build
 	}
 }
 
-void UCardSubsystem::ApplyModifierToBuilding(
-	const FCardStatModifier& modifier, ABuilding* building )
+void UCardSubsystem::ApplyModifierToBuilding( const FCardStatModifier& modifier, ABuilding* building )
 {
 	if ( !building || !modifier.IsValid() )
 	{
@@ -363,8 +352,7 @@ void UCardSubsystem::ApplyModifierToBuilding(
 	}
 }
 
-void UCardSubsystem::ApplyMaintenanceCostModifier(
-	const FCardStatModifier& modifier, ABuilding* building )
+void UCardSubsystem::ApplyMaintenanceCostModifier( const FCardStatModifier& modifier, ABuilding* building )
 {
 	if ( !building )
 	{
@@ -381,22 +369,20 @@ void UCardSubsystem::ApplyMaintenanceCostModifier(
 		building->ModifyMaintenanceCost( resourceType, modifier.FlatValue );
 	}
 
-	UE_LOG( LogCardSubsystem, Verbose,
-		TEXT( "Modified MaintenanceCost on %s by %d (%s)" ),
-		*building->GetName(), modifier.FlatValue,
-		*CardTypeHelpers::GetResourceName( modifier.ResourceTarget )
+	UE_LOG(
+	    LogCardSubsystem, Verbose, TEXT( "Modified MaintenanceCost on %s by %d (%s)" ), *building->GetName(),
+	    modifier.FlatValue, *CardTypeHelpers::GetResourceName( modifier.ResourceTarget )
 	);
 }
 
-void UCardSubsystem::ApplyProductionModifier(
-	const FCardStatModifier& modifier, ABuilding* building )
+void UCardSubsystem::ApplyProductionModifier( const FCardStatModifier& modifier, ABuilding* building )
 {
 	AResourceBuilding* resourceBuilding = Cast<AResourceBuilding>( building );
 	if ( !resourceBuilding )
 	{
-		UE_LOG( LogCardSubsystem, Verbose,
-			TEXT( "BuildingProduction modifier on non-ResourceBuilding %s — skipped" ),
-			building ? *building->GetName() : TEXT( "null" )
+		UE_LOG(
+		    LogCardSubsystem, Verbose, TEXT( "BuildingProduction modifier on non-ResourceBuilding %s — skipped" ),
+		    building ? *building->GetName() : TEXT( "null" )
 		);
 		return;
 	}
@@ -411,15 +397,13 @@ void UCardSubsystem::ApplyProductionModifier(
 		resourceBuilding->ModifyProduction( resourceType, modifier.FlatValue );
 	}
 
-	UE_LOG( LogCardSubsystem, Verbose,
-		TEXT( "Modified Production on %s by %d (%s)" ),
-		*resourceBuilding->GetName(), modifier.FlatValue,
-		*CardTypeHelpers::GetResourceName( modifier.ResourceTarget )
+	UE_LOG(
+	    LogCardSubsystem, Verbose, TEXT( "Modified Production on %s by %d (%s)" ), *resourceBuilding->GetName(),
+	    modifier.FlatValue, *CardTypeHelpers::GetResourceName( modifier.ResourceTarget )
 	);
 }
 
-void UCardSubsystem::ApplyEntityStatModifier(
-	const FCardStatModifier& modifier, ABuilding* building )
+void UCardSubsystem::ApplyEntityStatModifier( const FCardStatModifier& modifier, ABuilding* building )
 {
 	if ( !building || !modifier.IsBuildingStatModifier() )
 	{
@@ -458,8 +442,7 @@ void UCardSubsystem::ApplyEntityStatModifier(
 		static constexpr float CooldownPerUnit = 0.01f;
 		static constexpr float MinCooldown = 0.1f;
 
-		float newCooldown = stats.AttackCooldown()
-			+ static_cast<float>( modifier.FlatValue ) * CooldownPerUnit;
+		float newCooldown = stats.AttackCooldown() + static_cast<float>( modifier.FlatValue ) * CooldownPerUnit;
 		stats.SetAttackCooldown( FMath::Max( MinCooldown, newCooldown ) );
 		break;
 	}
@@ -605,8 +588,7 @@ void UCardSubsystem::RevertAllBuildingModifiers()
 		const bool bIsGlobal = ( record.Card->TargetFilter.BuildingType == EBuildingType::Any );
 
 		bool bHasTargetedModifiers =
-			record.Card->HasBuildingModifiers() ||
-			( record.Card->HasResourceModifiers() && !bIsGlobal );
+		    record.Card->HasBuildingModifiers() || ( record.Card->HasResourceModifiers() && !bIsGlobal );
 
 		if ( !bHasTargetedModifiers )
 		{
@@ -646,9 +628,8 @@ void UCardSubsystem::RevertAllBuildingModifiers()
 		}
 	}
 
-	UE_LOG( LogCardSubsystem, Log,
-		TEXT( "Reverted building modifiers from %d card records" ),
-		AppliedCardHistory_.Num()
+	UE_LOG(
+	    LogCardSubsystem, Log, TEXT( "Reverted building modifiers from %d card records" ), AppliedCardHistory_.Num()
 	);
 }
 
@@ -685,9 +666,7 @@ TArray<FAppliedCardBonus> UCardSubsystem::GetBuildingBonuses( const ABuilding* b
 			FCardStatModifier totalMod = modifier;
 			totalMod.FlatValue *= record.StackCount;
 
-			bonuses.Add( FAppliedCardBonus(
-				record.Card, totalMod, record.WaveSelected
-			) );
+			bonuses.Add( FAppliedCardBonus( record.Card, totalMod, record.WaveSelected ) );
 		}
 	}
 
@@ -712,8 +691,7 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 		// Check if card has modifiers that target this building
 		const bool bIsGlobal = ( record.Card->TargetFilter.BuildingType == EBuildingType::Any );
 		bool bHasTargetedModifiers =
-			record.Card->HasBuildingModifiers() ||
-			( record.Card->HasResourceModifiers() && !bIsGlobal );
+		    record.Card->HasBuildingModifiers() || ( record.Card->HasResourceModifiers() && !bIsGlobal );
 
 		if ( bHasTargetedModifiers && record.Card->AppliesToBuilding( building ) )
 		{
@@ -724,9 +702,7 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 		}
 	}
 
-	UE_LOG( LogCardSubsystem, Log,
-		TEXT( "Applied existing cards to new building: %s" ), *building->GetName()
-	);
+	UE_LOG( LogCardSubsystem, Log, TEXT( "Applied existing cards to new building: %s" ), *building->GetName() );
 }
 
 // =============================================================================
@@ -768,9 +744,7 @@ void UCardSubsystem::UnbindFromGameLoop()
 
 	if ( UGameLoopManager* gameLoop = CachedGameLoop_.Get() )
 	{
-		gameLoop->OnPhaseChanged.RemoveDynamic(
-			this, &UCardSubsystem::HandlePhaseChanged
-		);
+		gameLoop->OnPhaseChanged.RemoveDynamic( this, &UCardSubsystem::HandlePhaseChanged );
 	}
 
 	CachedGameLoop_.Reset();
@@ -779,13 +753,17 @@ void UCardSubsystem::UnbindFromGameLoop()
 	UE_LOG( LogCardSubsystem, Log, TEXT( "Unbound from GameLoopManager" ) );
 }
 
-void UCardSubsystem::HandlePhaseChanged(
-	EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
+void UCardSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
 {
 	if ( newPhase == EGameLoopPhase::Reward )
 	{
 		if ( UGameLoopManager* gameLoop = CachedGameLoop_.Get() )
 		{
+			if ( gameLoop->IsLastWave() )
+			{
+				return;
+			}
+
 			int32 waveNumber = gameLoop->GetCurrentWave();
 			RequestCardSelection( waveNumber );
 		}

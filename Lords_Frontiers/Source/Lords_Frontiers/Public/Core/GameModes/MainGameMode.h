@@ -1,15 +1,17 @@
 // MainGameMode.h
 #pragma once
 
+#include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 
 #include "MainGameMode.generated.h"
 
 class UGameLoopConfig;
 class UUserWidget;
 class UCardPoolConfig;
+class UEntityVFXConfig;
 
 UCLASS()
 class LORDS_FRONTIERS_API AMainGameMode : public AGameModeBase
@@ -32,6 +34,9 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI" )
 	TSubclassOf<UUserWidget> HUDWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|VFX" )
+	TObjectPtr<UEntityVFXConfig> EntityVFXConfig;
 
 	UPROPERTY()
 	TObjectPtr<UUserWidget> HUDWidget;

@@ -10,26 +10,26 @@ public class Lords_Frontiers : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[]
         {
-            "Core",
-            "CoreUObject",
-            "Engine",
-            "InputCore",
-            "UMG",
-            "AIModule",
-            "NavigationSystem",
-            "Slate",
-            "AIModule",
-            "SlateCore",
-            "NavigationSystem",
-            "Blutility",
-            "UMGEditor",
-            "UnrealEd",
-            "EnhancedInput"
+	        "Core",
+	        "CoreUObject",
+	        "Engine",
+	        "InputCore",
+	        "UMG",
+	        "NavigationSystem",
+	        "Slate",
+	        "SlateCore",
+	        "EnhancedInput",
+	        "Json",
+	        "JsonUtilities",
+	        "Niagara",
+	        "AIModule",
+	        "GameplayTasks"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });
 
-        // Uncomment if you are using Slate UI
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
+
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
         // Uncomment if you are using online features

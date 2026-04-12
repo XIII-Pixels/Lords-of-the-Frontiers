@@ -19,6 +19,7 @@ void UEconomyComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	FindSystems();
+	SubscribeToCardEvents();
 }
 
 void UEconomyComponent::FindSystems()
@@ -295,7 +296,14 @@ void UEconomyComponent::RestoreAllBuildings()
 	{
 		if ( ABuilding* b = Cast<ABuilding>( actor ) )
 		{
-			b->RestoreFromRuins();
+			if ( b->IsRuined() )
+			{
+				b->RestoreFromRuins();
+			}
+			else
+			{
+				b->Stats().SetHealth( b->Stats().MaxHealth() );
+			}
 		}
 	}
 
@@ -322,4 +330,13 @@ void UEconomyComponent::HandleCardsApplied( const TArray<UCardDataAsset*>& appli
 void UEconomyComponent::HandleEconomyBonusesChanged( const FEconomyBonuses& newBonuses )
 {
 	RecalculateAndBroadcastNetIncome();
+}
+
+void UEconomyComponent::ResetEconomy()
+{
+	RegisteredBuildings_.Empty();
+	bInitialScanDone = false;
+	CachedNetIncome_ = FResourceProduction();
+
+	FindSystems();
 }

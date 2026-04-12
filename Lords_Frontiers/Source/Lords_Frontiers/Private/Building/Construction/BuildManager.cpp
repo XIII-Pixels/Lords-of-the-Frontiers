@@ -2,9 +2,11 @@
 
 #include "Building/Building.h"
 #include "Building/Construction/BuildPreviewActor.h"
+#include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
+#include "Core/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
@@ -19,7 +21,6 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
-
 ABuildManager::ABuildManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -66,6 +67,20 @@ void ABuildManager::OnCoreSystemsReady()
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		CachedResourceManager_ = core->GetResourceManager();
+
+		if ( UGameLoopManager* gameLoop = core->GetGameLoop() )
+		{
+			gameLoop->OnPhaseChanged.AddDynamic( this, &ABuildManager::OnPhaseChanged );
+		}
+	}
+}
+
+void ABuildManager::OnPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
+
+{
+	if ( oldPhase == EGameLoopPhase::Building && bIsPlacing_ )
+	{
+		CancelPlacing();
 	}
 }
 
@@ -124,6 +139,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		{
 			if ( GEngine )
 				GEngine->AddOnScreenDebugMessage( -1, 3.f, FColor::Red, TEXT( "Not enough resources to build this!" ) );
+			CancelPlacing();
 			return;
 		}
 	}
@@ -150,23 +166,26 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		}
 	}
 
-	// Настроим меш превью под выбранное здание.
 	if ( PreviewActor_ )
 	{
 		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
-
 		if ( buildingCDO )
 		{
-			// Берём первый StaticMeshComponent у здания (в т.ч. BP-потомков).
-			const UStaticMeshComponent* buildingMeshComp = buildingCDO->FindComponentByClass<UStaticMeshComponent>();
-
-			if ( buildingMeshComp )
+			if ( UStaticMesh* buildingMesh = buildingCDO->GetBuildingMesh() )
 			{
-				UStaticMesh* buildingMesh = buildingMeshComp->GetStaticMesh();
-				if ( buildingMesh )
-				{
-					PreviewActor_->SetPreviewMesh( buildingMesh );
-				}
+				PreviewActor_->SetPreviewMesh( buildingMesh );
+			}
+			if ( Cast<ADefensiveBuilding>( buildingCDO ) )
+			{
+				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
+				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
+				ShowAllDefensiveRanges();
+			}
+			else
+			{
+				CachedPreviewAttackRange_ = 0.f;
+				PreviewActor_->HideAttackRange();
+				HideAllDefensiveRanges();
 			}
 		}
 
@@ -215,12 +234,19 @@ void ABuildManager::CancelPlacing()
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( true );
+		PreviewActor_->HideAttackRange();
 	}
+
+	HideAllDefensiveRanges();
 
 	// Сбрасываем состояние переноса.
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
+
+	bHidingPreviewForAnimation_ = false;
+	CachedPreviewAttackRange_ = 0.f;
+	LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 
 	if ( GridVisualizer_ )
 	{
@@ -235,6 +261,7 @@ void ABuildManager::CancelPlacing()
 	CachedBonusIcons_.Empty();
 	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
 	GridVisualizer_->HideBonusHighlight();
+	OnPlacingCancelled.Broadcast();
 }
 
 bool ABuildManager::ValidatePlacement( FVector& outCellWorldLocation ) const
@@ -282,7 +309,11 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 		return false;
 	}
 
-	UResourceManager* resManager = CachedResourceManager_.Get();
+	UResourceManager* resManager = nullptr;
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		resManager = core->GetResourceManager();
+	}
 
 	const ABuilding* cdo = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
 	check( cdo );
@@ -307,8 +338,16 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 	{
 		resManager->SpendResources( cdo->GetBuildingCost() );
 	}
+
 	RecalculateBonusesAroundBuilding( newBuilding, CurrentCellCoords_ );
 	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
+
+	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
+	PlayPlacementAnimation( newBuilding );
+	if ( CachedPreviewAttackRange_ > 0.0f )
+	{
+		ShowAllDefensiveRanges();
+	}
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
 	return true;
 }
@@ -347,6 +386,7 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 		RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 		RecalculateBonusesFromNeighbors( MaxBonusRadius, OriginalCellCoords_ );
 	}
+	PlayPlacementAnimation( RelocatedBuilding_ );
 
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
 }
@@ -362,7 +402,10 @@ void ABuildManager::ResetPlacementState()
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( true );
+		PreviewActor_->HideAttackRange();
 	}
+
+	HideAllDefensiveRanges();
 
 	if ( GridVisualizer_ )
 	{
@@ -372,6 +415,10 @@ void ABuildManager::ResetPlacementState()
 	bIsRelocating_ = false;
 	RelocatedBuilding_ = nullptr;
 	OriginalCellCoords_ = FIntPoint( -1, -1 );
+
+	bHidingPreviewForAnimation_ = false;
+	CachedPreviewAttackRange_ = 0.f;
+	LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
 }
 
 void ABuildManager::ConfirmPlacing()
@@ -421,8 +468,10 @@ void ABuildManager::UpdateHoveredCell()
 		if ( PreviewActor_ )
 		{
 			PreviewActor_->SetActorHiddenInGame( true );
+			PreviewActor_->HideAttackRange();
 		}
 
+		bHidingPreviewForAnimation_ = false;
 		// HideAllWallPreviews();
 		return;
 	}
@@ -430,6 +479,12 @@ void ABuildManager::UpdateHoveredCell()
 	const bool bCellChanged = ( CurrentCellCoords_ != placementResult.CellCoords );
 	CurrentCellCoords_ = placementResult.CellCoords;
 	bCanBuildHere_ = BuildingPlacementUtils::CanBuildAtCell( GridManager_, CurrentCellCoords_ );
+
+	if ( bCellChanged && bHidingPreviewForAnimation_ )
+	{
+		bHidingPreviewForAnimation_ = false;
+	}
+
 	UpdatePreviewVisual( placementResult.CellWorldLocation, bCanBuildHere_ );
 
 	if ( bCellChanged )
@@ -456,9 +511,41 @@ void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const boo
 		return;
 	}
 
+	if ( bHidingPreviewForAnimation_ )
+	{
+		return;
+	}
+
 	PreviewActor_->SetActorHiddenInGame( false );
 	PreviewActor_->SetActorLocation( worldLocation );
-	PreviewActor_->SetCanBuild( bCanBuild ); // метод внутри ABuildPreviewActor (зелёный/красный и т.п.)
+	PreviewActor_->SetCanBuild( bCanBuild );
+
+	if ( CachedPreviewAttackRange_ > 0.f )
+	{
+		PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
+	}
+}
+
+void ABuildManager::PlayPlacementAnimation( AActor* building )
+{
+	if ( !building )
+	{
+		return;
+	}
+
+	UBuildingPlacementAnimComponent* animComp = NewObject<UBuildingPlacementAnimComponent>( building );
+	if ( animComp )
+	{
+		animComp->RegisterComponent();
+		animComp->StartAnimation( PlacementAnimParams_ );
+	}
+
+	if ( PreviewActor_ )
+	{
+		PreviewActor_->SetActorHiddenInGame( true );
+	}
+	bHidingPreviewForAnimation_ = true;
+	LastPlacedCellCoords_ = CurrentCellCoords_;
 }
 
 static const FIntPoint Offsets4[] = {
@@ -611,10 +698,28 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	if ( PreviewActor_ )
 	{
 		PreviewActor_->SetActorHiddenInGame( false );
-		// Если у PreviewActor есть метод вроде SetSourceClass /
-		// SetPreviewMeshFromClass, можно здесь передать CurrentBuildingClass_,
-		// чтобы превью подстроилось под здание.
-		// PreviewActor_->InitFromBuildingClass( CurrentBuildingClass_ );
+
+		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
+		if ( buildingCDO )
+		{
+			if ( UStaticMesh* buildingMesh = buildingCDO->GetBuildingMesh() )
+			{
+				PreviewActor_->SetPreviewMesh( buildingMesh );
+			}
+
+			if ( Cast<ADefensiveBuilding>( buildingCDO ) )
+			{
+				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
+				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
+				ShowAllDefensiveRanges();
+			}
+			else
+			{
+				CachedPreviewAttackRange_ = 0.f;
+				PreviewActor_->HideAttackRange();
+				HideAllDefensiveRanges();
+			}
+		}
 	}
 
 	if ( GEngine )
@@ -863,6 +968,52 @@ void ABuildManager::ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildi
 	else
 	{
 		GridVisualizer_->HideBonusHighlight();
+	}
+}
+
+void ABuildManager::ShowAllDefensiveRanges()
+{
+	if ( !GridManager_ )
+	{
+		return;
+	}
+
+	for ( int32 y = 0; y < GridManager_->GetGridHeight(); ++y )
+	{
+		for ( int32 x = 0; x < GridManager_->GetRowWidth( y ); ++x )
+		{
+			FGridCell* cell = GridManager_->GetCell( x, y );
+			if ( cell && cell->bIsOccupied && cell->Occupant.IsValid() )
+			{
+				if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( cell->Occupant.Get() ) )
+				{
+					tower->ShowAttackRange();
+				}
+			}
+		}
+	}
+}
+
+void ABuildManager::HideAllDefensiveRanges()
+{
+	if ( !GridManager_ )
+	{
+		return;
+	}
+
+	for ( int32 y = 0; y < GridManager_->GetGridHeight(); ++y )
+	{
+		for ( int32 x = 0; x < GridManager_->GetRowWidth( y ); ++x )
+		{
+			FGridCell* cell = GridManager_->GetCell( x, y );
+			if ( cell && cell->bIsOccupied && cell->Occupant.IsValid() )
+			{
+				if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( cell->Occupant.Get() ) )
+				{
+					tower->HideAttackRange();
+				}
+			}
+		}
 	}
 }
 

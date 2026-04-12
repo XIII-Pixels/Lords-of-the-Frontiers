@@ -8,6 +8,8 @@
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/Widgets/GameStateOverlayWidget.h"
+#include "UI/Widgets/StageProgressWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -21,6 +23,8 @@
 #include "GameHUD.generated.h"
 
 class ABuilding;
+class UStageProgressWidget;
+class UGameStateOverlayWidget;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -76,6 +80,9 @@ public:
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonBuildingTowerT2;
+
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UButton> ButtonBuildingMortira;
 
 	// Panels where we will add building cards
 	UPROPERTY( meta = ( BindWidget ) )
@@ -178,6 +185,9 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> TowerT2Class;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
+	TSubclassOf<ABuilding> TowerMortiraClass;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
@@ -208,6 +218,7 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
 
+	UPROPERTY()
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
@@ -231,6 +242,24 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> BtnToggleWaveInfo;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UStageProgressWidget> StageProgressBar;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> WinWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> LoseWidgetClass;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
+	TSubclassOf<UGameStateOverlayWidget> PauseWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UGameStateOverlayWidget> ActiveOverlay;
+
+	UFUNCTION( BlueprintCallable )
+	void TogglePauseMenu();
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -239,7 +268,11 @@ protected:
 	void UpdateBuildingUIVisibility();
 	void CancelCurrentBuilding();
 
+	UFUNCTION()
+	void OnPlacingCancelled();
+
 	bool bShowingEconomyBuildings_ = true;
+	bool bIsEconomySubscribed_ = false;
 	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
@@ -307,6 +340,9 @@ protected:
 	UFUNCTION()
 	void OnBuildTowerT2Clicked();
 
+	UFUNCTION()
+	void OnBuildTowerMortiraClicked();
+
 	void UpdateCategoryButtonsVisual();
 
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
@@ -322,58 +358,74 @@ protected:
 	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
-	TSubclassOf<UBuildingTooltipWidget> TooltipClass;
+	TSubclassOf<UBuildingTooltipWidget> EconomyTooltipClass;
 
-	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveTooltip;
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
+	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
 
 	FTimerHandle TooltipTimerHandle;
+
+	UPROPERTY()
 	TSubclassOf<ABuilding> PendingBuildingClass;
+
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveEconomyTooltip;
+	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveDefensiveTooltip;
+
+	bool bIsBuildingLocked = false;
+	UPROPERTY() TSubclassOf<ABuilding> LockedBuildingClass;
+
+	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
+
+	void InitializeTooltipWidget(
+	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
+	);
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
-		StartTooltipTimer( WoodenHouseClass );
+		ShowTooltipForBuilding( WoodenHouseClass );
 	}
 	UFUNCTION() void OnHoverStrawHouse()
 	{
-		StartTooltipTimer( StrawHouseClass );
+		ShowTooltipForBuilding( StrawHouseClass );
 	}
 	UFUNCTION() void OnHoverFarm()
 	{
-		StartTooltipTimer( FarmClass );
+		ShowTooltipForBuilding( FarmClass );
 	}
 	UFUNCTION() void OnHoverLawnHouse()
 	{
-		StartTooltipTimer( LawnHouseClass );
+		ShowTooltipForBuilding( LawnHouseClass );
 	}
 	UFUNCTION() void OnHoverMagicHouse()
 	{
-		StartTooltipTimer( MagicHouseClass );
+		ShowTooltipForBuilding( MagicHouseClass );
 	}
 	UFUNCTION() void OnHoverWoodWall()
 	{
-		StartTooltipTimer( WoodWallClass );
+		ShowTooltipForBuilding( WoodWallClass );
 	}
 	UFUNCTION() void OnHoverStoneWall()
 	{
-		StartTooltipTimer( StoneWallClass );
+		ShowTooltipForBuilding( StoneWallClass );
 	}
 	UFUNCTION() void OnHoverTowerT0()
 	{
-		StartTooltipTimer( TowerT0Class );
+		ShowTooltipForBuilding( TowerT0Class );
 	}
 	UFUNCTION() void OnHoverTowerT1()
 	{
-		StartTooltipTimer( TowerT1Class );
+		ShowTooltipForBuilding( TowerT1Class );
 	}
 	UFUNCTION() void OnHoverTowerT2()
 	{
-		StartTooltipTimer( TowerT2Class );
+		ShowTooltipForBuilding( TowerT2Class );
+	}
+	UFUNCTION() void OnHoverTowerMortira()
+	{
+		ShowTooltipForBuilding( TowerMortiraClass );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
-	UFUNCTION() void ShowTooltipInternal();
-
-	void StartTooltipTimer( TSubclassOf<ABuilding> buildingClass );
 
 	struct FIncomeAnimState
 	{
@@ -409,4 +461,7 @@ protected:
 
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
+
+	UFUNCTION()
+	void HandleGameEnded( bool bVictory );
 };

@@ -10,6 +10,7 @@
 #include "Entity.generated.h"
 
 enum class ETeam : uint8;
+class UNiagaraSystem;
 
 UINTERFACE( Blueprintable )
 class LORDS_FRONTIERS_API UEntity : public UInterface
@@ -30,6 +31,13 @@ public:
 	virtual void TakeDamage( int damage ) = 0;
 
 	virtual FEntityStats& Stats() = 0;
+	virtual const FEntityStats& Stats() const = 0;
 
+	virtual ETeam Team() const = 0;
 	virtual ETeam Team() = 0;
+
+	virtual UNiagaraSystem* GetHitVFX() const
+	{
+		return nullptr;
+	};
 };

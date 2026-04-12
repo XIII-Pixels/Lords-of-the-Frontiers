@@ -85,6 +85,8 @@ float FWave::GetTotalWaveDuration() const
 		}
 	}
 
+	endTime += 1.0f; // Add a small buffer to ensure all enemies have spawned before wave is considered complete	
+
 	return endTime;
 }
 
@@ -98,7 +100,7 @@ float FWave::GetTimeToSpawnEnemy( int32 groupIndex, int32 enemyIndex ) const
 	const FEnemyGroup& enemyGroup = EnemyGroups[groupIndex];
 	const float groupStart = GetGroupStartTime( groupIndex );
 
-	return groupStart + enemyGroup.GetSpawnDelayForIndex( enemyIndex );
+	return groupStart + enemyGroup.GetSpawnDelayForIndex( enemyIndex ) + 0.1f; // Add a small buffer to ensure the enemy is spawned after the scheduled time
 }
 
 FName FWave::GetSpawnPointIdForGroup( int32 groupIndex ) const

@@ -3,32 +3,43 @@
 
 #include "AI/Path/Path.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "Core/CoreManager.h"
 #include "Grid/GridManager.h"
 
-void APathPointsManager::PostInitProperties()
+#include "Kismet/GameplayStatics.h"
+
+void UPathPointsManager::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if ( !PathTargetPointClass )
+	if ( !PathTargetPointClass_ )
 	{
-		PathTargetPointClass = APathTargetPoint::StaticClass();
+		PathTargetPointClass_ = APathTargetPoint::StaticClass();
 	}
 }
 
-void APathPointsManager::SetGrid( TWeakObjectPtr<AGridManager> grid )
+void UPathPointsManager::InitializeGrid()
 {
-	Grid = grid;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		Grid_ = core->GetGridManager();
+	}
 }
 
-void APathPointsManager::AddPathPoints( const UPath& path )
+void UPathPointsManager::AddPathPoints( const UPath& path )
 {
-	if ( !Grid.IsValid() )
+	if ( !Grid_.IsValid() )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "PathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
-		return;
+		InitializeGrid();
+
+		if ( !Grid_.IsValid() )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "PathPointsManager: Grid_ is not valid. Cannot add path targets" ) );
+			return;
+		}
 	}
 
-	if ( !PathTargetPointClass )
+	if ( !PathTargetPointClass_ )
 	{
 		UE_LOG(
 		    LogTemp, Error, TEXT( "PathPointsManager: PathTargetPointClass not specified. Cannot add path targets" )
@@ -41,7 +52,7 @@ void APathPointsManager::AddPathPoints( const UPath& path )
 		if ( !PathPoints_.Contains( point ) )
 		{
 			FVector location;
-			if ( !Grid->GetCellWorldCenter( point, location ) )
+			if ( !Grid_->GetCellWorldCenter( point, location ) )
 			{
 				UE_LOG(
 				    LogTemp, Warning, TEXT( "PathPointsManager: failed to get world center for cell=[%d, %d]" ),
@@ -58,18 +69,19 @@ void APathPointsManager::AddPathPoints( const UPath& path )
 			APathTargetPoint* pathPoint = nullptr;
 			if ( UWorld* world = GetWorld() )
 			{
-				pathPoint = world->SpawnActor<APathTargetPoint>( PathTargetPointClass, transform, spawnInfo );
+				pathPoint = world->SpawnActor<APathTargetPoint>( PathTargetPointClass_, transform, spawnInfo );
 			}
 
 			if ( pathPoint )
 			{
+				bPointsVisible_ ? ShowPoint( pathPoint ) : HidePoint( pathPoint );
 				PathPoints_.Add( point, pathPoint );
 			}
 		}
 	}
 }
 
-TWeakObjectPtr<APathTargetPoint> APathPointsManager::GetTargetPoint( const FIntPoint& point ) const
+TWeakObjectPtr<APathTargetPoint> UPathPointsManager::GetTargetPoint( const FIntPoint& point ) const
 {
 	if ( const TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
 	{
@@ -81,7 +93,7 @@ TWeakObjectPtr<APathTargetPoint> APathPointsManager::GetTargetPoint( const FIntP
 	}
 }
 
-void APathPointsManager::Remove( const FIntPoint& point )
+void UPathPointsManager::Remove( const FIntPoint& point )
 {
 	if ( TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
 	{
@@ -95,7 +107,7 @@ void APathPointsManager::Remove( const FIntPoint& point )
 	}
 }
 
-void APathPointsManager::Empty()
+void UPathPointsManager::Empty()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{
@@ -105,26 +117,89 @@ void APathPointsManager::Empty()
 		}
 	}
 	PathPoints_.Empty();
+	bPointsVisible_ = false;
 }
 
-void APathPointsManager::ShowAll()
+void UPathPointsManager::ShowAll()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{
 		if ( IsValid( pathPoint ) )
 		{
-			pathPoint->Show();
+			ShowPoint( pathPoint );
 		}
 	}
+
+	bPointsVisible_ = true;
 }
 
-void APathPointsManager::HideAll()
+void UPathPointsManager::HideAll()
 {
 	for ( auto [_, pathPoint] : PathPoints_ )
 	{
 		if ( IsValid( pathPoint ) )
 		{
-			pathPoint->Hide();
+			HidePoint( pathPoint );
 		}
 	}
+
+	bPointsVisible_ = false;
+}
+
+void UPathPointsManager::ShowPoint( APathTargetPoint* point, bool buildingAware ) const
+{
+	if ( !IsValid( point ) )
+	{
+		return;
+	}
+	if ( buildingAware && Grid_.IsValid() )
+	{
+		const FIntPoint coords = Grid_->GetClosestCellCoords( point->GetActorLocation() );
+		const FGridCell* cell = Grid_->GetCell( coords.X, coords.Y );
+		if ( cell && cell->bIsOccupied )
+		{
+			// Do not show point on a cell with building
+			return;
+		}
+	}
+	point->Show();
+}
+
+void UPathPointsManager::HidePoint( APathTargetPoint* point ) const
+{
+	if ( !IsValid( point ) )
+	{
+		return;
+	}
+	point->Hide();
+}
+
+bool UPathPointsManager::ActorIsOnPath( const AActor* actor, const UPath* path ) const
+{
+	if ( !actor || !path )
+	{
+		return false;
+	}
+
+	const AGridManager* grid = nullptr;
+	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		grid = core->GetGridManager();
+	}
+	if ( !grid )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::EnemyIsOnPath: grid not found" ) );
+		return false;
+	}
+
+	const FIntPoint enemyCoords = grid->GetCellCoords( actor->GetActorLocation() );
+	// Path points storage will probably be reimplemented so this may be optimized in future
+	for ( const FIntPoint& point : path->GetPoints() )
+	{
+		if ( point == enemyCoords )
+		{
+			return true;
+		}
+	}
+	return false;
 }
