@@ -51,7 +51,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnLastWaveCompleted, int32, Curre
 
 
 /**
- * UGameLoopManager
+ * Maxim
  */
 UCLASS( BlueprintType )
 class LORDS_FRONTIERS_API UGameLoopManager : public UGameInstanceSubsystem, public FTickableGameObject
@@ -65,8 +65,6 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Setup" )
 	void InitGameLoop( UGameLoopConfig* inConfig, AUnitAIManager* inUnitAIManager );
 
-	// Game loop control - called by UI or game session controller to start/stop/reset the game. Each validates current
-	// phase before executing.
 	UFUNCTION( BlueprintCallable, Category = "GameLoop" )
 	void StartLoop();
 
@@ -76,7 +74,6 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "GameLoop" )
 	void Reset();
 
-	// Player actions - called by UI or input handlers. Each validates current phase before executing.
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Actions" )
 	void EndBuildTurn();
 
@@ -86,7 +83,6 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Actions" )
 	void ConfirmRewardPhase();
 
-	/// Called by external systems to report significant events that may affect game state.
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Combat" )
 	void ReportDamageTaken( float damageAmount );
 
@@ -165,10 +161,6 @@ public:
 
 	UPROPERTY( BlueprintAssignable, Category = "GameLoop|Events" )
 	FOnGameLoopWaveChanged OnWaveChanged;
-
-	/** Broadcast when resources are granted to player. */
-	// UPROPERTY( BlueprintAssignable, Category = "GameLoop|Events" )
-	// FOnGameLoopResourcesGranted OnResourcesGranted;
 
 	UPROPERTY( BlueprintAssignable, Category = "GameLoop|Events" )
 	FOnGameLoopCombatTimer OnCombatTimerUpdated;

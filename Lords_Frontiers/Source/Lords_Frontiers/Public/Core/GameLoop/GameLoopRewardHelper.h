@@ -13,7 +13,7 @@ class UEconomyComponent;
 struct FResourceReward;
 
 /**
- *
+ * Maxim
  */
 UCLASS()
 class LORDS_FRONTIERS_API UGameLoopRewardHelper : public UObject
