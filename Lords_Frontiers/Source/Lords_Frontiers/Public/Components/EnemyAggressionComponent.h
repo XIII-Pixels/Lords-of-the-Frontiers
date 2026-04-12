@@ -61,6 +61,9 @@ protected:
 	virtual void
 	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings" )
+	bool bSkipPathfinding_ = false;
+
 	// Set of building classes (not ordered). Unit attacks closest building from set
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( AllowAbstract = "true" ) )
 	TSet<TSoftClassPtr<ABuilding>> TargetBuildingClasses_;

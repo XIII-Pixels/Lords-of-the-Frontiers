@@ -78,6 +78,12 @@ protected:
 	float CurrentDeviationYawSpeed_ = 0.0f;
 	float CurrentDeviationYaw_ = 0.0f;
 
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
+	bool bIsFlying_ = false;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Movement", meta = ( EditCondition = "bIsFlying_", ClampMin = "0.0" ) )
+	float FlyHeight_ = 300.0f;
+
 	// Do not walk on unwalkable grid cells
 	UPROPERTY( EditAnywhere, Category = "Settings|Movement" )
 	bool bAvoidUnwalkableCells_ = true;

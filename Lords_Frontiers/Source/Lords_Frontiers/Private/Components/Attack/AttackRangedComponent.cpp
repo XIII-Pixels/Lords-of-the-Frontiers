@@ -198,6 +198,15 @@ void UAttackRangedComponent::ChooseAttackMode()
 	else
 	{
 		AttackFilter_ = EAttackFilter::WhatIsOnPath;
+		const AUnit* unit = GetOwner<AUnit>();
+		if ( unit && !unit->Path() )
+		{
+			AttackFilter_ = EAttackFilter::Everything;
+		}
+		else
+		{
+			AttackFilter_ = EAttackFilter::WhatIsOnPath;
+		}
 	}
 }
 

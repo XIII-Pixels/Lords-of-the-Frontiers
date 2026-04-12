@@ -160,6 +160,19 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 
 	unit->SetTargetBuilding( UnitAIManager_->TargetBuildingTracker()->FindClosestBuilding( unit ) );
 
+	if ( bSkipPathfinding_ )
+	{
+		if ( unit->TargetBuilding().IsValid() )
+		{
+			unit->SetFollowedTarget( unit->TargetBuilding() );
+		}
+		else if ( UnitAIManager_.IsValid() && UnitAIManager_->GoalActor().IsValid() )
+		{
+			unit->SetFollowedTarget( UnitAIManager_->GoalActor() );
+		}
+		return;
+	}
+
 	const AGridManager* grid = nullptr;
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{

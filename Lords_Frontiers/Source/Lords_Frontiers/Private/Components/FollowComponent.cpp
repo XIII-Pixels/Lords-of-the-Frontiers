@@ -69,8 +69,9 @@ void UFollowComponent::TickComponent(
 	if ( CapsuleComponent_.IsValid() )
 	{
 		const float halfHeight = CapsuleComponent_->GetScaledCapsuleHalfHeight();
-		if ( Unit_.IsValid() &&
-		     FMath::Abs( Unit_->GetActorLocation().Z - halfHeight - GroundHeight_ ) > KINDA_SMALL_NUMBER )
+		const float targetZ = GroundHeight_ + ( bIsFlying_ ? FlyHeight_ : 0.0f ) + halfHeight;
+
+		if ( Unit_.IsValid() && FMath::Abs( Unit_->GetActorLocation().Z - targetZ ) > KINDA_SMALL_NUMBER )
 		{
 			SnapToGround();
 		}
@@ -132,7 +133,7 @@ void UFollowComponent::SnapToGround() const
 	}
 
 	FVector location = PawnOwner->GetActorLocation();
-	location.Z = GroundHeight_ + halfHeight;
+	location.Z = GroundHeight_ + ( bIsFlying_ ? FlyHeight_ : 0.0f ) + halfHeight;
 	PawnOwner->SetActorLocation( location );
 }
 
@@ -159,7 +160,7 @@ void UFollowComponent::Sway( float deltaTime )
 
 void UFollowComponent::ResolveUnitOnUnwalkableCell()
 {
-	if ( !bAvoidUnwalkableCells_ || !Grid_.IsValid() || !Unit_.IsValid() || !CapsuleComponent_.IsValid() )
+	if ( bIsFlying_ || !bAvoidUnwalkableCells_ || !Grid_.IsValid() || !Unit_.IsValid() || !CapsuleComponent_.IsValid() )
 	{
 		return;
 	}
