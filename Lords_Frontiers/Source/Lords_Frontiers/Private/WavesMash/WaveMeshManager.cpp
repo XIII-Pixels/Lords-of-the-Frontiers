@@ -1,7 +1,7 @@
 #include "WavesMesh/WaveMeshManager.h"
 
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 
 #include "Engine/World.h"
 
@@ -170,7 +170,8 @@ void AWaveMeshManager::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPha
 	    static_cast<int32>( NewPhase ), currentWave
 	);
 
-	if ( NewPhase == EGameLoopPhase::Paused )
+	UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>();
+	if ( session && session->IsGamePaused() )
 	{
 		return;
 	}
@@ -195,7 +196,8 @@ void AWaveMeshManager::ForceRefreshVisibility()
 	const int32 currentWave = gameLoop->GetCurrentWave();
 	const EGameLoopPhase currentPhase = gameLoop->GetCurrentPhase();
 
-	if ( currentPhase == EGameLoopPhase::Paused )
+	UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>();
+	if ( session && session->IsGamePaused() )
 	{
 		return;
 	}
@@ -296,16 +298,13 @@ bool AWaveMeshManager::ShouldEntryBeVisible(
 		}
 		return !entry.bHideOnCombatEnd;
 	}
-	case EGameLoopPhase::Victory:
-	case EGameLoopPhase::Defeat:
 	case EGameLoopPhase::None:
-	case EGameLoopPhase::Paused:
+	default:
 	{
 		return false;
 	}
 	}
 
-	return false;
 }
 
 void AWaveMeshManager::LogAllEntries() const

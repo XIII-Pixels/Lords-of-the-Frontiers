@@ -226,14 +226,14 @@ void FEntityStats::Heal( int amount )
 	Health_ = FMath::Clamp( Health_ + amount, 0, MaxHealth_ );
 }
 
-bool FEntityStats::OnCooldown() const
+bool FEntityStats::OnCooldown( float CurrentGameTime ) const
 {
-	return ( FDateTime::Now() - LastAttackTime_ ).GetTotalSeconds() < AttackCooldown_;
+	return ( CurrentGameTime - LastAttackGameTime_ ) < AttackCooldown_;
 }
 
-void FEntityStats::StartCooldown()
+void FEntityStats::StartCooldown( float CurrentGameTime )
 {
-	LastAttackTime_ = FDateTime::Now();
+	LastAttackGameTime_ = CurrentGameTime;
 }
 
 void FEntityStats::ModifyAttackDamage( int delta )
