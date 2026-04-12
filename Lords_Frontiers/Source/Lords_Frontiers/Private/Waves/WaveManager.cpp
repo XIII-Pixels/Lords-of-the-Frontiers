@@ -386,16 +386,15 @@ void AWaveManager::CancelCurrentWave()
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
 	}
 
-	OnWaveEnded.Broadcast( CurrentWaveIndex );
-
 	bIsWaveActive_ = false;
+
+	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
 	}
 
-	OnWaveEnded.Broadcast( CurrentWaveIndex );
 }
 
 void AWaveManager::RestartWaves()

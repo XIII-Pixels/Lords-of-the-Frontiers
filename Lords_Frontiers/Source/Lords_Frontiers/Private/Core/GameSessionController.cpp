@@ -55,6 +55,7 @@ void UGameSessionController::RestartGame()
 
 void UGameSessionController::EndGame( EGameResult result )
 {
+	bIsGameStarted_ = false;
 
 	switch ( result )
 	{

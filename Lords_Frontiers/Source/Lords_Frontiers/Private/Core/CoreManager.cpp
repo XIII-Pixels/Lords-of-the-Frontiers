@@ -112,7 +112,8 @@ void UCoreManager::RefreshSystemReferences()
 	FindWorldActors();
 	FindPlayerControllerComponents();
 	UpdateGameLoopDependencies();
-
+	SetupManagerConnections();
+	
 #if !UE_BUILD_SHIPPING
 	LogSystemsStatus();
 #endif

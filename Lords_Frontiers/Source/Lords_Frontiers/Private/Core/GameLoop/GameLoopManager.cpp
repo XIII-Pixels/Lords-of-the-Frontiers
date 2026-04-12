@@ -33,6 +33,11 @@ void UGameLoopManager::InitGameLoop( UGameLoopConfig* inConfig, AUnitAIManager* 
 
 	UnitAIManager_ = inUnitAIManager;
 
+	if ( bIsBoundToWaveManager_ && !WaveManager_.IsValid() )
+	{
+		bIsBoundToWaveManager_ = false;
+	}
+
 	UCoreManager* core = GetGameInstance()->GetSubsystem<UCoreManager>();
 	if ( core )
 	{
