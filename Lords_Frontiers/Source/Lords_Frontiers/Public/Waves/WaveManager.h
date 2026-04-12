@@ -2,6 +2,7 @@
 
 #include "EnemyBuff.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
+#include "Lords_Frontiers/Public/Waves/WaveConfig.h"
 #include "Wave.h"
 
 #include "CoreMinimal.h"
@@ -69,11 +70,9 @@ public:
 	TMap<TSubclassOf<AUnit>, FEnemyBuff> EnemyBuffs;
 
 	// Current wave index (0-based)
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	int32 CurrentWaveIndex = 0;
 
 	// List of waves. Index in array is the wave number
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Wave" )
 	TArray<FWave> Waves;
 
 	// If true, WaveManager will auto-start the first wave on BeginPlay (if there
@@ -114,6 +113,15 @@ public:
   
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
 	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
+
+	UPROPERTY( EditAnywhere, Category = "WaveConfig" )
+	UWaveConfigData* WaveConfig_;
+
+	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
+	void SetWaveConfig( UWaveConfigData* newConfig );
+
+	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
+	void ApplyWaveConfig();
 
 protected:
 	virtual void BeginPlay() override;
@@ -176,4 +184,12 @@ protected:
 
 	UFUNCTION()
 	void HandleSpawnedDestroyed( AActor* destroyedActor );
+
+	// update in editor
+	#if WITH_EDITOR
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& propertyChangedEvent ) override;
+	#endif
+
+private:
+	float RuntimeWaveEndSafetyMargin_ = 1.0f;
 };
