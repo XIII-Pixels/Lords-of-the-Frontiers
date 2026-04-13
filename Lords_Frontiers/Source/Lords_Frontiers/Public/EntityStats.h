@@ -112,9 +112,9 @@ struct FEntityStats
 
 	void Heal( int amount );
 
-	bool OnCooldown() const;
+	bool OnCooldown( float CurrentGameTime ) const;
 
-	void StartCooldown();
+	void StartCooldown( float CurrentGameTime );
 
 	// damage modificator (if needed)
 	void ModifyAttackDamage( int delta );
@@ -158,5 +158,5 @@ private:
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
 	ETeam Team_;
 
-	FDateTime LastAttackTime_;
+	float LastAttackGameTime_ = -999.0f;
 };

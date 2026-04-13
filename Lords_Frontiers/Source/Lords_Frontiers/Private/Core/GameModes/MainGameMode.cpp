@@ -4,7 +4,8 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
+#include "Core/GameSessionController.h"
 #include "Grid/GridManager.h"
 
 #include "Blueprint/UserWidget.h"
@@ -58,14 +59,15 @@ void AMainGameMode::InitializeGameSystems()
 
 	if ( GameLoopConfig )
 	{
-		GL->Initialize(
-		    GameLoopConfig, Core->GetWaveManager(), Core->GetResourceManager(), Core->GetEconomyComponent(),
-		    Core->GetUnitAIManager()
-		);
+		GL->InitGameLoop( GameLoopConfig, Core->GetUnitAIManager() );
 		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with config" ) );
 	}
-	GL->StartGame();
-	UE_LOG( LogTemp, Log, TEXT( "MainGameMode: Game started" ) );
+
+	if ( UGameSessionController* Session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+	{
+		Session->StartGame();
+		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: Game started via SessionController" ) );
+	}
 }
 
 void AMainGameMode::InitializeCardSystem()

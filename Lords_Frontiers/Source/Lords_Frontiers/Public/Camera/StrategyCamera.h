@@ -120,6 +120,29 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
 	float EdgeScrollThreshold_ = 20.0f;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|CameraType" )
+	TEnumAsByte<ECameraProjectionMode::Type> ProjectionMode_ = ECameraProjectionMode::Orthographic;
+
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|CameraType",
+	    meta = ( EditCondition = "ProjectionMode_ == ECameraProjectionMode::Perspective" )
+	)
+	float FieldOfView_ = 15.0f; //fake orto
+
+	//orto
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom",
+	    meta = ( EditCondition = "ProjectionMode_ == ECameraProjectionMode::Orthographic" )
+	)
+	float InitialOrthoWidth_ = 2048.0f;
+
+	//perspectiva
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom",
+	    meta = ( EditCondition = "ProjectionMode_ == ECameraProjectionMode::Perspective" )
+	)
+	float InitialTargetArmLength_ = 8000.0f;
+
 public:	
 	// Called every frame
 	virtual void Tick(float deltaTime) override;

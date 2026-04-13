@@ -1,5 +1,5 @@
 #include "Lords_Frontiers/Public/Building/MainBase.h"
-#include "Lords_Frontiers/Public/Core/GameLoopManager.h"
+#include "Core/GameSessionController.h"
 #include "Lords_Frontiers/Public/Core/CoreManager.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -36,28 +36,13 @@ void AMainBase::OnDeath()
 
 	UE_LOG( LogTemp, Log, TEXT( "AMainBase::OnDeath - main base died, attempting to trigger defeat phase." ) );
 
-	UCoreManager* core = UCoreManager::Get( this );
-
-	if ( core )
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 	{
-		UGameLoopManager* gameLoop = core->GetGameLoop();
-		if ( gameLoop )
-		{
-			UE_LOG(
-			    LogTemp, Log,
-			    TEXT( "AMainBase::OnDeath - Found CoreManager (%p) and GameLoop (%p). Calling EnterDefeatPhase()." ),
-			    core, gameLoop
-			);
-			gameLoop->EnterDefeatPhase();
-			return;
-		}
-		else
-		{
-			UE_LOG( LogTemp, Warning, TEXT( "AMainBase::OnDeath - CoreManager found but GameLoop is null." ) );
-		}
+		UE_LOG( LogTemp, Log, TEXT( "AMainBase::OnDeath - Calling SessionController::EndGame(Lose)." ) );
+		session->EndGame( EGameResult::Lose );
 	}
 	else
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "AMainBase::OnDeath - CoreManager not found via UCoreManager::Get(this)." ) );
+		UE_LOG( LogTemp, Warning, TEXT( "AMainBase::OnDeath - GameSessionController not found." ) );
 	}
 }
