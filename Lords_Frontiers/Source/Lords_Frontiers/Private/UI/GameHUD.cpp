@@ -651,13 +651,70 @@ void UGameHUDWidget::OnEndTurnClicked()
 void UGameHUDWidget::OnRelocateBuildingClicked()
 {
 	UE_LOG( LogTemp, Log, TEXT( "Relocate building clicked" ) );
+
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		return;
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	ABuildManager* buildManager = coreManager->GetBuildManager();
+
+	if ( !selectionManager || !buildManager )
+	{
+		return;
+	}
+
+	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "OnRelocateBuildingClicked: no building selected" ) );
+		return;
+	}
+
+	// Если перенос платный — тут только считаем цену, но не списываем.
+	// Списание лучше делать в ConfirmPlacing().
+	// FResourceProduction relocateCost = selectedBuilding->GetRelocationCost(0.25f);
+
+	buildManager->StartRelocatingBuilding( selectedBuilding );
+
+	selectionManager->ClearSelection();
+	HandleSelectionChanged();
+	UpdateExtraButtonsVisibility();
 }
 
 void UGameHUDWidget::OnRemoveBuildingClicked()
 {
 	UE_LOG( LogTemp, Log, TEXT( "Remove building clicked" ) );
-}
 
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		return;
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	ABuildManager* buildManager = coreManager->GetBuildManager();
+
+	if ( !selectionManager || !buildManager )
+	{
+		return;
+	}
+
+	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "OnRemoveBuildingClicked: no building selected" ) );
+		return;
+	}
+
+	buildManager->RemoveExistingBuilding( selectedBuilding );
+
+	selectionManager->ClearSelection();
+	HandleSelectionChanged();
+	UpdateExtraButtonsVisibility();
+}
 void UGameHUDWidget::OnDefensiveBuildingsClicked()
 {
 	ShowDefensiveBuildings();
@@ -1296,5 +1353,77 @@ void UGameHUDWidget::InitializeTooltipWidget(
 			OutTooltip->AddToViewport( 99 );
 			OutTooltip->ForceHide();
 		}
+	}
+}
+
+void UGameHUDWidget::HandleSelectionChanged()
+{
+	UpdateExtraButtonsVisibility();
+
+	// Если у тебя есть блоки UI под выбранное здание,
+	// обновляй их здесь через локальный SelectionManager.
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		return;
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	if ( !selectionManager )
+	{
+		return;
+	}
+
+	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding )
+	{
+		// Тут можно скрыть панель информации о здании,
+		// если она у тебя есть.
+		// Example:
+		// SelectedBuildingInfoPanel->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+}
+
+void UGameHUDWidget::UpdateExtraButtonsVisibility()
+{
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		if ( ButtonRelocateBuilding )
+		{
+			ButtonRelocateBuilding->SetVisibility( ESlateVisibility::Collapsed );
+		}
+
+		if ( ButtonRemoveBuilding )
+		{
+			ButtonRemoveBuilding->SetVisibility( ESlateVisibility::Collapsed );
+		}
+
+		return;
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	ABuildManager* buildManager = coreManager->GetBuildManager();
+
+	const bool bHasSelectedBuilding = selectionManager && IsValid( selectionManager->GetPrimarySelectedBuilding() );
+
+	const bool bIsPlacing = buildManager && buildManager->IsPlacing();
+
+	// Пока идёт placement/relocation, кнопки действий лучше скрыть.
+	const bool bShowExtraButtons = bHasSelectedBuilding && !bIsPlacing;
+
+	if ( ButtonRelocateBuilding )
+	{
+		ButtonRelocateBuilding->SetVisibility(
+		    bShowExtraButtons ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		);
+	}
+
+	if ( ButtonRemoveBuilding )
+	{
+		ButtonRemoveBuilding->SetVisibility(
+		    bShowExtraButtons ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		);
 	}
 }

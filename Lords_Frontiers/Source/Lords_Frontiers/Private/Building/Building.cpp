@@ -14,19 +14,37 @@ ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	CollisionComponent_ = CreateDefaultSubobject<UBoxComponent>( TEXT( "BoxCollision" ) );
-	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
-	SetRootComponent( CollisionComponent_ );
+	// === ROOT: Selection / Click collider ===
+	CollisionComponent_ = CreateDefaultSubobject<UBoxComponent>( TEXT( "CollisionComponent" ) );
+	RootComponent = CollisionComponent_;
 
+	CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+	CollisionComponent_->SetCollisionObjectType( ECC_WorldStatic );
+	CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	CollisionComponent_->SetCollisionResponseToChannel( ECC_Visibility, ECR_Block );
+	CollisionComponent_->SetGenerateOverlapEvents( false );
+
+	// Размер хитбокса (подгони под свои здания)
+	CollisionComponent_->SetBoxExtent( FVector( 200.f, 200.f, 200.f ) );
+
+	// === STATIC MESH (визуал) ===
 	StaticMeshComponent_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "StaticMesh" ) );
+	StaticMeshComponent_->SetupAttachment( RootComponent );
 	StaticMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	StaticMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	StaticMeshComponent_->SetupAttachment( RootComponent );
+	StaticMeshComponent_->SetVisibility( true );
+	StaticMeshComponent_->SetHiddenInGame( false );
 
+	// === SKELETAL MESH (если используешь анимации) ===
 	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
+	SkeletalMeshComponent_->SetupAttachment( RootComponent );
 	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	SkeletalMeshComponent_->SetupAttachment( RootComponent );
+	SkeletalMeshComponent_->SetVisibility( false ); // по умолчанию скрыт
+	SkeletalMeshComponent_->SetHiddenInGame( true );
+
+	// === (опционально) Collision старый отключаем если был ===
+	// если у тебя раньше CollisionComponent_ использовался иначе — больше не нужен
 }
 
 void ABuilding::BeginPlay()

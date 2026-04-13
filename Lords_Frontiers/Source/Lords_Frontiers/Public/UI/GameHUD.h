@@ -7,6 +7,7 @@
 #include "Resources/GameResource.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
@@ -464,4 +465,9 @@ protected:
 
 	UFUNCTION()
 	void HandleGameEnded( bool bVictory );
+
+	void UpdateExtraButtonsVisibility();
+
+	UFUNCTION()
+	void HandleSelectionChanged();
 };

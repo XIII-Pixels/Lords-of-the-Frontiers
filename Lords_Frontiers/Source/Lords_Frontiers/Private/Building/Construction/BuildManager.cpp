@@ -585,6 +585,10 @@ void ABuildManager::HideAllWallPreviews()
 
 void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 {
+	 
+	GEngine->AddOnScreenDebugMessage(
+	    -1, 2.0f, FColor::Red, TEXT( "StartRelocatingBuilding!!!!!!!!!!!!!!!!!!!!!!!" )
+	);
 	if ( !buildingToMove )
 	{
 		if ( GEngine )
@@ -1025,4 +1029,56 @@ void ABuildManager::DebugMessage( const FColor& color, const FString& message, f
 		GEngine->AddOnScreenDebugMessage( -1, duration, color, message );
 	}
 #endif
+}
+void ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
+{
+	if ( !buildingToRemove || !GridManager_ )
+	{
+		return;
+	}
+
+	FIntPoint foundCoords( -1, -1 );
+	bool bFound = false;
+
+	const int32 width = GridManager_->GetGridWidth();
+	const int32 height = GridManager_->GetGridHeight();
+
+	for ( int32 y = 0; y < height && !bFound; ++y )
+	{
+		for ( int32 x = 0; x < width; ++x )
+		{
+			FGridCell* cell = GridManager_->GetCell( x, y );
+			if ( !cell )
+			{
+				continue;
+			}
+
+			if ( cell->Occupant.Get() == buildingToRemove )
+			{
+				foundCoords = FIntPoint( x, y );
+				bFound = true;
+				break;
+			}
+		}
+	}
+
+	if ( !bFound )
+	{
+		DebugMessage( FColor::Red, TEXT( "RemoveExistingBuilding: building cell not found" ) );
+		return;
+	}
+
+	FGridCell* oldCell = GridManager_->GetCell( foundCoords.X, foundCoords.Y );
+	if ( oldCell && oldCell->Occupant.Get() == buildingToRemove )
+	{
+		oldCell->bIsOccupied = false;
+		oldCell->Occupant.Reset();
+	}
+
+	constexpr int32 MaxBonusRadius = 5;
+	RecalculateBonusesFromNeighbors( MaxBonusRadius, foundCoords );
+
+	buildingToRemove->Destroy();
+
+	DebugMessage( FColor::Green, TEXT( "Building removed" ) );
 }
