@@ -5,10 +5,10 @@
 #include "AI/EntityAIController.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
 
 #include "Components/CapsuleComponent.h"
@@ -20,15 +20,14 @@ AUnit::AUnit()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
-	SetRootComponent( CollisionComponent_ );
-
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
-
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	UnitAIControllerClass_ = AEntityAIController::StaticClass();
+	SetRootComponent( CollisionComponent_ );
 
 	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
 	SkeletalMeshComponent_->SetupAttachment( RootComponent );
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	UnitAIControllerClass_ = AEntityAIController::StaticClass();
 }
 
 void AUnit::OnConstruction( const FTransform& transform )
@@ -49,11 +48,6 @@ void AUnit::BeginPlay()
 		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
-
-	SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
-	SkeletalMeshComponent_->SetPlayRate( PlayRate_ );
-	SkeletalMeshComponent_->SetPosition( 0.0f, false );
-	SkeletalMeshComponent_->Stop();
 
 	TArray<UAttackComponent*> attackComponents;
 	GetComponents( attackComponents );
@@ -98,11 +92,11 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
 	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
 	{
-		if ( DelayBeforeHit_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
-		     Stats_.CooldownRemaining() <= DelayBeforeHit_ )
+		if ( AttackPreHitDelay_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
+		     Stats_.CooldownRemaining() <= AttackPreHitDelay_ )
 		{
 			GetWorldTimerManager().SetTimer(
-			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, DelayBeforeHit_, false
+			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
 			);
 		}
 		else if ( !Stats_.OnCooldown() )
@@ -120,18 +114,21 @@ void AUnit::Animate( float deltaTime ) const
 		return;
 	}
 
-	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() && Stats_.CooldownRemaining() <= DelayBeforeHit_ )
+	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() &&
+	     Stats_.CooldownRemaining() <= AttackPreHitDelay_ )
 	{
-		SkeletalMeshComponent_->SetPosition( 0.0f, false );
-		SkeletalMeshComponent_->Play( false );
+		PlayAnimation( AttackAnimation_ );
 	}
-	else if ( !AttackTarget_.IsValid() )
-	{
-		SkeletalMeshComponent_->Stop();
+}
 
-		const float currentPos = SkeletalMeshComponent_->GetPosition();
-		const float newPos = FMath::FInterpTo( currentPos, 0.0f, deltaTime, 2.5f );
-		SkeletalMeshComponent_->SetPosition( newPos, false );
+void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
+{
+	if ( SkeletalMeshComponent_ && animation.Animation )
+	{
+		SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
+		SkeletalMeshComponent_->SetAnimation( animation.Animation );
+		SkeletalMeshComponent_->SetPlayRate( animation.PlayRate );
+		SkeletalMeshComponent_->Play( false );
 	}
 }
 
@@ -151,8 +148,6 @@ void AUnit::TakeDamage( int damage )
 
 void AUnit::OnDeath()
 {
-	// When HP becomes 0
-
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->DeactivateSight();
@@ -163,26 +158,31 @@ void AUnit::OnDeath()
 		FollowComponent_->Deactivate();
 	}
 
-	if ( SkeletalMeshComponent_ )
-	{
-		SkeletalMeshComponent_->SetVisibility( false, true );
-	}
-
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	}
 
-	SpawnDeathVFX();
+	if ( SkeletalMeshComponent_ )
+	{
+		SkeletalMeshComponent_->SetVisibility( false, true );
+	}
 
-	if ( ResolvedDeathDestroyDelay_ > 0.0f )
+	if ( ResolvedDeathVFXDelay_ > 0.0f )
 	{
 		GetWorldTimerManager().SetTimer(
-		    DeathTimerHandle_, this, &AUnit::FinalizeDestroy, ResolvedDeathDestroyDelay_, false
+		    DeathTimerHandle_,
+		    [this]()
+		    {
+			    SpawnDeathVFX();
+			    Destroy();
+		    },
+		    ResolvedDeathVFXDelay_, false
 		);
 	}
 	else
 	{
+		SpawnDeathVFX();
 		Destroy();
 	}
 }
@@ -199,11 +199,6 @@ void AUnit::SpawnDeathVFX()
 	);
 }
 
-void AUnit::FinalizeDestroy()
-{
-	Destroy();
-}
-
 UNiagaraSystem* AUnit::GetHitVFX() const
 {
 	return ResolvedHitVFX_;
@@ -212,7 +207,6 @@ UNiagaraSystem* AUnit::GetHitVFX() const
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
-
 	Animate( deltaSeconds );
 }
 
@@ -220,7 +214,6 @@ void AUnit::ResolveVFXDefaults()
 {
 	ResolvedDeathVFX_ = DeathVFX_;
 	ResolvedHitVFX_ = HitVFX_;
-	ResolvedDeathDestroyDelay_ = DeathDestroyDelay_ >= 0.0f ? DeathDestroyDelay_ : 1.0f;
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
@@ -238,9 +231,9 @@ void AUnit::ResolveVFXDefaults()
 					ResolvedHitVFX_ = override->HitVFX;
 				}
 
-				if ( DeathDestroyDelay_ < 0.0f && override->DeathDestroyDelay >= 0.0f )
+				if ( override->DeathDestroyDelay >= 0.0f )
 				{
-					ResolvedDeathDestroyDelay_ = override->DeathDestroyDelay;
+					ResolvedDeathVFXDelay_ = override->DeathDestroyDelay;
 				}
 			}
 
@@ -254,9 +247,9 @@ void AUnit::ResolveVFXDefaults()
 				ResolvedHitVFX_ = config->DefaultUnitHitVFX;
 			}
 
-			if ( DeathDestroyDelay_ < 0.0f && ResolvedDeathDestroyDelay_ <= 0.0f )
+			if ( ResolvedDeathVFXDelay_ <= 0.0f )
 			{
-				ResolvedDeathDestroyDelay_ = config->DefaultDeathDestroyDelay;
+				ResolvedDeathVFXDelay_ = config->DefaultDeathDestroyDelay;
 			}
 		}
 	}

@@ -3,12 +3,11 @@
 #include "Projectiles/BaseProjectile.h"
 
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "DrawDebugHelpers.h"
 #include "Entity.h"
-#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 

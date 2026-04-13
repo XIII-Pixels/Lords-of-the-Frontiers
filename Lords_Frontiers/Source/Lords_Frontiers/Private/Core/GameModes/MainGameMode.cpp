@@ -4,13 +4,13 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
 #include "Core/GameLoopManager.h"
 #include "Grid/GridManager.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
+
 AMainGameMode::AMainGameMode()
 {
 }
