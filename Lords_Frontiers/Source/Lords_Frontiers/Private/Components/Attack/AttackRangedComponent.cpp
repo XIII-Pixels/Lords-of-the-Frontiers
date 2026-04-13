@@ -168,7 +168,14 @@ void UAttackRangedComponent::Look()
 		{
 			if ( const AUnit* unit = GetOwner<AUnit>() )
 			{
-				enemyPositionAttackable = pathPointsManager->ActorIsOnPath( actor, unit->Path() );
+				if ( unit->Path() )
+				{
+					enemyPositionAttackable = pathPointsManager->ActorIsOnPath( actor, unit->Path() );
+				}
+				else
+				{
+					enemyPositionAttackable = unit->TargetBuilding().IsValid() && actor == unit->TargetBuilding().Get();
+				}			
 			}
 		}
 
@@ -198,15 +205,6 @@ void UAttackRangedComponent::ChooseAttackMode()
 	else
 	{
 		AttackFilter_ = EAttackFilter::WhatIsOnPath;
-		const AUnit* unit = GetOwner<AUnit>();
-		if ( unit && !unit->Path() )
-		{
-			AttackFilter_ = EAttackFilter::Everything;
-		}
-		else
-		{
-			AttackFilter_ = EAttackFilter::WhatIsOnPath;
-		}
 	}
 }
 
