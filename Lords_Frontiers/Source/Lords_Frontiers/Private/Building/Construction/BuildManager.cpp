@@ -221,6 +221,16 @@ void ABuildManager::CancelPlacing()
 				RelocatedBuilding_->SetActorLocation( originalLocation );
 			}
 		}
+
+		if ( GridManager_ )
+		{
+			if ( FGridCell* originalCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y ) )
+			{
+				originalCell->bIsOccupied = true;
+				originalCell->Occupant = RelocatedBuilding_;
+			}
+			RecalculateBonusesAroundBuilding( RelocatedBuilding_, OriginalCellCoords_ );
+		}
 	}
 
 	// --- Общий сброс режима строительства (и для переноса, и для обычного билда)
@@ -372,18 +382,11 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
+	RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 	if ( CurrentCellCoords_ != OriginalCellCoords_ )
 	{
 
-		FGridCell* oldCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y );
 
-		if ( oldCell && oldCell->Occupant.Get() == RelocatedBuilding_ )
-		{
-			oldCell->bIsOccupied = false;
-			oldCell->Occupant.Reset();
-		}
-		constexpr int32 MaxBonusRadius = 5;
-		RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 		RecalculateBonusesFromNeighbors( MaxBonusRadius, OriginalCellCoords_ );
 	}
 	PlayPlacementAnimation( RelocatedBuilding_ );
@@ -665,6 +668,16 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 
 	RelocatedBuilding_->SetActorHiddenInGame( true );
 	RelocatedBuilding_->SetActorEnableCollision( false );
+
+	if ( FGridCell* originalCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y ) )
+	{
+		if ( originalCell->Occupant.Get() == RelocatedBuilding_ )
+		{
+			originalCell->bIsOccupied = false;
+			originalCell->Occupant.Reset();
+		}
+	}
+	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, OriginalCellCoords_ );
 
 	CurrentBuildingClass_ = buildingToMove->GetClass();
 	bIsPlacing_ = true;
@@ -1073,6 +1086,7 @@ void ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 
 	constexpr int32 MaxBonusRadius = 5;
 	RecalculateBonusesFromNeighbors( MaxBonusRadius, foundCoords );
+	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, foundCoords );
 
 	buildingToRemove->Destroy();
 

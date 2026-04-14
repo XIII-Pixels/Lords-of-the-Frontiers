@@ -14,37 +14,19 @@ ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// === ROOT: Selection / Click collider ===
-	CollisionComponent_ = CreateDefaultSubobject<UBoxComponent>( TEXT( "CollisionComponent" ) );
-	RootComponent = CollisionComponent_;
+	CollisionComponent_ = CreateDefaultSubobject<UBoxComponent>( TEXT( "BoxCollision" ) );
+	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
+	SetRootComponent( CollisionComponent_ );
 
-	CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-	CollisionComponent_->SetCollisionObjectType( ECC_WorldStatic );
-	CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	CollisionComponent_->SetCollisionResponseToChannel( ECC_Visibility, ECR_Block );
-	CollisionComponent_->SetGenerateOverlapEvents( false );
-
-	// Размер хитбокса (подгони под свои здания)
-	CollisionComponent_->SetBoxExtent( FVector( 200.f, 200.f, 200.f ) );
-
-	// === STATIC MESH (визуал) ===
 	StaticMeshComponent_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "StaticMesh" ) );
-	StaticMeshComponent_->SetupAttachment( RootComponent );
 	StaticMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	StaticMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	StaticMeshComponent_->SetVisibility( true );
-	StaticMeshComponent_->SetHiddenInGame( false );
+	StaticMeshComponent_->SetupAttachment( RootComponent );
 
-	// === SKELETAL MESH (если используешь анимации) ===
 	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
-	SkeletalMeshComponent_->SetupAttachment( RootComponent );
 	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	SkeletalMeshComponent_->SetVisibility( false ); // по умолчанию скрыт
-	SkeletalMeshComponent_->SetHiddenInGame( true );
-
-	// === (опционально) Collision старый отключаем если был ===
-	// если у тебя раньше CollisionComponent_ использовался иначе — больше не нужен
+	SkeletalMeshComponent_->SetupAttachment( RootComponent );
 }
 
 void ABuilding::BeginPlay()
@@ -462,20 +444,15 @@ int32 ABuilding::GetBuildingTotalCostGold() const
 
 int32 ABuilding::GetRelocationGoldCost() const
 {
-	const float percent = FMath::Clamp( RelocationCostPercent_, 0.0f, 1.0f );
-	const int32 totalCost = GetBuildingTotalCostGold();
-	return FMath::Max( 0, FMath::RoundToInt( totalCost * percent ) );
+	return FMath::Max( 0, RelocationCost_.Gold );
+}
+
+FResourceProduction ABuilding::GetRelocationCost() const
+{
+	return RelocationCost_;
 }
 
 FResourceProduction ABuilding::GetDemolitionRefund() const
 {
-	const float percent = FMath::Clamp( DemolitionRefundPercent_, 0.0f, 1.0f );
-
-	FResourceProduction refund = BuildingCost_;
-	refund.Gold = FMath::RoundToInt( refund.Gold * percent );
-	refund.Food = FMath::RoundToInt( refund.Food * percent );
-	refund.Population = FMath::RoundToInt( refund.Population * percent );
-	refund.Progress = FMath::RoundToInt( refund.Progress * percent );
-
-	return refund;
+	return DemolitionRefund_;
 }

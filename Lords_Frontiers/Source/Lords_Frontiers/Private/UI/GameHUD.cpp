@@ -36,6 +36,9 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
+	constexpr float CombatDisabledOpacity = 0.4f;
+	constexpr float ActiveOpacity = 1.0f;
+
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
@@ -369,6 +372,7 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 			StageProgressBar->ResetProgressImmediate();
 		}
 	}
+	UpdateExtraButtonsVisibility();
 }
 
 void UGameHUDWidget::HandleBonusPreviewUpdated( const TArray<FBonusIconData>& BonusIcons )
@@ -680,6 +684,15 @@ void UGameHUDWidget::OnRelocateBuildingClicked()
 		return;
 	}
 
+	if ( UGameLoopManager* gL = coreManager->GetGameLoop() )
+	{
+		if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
+		{
+			UE_LOG( LogTemp, Warning, TEXT( "Relocate: blocked during combat phase" ) );
+			return;
+		}
+	}
+
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
 	ABuildManager* buildManager = coreManager->GetBuildManager();
 	UResourceManager* resourceManager = coreManager->GetResourceManager();
@@ -722,6 +735,15 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 	if ( !coreManager )
 	{
 		return;
+	}
+
+	if ( UGameLoopManager* gL = coreManager->GetGameLoop() )
+	{
+		if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
+		{
+			UE_LOG( LogTemp, Warning, TEXT( "Remove: blocked during combat phase" ) );
+			return;
+		}
 	}
 
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
@@ -1470,11 +1492,14 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
 	ABuildManager* buildManager = coreManager->GetBuildManager();
+	UGameLoopManager* gL = coreManager->GetGameLoop();
 
 	ABuilding* selectedBuilding = selectionManager ? selectionManager->GetPrimarySelectedBuilding() : nullptr;
 	const bool bHasSelectedBuilding = IsValid( selectedBuilding );
 
 	const bool bIsPlacing = buildManager && buildManager->IsPlacing();
+
+	const bool bIsCombatPhase = gL && gL->GetCurrentPhase() == EGameLoopPhase::Combat;
 
 	const bool bShowRelocateButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRelocated();
 
@@ -1485,6 +1510,8 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 		ButtonRelocateBuilding->SetVisibility(
 		    bShowRelocateButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 		);
+		ButtonRelocateBuilding->SetIsEnabled( bShowRelocateButton && !bIsCombatPhase );
+		ButtonRelocateBuilding->SetRenderOpacity( bIsCombatPhase ? CombatDisabledOpacity : ActiveOpacity );
 	}
 
 	if ( ButtonRemoveBuilding )
@@ -1492,6 +1519,8 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 		ButtonRemoveBuilding->SetVisibility(
 		    bShowRemoveButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 		);
+		ButtonRemoveBuilding->SetIsEnabled( bShowRemoveButton && !bIsCombatPhase );
+		ButtonRemoveBuilding->SetRenderOpacity( bIsCombatPhase ? CombatDisabledOpacity : ActiveOpacity );
 	}
 }
 void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelectionManager )
