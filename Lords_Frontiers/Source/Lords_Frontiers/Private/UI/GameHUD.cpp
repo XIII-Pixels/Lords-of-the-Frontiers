@@ -660,22 +660,30 @@ void UGameHUDWidget::OnRelocateBuildingClicked()
 
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
 	ABuildManager* buildManager = coreManager->GetBuildManager();
+	UResourceManager* resourceManager = coreManager->GetResourceManager();
 
-	if ( !selectionManager || !buildManager )
+	if ( !selectionManager || !buildManager || !resourceManager )
 	{
 		return;
 	}
 
 	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
-	if ( !selectedBuilding )
+	if ( !selectedBuilding || !selectedBuilding->CanBeRelocated() )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "OnRelocateBuildingClicked: no building selected" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Relocate: building invalid" ) );
 		return;
 	}
 
-	// Если перенос платный — тут только считаем цену, но не списываем.
-	// Списание лучше делать в ConfirmPlacing().
-	// FResourceProduction relocateCost = selectedBuilding->GetRelocationCost(0.25f);
+	const int32 cost = selectedBuilding->GetRelocationGoldCost();
+
+	if ( !resourceManager->HasEnoughResource( EResourceType::Gold, cost ) )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Relocate: not enough gold" ) );
+		return;
+	}
+	UE_LOG( LogTemp, Warning, TEXT( "Relocate: ENOUGH gold" ) );
+
+	resourceManager->TrySpendResource( EResourceType::Gold, cost );
 
 	buildManager->StartRelocatingBuilding( selectedBuilding );
 
@@ -696,18 +704,26 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
 	ABuildManager* buildManager = coreManager->GetBuildManager();
+	UResourceManager* resourceManager = coreManager->GetResourceManager();
 
-	if ( !selectionManager || !buildManager )
+	if ( !selectionManager || !buildManager || !resourceManager )
 	{
 		return;
 	}
 
 	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
-	if ( !selectedBuilding )
+	if ( !selectedBuilding || !selectedBuilding->CanBeRemoved() )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "OnRemoveBuildingClicked: no building selected" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "Remove: building invalid" ) );
 		return;
 	}
+
+	const FResourceProduction refund = selectedBuilding->GetDemolitionRefund();
+
+	resourceManager->AddResource( EResourceType::Gold, refund.Gold );
+	resourceManager->AddResource( EResourceType::Food, refund.Food );
+	resourceManager->AddResource( EResourceType::Population, refund.Population );
+	resourceManager->AddResource( EResourceType::Progress, refund.Progress );
 
 	buildManager->RemoveExistingBuilding( selectedBuilding );
 
@@ -1358,10 +1374,9 @@ void UGameHUDWidget::InitializeTooltipWidget(
 
 void UGameHUDWidget::HandleSelectionChanged()
 {
+	UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::HandleSelectionChanged CCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLEEEEEEEEEEEEEEEDDDDDDDDDDDD" ) );
 	UpdateExtraButtonsVisibility();
 
-	// Если у тебя есть блоки UI под выбранное здание,
-	// обновляй их здесь через локальный SelectionManager.
 	UCoreManager* coreManager = UCoreManager::Get( this );
 	if ( !coreManager )
 	{
@@ -1377,10 +1392,6 @@ void UGameHUDWidget::HandleSelectionChanged()
 	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
 	if ( !selectedBuilding )
 	{
-		// Тут можно скрыть панель информации о здании,
-		// если она у тебя есть.
-		// Example:
-		// SelectedBuildingInfoPanel->SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
 }
@@ -1406,24 +1417,43 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
 	ABuildManager* buildManager = coreManager->GetBuildManager();
 
-	const bool bHasSelectedBuilding = selectionManager && IsValid( selectionManager->GetPrimarySelectedBuilding() );
+	ABuilding* selectedBuilding = selectionManager ? selectionManager->GetPrimarySelectedBuilding() : nullptr;
+	const bool bHasSelectedBuilding = IsValid( selectedBuilding );
 
 	const bool bIsPlacing = buildManager && buildManager->IsPlacing();
 
-	// Пока идёт placement/relocation, кнопки действий лучше скрыть.
-	const bool bShowExtraButtons = bHasSelectedBuilding && !bIsPlacing;
+	const bool bShowRelocateButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRelocated();
+
+	const bool bShowRemoveButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRemoved();
 
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->SetVisibility(
-		    bShowExtraButtons ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		    bShowRelocateButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 		);
 	}
 
 	if ( ButtonRemoveBuilding )
 	{
 		ButtonRemoveBuilding->SetVisibility(
-		    bShowExtraButtons ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		    bShowRemoveButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 		);
 	}
+}
+void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelectionManager )
+{
+	UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager called: %s" ), *GetNameSafe( InSelectionManager ) );
+
+	SelectionManager = InSelectionManager;
+	if ( !SelectionManager )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "InitSelectionManager: SelectionManager is null" ) );
+		return;
+	}
+
+	SelectionManager->OnSelectionChanged.AddDynamic( this, &UGameHUDWidget::HandleSelectionChanged );
+
+	UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager: subscribed to OnSelectionChanged" ) );
+
+	HandleSelectionChanged();
 }

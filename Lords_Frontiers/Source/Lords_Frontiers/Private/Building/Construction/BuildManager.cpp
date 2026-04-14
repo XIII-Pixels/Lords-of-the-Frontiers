@@ -585,10 +585,6 @@ void ABuildManager::HideAllWallPreviews()
 
 void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 {
-	 
-	GEngine->AddOnScreenDebugMessage(
-	    -1, 2.0f, FColor::Red, TEXT( "StartRelocatingBuilding!!!!!!!!!!!!!!!!!!!!!!!" )
-	);
 	if ( !buildingToMove )
 	{
 		if ( GEngine )

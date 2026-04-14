@@ -450,3 +450,32 @@ UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> building
 	}
 	return nullptr;
 }
+int32 ABuilding::GetBuildingTotalCostGold() const
+{
+	int32 total = 0;
+	total += BuildingCost_.Gold;
+	total += BuildingCost_.Food;
+	total += BuildingCost_.Population;
+	total += BuildingCost_.Progress;
+	return total;
+}
+
+int32 ABuilding::GetRelocationGoldCost() const
+{
+	const float percent = FMath::Clamp( RelocationCostPercent_, 0.0f, 1.0f );
+	const int32 totalCost = GetBuildingTotalCostGold();
+	return FMath::Max( 0, FMath::RoundToInt( totalCost * percent ) );
+}
+
+FResourceProduction ABuilding::GetDemolitionRefund() const
+{
+	const float percent = FMath::Clamp( DemolitionRefundPercent_, 0.0f, 1.0f );
+
+	FResourceProduction refund = BuildingCost_;
+	refund.Gold = FMath::RoundToInt( refund.Gold * percent );
+	refund.Food = FMath::RoundToInt( refund.Food * percent );
+	refund.Population = FMath::RoundToInt( refund.Population * percent );
+	refund.Progress = FMath::RoundToInt( refund.Progress * percent );
+
+	return refund;
+}

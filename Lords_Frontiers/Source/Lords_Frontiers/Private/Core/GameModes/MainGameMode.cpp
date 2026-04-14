@@ -4,6 +4,7 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
+#include "Lords_Frontiers/Public/UI/GameHUD.h"
 #include "Core/EntityVFXConfig.h"
 #include "Core/GameLoopManager.h"
 #include "Grid/GridManager.h"
@@ -98,17 +99,30 @@ void AMainGameMode::CreateHUD()
 		return;
 	}
 
-	APlayerController* PC = UGameplayStatics::GetPlayerController( this, 0 );
-	if ( !PC )
+	APlayerController* pc = UGameplayStatics::GetPlayerController( this, 0 );
+	if ( !pc )
 	{
 		return;
 	}
 
-	HUDWidget = CreateWidget<UUserWidget>( PC, HUDWidgetClass );
-	if ( HUDWidget )
+	HUDWidget = CreateWidget<UUserWidget>( pc, HUDWidgetClass );
+	if ( !HUDWidget )
 	{
-		HUDWidget->AddToViewport();
-		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: HUD created" ) );
+		return;
+	}
+
+	HUDWidget->AddToViewport();
+	UE_LOG( LogTemp, Log, TEXT( "MainGameMode: HUD created" ) );
+
+	if ( UGameHUDWidget* gameHUDWidget = Cast<UGameHUDWidget>( HUDWidget ) )
+	{
+		if ( UCoreManager* coreManager = UCoreManager::Get( this ) )
+		{
+			if ( USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager() )
+			{
+				gameHUDWidget->InitSelectionManager( selectionManager );
+			}
+		}
 	}
 }
 

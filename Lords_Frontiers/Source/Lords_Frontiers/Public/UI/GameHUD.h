@@ -261,6 +261,9 @@ public:
 	UFUNCTION( BlueprintCallable )
 	void TogglePauseMenu();
 
+	UFUNCTION()
+	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -470,4 +473,7 @@ protected:
 
 	UFUNCTION()
 	void HandleSelectionChanged();
+
+	UPROPERTY()
+	TObjectPtr<USelectionManagerComponent> SelectionManager;
 };
