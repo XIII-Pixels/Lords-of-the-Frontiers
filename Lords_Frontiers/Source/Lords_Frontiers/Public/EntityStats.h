@@ -53,7 +53,7 @@ struct FEntityStats
 
 	float AttackCooldown() const;
 
-	float CooldownRemaining() const;
+	float CooldownRemaining( float currentGameTime ) const;
 
 	float MaxSpeed() const;
 
@@ -112,9 +112,9 @@ struct FEntityStats
 
 	void Heal( int amount );
 
-	bool OnCooldown( float CurrentGameTime ) const;
+	bool OnCooldown( float currentGameTime ) const;
 
-	void StartCooldown( float CurrentGameTime );
+	void StartCooldown( float currentGameTime );
 
 	// damage modificator (if needed)
 	void ModifyAttackDamage( int delta );

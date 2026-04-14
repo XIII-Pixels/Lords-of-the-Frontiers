@@ -26,5 +26,5 @@ bool UIsOnCooldown::CalculateRawConditionValue( UBehaviorTreeComponent& ownerCom
 		return false;
 	}
 
-	return entity->Stats().OnCooldown();
+	return entity->Stats().OnCooldown( GetWorld()->GetTimeSeconds() );
 }

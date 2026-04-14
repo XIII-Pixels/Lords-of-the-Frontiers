@@ -30,9 +30,9 @@ float FEntityStats::AttackCooldown() const
 	return AttackCooldown_;
 }
 
-float FEntityStats::CooldownRemaining() const
+float FEntityStats::CooldownRemaining( float currentGameTime ) const
 {
-	return FMath::Clamp( AttackCooldown_ - ( CurrentGameTime - LastAttackGameTime_ ).GetTotalSeconds(), 0, AttackCooldown_ );
+	return FMath::Clamp( AttackCooldown_ - ( currentGameTime - LastAttackGameTime_ ), 0, AttackCooldown_ );
 }
 
 float FEntityStats::MaxSpeed() const
@@ -231,14 +231,14 @@ void FEntityStats::Heal( int amount )
 	Health_ = FMath::Clamp( Health_ + amount, 0, MaxHealth_ );
 }
 
-bool FEntityStats::OnCooldown( float CurrentGameTime ) const
+bool FEntityStats::OnCooldown( float currentGameTime ) const
 {
-	return CooldownRemaining() != 0;
+	return CooldownRemaining( currentGameTime ) != 0;
 }
 
-void FEntityStats::StartCooldown( float CurrentGameTime )
+void FEntityStats::StartCooldown( float currentGameTime )
 {
-	LastAttackGameTime_ = CurrentGameTime;
+	LastAttackGameTime_ = currentGameTime;
 }
 
 void FEntityStats::ModifyAttackDamage( int delta )

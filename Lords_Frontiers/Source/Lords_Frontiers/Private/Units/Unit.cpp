@@ -93,13 +93,13 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
 	{
 		if ( AttackPreHitDelay_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
-		     Stats_.CooldownRemaining() <= AttackPreHitDelay_ )
+		     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
 		{
 			GetWorldTimerManager().SetTimer(
 			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
 			);
 		}
-		else if ( !Stats_.OnCooldown() )
+		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )
 		{
 			AttackComponent_->Attack( hitActor );
 		}
@@ -115,7 +115,7 @@ void AUnit::Animate( float deltaTime ) const
 	}
 
 	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() &&
-	     Stats_.CooldownRemaining() <= AttackPreHitDelay_ )
+	     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
 	{
 		PlayAnimation( AttackAnimation_ );
 	}
