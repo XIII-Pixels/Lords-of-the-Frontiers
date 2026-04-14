@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/Subsystems/SessionLogger/SessionLoggerTypes.h"
-#include "Core/GameLoopManager.h"
-
+#include "Core/GameLoop/GameLoopManager.h"
+#include "Core/GameSessionController.h"
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 
@@ -82,7 +82,7 @@ private:
 	void HandleWaveChanged( int32 currentWave, int32 totalWaves );
 
 	UFUNCTION()
-	void HandleGameEnded( bool bVictory );
+	void HandleGameEnded( EGameResult Result );
 
 	UFUNCTION()
 	void HandleWaveStarted( int32 waveIndex );
@@ -218,6 +218,7 @@ private:
 
 	// Cached system references
 	TWeakObjectPtr<UGameLoopManager> GameLoop_;
+	TWeakObjectPtr<UGameSessionController> SessionController_;
 	TWeakObjectPtr<AWaveManager> WaveManager_;
 	TWeakObjectPtr<UResourceManager> ResourceManager_;
 	TWeakObjectPtr<UEconomyComponent> EconomyComponent_;

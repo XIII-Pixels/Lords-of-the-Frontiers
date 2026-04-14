@@ -4,12 +4,12 @@
 #include "Building/Construction/BuildManager.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
-#include "UI/Widgets/StageProgressWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
+#include "UI/Widgets/StageProgressWidget.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/StrategyCamera.h"
@@ -132,7 +132,6 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
 		buildManager->OnPlacingCancelled.AddDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
-
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -142,13 +141,31 @@ void UGameHUDWidget::NativeConstruct()
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
-			gL->OnGameEnded.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
+			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+			{
+				session->OnGameEndDelegate.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
+			}
 		}
 	}
 
 	if ( TextTimer )
 	{
 		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
+	}
+
+	if ( ButtonSpeed )
+	{
+		ButtonSpeed->OnClicked.AddDynamic( this, &UGameHUDWidget::OnSpeedButtonClicked );
+		ButtonSpeed->SetVisibility( ESlateVisibility::Collapsed );
+	}
+	if ( TextSpeed )
+	{
+		TextSpeed->SetText( FText::FromString( TEXT( "x1" ) ) );
+	}
+
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+	{
+		session->OnSpeedChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleSpeedChanged );
 	}
 
 	if ( BtnToggleWaveInfo )
@@ -221,7 +238,6 @@ void UGameHUDWidget::NativeDestruct()
 	{
 		buildManager->OnBonusPreviewUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
 		buildManager->OnPlacingCancelled.RemoveDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
-
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -231,7 +247,11 @@ void UGameHUDWidget::NativeDestruct()
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
-			gL->OnGameEnded.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
+			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+			{
+				session->OnGameEndDelegate.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
+				session->OnSpeedChanged.RemoveDynamic( this, &UGameHUDWidget::HandleSpeedChanged );
+			}
 		}
 
 		if ( UResourceManager* rM = core->GetResourceManager() )
@@ -330,6 +350,8 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 		bool bShowTimer = ( NewPhase == EGameLoopPhase::Combat );
 		TextTimer->SetVisibility( bShowTimer ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
 	}
+
+	UpdateSpeedButtonVisibility( NewPhase );
 
 	if ( NewPhase == EGameLoopPhase::Combat )
 	{
@@ -430,7 +452,7 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	if ( ActiveBonusIcons_.Num() > 0 )
 	{
 		UpdateBonusIconPositions();
-	}	
+	}
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
 }
@@ -797,7 +819,7 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 			if ( GEngine )
 			{
 				GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Red, TEXT( "Not enough resources!" ) );
-			}	
+			}
 			return;
 		}
 	}
@@ -1006,7 +1028,7 @@ void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABui
 	{
 		return;
 	}
-		
+
 	UCoreManager* core = UCoreManager::Get( this );
 	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
 
@@ -1261,14 +1283,14 @@ void UGameHUDWidget::ApplyIncomeText( UTextBlock* textBlock, int32 value )
 
 	textBlock->SetText( FText::FromString( displayText ) );
 }
-void UGameHUDWidget::HandleGameEnded( bool bVictory )
+void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 {
 	if ( ActiveOverlay )
 	{
 		ActiveOverlay->RemoveFromParent();
 		ActiveOverlay = nullptr;
 	}
-
+	const bool bVictory = ( Result == EGameResult::Win );
 	TSubclassOf<UGameStateOverlayWidget> ClassToUse = bVictory ? WinWidgetClass : LoseWidgetClass;
 	if ( !ClassToUse )
 		return;
@@ -1288,12 +1310,44 @@ void UGameHUDWidget::HandleGameEnded( bool bVictory )
 	}
 }
 
+void UGameHUDWidget::OnSpeedButtonClicked()
+{
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
+	{
+		session->CycleSpeed();
+	}
+}
+
+void UGameHUDWidget::HandleSpeedChanged( float NewSpeed )
+{
+	if ( TextSpeed )
+	{
+		TextSpeed->SetText( FText::FromString( FString::Printf( TEXT( "x%d" ), FMath::RoundToInt( NewSpeed ) ) ) );
+	}
+}
+
+void UGameHUDWidget::UpdateSpeedButtonVisibility( EGameLoopPhase Phase )
+{
+	if ( ButtonSpeed )
+	{
+		const bool bShow = ( Phase == EGameLoopPhase::Combat );
+		ButtonSpeed->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+	if ( TextSpeed )
+	{
+		const bool bShow = ( Phase == EGameLoopPhase::Combat );
+		TextSpeed->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+}
+
 void UGameHUDWidget::TogglePauseMenu()
 {
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( core && core->GetGameLoop() && !core->GetGameLoop()->IsGameStarted() )
+	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 	{
-		return;
+		if ( !session->IsGameStarted() )
+		{
+			return;
+		}
 	}
 
 	if ( ActiveOverlay )

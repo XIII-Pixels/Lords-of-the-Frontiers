@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Core/GameLoopManager.h"
-
+#include "Core/GameLoop/GameLoopManager.h"
+#include "Core/GameSessionController.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 

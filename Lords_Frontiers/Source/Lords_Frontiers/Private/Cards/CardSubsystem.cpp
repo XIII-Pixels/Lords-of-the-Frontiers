@@ -5,7 +5,7 @@
 #include "Cards/CardDataAsset.h"
 #include "Cards/CardPoolConfig.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"

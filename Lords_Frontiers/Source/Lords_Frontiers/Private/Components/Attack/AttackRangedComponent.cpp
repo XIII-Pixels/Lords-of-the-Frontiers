@@ -62,7 +62,9 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 		return;
 	}
 
-	if ( ownerEntity->Stats().OnCooldown() || bBurstInProgress_ )
+	const float gameTime = GetWorld()->GetTimeSeconds();
+
+	if ( ownerEntity->Stats().OnCooldown( gameTime ) || bBurstInProgress_ )
 	{
 		return;
 	}
@@ -76,7 +78,7 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	if ( burstCount <= 1 )
 	{
 		FireSingleProjectile( ownerAttacker->AttackTarget().Get() );
-		ownerEntity->Stats().StartCooldown();
+		ownerEntity->Stats().StartCooldown( gameTime );
 		return;
 	}
 
@@ -319,7 +321,7 @@ void UAttackRangedComponent::FireNextBurstShot()
 
 	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )
 	{
-		ownerEntity->Stats().StartCooldown();
+		ownerEntity->Stats().StartCooldown( GetWorld()->GetTimeSeconds() );
 		bBurstInProgress_ = false;
 		BurstTargets_.Empty();
 		return;
@@ -339,7 +341,7 @@ void UAttackRangedComponent::FireNextBurstShot()
 	++CurrentBurstIndex_;
 	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )
 	{
-		ownerEntity->Stats().StartCooldown();
+		ownerEntity->Stats().StartCooldown( GetWorld()->GetTimeSeconds() );
 		bBurstInProgress_ = false;
 		BurstTargets_.Empty();
 	}

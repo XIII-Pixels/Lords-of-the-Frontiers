@@ -2,9 +2,12 @@
 
 #include "AI/Path/Path.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
 
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
@@ -29,6 +32,10 @@ void AWaveManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if ( WaveConfig_ )
+	{
+		ApplyWaveConfig();
+	}
 	if ( bAutoStartOnBeginPlay )
 	{
 		StartWaves();
@@ -129,12 +136,9 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		{
 			if ( const UGameLoopManager* loopManager = core->GetGameLoop() )
 			{
-				if ( const UGameLoopConfig* config = loopManager->GetConfig() )
-				{
-					GetWorld()->GetTimerManager().SetTimer(
-					    WaveEndTimerHandle_, endDelegate, config->CombatDuration, false
-					);
-				}
+				GetWorld()->GetTimerManager().SetTimer(
+				    WaveEndTimerHandle_, endDelegate, loopManager->GetCombatTotalTime(), false
+				);
 			}
 		}
 	}
@@ -389,16 +393,15 @@ void AWaveManager::CancelCurrentWave()
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
 	}
 
-	OnWaveEnded.Broadcast( CurrentWaveIndex );
-
 	bIsWaveActive_ = false;
+
+	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
 	}
 
-	OnWaveEnded.Broadcast( CurrentWaveIndex );
 }
 
 void AWaveManager::RestartWaves()
@@ -718,3 +721,76 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 
 	return enemyCounts;
 }
+void AWaveManager::ApplyWaveConfig()
+{
+	if ( WaveConfig_ == nullptr )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "WaveManager::ApplyWaveConfig: WaveConfig == nullptr; keeping existing Waves array." )
+		);
+		return;
+	}
+
+	Waves = WaveConfig_->Waves;
+
+	RuntimeWaveEndSafetyMargin_ = WaveConfig_->WaveEndSafetyMargin;
+
+	UE_LOG(
+	    LogTemp, Log, TEXT( "WaveManager::ApplyWaveConfig: Applied config '%s' => Waves=%d, SafetyMargin=%.2f" ),
+	    *GetNameSafe( WaveConfig_ ), Waves.Num(), RuntimeWaveEndSafetyMargin_
+	);
+}
+ 
+// Apply to HotSwap wave config (for difficulty and etc)
+void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
+{
+	if ( !newConfig )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "SetWaveConfig called with nullptr" ) );
+		return;
+	}
+
+	if ( WaveConfig_ == newConfig )
+		return;
+
+	const bool bWasWaveActive = bIsWaveActive_;
+
+	CancelCurrentWave();
+
+	WaveConfig_ = newConfig;
+
+	ApplyWaveConfig();
+
+	if ( Waves.Num() == 0 )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveConfig contains no waves" ) );
+		return;
+	}
+
+	CurrentWaveIndex = FMath::Clamp( CurrentWaveIndex, 0, Waves.Num() - 1 );
+
+	UE_LOG( LogTemp, Log, TEXT( "WaveConfig swapped. Continuing from wave %d" ), CurrentWaveIndex );
+
+	if ( bWasWaveActive )
+	{
+		StartWaveAtIndex( CurrentWaveIndex );
+	}
+}
+
+#if WITH_EDITOR
+void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& propertyChangedEvent )
+{
+	Super::PostEditChangeProperty( propertyChangedEvent );
+
+	const FName propertyName = propertyChangedEvent.Property ? propertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if ( propertyName == GET_MEMBER_NAME_CHECKED( AWaveManager, WaveConfig_ ) )
+	{
+		if ( WaveConfig_ )
+		{
+			ApplyWaveConfig();
+		}
+	}
+}
+#endif

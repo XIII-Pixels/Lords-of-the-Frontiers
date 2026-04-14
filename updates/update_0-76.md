@@ -1,5 +1,5 @@
-<img width="2050" height="1441" alt="Main_Menu_logo_strokefwf" src="https://github.com/user-attachments/assets/ae98890e-e3cb-44c9-bda3-8473ce061676" />
 
+<img width="2050" height="993" alt="Image" src="https://github.com/user-attachments/assets/423c44c3-2302-4d25-a9cc-ea397e19146b" />
 
 # Обновление 0.7.6
 _Период изменений: 08.02.26 - 07.04.26_

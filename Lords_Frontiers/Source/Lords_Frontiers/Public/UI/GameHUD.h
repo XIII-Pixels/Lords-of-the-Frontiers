@@ -1,5 +1,6 @@
 #pragma once
-#include "Core/GameLoopManager.h"
+#include "Core/GameLoop/GameLoopManager.h"
+#include "Core/GameSessionController.h"
 #include "Lords_Frontiers/Public/UI/Widgets/ResourceItemWidget.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
@@ -125,6 +126,12 @@ public:
 
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextTimer;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> ButtonSpeed;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> TextSpeed;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> Text_GoldIncome;
@@ -466,8 +473,7 @@ protected:
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
 
-	UFUNCTION()
-	void HandleGameEnded( bool bVictory );
+	void HandleGameEnded( EGameResult Result );
 
 	void UpdateExtraButtonsVisibility();
 
@@ -476,4 +482,12 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager;
+
+	UFUNCTION()
+	void OnSpeedButtonClicked();
+
+	UFUNCTION()
+	void HandleSpeedChanged( float NewSpeed );
+
+	void UpdateSpeedButtonVisibility( EGameLoopPhase Phase );
 };
