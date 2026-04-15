@@ -385,10 +385,9 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 	if ( CurrentCellCoords_ != OriginalCellCoords_ )
 	{
-
-
-		RecalculateBonusesFromNeighbors( MaxBonusRadius, OriginalCellCoords_ );
+		RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, OriginalCellCoords_ );
 	}
+
 	PlayPlacementAnimation( RelocatedBuilding_ );
 
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
@@ -440,6 +439,13 @@ void ABuildManager::ConfirmPlacing()
 
 	RelocateExistingBuilding( cellWorldLocation );
 	ResetPlacementState();
+
+	CachedBonusIcons_.Empty();
+	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
+	if ( GridVisualizer_ )
+	{
+		GridVisualizer_->HideBonusHighlight();
+	}
 }
 
 void ABuildManager::UpdateHoveredCell()
@@ -683,6 +689,8 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	bIsPlacing_ = true;
 	bHasValidCell_ = false;
 	bCanBuildHere_ = false;
+
+	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
@@ -1084,8 +1092,6 @@ void ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 		oldCell->Occupant.Reset();
 	}
 
-	constexpr int32 MaxBonusRadius = 5;
-	RecalculateBonusesFromNeighbors( MaxBonusRadius, foundCoords );
 	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, foundCoords );
 
 	buildingToRemove->Destroy();

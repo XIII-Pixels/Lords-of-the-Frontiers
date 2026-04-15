@@ -36,9 +36,6 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
-	constexpr float CombatDisabledOpacity = 0.4f;
-	constexpr float ActiveOpacity = 1.0f;
-
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
@@ -372,6 +369,7 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 			StageProgressBar->ResetProgressImmediate();
 		}
 	}
+
 	UpdateExtraButtonsVisibility();
 }
 
@@ -1450,7 +1448,12 @@ void UGameHUDWidget::InitializeTooltipWidget(
 
 void UGameHUDWidget::HandleSelectionChanged()
 {
-	UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::HandleSelectionChanged CCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLEEEEEEEEEEEEEEEDDDDDDDDDDDD" ) );
+	UE_LOG(
+	    LogTemp, Warning,
+	    TEXT(
+	        "UGameHUDWidget::HandleSelectionChanged "
+	    )
+	);
 	UpdateExtraButtonsVisibility();
 
 	UCoreManager* coreManager = UCoreManager::Get( this );
@@ -1511,7 +1514,7 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 		    bShowRelocateButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 		);
 		ButtonRelocateBuilding->SetIsEnabled( bShowRelocateButton && !bIsCombatPhase );
-		ButtonRelocateBuilding->SetRenderOpacity( bIsCombatPhase ? CombatDisabledOpacity : ActiveOpacity );
+		ButtonRelocateBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
 	}
 
 	if ( ButtonRemoveBuilding )
@@ -1520,7 +1523,7 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 		    bShowRemoveButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
 		);
 		ButtonRemoveBuilding->SetIsEnabled( bShowRemoveButton && !bIsCombatPhase );
-		ButtonRemoveBuilding->SetRenderOpacity( bIsCombatPhase ? CombatDisabledOpacity : ActiveOpacity );
+		ButtonRemoveBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
 	}
 }
 void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelectionManager )
