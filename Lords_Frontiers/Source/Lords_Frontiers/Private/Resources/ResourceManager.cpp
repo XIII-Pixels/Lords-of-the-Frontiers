@@ -84,6 +84,14 @@ void UResourceManager::SpendResources( const FResourceProduction& cost )
 	}
 }
 
+void UResourceManager::AddResources( const FResourceProduction& amount )
+{
+	for ( const auto& Pair : amount.ToMap() )
+	{
+		AddResource( Pair.Key, Pair.Value );
+	}
+}
+
 int32 UResourceManager::ForceSpendResource( EResourceType type, int32 quantity )
 {
 	if ( type == EResourceType::None || quantity <= 0 )

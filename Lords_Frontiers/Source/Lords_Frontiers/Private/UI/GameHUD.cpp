@@ -714,9 +714,6 @@ void UGameHUDWidget::OnRelocateBuildingClicked()
 		UE_LOG( LogTemp, Warning, TEXT( "Relocate: not enough gold" ) );
 		return;
 	}
-	UE_LOG( LogTemp, Warning, TEXT( "Relocate: ENOUGH gold" ) );
-
-	resourceManager->TrySpendResource( EResourceType::Gold, cost );
 
 	buildManager->StartRelocatingBuilding( selectedBuilding );
 
@@ -762,13 +759,14 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 
 	const FResourceProduction refund = selectedBuilding->GetDemolitionRefund();
 
-	resourceManager->AddResource( EResourceType::Gold, refund.Gold );
-	resourceManager->AddResource( EResourceType::Food, refund.Food );
-	resourceManager->AddResource( EResourceType::Population, refund.Population );
-	resourceManager->AddResource( EResourceType::Progress, refund.Progress );
+	if ( !buildManager->RemoveExistingBuilding( selectedBuilding ) )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Remove: demolition failed, no refund granted" ) );
+		return;
+	}
 
-	buildManager->RemoveExistingBuilding( selectedBuilding );
-
+	resourceManager->AddResources( refund );
+	
 	selectionManager->ClearSelection();
 	HandleSelectionChanged();
 	UpdateExtraButtonsVisibility();

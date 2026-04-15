@@ -11,6 +11,7 @@
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "UI/BonusNeighborhood/BonusIconsData.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -382,6 +383,18 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
+	const int32 relocationCost = RelocatedBuilding_->GetRelocationGoldCost();
+	if ( relocationCost > 0 )
+	{
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		{
+			if ( UResourceManager* resManager = core->GetResourceManager() )
+			{
+				resManager->TrySpendResource( EResourceType::Gold, relocationCost );
+			}
+		}
+	}
+
 	RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 	if ( CurrentCellCoords_ != OriginalCellCoords_ )
 	{
@@ -683,6 +696,12 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 			originalCell->Occupant.Reset();
 		}
 	}
+
+	if ( UBuildingBonusComponent* selfBonus = RelocatedBuilding_->FindComponentByClass<UBuildingBonusComponent>() )
+	{
+		selfBonus->RemoveAppliedBonuses();
+	}
+
 	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, OriginalCellCoords_ );
 
 	CurrentBuildingClass_ = buildingToMove->GetClass();
@@ -786,6 +805,14 @@ void ABuildManager::RecalculateBonusesFromNeighbors( const int32 MaxBonusRadius,
 		if ( neighborBonus )
 		{
 			neighborBonus->RecalculateBonuses( GridManager_, cell->GridCoords );
+		}
+	}
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UEconomyComponent* economy = core->GetEconomyComponent() )
+		{
+			economy->RecalculateAndBroadcastNetIncome();
 		}
 	}
 }
@@ -1047,11 +1074,11 @@ void ABuildManager::DebugMessage( const FColor& color, const FString& message, f
 	}
 #endif
 }
-void ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
+bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 {
 	if ( !buildingToRemove || !GridManager_ )
 	{
-		return;
+		return false;
 	}
 
 	FIntPoint foundCoords( -1, -1 );
@@ -1082,7 +1109,7 @@ void ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	if ( !bFound )
 	{
 		DebugMessage( FColor::Red, TEXT( "RemoveExistingBuilding: building cell not found" ) );
-		return;
+		return false;
 	}
 
 	FGridCell* oldCell = GridManager_->GetCell( foundCoords.X, foundCoords.Y );
@@ -1097,4 +1124,5 @@ void ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	buildingToRemove->Destroy();
 
 	DebugMessage( FColor::Green, TEXT( "Building removed" ) );
+	return true;
 }

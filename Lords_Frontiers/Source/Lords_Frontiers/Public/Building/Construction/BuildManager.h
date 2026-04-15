@@ -97,8 +97,8 @@ public:
 
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 
-	void RemoveExistingBuilding( ABuilding* buildingToRemove );
-
+	bool RemoveExistingBuilding( ABuilding* buildingToRemove );
+	
 protected:
 	virtual void BeginPlay() override;
 
