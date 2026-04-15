@@ -9,6 +9,8 @@
 #include "Editor.h"
 #endif
 
+#include "Units/UnitBuilder.h"
+
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -210,7 +212,6 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 	}
 
 	FWave& wave = Waves[waveIndex];
-
 	if ( !wave.EnemyGroups.IsValidIndex( groupIndex ) )
 	{
 		return;
@@ -259,25 +260,18 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		}
 	}
 
-	FTransform FinalTransform = FindNonOverlappingSpawnTransform(
+	auto* unitBuilder = NewObject<UUnitBuilder>( this );
+
+	FTransform finalTransform = unitBuilder->FindNonOverlappingSpawnTransform(
 	    spawnTransform, capsuleRadius, capsuleHalfHeight, 400.f, 24,
 	    /*bProjectToNavMesh=*/false
 	);
 
-	FActorSpawnParameters spawnParams;
-	spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	spawnParams.Owner = this;
-	spawnParams.Instigator = GetInstigator();
+	unitBuilder->CreateNewUnit( enemyClass, finalTransform, this, GetInstigator() );
+	unitBuilder->ApplyBuff( EnemyBuffs.Find( enemyClass ) );
+	TWeakObjectPtr<AUnit> spawned = unitBuilder->SpawnUnitAndFinish();
 
-	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>( enemyClass, FinalTransform, this, GetInstigator() );
-
-	if ( FEnemyBuff* buff = EnemyBuffs.Find( enemyClass ) )
-	{
-		spawned->ChangeStats( buff );
-	}
-
-	UGameplayStatics::FinishSpawningActor( spawned, FinalTransform );
-	if ( !spawned )
+	if ( !spawned.IsValid() )
 	{
 		UE_LOG(
 		    LogTemp, Warning, TEXT( "WaveManager: Failed to spawn actor for Wave[%d] Group[%d]" ), waveIndex, groupIndex
@@ -285,7 +279,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
-	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
+	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
 	{
 		UE_LOG(
 		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
@@ -294,7 +288,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyInd
 		return;
 	}
 
-	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
+	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
 	{
 		UE_LOG(
 		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
@@ -435,92 +429,6 @@ void AWaveManager::ClearActiveTimers()
 		timerManager.ClearTimer( WaveEndTimerHandle_ );
 		WaveEndTimerHandle_.Invalidate();
 	}
-}
-
-//(Artyom)
-// find location around enemy group spawnpoint if there is a unit
-FTransform AWaveManager::FindNonOverlappingSpawnTransform(
-    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius,
-    int32 maxAttempts, bool bProjectToNavMesh
-) const
-{
-	UWorld* world = GetWorld();
-	if ( !world )
-	{
-		return desiredTransform;
-	}
-
-	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>( world );
-
-	const FVector origin = desiredTransform.GetLocation();
-	const FQuat rotation = desiredTransform.GetRotation();
-
-	// collision query params
-	FCollisionQueryParams queryParams( SCENE_QUERY_STAT( SpawnOverlap ), false );
-	queryParams.bFindInitialOverlaps = true;
-	queryParams.AddIgnoredActor( this );
-
-	const ECollisionChannel channelToTest = ECC_Pawn; // check collisions with pawn
-
-	// try origin first
-	{
-		FCollisionShape shape = FCollisionShape::MakeCapsule( capsuleRadius, capsuleHalfHeight );
-		if ( !world->OverlapAnyTestByChannel( origin, FQuat::Identity, channelToTest, shape, queryParams ) )
-		{
-#if WITH_EDITOR
-			DrawDebugSphere( world, origin, capsuleRadius + 10.f, 8, FColor::Green, false, 3.0f );
-#endif
-			FTransform Result = desiredTransform;
-			Result.SetLocation( origin );
-			return Result;
-		}
-	}
-
-	// spiral sampling
-	const float angleStep = FMath::DegreesToRadians( 30.0f );
-	const int32 samplesPerRing = FMath::Max( 6, FMath::RoundToInt( 2.f * PI / angleStep ) );
-	const float radiusStep = FMath::Max( capsuleRadius * 2.0f, 50.f );
-
-	int32 attempt = 0;
-	while ( attempt < maxAttempts )
-	{
-		const int32 ring = attempt / samplesPerRing + 1;
-		const int32 index = attempt % samplesPerRing;
-		const float radius = FMath::Min( radiusStep * ring, maxSearchRadius );
-		const float angle = angleStep * index;
-
-		const FVector localOffset = FVector( FMath::Cos( angle ) * radius, FMath::Sin( angle ) * radius, 0.f );
-		FVector candidate = origin + rotation.RotateVector( localOffset );
-
-		// project to navmesh
-		if ( bProjectToNavMesh && NavSys )
-		{
-			FNavLocation NavLoc;
-			if ( NavSys->ProjectPointToNavigation( candidate, NavLoc, FVector( 100.f, 100.f, 300.f ) ) )
-			{
-				candidate = NavLoc.Location;
-			}
-		}
-
-		FCollisionShape shape = FCollisionShape::MakeCapsule( capsuleRadius, capsuleHalfHeight );
-		bool bOverlaps =
-		    world->OverlapAnyTestByChannel( candidate, FQuat::Identity, channelToTest, shape, queryParams );
-
-		if ( !bOverlaps )
-		{
-#if WITH_EDITOR
-			DrawDebugSphere( world, candidate, capsuleRadius + 10.f, 8, FColor::Green, false, 3.0f );
-#endif
-			FTransform result = desiredTransform;
-			result.SetLocation( candidate );
-			return result;
-		}
-
-		++attempt;
-	}
-
-	// not found - return desired
-	return desiredTransform;
 }
 
 bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functionName )
@@ -721,6 +629,7 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 
 	return enemyCounts;
 }
+
 void AWaveManager::ApplyWaveConfig()
 {
 	if ( WaveConfig_ == nullptr )

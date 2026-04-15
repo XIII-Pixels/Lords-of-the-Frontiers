@@ -21,9 +21,8 @@ AUnit::AUnit()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
-	SetRootComponent( CollisionComponent_ );
-
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
+	SetRootComponent( CollisionComponent_ );
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AEntityAIController::StaticClass();
@@ -86,6 +85,22 @@ void AUnit::StopFollowing() const
 	if ( FollowComponent_ )
 	{
 		FollowComponent_->StopFollowing();
+	}
+}
+
+void AUnit::EnableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Activate();
+	}
+}
+
+void AUnit::DisableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Deactivate();
 	}
 }
 
@@ -215,8 +230,13 @@ void AUnit::ResolveVFXDefaults()
 	}
 }
 
-void AUnit::ChangeStats( FEnemyBuff* buff )
+void AUnit::ChangeStats( const FEnemyBuff* buff )
 {
+	if ( !buff )
+	{
+		return;
+	}
+
 	Stats_.SetMaxHealth(
 	    FMath::FloorToInt( Stats_.MaxHealth() * FMath::Pow( buff->HealthMultiplier, buff->SpawnCount ) )
 	);

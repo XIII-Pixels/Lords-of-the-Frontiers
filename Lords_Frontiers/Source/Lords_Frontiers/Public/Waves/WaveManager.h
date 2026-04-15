@@ -146,12 +146,6 @@ protected:
 	// a next wave
 	bool MoveToNextWaveAndStart();
 
-	// Find spawn point near Enemygroupspawnpoint in case unit is already in it
-	FTransform FindNonOverlappingSpawnTransform(
-	    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius = 600.f,
-	    int32 maxAttempts = 32, bool bProjectToNavMesh = false
-	) const;
-
 	// Active timer handles (for enemy spawns) so we can clear them if needed
 	UPROPERTY( Transient )
 	TArray<FTimerHandle> ActiveSpawnTimers_;
