@@ -30,6 +30,11 @@ float FEntityStats::AttackCooldown() const
 	return AttackCooldown_;
 }
 
+float FEntityStats::CooldownRemaining( float currentGameTime ) const
+{
+	return FMath::Clamp( AttackCooldown_ - ( currentGameTime - LastAttackGameTime_ ), 0, AttackCooldown_ );
+}
+
 float FEntityStats::MaxSpeed() const
 {
 	return MaxSpeed_;
@@ -226,14 +231,14 @@ void FEntityStats::Heal( int amount )
 	Health_ = FMath::Clamp( Health_ + amount, 0, MaxHealth_ );
 }
 
-bool FEntityStats::OnCooldown( float CurrentGameTime ) const
+bool FEntityStats::OnCooldown( float currentGameTime ) const
 {
-	return ( CurrentGameTime - LastAttackGameTime_ ) < AttackCooldown_;
+	return CooldownRemaining( currentGameTime ) != 0;
 }
 
-void FEntityStats::StartCooldown( float CurrentGameTime )
+void FEntityStats::StartCooldown( float currentGameTime )
 {
-	LastAttackGameTime_ = CurrentGameTime;
+	LastAttackGameTime_ = currentGameTime;
 }
 
 void FEntityStats::ModifyAttackDamage( int delta )

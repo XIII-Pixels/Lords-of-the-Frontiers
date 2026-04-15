@@ -5,11 +5,10 @@
 #include "AI/EntityAIController.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
-#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
 
 #include "Components/CapsuleComponent.h"
@@ -21,9 +20,11 @@ AUnit::AUnit()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
+	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 	SetRootComponent( CollisionComponent_ );
 
-	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
+	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
+	SkeletalMeshComponent_->SetupAttachment( RootComponent );
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	UnitAIControllerClass_ = AEntityAIController::StaticClass();
@@ -68,8 +69,6 @@ void AUnit::BeginPlay()
 		UnitAIManager_ = core->GetUnitAIManager();
 	}
 
-	VisualMesh_ = Cast<USceneComponent>( GetComponentByClass( UMeshComponent::StaticClass() ) );
-
 	ResolveVFXDefaults();
 }
 
@@ -91,9 +90,45 @@ void AUnit::StopFollowing() const
 
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
-	if ( AttackComponent_ )
+	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
 	{
-		AttackComponent_->Attack( hitActor );
+		if ( AttackPreHitDelay_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
+		     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
+		{
+			GetWorldTimerManager().SetTimer(
+			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
+			);
+		}
+		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )
+		{
+			AttackComponent_->Attack( hitActor );
+		}
+	}
+}
+
+void AUnit::Animate( float deltaTime ) const
+{
+	// Only animate attack if unit can attack
+	if ( !AttackComponent_ )
+	{
+		return;
+	}
+
+	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() &&
+	     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
+	{
+		PlayAnimation( AttackAnimation_ );
+	}
+}
+
+void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
+{
+	if ( SkeletalMeshComponent_ && animation.Animation )
+	{
+		SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
+		SkeletalMeshComponent_->SetAnimation( animation.Animation );
+		SkeletalMeshComponent_->SetPlayRate( animation.PlayRate );
+		SkeletalMeshComponent_->Play( false );
 	}
 }
 
@@ -113,8 +148,6 @@ void AUnit::TakeDamage( int damage )
 
 void AUnit::OnDeath()
 {
-	// When HP becomes 0
-
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->DeactivateSight();
@@ -125,24 +158,31 @@ void AUnit::OnDeath()
 		FollowComponent_->Deactivate();
 	}
 
-	if ( VisualMesh_ )
-	{
-		VisualMesh_->SetVisibility( false, true );
-	}
 	if ( CollisionComponent_ )
 	{
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	}
-	SpawnDeathVFX();
 
-	if ( ResolvedDeathDestroyDelay_ > 0.0f )
+	if ( SkeletalMeshComponent_ )
+	{
+		SkeletalMeshComponent_->SetVisibility( false, true );
+	}
+
+	if ( ResolvedDeathVFXDelay_ > 0.0f )
 	{
 		GetWorldTimerManager().SetTimer(
-		    DeathTimerHandle_, this, &AUnit::FinalizeDestroy, ResolvedDeathDestroyDelay_, false
+		    DeathTimerHandle_,
+		    [this]()
+		    {
+			    SpawnDeathVFX();
+			    Destroy();
+		    },
+		    ResolvedDeathVFXDelay_, false
 		);
 	}
 	else
 	{
+		SpawnDeathVFX();
 		Destroy();
 	}
 }
@@ -159,21 +199,21 @@ void AUnit::SpawnDeathVFX()
 	);
 }
 
-void AUnit::FinalizeDestroy()
-{
-	Destroy();
-}
-
 UNiagaraSystem* AUnit::GetHitVFX() const
 {
 	return ResolvedHitVFX_;
+}
+
+void AUnit::Tick( float deltaSeconds )
+{
+	Super::Tick( deltaSeconds );
+	Animate( deltaSeconds );
 }
 
 void AUnit::ResolveVFXDefaults()
 {
 	ResolvedDeathVFX_ = DeathVFX_;
 	ResolvedHitVFX_ = HitVFX_;
-	ResolvedDeathDestroyDelay_ = DeathDestroyDelay_ >= 0.0f ? DeathDestroyDelay_ : 1.0f;
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
@@ -191,9 +231,9 @@ void AUnit::ResolveVFXDefaults()
 					ResolvedHitVFX_ = override->HitVFX;
 				}
 
-				if ( DeathDestroyDelay_ < 0.0f && override->DeathDestroyDelay >= 0.0f )
+				if ( override->DeathDestroyDelay >= 0.0f )
 				{
-					ResolvedDeathDestroyDelay_ = override->DeathDestroyDelay;
+					ResolvedDeathVFXDelay_ = override->DeathDestroyDelay;
 				}
 			}
 
@@ -207,9 +247,9 @@ void AUnit::ResolveVFXDefaults()
 				ResolvedHitVFX_ = config->DefaultUnitHitVFX;
 			}
 
-			if ( DeathDestroyDelay_ < 0.0f && ResolvedDeathDestroyDelay_ <= 0.0f )
+			if ( ResolvedDeathVFXDelay_ <= 0.0f )
 			{
-				ResolvedDeathDestroyDelay_ = config->DefaultDeathDestroyDelay;
+				ResolvedDeathVFXDelay_ = config->DefaultDeathDestroyDelay;
 			}
 		}
 	}

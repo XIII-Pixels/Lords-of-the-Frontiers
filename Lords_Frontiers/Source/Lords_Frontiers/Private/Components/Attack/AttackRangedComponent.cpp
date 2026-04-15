@@ -43,13 +43,17 @@ void UAttackRangedComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ChooseAttackMode();
 	ActivateSight();
 }
 
 void UAttackRangedComponent::LookTick()
 {
-	ChooseAttackMode();
+	AActor* prevTarget = GetOwner<IAttacker>()->AttackTarget().Get();
+
 	Look();
+
+	bDidSeeTarget_ = prevTarget && ( prevTarget == GetOwner<IAttacker>()->AttackTarget() );
 }
 
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
@@ -129,6 +133,11 @@ void UAttackRangedComponent::DeactivateSight()
 	}
 }
 
+bool UAttackRangedComponent::DidSeeTargetLastTick()
+{
+	return bDidSeeTarget_;
+}
+
 void UAttackRangedComponent::Look()
 {
 	IAttacker* ownerAttacker = GetOwner<IAttacker>();
@@ -186,18 +195,15 @@ void UAttackRangedComponent::Look()
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	const IAttacker* ownerAttacker = GetOwner<IAttacker>();
-	if ( ownerAttacker && !ownerAttacker->AttackTarget().IsValid() &&
-	     GetOwner()->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	if ( GetOwner()->IsA( AUnit::StaticClass() ) )
 	{
-		// Super bad (unclear) code: buildings and standing units start attacking everything
-		// Left in peace due to time constraints (laziness)
+		// Not good: coupling with AUnit class. No owner class dependencies should be in this class
 		// TODO: Separate components for unit and for building
-		AttackFilter_ = EAttackFilter::Everything;
+		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 	else
 	{
-		AttackFilter_ = EAttackFilter::WhatIsOnPath;
+		AttackFilter_ = EAttackFilter::Everything;
 	}
 }
 
@@ -259,7 +265,7 @@ void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target
 
 	const bool bInitialized = projectile->Initialize(
 	    GetOwner(), target.Get(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bTrackTarget_
+	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_
 	);
 
 	if ( !bInitialized )

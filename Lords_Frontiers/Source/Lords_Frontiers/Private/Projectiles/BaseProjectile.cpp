@@ -3,12 +3,11 @@
 #include "Projectiles/BaseProjectile.h"
 
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "DrawDebugHelpers.h"
 #include "Entity.h"
-#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 
@@ -127,10 +126,13 @@ bool ABaseProjectile::Initialize(
 		GroundZ_ = TargetPos.Z;
 	}
 
-	const FVector SpawnLocation = inInstigator->GetActorLocation() + spawnOffset;
-	const FVector ToTarget = inTarget->GetActorLocation() - SpawnLocation;
+	const FVector spawnLocation =
+	    inInstigator->GetActorLocation() +
+	    spawnOffset.RotateAngleAxis( inInstigator->GetActorRotation().Yaw, FVector::UpVector );
 
-	SetActorLocationAndRotation( SpawnLocation, ToTarget.Rotation() );
+	const FVector toTarget = inTarget->GetActorLocation() - spawnLocation;
+
+	SetActorLocationAndRotation( spawnLocation, toTarget.Rotation() );
 
 	ActivateFromPool();
 
