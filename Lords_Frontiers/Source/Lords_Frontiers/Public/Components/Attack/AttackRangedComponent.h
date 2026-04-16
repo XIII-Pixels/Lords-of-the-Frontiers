@@ -37,8 +37,9 @@ public:
 	}
 
 	virtual void ActivateSight() override;
-
 	virtual void DeactivateSight() override;
+
+	virtual bool DidSeeTargetLastTick() override;
 
 protected:
 	virtual void OnRegister() override;
@@ -77,7 +78,7 @@ protected:
 	FVector ProjectileSpawnPosition_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	bool bTrackTarget_ = true;
+	bool bProjectileTracksTarget_ = true;
 
 	TObjectPtr<USphereComponent> SightSphere_;
 
@@ -92,4 +93,6 @@ protected:
 	TArray<TWeakObjectPtr<AActor>> BurstTargets_;
 
 	FTimerHandle BurstTimerHandle_;
+
+	bool bDidSeeTarget_ = false;
 };

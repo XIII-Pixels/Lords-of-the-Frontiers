@@ -4,8 +4,6 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "Lords_Frontiers/Public/UI/GameHUD.h"
-#include "Core/EntityVFXConfig.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
 #include "Grid/GridManager.h"
@@ -13,6 +11,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
+
 AMainGameMode::AMainGameMode()
 {
 }
@@ -63,7 +62,7 @@ void AMainGameMode::InitializeGameSystems()
 		GL->InitGameLoop( GameLoopConfig, Core->GetUnitAIManager() );
 		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with config" ) );
 	}
-	
+
 	if ( UGameSessionController* Session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 	{
 		Session->StartGame();

@@ -138,7 +138,7 @@ void UFollowComponent::SnapToGround() const
 
 void UFollowComponent::Sway( float deltaTime )
 {
-	if ( Unit_.IsValid() && Unit_.Get()->VisualMesh() )
+	if ( Unit_.IsValid() && Unit_.Get()->SkeletalMeshComponent() )
 	{
 		float targetRoll = 0.0f;
 
@@ -150,10 +150,10 @@ void UFollowComponent::Sway( float deltaTime )
 
 		CurrentSwayRoll_ = FMath::FInterpTo( CurrentSwayRoll_, targetRoll, deltaTime, 10.0f );
 
-		FRotator currentRot = Unit_.Get()->VisualMesh()->GetRelativeRotation();
+		FRotator currentRot = Unit_.Get()->SkeletalMeshComponent()->GetRelativeRotation();
 		currentRot.Pitch = CurrentSwayRoll_;
 		currentRot.Roll = 0.0f;
-		Unit_.Get()->VisualMesh()->SetRelativeRotation( currentRot );
+		Unit_.Get()->SkeletalMeshComponent()->SetRelativeRotation( currentRot );
 	}
 }
 
