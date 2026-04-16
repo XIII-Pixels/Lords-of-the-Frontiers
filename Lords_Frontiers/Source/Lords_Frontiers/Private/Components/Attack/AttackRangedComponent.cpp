@@ -186,18 +186,15 @@ void UAttackRangedComponent::Look()
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	const IAttacker* ownerAttacker = GetOwner<IAttacker>();
-	if ( ownerAttacker && !ownerAttacker->AttackTarget().IsValid() &&
-	     GetOwner()->GetVelocity().Size() <= KINDA_SMALL_NUMBER )
+	// Bad: hard linked to ABuilding and AUnit
+	// TODO: Separate components for unit and for building
+	if ( GetOwner<AUnit>() )
 	{
-		// Super bad (unclear) code: buildings and standing units start attacking everything
-		// Left in peace due to time constraints (laziness)
-		// TODO: Separate components for unit and for building
-		AttackFilter_ = EAttackFilter::Everything;
+		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 	else
 	{
-		AttackFilter_ = EAttackFilter::WhatIsOnPath;
+		AttackFilter_ = EAttackFilter::Everything;
 	}
 }
 

@@ -21,6 +21,8 @@ protected:
 	void GroupSpawnTick();
 	void UnitSpawnTick();
 
+	void ProcessSpawn() const;
+
 	void SpawnUnit() const;
 
 	void StopUnitMovement() const;
@@ -41,16 +43,16 @@ protected:
 	float UnitSpawnInterval_ = 0.0f;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
+	bool SpawnOnlyWhenSeesEnemy_ = false;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	bool StopWhileSpawning_ = true;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings", meta = ( ClampMin = 0, Units = "s" ) )
 	float StopTimeBeforeSpawn_ = 0.0f;
 
-	// UPROPERTY( EditDefaultsOnly, Category = "Settings" )
-	// bool SpawnOnlyWhenSeesEnemy_ = false;
-
 	UPROPERTY()
-	TObjectPtr<UUnitBuilder> UnitSpawner_;
+	TObjectPtr<UUnitBuilder> UnitBuilder_;
 
 	FTimerHandle GroupSpawnTimer_;
 	FTimerHandle UnitSpawnTimer_;

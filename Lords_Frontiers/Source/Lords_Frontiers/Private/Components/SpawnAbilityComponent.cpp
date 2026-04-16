@@ -14,7 +14,8 @@ void USpawnAbilityComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if ( StopTimeBeforeSpawn_ + UnitSpawnInterval_ * SpawnedCount_ > GroupSpawnInterval_ )
+	const float stopTime = StopTimeBeforeSpawn_ + UnitSpawnInterval_ * SpawnedCount_;
+	if ( stopTime > GroupSpawnInterval_ )
 	{
 		UE_LOG(
 		    LogTemp, Error,
@@ -24,8 +25,8 @@ void USpawnAbilityComponent::BeginPlay()
 		return;
 	}
 
-	UnitSpawner_ = NewObject<UUnitBuilder>( this );
-	if ( !IsValid( UnitSpawner_ ) )
+	UnitBuilder_ = NewObject<UUnitBuilder>( this );
+	if ( !IsValid( UnitBuilder_ ) )
 	{
 		return;
 	}
@@ -62,7 +63,7 @@ void USpawnAbilityComponent::GroupSpawnTick()
 		{
 			for ( int i = 0; i < SpawnedCount_; ++i )
 			{
-				SpawnUnit();
+				ProcessSpawn();
 			}
 		};
 
@@ -95,6 +96,22 @@ void USpawnAbilityComponent::UnitSpawnTick()
 	}
 }
 
+void USpawnAbilityComponent::ProcessSpawn() const
+{
+	if ( SpawnOnlyWhenSeesEnemy_ )
+	{
+		const AUnit* unit = GetOwner<AUnit>();
+		if ( unit && unit->AttackTarget().IsValid() )
+		{
+			SpawnUnit();
+		}
+	}
+	else
+	{
+		SpawnUnit();
+	}
+}
+
 void USpawnAbilityComponent::SpawnUnit() const
 {
 	if ( !GetWorld() )
@@ -103,17 +120,16 @@ void USpawnAbilityComponent::SpawnUnit() const
 		return;
 	}
 
-	auto* unitBuilder = NewObject<UUnitBuilder>( GetWorld() );
-	unitBuilder->CreateNewUnit( SpawnedClass_, FindValidTransform() );
+	UnitBuilder_->CreateNewUnit( SpawnedClass_, FindValidTransform() );
 
 	if ( const auto* coreManager = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		if ( const auto* waveManager = coreManager->GetWaveManager() )
 		{
-			unitBuilder->ApplyBuff( waveManager->EnemyBuffs.Find( SpawnedClass_ ) );
+			UnitBuilder_->ApplyBuff( waveManager->EnemyBuffs.Find( SpawnedClass_ ) );
 		}
 	}
-	unitBuilder->SpawnUnitAndFinish();
+	UnitBuilder_->SpawnUnitAndFinish();
 }
 
 void USpawnAbilityComponent::StopUnitMovement() const
@@ -141,25 +157,34 @@ FTransform USpawnAbilityComponent::FindValidTransform() const
 		return FTransform();
 	}
 
-	float capsuleRadius = 34.f;
-	float capsuleHalfHeight = 88.f;
+	float spawnedCapsuleRadius = 34.f;
+	float spawnedCapsuleHalfHeight = 88.f;
 	if ( SpawnedClass_ )
 	{
 		if ( const auto* defaultUnit = Cast<AUnit>( SpawnedClass_->GetDefaultObject() ) )
 		{
 			if ( const UCapsuleComponent* capsule = defaultUnit->FindComponentByClass<UCapsuleComponent>() )
 			{
-				capsuleRadius = capsule->GetUnscaledCapsuleRadius();
-				capsuleHalfHeight = capsule->GetUnscaledCapsuleHalfHeight();
+				spawnedCapsuleRadius = capsule->GetUnscaledCapsuleRadius();
+				spawnedCapsuleHalfHeight = capsule->GetUnscaledCapsuleHalfHeight();
 			}
+		}
+	}
+
+	float ownerCapsuleRadius = 34.f;
+	if ( const auto* unit = GetOwner<AUnit>() )
+	{
+		if ( const UCapsuleComponent* capsule = unit->FindComponentByClass<UCapsuleComponent>() )
+		{
+			ownerCapsuleRadius = capsule->GetUnscaledCapsuleRadius();
 		}
 	}
 
 	FTransform transform = GetOwner()->GetTransform();
 	const FVector randomDirection = FMath::VRandCone( GetOwner()->GetActorForwardVector(), PI * 0.5f );
-	transform.AddToTranslation( randomDirection * capsuleRadius );
+	transform.AddToTranslation( randomDirection * ( spawnedCapsuleRadius + ownerCapsuleRadius * 1.5f ) );
 
-	return UnitSpawner_->FindNonOverlappingSpawnTransform(
-	    transform, capsuleRadius, capsuleHalfHeight, 200.f, 24, false
+	return UnitBuilder_->FindNonOverlappingSpawnTransform(
+	    transform, spawnedCapsuleRadius, spawnedCapsuleHalfHeight, 200.f, 24, false
 	);
 }

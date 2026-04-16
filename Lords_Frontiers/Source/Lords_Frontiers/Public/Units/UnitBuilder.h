@@ -21,7 +21,9 @@ class LORDS_FRONTIERS_API UUnitBuilder : public UObject
 public:
 	void CreateNewUnit(
 	    const TSubclassOf<AUnit>& subclass, const FTransform& transform, AActor* owner = nullptr,
-	    APawn* instigator = nullptr
+	    APawn* instigator = nullptr,
+	    ESpawnActorCollisionHandlingMethod handlingMethod =
+	        ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
 	);
 	void SetTransform( const FTransform& transform ) const;
 	void SetStats( const FEntityStats& stats ) const;
@@ -29,11 +31,11 @@ public:
 	TWeakObjectPtr<AUnit> SpawnUnitAndFinish();
 
 	// (Artyom)
-    // find location around enemy group spawnpoint if there is a unit
-    FTransform FindNonOverlappingSpawnTransform(
-        const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius,
-        int32 maxAttempts, bool bProjectToNavMesh
-    ) const;
+	// find location around enemy group spawnpoint if there is a unit
+	FTransform FindNonOverlappingSpawnTransform(
+	    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius,
+	    int32 maxAttempts, bool bProjectToNavMesh
+	) const;
 
 private:
 	UPROPERTY()

@@ -9,7 +9,8 @@
 #include "NavigationSystem.h"
 
 void UUnitBuilder::CreateNewUnit(
-    const TSubclassOf<AUnit>& subclass, const FTransform& transform, AActor* owner, APawn* instigator
+    const TSubclassOf<AUnit>& subclass, const FTransform& transform, AActor* owner, APawn* instigator,
+    ESpawnActorCollisionHandlingMethod handlingMethod
 )
 {
 	if ( !GetWorld() )
@@ -23,10 +24,7 @@ void UUnitBuilder::CreateNewUnit(
 		Unit_->Destroy();
 		Unit_ = nullptr;
 	}
-	Unit_ = GetWorld()->SpawnActorDeferred<AUnit>(
-	    subclass, transform, owner, instigator,
-	    ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding
-	);
+	Unit_ = GetWorld()->SpawnActorDeferred<AUnit>( subclass, transform, owner, instigator, handlingMethod );
 }
 
 void UUnitBuilder::SetTransform( const FTransform& transform ) const
