@@ -383,15 +383,12 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
-	const int32 relocationCost = RelocatedBuilding_->GetRelocationGoldCost();
-	if ( relocationCost > 0 )
+	const FResourceProduction relocationCost = RelocatedBuilding_->GetRelocationCost();
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
-		if ( UCoreManager* core = UCoreManager::Get( this ) )
+		if ( UResourceManager* resManager = core->GetResourceManager() )
 		{
-			if ( UResourceManager* resManager = core->GetResourceManager() )
-			{
-				resManager->TrySpendResource( EResourceType::Gold, relocationCost );
-			}
+			resManager->SpendResources( relocationCost );
 		}
 	}
 
