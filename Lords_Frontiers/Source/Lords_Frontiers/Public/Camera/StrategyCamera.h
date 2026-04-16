@@ -107,6 +107,12 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	bool bAutoCalculateBounds_ = true;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
+	FVector2D MinMoveAreaExtents_ = FVector2D( 0.0f, 0.0f );
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds", meta = ( ClampMin = "0.1" ) )
+	float BoundsCurveExponent_ = 1.0f;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
 	float RotationSpeed_ = 45.0f;
 
@@ -162,4 +168,7 @@ private:
 	float TargetYaw_;
 	float CurrentYaw_;
 	bool bIsCameraInputDisabled_ = false;
+
+	FVector2D MapCenter_;
+	FVector2D MaxMoveAreaExtents_;
 };
