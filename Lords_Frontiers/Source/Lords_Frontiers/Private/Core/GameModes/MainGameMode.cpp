@@ -2,6 +2,7 @@
 #include "Core/GameModes/MainGameMode.h"
 
 #include "Cards/CardPoolConfig.h"
+#include "Lords_Frontiers/Public/UI/GameHUD.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
