@@ -431,3 +431,27 @@ UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> building
 	}
 	return nullptr;
 }
+int32 ABuilding::GetBuildingTotalCostGold() const
+{
+	int32 total = 0;
+	total += BuildingCost_.Gold;
+	total += BuildingCost_.Food;
+	total += BuildingCost_.Population;
+	total += BuildingCost_.Progress;
+	return total;
+}
+
+int32 ABuilding::GetRelocationGoldCost() const
+{
+	return FMath::Max( 0, RelocationCost_.Gold );
+}
+
+FResourceProduction ABuilding::GetRelocationCost() const
+{
+	return RelocationCost_;
+}
+
+FResourceProduction ABuilding::GetDemolitionRefund() const
+{
+	return DemolitionRefund_;
+}
