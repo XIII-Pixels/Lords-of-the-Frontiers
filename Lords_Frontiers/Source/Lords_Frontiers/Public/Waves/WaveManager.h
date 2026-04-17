@@ -114,14 +114,18 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
 	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
-	UPROPERTY( EditAnywhere, Category = "WaveConfig" )
-	UWaveConfigData* WaveConfig_;
+	UPROPERTY( EditAnywhere, Category = "Settings|WaveConfig" )
+	TObjectPtr<UWaveConfigData> WaveConfig_ = nullptr;
 
 	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
 	void SetWaveConfig( UWaveConfigData* newConfig );
 
 	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
 	void ApplyWaveConfig();
+
+	const FWave* GetWave( int32 Index ) const;
+
+	int32 GetWavesCount() const;
 
 protected:
 	virtual void BeginPlay() override;
