@@ -2,11 +2,16 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "VFX/EntityVFXConfig.h"
+#include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Resources/EconomyComponent.h"
+#include "UI/HealthBar/HealthBarConfigDataAsset.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "VFX/EntityVFXConfig.h"
+
 #include "Components/BoxComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 ABuilding::ABuilding()
@@ -59,6 +64,23 @@ void ABuilding::BeginPlay()
 
 	ResolveVFXDefaults();
 	SpawnConstructionVFX();
+
+	if ( HealthBarConfig_ )
+	{
+		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+		    this,
+		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		    {
+			    if ( UWorld* world = GetWorld() )
+			    {
+				    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+				    {
+					    pool->ShowFor( this, HealthBarConfig_ );
+				    }
+			    }
+		    }
+		);
+	}
 }
 
 void ABuilding::OnDeath()
@@ -66,6 +88,17 @@ void ABuilding::OnDeath()
 	if ( bIsRuined_ )
 	{
 		return;
+	}
+
+	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+	HealthBarSubscription_.Reset();
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+		{
+			pool->HideFor( this );
+		}
 	}
 
 	SpawnDestructionVFX();

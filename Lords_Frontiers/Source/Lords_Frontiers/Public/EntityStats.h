@@ -4,6 +4,8 @@
 
 #include "EntityStats.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnHealthChanged, int /*newHealth*/, int /*maxHealth*/ );
+
 UENUM( BlueprintType )
 enum class ETeam : uint8
 {
@@ -123,6 +125,9 @@ struct FEntityStats
 	bool IsAlive() const;
 
 	bool IsAtFullHealth() const;
+
+
+	FOnHealthChanged OnHealthChanged;
 
 private:
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )

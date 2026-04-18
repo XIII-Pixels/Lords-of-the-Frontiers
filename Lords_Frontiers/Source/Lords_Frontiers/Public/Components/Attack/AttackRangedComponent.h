@@ -56,6 +56,7 @@ protected:
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
+
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
 	void FireNextBurstShot();
