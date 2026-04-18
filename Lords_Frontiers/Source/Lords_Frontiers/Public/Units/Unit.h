@@ -23,6 +23,7 @@ class UCapsuleComponent;
 class UBehaviorTree;
 class UFollowComponent;
 class UNiagaraSystem;
+class UHealthBarConfigDataAsset;
 struct FEnemyBuff;
 
 /** (Gregory-hub)
@@ -125,6 +126,17 @@ public:
 
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
+	UHealthBarConfigDataAsset* HealthBarConfig() const
+	{
+		return HealthBarConfig_;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Boss" )
+	bool IsBoss() const
+	{
+		return bIsBoss_;
+	}
+
 protected:
 	virtual void Tick( float deltaSeconds ) override;
 
@@ -152,6 +164,14 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|HealthBar" )
+	TObjectPtr<UHealthBarConfigDataAsset> HealthBarConfig_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Boss" )
+	bool bIsBoss_ = false;
+
+	FDelegateHandle HealthBarSubscription_;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<const AActor> FollowedTarget_;

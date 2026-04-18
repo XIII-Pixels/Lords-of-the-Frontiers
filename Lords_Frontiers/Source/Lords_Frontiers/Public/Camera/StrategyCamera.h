@@ -61,6 +61,16 @@ public:
 		return bIsCameraInputDisabled_;
 	}
 
+	float MinZoom() const
+	{
+		return MinZoom_;
+	}
+
+	float MaxZoom() const
+	{
+		return MaxZoom_;
+	}
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
