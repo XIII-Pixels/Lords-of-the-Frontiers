@@ -2,6 +2,7 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"

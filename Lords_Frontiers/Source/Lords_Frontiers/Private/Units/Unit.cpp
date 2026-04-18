@@ -176,7 +176,6 @@ void AUnit::TakeDamage( int damage )
 
 void AUnit::OnDeath()
 {
-<<<<<<< HEAD
 	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
 	HealthBarSubscription_.Reset();
 
@@ -188,8 +187,6 @@ void AUnit::OnDeath()
 		}
 	}
 
-=======
->>>>>>> 91466ceffba803108cc59f9087bc336c380f6b8b
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->DeactivateSight();
