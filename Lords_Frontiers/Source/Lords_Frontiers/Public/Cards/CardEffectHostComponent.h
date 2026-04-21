@@ -62,11 +62,16 @@ protected:
 	void BindAttackDelegates();
 	void UnbindAttackDelegates();
 
+	void BindDamageEvents();
+	void UnbindDamageEvents();
+
 	UFUNCTION()
 	void HandleAttackFired( AActor* target );
 
 	UFUNCTION()
 	void HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget );
+
+	void HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash );
 
 	void DispatchTrigger( ECardTriggerReason reason, AActor* instigator );
 
@@ -79,4 +84,7 @@ private:
 
 	TWeakObjectPtr<UAttackRangedComponent> BoundAttack_;
 	bool bIsBoundToAttack_ = false;
+
+	FDelegateHandle DamageEventHandle_;
+	bool bIsBoundToDamageEvents_ = false;
 };

@@ -6,6 +6,8 @@
 
 #include "CardConditionStubs.generated.h"
 
+class UStatusEffectDef;
+
 UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Attack Fired" ) )
 class LORDS_FRONTIERS_API UCardCondition_OnAttackFired : public UCardCondition
 {
@@ -37,6 +39,23 @@ public:
 	virtual FText GetDisplayText_Implementation() const override
 	{
 		return FText::FromString( TEXT( "On target change" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Hit Landed" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnHitLanded : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::HitLanded;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On hit landed" ) );
 	}
 };
 
@@ -108,17 +127,11 @@ class LORDS_FRONTIERS_API UCardCondition_TargetHasStatus : public UCardCondition
 
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Condition" )
-	TSoftObjectPtr<UObject> RequiredStatus;
+	TObjectPtr<UStatusEffectDef> RequiredStatus;
 
-	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
-	{
-		return false;
-	}
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override;
 
-	virtual FText GetDisplayText_Implementation() const override
-	{
-		return FText::FromString( TEXT( "Target has status" ) );
-	}
+	virtual FText GetDisplayText_Implementation() const override;
 };
 
 UCLASS( BlueprintType, meta = ( DisplayName = "Condition: Enemy In Radius" ) )

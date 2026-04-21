@@ -6,6 +6,7 @@
 #include "Cards/CardEffect.h"
 #include "Cards/CardSubsystem.h"
 #include "Components/Attack/AttackRangedComponent.h"
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
 
 UCardEffectHostComponent::UCardEffectHostComponent()
 {
@@ -16,11 +17,13 @@ void UCardEffectHostComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	BindAttackDelegates();
+	BindDamageEvents();
 }
 
 void UCardEffectHostComponent::EndPlay( const EEndPlayReason::Type endPlayReason )
 {
 	UnbindAttackDelegates();
+	UnbindDamageEvents();
 	Super::EndPlay( endPlayReason );
 }
 
@@ -38,6 +41,7 @@ void UCardEffectHostComponent::RegisterEffect( UCardDataAsset* card, int32 event
 	Active_.Add( record );
 
 	BindAttackDelegates();
+	BindDamageEvents();
 }
 
 void UCardEffectHostComponent::UnregisterBySourceCard( UCardDataAsset* card )
@@ -58,6 +62,7 @@ void UCardEffectHostComponent::ClearAll()
 	Active_.Empty();
 	Counters_.Empty();
 	UnbindAttackDelegates();
+	UnbindDamageEvents();
 }
 
 int32 UCardEffectHostComponent::GetCounter( FName key ) const
@@ -138,6 +143,38 @@ void UCardEffectHostComponent::HandleAttackFired( AActor* target )
 void UCardEffectHostComponent::HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget )
 {
 	DispatchTrigger( ECardTriggerReason::TargetChanged, newTarget );
+}
+
+void UCardEffectHostComponent::BindDamageEvents()
+{
+	if ( bIsBoundToDamageEvents_ )
+	{
+		return;
+	}
+
+	DamageEventHandle_ = FDamageEvents::OnDamageDealt.AddUObject( this, &UCardEffectHostComponent::HandleDamageDealt );
+	bIsBoundToDamageEvents_ = true;
+}
+
+void UCardEffectHostComponent::UnbindDamageEvents()
+{
+	if ( !bIsBoundToDamageEvents_ )
+	{
+		return;
+	}
+
+	FDamageEvents::OnDamageDealt.Remove( DamageEventHandle_ );
+	DamageEventHandle_.Reset();
+	bIsBoundToDamageEvents_ = false;
+}
+
+void UCardEffectHostComponent::HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash )
+{
+	if ( instigator != GetOwner() )
+	{
+		return;
+	}
+	DispatchTrigger( ECardTriggerReason::HitLanded, target );
 }
 
 void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActor* instigator )
