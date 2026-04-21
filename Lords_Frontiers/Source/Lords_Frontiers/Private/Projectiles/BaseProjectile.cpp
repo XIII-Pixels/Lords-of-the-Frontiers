@@ -252,6 +252,10 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 			}
 		}
 	}
+	else
+	{
+		FDamageEvents::OnProjectileMissed.Broadcast( GetOwner() );
+	}
 
 	if ( SplashRadius_ <= 0.0f )
 	{
@@ -337,6 +341,10 @@ void ABaseProjectile::ReturnToPool()
 
 void ABaseProjectile::OnLifetimeExpired()
 {
+	if ( bIsActive_ )
+	{
+		FDamageEvents::OnProjectileMissed.Broadcast( GetOwner() );
+	}
 	ReturnToPool();
 }
 

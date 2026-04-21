@@ -246,6 +246,45 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 	return false;
 }
 
+void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMultiplier )
+{
+	UWorld* world = GetOwner() ? GetOwner()->GetWorld() : nullptr;
+	if ( !world || !target || !ProjectileClass_ )
+	{
+		return;
+	}
+
+	const IEntity* ownerEntity = GetOwner<IEntity>();
+	if ( !ownerEntity )
+	{
+		return;
+	}
+
+	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
+	if ( !pool )
+	{
+		return;
+	}
+
+	ABaseProjectile* projectile = pool->AcquireProjectile( ProjectileClass_ );
+	if ( !projectile )
+	{
+		return;
+	}
+
+	const int32 scaledDamage = FMath::RoundToInt(
+		static_cast<float>( ownerEntity->Stats().AttackDamage() ) * damageMultiplier );
+
+	const bool bInitialized = projectile->Initialize(
+	    GetOwner(), target, scaledDamage, ProjectileSpeed_, ProjectileSpawnPosition_,
+	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_ );
+
+	if ( !bInitialized )
+	{
+		pool->ReturnProjectile( projectile );
+	}
+}
+
 void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target ) const
 {
 	UWorld* world = GetOwner()->GetWorld();

@@ -50,6 +50,9 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
 	FOnAttackTargetChanged OnAttackTargetChanged;
 
+	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
+	void FireExtraProjectile( AActor* target, float damageMultiplier = 1.f );
+
 protected:
 	virtual void OnRegister() override;
 

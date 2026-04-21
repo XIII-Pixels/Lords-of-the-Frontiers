@@ -16,7 +16,10 @@
  */
 DECLARE_MULTICAST_DELEGATE_FourParams( FOnDamageDealt, AActor*, AActor*, int, bool );
 
+DECLARE_MULTICAST_DELEGATE_OneParam( FOnProjectileMissed, AActor* );
+
 struct LORDS_FRONTIERS_API FDamageEvents
 {
 	static FOnDamageDealt OnDamageDealt;
+	static FOnProjectileMissed OnProjectileMissed;
 };

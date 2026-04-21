@@ -70,8 +70,11 @@ enum class ECardTriggerReason : uint8
 	AttackFired		UMETA( DisplayName = "Attack Fired" ),
 	TargetChanged	UMETA( DisplayName = "Target Changed" ),
 	HitLanded		UMETA( DisplayName = "Hit Landed" ),
+	KillLanded		UMETA( DisplayName = "Kill Landed" ),
+	Missed			UMETA( DisplayName = "Missed" ),
 	Damaged			UMETA( DisplayName = "Damaged" ),
 	Ruined			UMETA( DisplayName = "Ruined" ),
+	AuraTick		UMETA( DisplayName = "Aura Tick" ),
 };
 
 UENUM( BlueprintType )

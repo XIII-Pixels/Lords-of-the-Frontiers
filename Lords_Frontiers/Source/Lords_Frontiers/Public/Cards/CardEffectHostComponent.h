@@ -62,6 +62,9 @@ protected:
 	void BindAttackDelegates();
 	void UnbindAttackDelegates();
 
+	void BindBuildingDelegates();
+	void UnbindBuildingDelegates();
+
 	void BindDamageEvents();
 	void UnbindDamageEvents();
 
@@ -71,9 +74,22 @@ protected:
 	UFUNCTION()
 	void HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget );
 
+	UFUNCTION()
+	void HandleOwnerDamaged( class ABuilding* building, int32 damage );
+
+	UFUNCTION()
+	void HandleOwnerRuined( class ABuilding* building );
+
 	void HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash );
+	void HandleProjectileMissed( AActor* instigator );
+
+	UFUNCTION()
+	void HandleAuraTick();
 
 	void DispatchTrigger( ECardTriggerReason reason, AActor* instigator );
+
+	void StartAuraTimer();
+	void StopAuraTimer();
 
 private:
 	UPROPERTY()
@@ -85,6 +101,15 @@ private:
 	TWeakObjectPtr<UAttackRangedComponent> BoundAttack_;
 	bool bIsBoundToAttack_ = false;
 
+	bool bIsBoundToBuilding_ = false;
+
 	FDelegateHandle DamageEventHandle_;
+	FDelegateHandle MissEventHandle_;
 	bool bIsBoundToDamageEvents_ = false;
+
+	FTimerHandle AuraTimerHandle_;
+	bool bIsAuraTicking_ = false;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Cards" )
+	float AuraTickIntervalSeconds_ = 0.5f;
 };

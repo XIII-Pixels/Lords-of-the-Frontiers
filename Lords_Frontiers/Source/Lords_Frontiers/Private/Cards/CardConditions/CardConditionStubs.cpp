@@ -1,8 +1,11 @@
 #include "Cards/CardConditions/CardConditionStubs.h"
 
+#include "Building/Building.h"
 #include "Cards/CardEffectHostComponent.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
+#include "Entity.h"
+#include "EntityStats.h"
 
 namespace
 {
@@ -58,4 +61,38 @@ FText UCardCondition_TargetHasStatus::GetDisplayText_Implementation() const
 	}
 	return FText::FromString(
 		FString::Printf( TEXT( "Target has %s" ), *RequiredStatus->StatusTag.ToString() ) );
+}
+
+namespace
+{
+	bool IsBelowThreshold( const AActor* actor, int32 thresholdPercent )
+	{
+		if ( !actor )
+		{
+			return false;
+		}
+		const IEntity* entity = Cast<IEntity>( actor );
+		if ( !entity )
+		{
+			return false;
+		}
+		const FEntityStats& stats = entity->Stats();
+		if ( stats.MaxHealth() <= 0 )
+		{
+			return false;
+		}
+		const int32 percent = FMath::RoundToInt(
+			100.f * static_cast<float>( stats.Health() ) / static_cast<float>( stats.MaxHealth() ) );
+		return percent < thresholdPercent;
+	}
+}
+
+bool UCardCondition_TargetLowHP::IsMet_Implementation( const FCardEffectContext& context ) const
+{
+	return IsBelowThreshold( context.EventInstigator.Get(), ThresholdPercent );
+}
+
+bool UCardCondition_OwnerLowHP::IsMet_Implementation( const FCardEffectContext& context ) const
+{
+	return IsBelowThreshold( context.Building.Get(), ThresholdPercent );
 }

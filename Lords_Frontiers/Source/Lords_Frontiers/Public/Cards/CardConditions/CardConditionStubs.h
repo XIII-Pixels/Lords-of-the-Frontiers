@@ -59,6 +59,127 @@ public:
 	}
 };
 
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Kill Landed" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnKillLanded : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::KillLanded;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On kill" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Damaged" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnDamaged : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::Damaged;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On taking damage" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Ruined" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnRuined : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::Ruined;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On destruction" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Miss" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnMiss : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::Missed;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On miss" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Aura Tick" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnAuraTick : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::AuraTick;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On aura tick" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: Target Low HP" ) )
+class LORDS_FRONTIERS_API UCardCondition_TargetLowHP : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Condition",
+		meta = ( ClampMin = "1", ClampMax = "99" ) )
+	int32 ThresholdPercent = 40;
+
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override;
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( FString::Printf( TEXT( "Target HP < %d%%" ), ThresholdPercent ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: Owner Low HP" ) )
+class LORDS_FRONTIERS_API UCardCondition_OwnerLowHP : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Condition",
+		meta = ( ClampMin = "1", ClampMax = "99" ) )
+	int32 ThresholdPercent = 40;
+
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override;
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( FString::Printf( TEXT( "Owner HP < %d%%" ), ThresholdPercent ) );
+	}
+};
+
 UCLASS( BlueprintType, meta = ( DisplayName = "Condition: After N Shots" ) )
 class LORDS_FRONTIERS_API UCardCondition_AfterNShots : public UCardCondition
 {
