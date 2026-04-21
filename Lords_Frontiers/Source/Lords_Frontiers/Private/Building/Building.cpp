@@ -277,6 +277,9 @@ void ABuilding::TakeDamage( int damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+
+	OnBuildingDamaged.Broadcast( this, damage );
+
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();

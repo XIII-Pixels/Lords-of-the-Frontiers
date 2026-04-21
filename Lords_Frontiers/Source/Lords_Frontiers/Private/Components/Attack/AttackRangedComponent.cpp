@@ -263,8 +263,17 @@ void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target
 		return;
 	}
 
+	int32 finalDamage = ownerEntity->Stats().AttackDamage();
+
+	const int32 critChance = ownerEntity->Stats().CritChance();
+	if ( critChance > 0 && FMath::RandRange( 1, 100 ) <= critChance )
+	{
+		const float critMultiplier = 1.f + static_cast<float>( ownerEntity->Stats().CritDamageBonus() ) / 100.f;
+		finalDamage = FMath::RoundToInt( static_cast<float>( finalDamage ) * critMultiplier );
+	}
+
 	const bool bInitialized = projectile->Initialize(
-	    GetOwner(), target.Get(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
+	    GetOwner(), target.Get(), finalDamage, ProjectileSpeed_, ProjectileSpawnPosition_,
 	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_
 	);
 

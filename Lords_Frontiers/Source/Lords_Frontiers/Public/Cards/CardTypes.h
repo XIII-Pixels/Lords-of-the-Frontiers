@@ -45,6 +45,16 @@ enum class EBuildingType : uint8
 };
 
 UENUM( BlueprintType )
+enum class EDefensiveTowerType : uint8
+{
+	Generic		UMETA( DisplayName = "Generic" ),
+	Speed		UMETA( DisplayName = "Speed Tower" ),
+	Sniper		UMETA( DisplayName = "Sniper Tower" ),
+	Magic		UMETA( DisplayName = "Magic Tower" ),
+	Mortar		UMETA( DisplayName = "Mortar Tower" ),
+};
+
+UENUM( BlueprintType )
 enum class ETargetStateFilter : uint8
 {
 	Alive	UMETA( DisplayName = "Alive Only" ),
@@ -124,6 +134,10 @@ struct LORDS_FRONTIERS_API FBuildingTargetFilter
 		meta = ( EditCondition = "BuildingType == EBuildingType::Specific", EditConditionHides,
 			AllowAbstract = "false" ) )
 	TArray<TSubclassOf<AActor>> SpecificBuildingClasses;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Filter",
+		meta = ( EditCondition = "BuildingType == EBuildingType::Defensive", EditConditionHides ) )
+	TSet<EDefensiveTowerType> DefensiveTowerTypes;
 
 	FText GetTargetDescription() const;
 

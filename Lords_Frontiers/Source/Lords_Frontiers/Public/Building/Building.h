@@ -15,6 +15,7 @@ class UBoxComponent;
 class UNiagaraSystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -89,6 +90,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable )
 	FOnBuildingDeath OnBuildingDied;
+
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingDamaged OnBuildingDamaged;
 
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )

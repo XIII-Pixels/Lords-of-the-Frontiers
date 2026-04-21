@@ -127,6 +127,12 @@ void UCardSelectionWidget::CreateCardWidgets( const TArray<UCardDataAsset*>& car
 		return;
 	}
 
+	if ( CardsScrollBox )
+	{
+		CardsScrollBox->SetOrientation( Orient_Horizontal );
+		CardsScrollBox->ClearChildren();
+	}
+
 	for ( UCardDataAsset* cardData : cards )
 	{
 		if ( !cardData )

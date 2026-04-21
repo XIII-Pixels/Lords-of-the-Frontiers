@@ -63,7 +63,18 @@ bool FBuildingTargetFilter::MatchesBuilding( const AActor* building ) const
 		return true;
 
 	case EBuildingType::Defensive:
-		return building->IsA<ADefensiveBuilding>();
+	{
+		const ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( building );
+		if ( !tower )
+		{
+			return false;
+		}
+		if ( DefensiveTowerTypes.Num() == 0 )
+		{
+			return true;
+		}
+		return DefensiveTowerTypes.Contains( tower->DefensiveTowerType() );
+	}
 
 	case EBuildingType::Resource:
 		return building->IsA<AResourceBuilding>();

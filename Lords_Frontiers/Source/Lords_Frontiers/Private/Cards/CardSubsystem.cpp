@@ -246,7 +246,7 @@ void UCardSubsystem::ApplySingleCardOnce(
 }
 
 void UCardSubsystem::ApplyCardEvent(
-	UCardDataAsset* card, int32 eventIndex, const FCardEvent& event,
+    UCardDataAsset* card, int32 eventIndex, const FCardEvent& event,
     int32 waveNumber, int32 stackCount, const TArray<ABuilding*>& buildings )
 {
 	bool bHasGlobalEffect = false;
