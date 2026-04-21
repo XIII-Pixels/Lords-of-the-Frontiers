@@ -4,14 +4,18 @@
 #include "Cards/CardEffectHostComponent.h"
 #include "Cards/CardEffects/CardEffect_StatModifier.h"
 #include "Cards/CardEffects/StatReflectionHelpers.h"
+#include "Cards/CardDataAsset.h"
 #include "EntityStats.h"
 
 #include "UObject/UnrealType.h"
 
 namespace
 {
-	const FName StacksTag( TEXT( "stacks" ) );
-	const FName AccumulatedTag( TEXT( "accum" ) );
+	FName MakeStackingKey( const UCardDataAsset* card )
+	{
+		const FString cardName = card ? card->GetName() : TEXT( "null" );
+		return FName( *FString::Printf( TEXT( "%s#stacking_accum" ), *cardName ) );
+	}
 }
 
 void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext& context )
@@ -23,8 +27,7 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 		return;
 	}
 
-	const FName accumKey = UCardEffectHostComponent::MakeCounterKey(
-		context.SourceCard.Get(), context.EventIndex, AccumulatedTag );
+	const FName accumKey = MakeStackingKey( context.SourceCard.Get() );
 
 	if ( context.TriggerReason == ECardTriggerReason::TargetChanged )
 	{
@@ -41,7 +44,9 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 		return;
 	}
 
-	if ( context.TriggerReason != ECardTriggerReason::AttackFired )
+	if ( context.TriggerReason != ECardTriggerReason::AttackFired &&
+	     context.TriggerReason != ECardTriggerReason::HitLanded &&
+	     context.TriggerReason != ECardTriggerReason::Missed )
 	{
 		return;
 	}
@@ -49,15 +54,19 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 	const int32 accumMilli = host->GetCounter( accumKey );
 	const float accumulated = static_cast<float>( accumMilli ) / 1000.f;
 
-	if ( MaxAccumulated > 0.f && accumulated + 1e-3f >= MaxAccumulated )
+	const float currentAbs = FMath::Abs( accumulated );
+
+	if ( MaxAccumulated > 0.f && currentAbs + 1e-3f >= MaxAccumulated )
 	{
 		return;
 	}
 
 	float step = StepPerTrigger;
-	if ( MaxAccumulated > 0.f && accumulated + step > MaxAccumulated )
+	const float newAbs = currentAbs + FMath::Abs( step );
+	if ( MaxAccumulated > 0.f && newAbs > MaxAccumulated )
 	{
-		step = MaxAccumulated - accumulated;
+		const float allowedAbs = FMath::Max( 0.f, MaxAccumulated - currentAbs );
+		step = step >= 0.f ? allowedAbs : -allowedAbs;
 	}
 
 	if ( FMath::IsNearlyZero( step ) )
@@ -78,8 +87,7 @@ void UCardEffect_StackingBuff::Revert_Implementation( const FCardEffectContext& 
 		return;
 	}
 
-	const FName accumKey = UCardEffectHostComponent::MakeCounterKey(
-		context.SourceCard.Get(), context.EventIndex, AccumulatedTag );
+	const FName accumKey = MakeStackingKey( context.SourceCard.Get() );
 
 	const int32 accumMilli = host->GetCounter( accumKey );
 	if ( accumMilli != 0 )
