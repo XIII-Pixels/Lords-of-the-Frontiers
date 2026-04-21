@@ -179,7 +179,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 			for ( int32 enemyIndex = 0; enemyIndex < PortalEntry.Count; ++enemyIndex )
 			{
 				const float timeFromWaveStart =
-				    SpawnSettings->StartDelay + ( enemyIndex * SpawnSettings->SpawnInterval );
+				    SpawnSettings->StartDelay + ( enemyIndex * SpawnSettings->SpawnInterval ) + 0.05f;
 
 				if ( timeFromWaveStart < 0.f )
 				{
