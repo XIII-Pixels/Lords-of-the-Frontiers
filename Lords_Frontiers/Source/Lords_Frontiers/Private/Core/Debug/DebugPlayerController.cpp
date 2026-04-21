@@ -3,6 +3,7 @@
 #include "Core/Debug/DebugPlayerController.h"
 
 #include "Building/Construction/BuildManager.h"
+#include "Cards/CardSubsystem.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Cards/CardSelectionHUDComponent.h"
 
@@ -148,5 +149,45 @@ void ADebugPlayerController::HandleEscape()
 	if ( BuildManager_ && BuildManager_->IsPlacing() )
 	{
 		BuildManager_->CancelPlacing();
+	}
+}
+
+void ADebugPlayerController::Card_ToggleDebug()
+{
+	if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		cards->ToggleDebugShowAll();
+	}
+}
+
+void ADebugPlayerController::Card_Apply( FName cardID )
+{
+	if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		cards->DebugApplyCardByID( cardID );
+	}
+}
+
+void ADebugPlayerController::Card_Unlock( FName cardID )
+{
+	if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		cards->UnlockCardByID( cardID );
+	}
+}
+
+void ADebugPlayerController::Card_Lock( FName cardID )
+{
+	if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		cards->LockCardByID( cardID );
+	}
+}
+
+void ADebugPlayerController::Card_ResetUnlocks()
+{
+	if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		cards->ResetUnlocksToDefaults();
 	}
 }

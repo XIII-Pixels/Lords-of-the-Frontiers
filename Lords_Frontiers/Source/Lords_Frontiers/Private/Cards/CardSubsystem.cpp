@@ -1,16 +1,18 @@
 #include "Cards/CardSubsystem.h"
 
 #include "Building/Building.h"
-#include "Building/ResourceBuilding.h"
+#include "Cards/CardCondition.h"
 #include "Cards/CardDataAsset.h"
+#include "Cards/CardEffect.h"
+#include "Cards/CardEffectHostComponent.h"
 #include "Cards/CardPoolConfig.h"
+#include "Cards/CardPoolResolver.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
-#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCardSubsystem, Log, All );
 
@@ -63,8 +65,8 @@ void UCardSubsystem::SetPoolConfig( UCardPoolConfig* config )
 	}
 
 	UE_LOG(
-	    LogCardSubsystem, Log, TEXT( "Pool config set: %d cards, offer %d, select %d" ), PoolConfig_->CardPool.Num(),
-	    PoolConfig_->CardsToOffer, PoolConfig_->CardsToSelect
+	    LogCardSubsystem, Log, TEXT( "Pool config set: %d cards, offer %d, select %d" ),
+	    PoolConfig_->CardPool.Num(), PoolConfig_->CardsToOffer, PoolConfig_->CardsToSelect
 	);
 
 	for ( UCardDataAsset* card : PoolConfig_->StartingCards )
@@ -89,7 +91,34 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 
 	CurrentWaveNumber_ = waveNumber;
 
-	TArray<UCardDataAsset*> availableCards = GenerateCardSelection( PoolConfig_->CardsToOffer );
+	TArray<UCardDataAsset*> availableCards;
+
+	if ( PoolConfig_->bDebugShowAllCards )
+	{
+		availableCards.Reserve( PoolConfig_->CardPool.Num() );
+		for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+		{
+			if ( card )
+			{
+				availableCards.Add( card.Get() );
+			}
+		}
+	}
+	else
+	{
+		TArray<TObjectPtr<UCardDataAsset>> unlockedPool;
+		unlockedPool.Reserve( PoolConfig_->CardPool.Num() );
+		for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+		{
+			if ( card && IsCardUnlocked( card.Get() ) )
+			{
+				unlockedPool.Add( card );
+			}
+		}
+
+		availableCards = FCardPoolResolver::Resolve(
+			unlockedPool, AppliedCardHistory_, PoolConfig_->CardsToOffer );
+	}
 
 	if ( availableCards.Num() == 0 )
 	{
@@ -99,6 +128,7 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 	}
 
 	FCardChoice choice;
+	choice.AvailableCards.Reserve( availableCards.Num() );
 	for ( UCardDataAsset* card : availableCards )
 	{
 		choice.AvailableCards.Add( card );
@@ -107,8 +137,9 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 	choice.WaveNumber = waveNumber;
 
 	UE_LOG(
-	    LogCardSubsystem, Log, TEXT( "Card selection requested: %d cards, select %d, wave %d" ),
-	    choice.AvailableCards.Num(), choice.CardsToSelect, choice.WaveNumber
+	    LogCardSubsystem, Log, TEXT( "Card selection requested: %d cards, select %d, wave %d (debug=%d)" ),
+	    choice.AvailableCards.Num(), choice.CardsToSelect, choice.WaveNumber,
+	    PoolConfig_->bDebugShowAllCards ? 1 : 0
 	);
 
 	OnCardSelectionRequired.Broadcast( choice );
@@ -119,7 +150,8 @@ void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selected
 	if ( PoolConfig_ && selectedCards.Num() > PoolConfig_->CardsToSelect )
 	{
 		UE_LOG(
-		    LogCardSubsystem, Warning, TEXT( "ApplySelectedCards: Received %d cards but max allowed is %d — clamping" ),
+		    LogCardSubsystem, Warning,
+		    TEXT( "ApplySelectedCards: Received %d cards but max allowed is %d — clamping" ),
 		    selectedCards.Num(), PoolConfig_->CardsToSelect
 		);
 	}
@@ -130,13 +162,14 @@ void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selected
 	TArray<ABuilding*> cachedBuildings = GetAllBuildings();
 
 	TArray<UCardDataAsset*> appliedList;
+	appliedList.Reserve( maxToApply );
 
 	for ( int32 i = 0; i < maxToApply; ++i )
 	{
 		UCardDataAsset* card = selectedCards[i];
 		if ( card )
 		{
-			ApplySingleCardInternal( card, CurrentWaveNumber_, cachedBuildings );
+			ApplySingleCardOnce( card, CurrentWaveNumber_, cachedBuildings );
 			appliedList.Add( card );
 		}
 	}
@@ -156,16 +189,15 @@ void UCardSubsystem::ApplySingleCard( UCardDataAsset* card, int32 waveNumber )
 	}
 
 	TArray<ABuilding*> buildings = GetAllBuildings();
-	ApplySingleCardInternal( card, waveNumber, buildings );
+	ApplySingleCardOnce( card, waveNumber, buildings );
 
 	TArray<UCardDataAsset*> appliedList;
 	appliedList.Add( card );
 	OnCardsApplied.Broadcast( appliedList );
 }
 
-void UCardSubsystem::ApplySingleCardInternal(
-    UCardDataAsset* card, int32 waveNumber, const TArray<ABuilding*>& buildings
-)
+void UCardSubsystem::ApplySingleCardOnce(
+    UCardDataAsset* card, int32 waveNumber, const TArray<ABuilding*>& buildings )
 {
 	if ( !card )
 	{
@@ -182,44 +214,14 @@ void UCardSubsystem::ApplySingleCardInternal(
 		return;
 	}
 
-	const bool bIsGlobal = ( card->TargetFilter.BuildingType == EBuildingType::Any );
-
-	bool bHasBuildingTargetedMods = card->HasBuildingModifiers() || ( card->HasResourceModifiers() && !bIsGlobal );
-
-	if ( bHasBuildingTargetedMods )
-	{
-		int32 affectedCount = 0;
-
-		for ( ABuilding* building : buildings )
-		{
-			if ( card->AppliesToBuilding( building ) )
-			{
-				ApplyCardToBuilding( card, building );
-				affectedCount++;
-			}
-		}
-
-		UE_LOG(
-		    LogCardSubsystem, Log, TEXT( "Applied card '%s' to %d buildings" ), *card->CardName.ToString(),
-		    affectedCount
-		);
-	}
-
-	if ( card->HasResourceModifiers() && bIsGlobal )
-	{
-		ApplyGlobalEconomyModifiers( card, 1 );
-
-		UE_LOG(
-		    LogCardSubsystem, Log, TEXT( "Applied card '%s' as global economy modifier" ), *card->CardName.ToString()
-		);
-	}
-
+	int32 newStackCount = 1;
 	bool bFoundExisting = false;
 	for ( FAppliedCardRecord& record : AppliedCardHistory_ )
 	{
 		if ( record.Card == card )
 		{
 			record.StackCount++;
+			newStackCount = record.StackCount;
 			bFoundExisting = true;
 			break;
 		}
@@ -228,288 +230,145 @@ void UCardSubsystem::ApplySingleCardInternal(
 	if ( !bFoundExisting )
 	{
 		AppliedCardHistory_.Add( FAppliedCardRecord( card, waveNumber ) );
+		newStackCount = 1;
 	}
 
-	UE_LOG( LogCardSubsystem, Log, TEXT( "Card '%s' applied (wave %d)" ), *card->CardName.ToString(), waveNumber );
+	AcquisitionLog_.Add( card );
+
+	for ( int32 eventIndex = 0; eventIndex < card->Events.Num(); ++eventIndex )
+	{
+		ApplyCardEvent( card, eventIndex, card->Events[eventIndex], waveNumber, newStackCount, buildings );
+	}
+
+	UE_LOG(
+	    LogCardSubsystem, Log, TEXT( "Card '%s' applied (wave %d, stack %d)" ),
+	    *card->CardName.ToString(), waveNumber, newStackCount );
 }
 
-TArray<UCardDataAsset*> UCardSubsystem::GenerateCardSelection( int32 count )
+void UCardSubsystem::ApplyCardEvent(
+	UCardDataAsset* card, int32 eventIndex, const FCardEvent& event,
+    int32 waveNumber, int32 stackCount, const TArray<ABuilding*>& buildings )
 {
-	TArray<UCardDataAsset*> result;
+	bool bHasGlobalEffect = false;
+	bool bHasPerBuildingEffect = false;
 
-	if ( !PoolConfig_ || PoolConfig_->CardPool.Num() == 0 )
+	for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 	{
-		return result;
-	}
-
-	TArray<TPair<UCardDataAsset*, float>> weightedCards;
-	float totalWeight = 0.0f;
-
-	for ( UCardDataAsset* card : PoolConfig_->CardPool )
-	{
-		if ( !card )
+		if ( !effect )
 		{
 			continue;
 		}
-
-		if ( !card->bCanStack )
+		if ( effect->IsGlobalEffect() )
 		{
-			bool bAlreadyApplied = false;
-			for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
+			bHasGlobalEffect = true;
+		}
+		else
+		{
+			bHasPerBuildingEffect = true;
+		}
+	}
+
+	if ( bHasGlobalEffect )
+	{
+		FCardEffectContext ctx = MakeContext( card, eventIndex, stackCount, waveNumber, nullptr );
+		if ( EvaluateConditions( event, ctx ) )
+		{
+			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 			{
-				if ( record.Card == card )
+				if ( effect && effect->IsGlobalEffect() )
 				{
-					bAlreadyApplied = true;
-					break;
+					effect->Apply( ctx );
 				}
 			}
+			OnEconomyBonusesChanged.Broadcast( EconomyBonuses_ );
+		}
+	}
 
-			if ( bAlreadyApplied )
+	if ( bHasPerBuildingEffect )
+	{
+		int32 affected = 0;
+		for ( ABuilding* building : buildings )
+		{
+			if ( !IsValid( building ) )
 			{
 				continue;
 			}
-		}
-
-		weightedCards.Add( TPair<UCardDataAsset*, float>( card, card->SelectionWeight ) );
-		totalWeight += card->SelectionWeight;
-	}
-
-	while ( result.Num() < count && weightedCards.Num() > 0 )
-	{
-		float randomValue = FMath::FRand() * totalWeight;
-		float currentWeight = 0.0f;
-		bool bSelected = false;
-
-		for ( int32 i = 0; i < weightedCards.Num(); ++i )
-		{
-			currentWeight += weightedCards[i].Value;
-
-			if ( randomValue <= currentWeight )
+			if ( !event.MatchesBuilding( building ) )
 			{
-				result.Add( weightedCards[i].Key );
-				totalWeight -= weightedCards[i].Value;
-				weightedCards.RemoveAt( i );
-				bSelected = true;
-				break;
+				continue;
 			}
+
+			FCardEffectContext ctx = MakeContext( card, eventIndex, stackCount, waveNumber, building );
+			if ( !EvaluateConditions( event, ctx ) )
+			{
+				continue;
+			}
+
+			UCardEffectHostComponent* host = nullptr;
+			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+			{
+				if ( !effect || effect->IsGlobalEffect() )
+				{
+					continue;
+				}
+
+				effect->Apply( ctx );
+
+				if ( effect->RequiresRuntimeRegistration() )
+				{
+					if ( !host )
+					{
+						host = EnsureEffectHost( building );
+						ctx.EffectHost = host;
+					}
+					if ( host )
+					{
+						host->RegisterEffect( card, eventIndex, effect );
+					}
+				}
+			}
+			affected++;
 		}
 
-		if ( !bSelected && weightedCards.Num() > 0 )
-		{
-			int32 lastIndex = weightedCards.Num() - 1;
-			result.Add( weightedCards[lastIndex].Key );
-			totalWeight -= weightedCards[lastIndex].Value;
-			weightedCards.RemoveAt( lastIndex );
-		}
-	}
-
-	return result;
-}
-
-void UCardSubsystem::ApplyCardToBuilding( UCardDataAsset* card, ABuilding* building )
-{
-	if ( !card || !building )
-	{
-		return;
-	}
-
-	const bool bIsGlobal = ( card->TargetFilter.BuildingType == EBuildingType::Any );
-
-	for ( const FCardStatModifier& modifier : card->Modifiers )
-	{
-		if ( !modifier.IsValid() )
-		{
-			continue;
-		}
-
-		if ( modifier.IsResourceModifier() && bIsGlobal )
-		{
-			continue;
-		}
-
-		ApplyModifierToBuilding( modifier, building );
-	}
-}
-
-void UCardSubsystem::ApplyModifierToBuilding( const FCardStatModifier& modifier, ABuilding* building )
-{
-	if ( !building || !modifier.IsValid() )
-	{
-		return;
-	}
-
-	if ( modifier.Stat == EBuildingStat::MaintenanceCost )
-	{
-		ApplyMaintenanceCostModifier( modifier, building );
-	}
-	else if ( modifier.Stat == EBuildingStat::BuildingProduction )
-	{
-		ApplyProductionModifier( modifier, building );
-	}
-	else if ( modifier.IsBuildingStatModifier() )
-	{
-		ApplyEntityStatModifier( modifier, building );
-	}
-}
-
-void UCardSubsystem::ApplyMaintenanceCostModifier( const FCardStatModifier& modifier, ABuilding* building )
-{
-	if ( !building )
-	{
-		return;
-	}
-
-	if ( modifier.ResourceTarget == EResourceTargetType::All )
-	{
-		building->ModifyMaintenanceCostAll( modifier.FlatValue );
-	}
-	else
-	{
-		EResourceType resourceType = CardTypeHelpers::ToResourceType( modifier.ResourceTarget );
-		building->ModifyMaintenanceCost( resourceType, modifier.FlatValue );
-	}
-
-	UE_LOG(
-	    LogCardSubsystem, Verbose, TEXT( "Modified MaintenanceCost on %s by %d (%s)" ), *building->GetName(),
-	    modifier.FlatValue, *CardTypeHelpers::GetResourceName( modifier.ResourceTarget )
-	);
-}
-
-void UCardSubsystem::ApplyProductionModifier( const FCardStatModifier& modifier, ABuilding* building )
-{
-	AResourceBuilding* resourceBuilding = Cast<AResourceBuilding>( building );
-	if ( !resourceBuilding )
-	{
 		UE_LOG(
-		    LogCardSubsystem, Verbose, TEXT( "BuildingProduction modifier on non-ResourceBuilding %s — skipped" ),
-		    building ? *building->GetName() : TEXT( "null" )
-		);
-		return;
-	}
-
-	if ( modifier.ResourceTarget == EResourceTargetType::All )
-	{
-		resourceBuilding->ModifyProductionAll( modifier.FlatValue );
-	}
-	else
-	{
-		EResourceType resourceType = CardTypeHelpers::ToResourceType( modifier.ResourceTarget );
-		resourceBuilding->ModifyProduction( resourceType, modifier.FlatValue );
-	}
-
-	UE_LOG(
-	    LogCardSubsystem, Verbose, TEXT( "Modified Production on %s by %d (%s)" ), *resourceBuilding->GetName(),
-	    modifier.FlatValue, *CardTypeHelpers::GetResourceName( modifier.ResourceTarget )
-	);
-}
-
-void UCardSubsystem::ApplyEntityStatModifier( const FCardStatModifier& modifier, ABuilding* building )
-{
-	if ( !building || !modifier.IsBuildingStatModifier() )
-	{
-		return;
-	}
-
-	FEntityStats& stats = building->Stats();
-
-	switch ( modifier.Stat )
-	{
-	case EBuildingStat::MaxHealth:
-	{
-		int32 newMaxHealth = stats.MaxHealth() + modifier.FlatValue;
-		stats.SetMaxHealth( FMath::Max( 1, newMaxHealth ) );
-		break;
-	}
-
-	case EBuildingStat::AttackDamage:
-	{
-		int32 newDamage = stats.AttackDamage() + modifier.FlatValue;
-		stats.SetAttackDamage( FMath::Max( 0, newDamage ) );
-		break;
-	}
-
-	case EBuildingStat::AttackRange:
-	{
-		float newRange = stats.AttackRange() + static_cast<float>( modifier.FlatValue );
-		stats.SetAttackRange( FMath::Max( 0.0f, newRange ) );
-		break;
-	}
-
-	case EBuildingStat::AttackCooldown:
-	{
-		// FlatValue is in "centiseconds": value of 10 = 0.1s change
-		// Negative value = faster attacks (better)
-		static constexpr float CooldownPerUnit = 0.01f;
-		static constexpr float MinCooldown = 0.1f;
-
-		float newCooldown = stats.AttackCooldown() + static_cast<float>( modifier.FlatValue ) * CooldownPerUnit;
-		stats.SetAttackCooldown( FMath::Max( MinCooldown, newCooldown ) );
-		break;
-	}
-
-	case EBuildingStat::MaxSpeed:
-	{
-		float newSpeed = stats.MaxSpeed() + static_cast<float>( modifier.FlatValue );
-		stats.SetMaxSpeed( FMath::Max( 0.0f, newSpeed ) );
-		break;
-	}
-
-	default:
-		break;
+		    LogCardSubsystem, Verbose, TEXT( "Event %d on '%s' affected %d buildings" ),
+		    eventIndex, *card->CardName.ToString(), affected );
 	}
 }
 
-// =============================================================================
-// Economy
-// =============================================================================
-
-void UCardSubsystem::ApplyGlobalEconomyModifiers( UCardDataAsset* card, int32 stackCount )
+FCardEffectContext UCardSubsystem::MakeContext(
+    UCardDataAsset* card, int32 eventIndex, int32 stackCount, int32 waveNumber, ABuilding* building )
 {
-	ApplyGlobalEconomyModifiersInternal( card, stackCount );
-	OnEconomyBonusesChanged.Broadcast( EconomyBonuses_ );
-}
+	FCardEffectContext ctx;
+	ctx.SourceCard = card;
+	ctx.Building = building;
+	ctx.EventIndex = eventIndex;
+	ctx.WaveNumber = waveNumber;
+	ctx.StackCount = stackCount;
+	ctx.Subsystem = this;
 
-void UCardSubsystem::ApplyGlobalEconomyModifiersInternal( UCardDataAsset* card, int32 stackCount )
-{
-	if ( !card )
+	if ( building )
 	{
-		return;
+		ctx.EffectHost = building->FindComponentByClass<UCardEffectHostComponent>();
 	}
 
-	for ( const FCardStatModifier& modifier : card->Modifiers )
-	{
-		if ( modifier.IsResourceModifier() )
-		{
-			for ( int32 i = 0; i < stackCount; ++i )
-			{
-				EconomyBonuses_.ApplyModifier( modifier );
-			}
-		}
-	}
+	return ctx;
 }
 
-void UCardSubsystem::RecalculateEconomyBonuses()
+bool UCardSubsystem::EvaluateConditions( const FCardEvent& event, const FCardEffectContext& context ) const
 {
-	EconomyBonuses_.Reset();
-
-	for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
+	for ( const TObjectPtr<UCardCondition>& condition : event.Conditions )
 	{
-		if ( !record.Card || !record.Card->HasResourceModifiers() )
+		if ( !condition )
 		{
 			continue;
 		}
-
-		// Only global cards contribute to economy bonuses
-		if ( record.Card->TargetFilter.BuildingType != EBuildingType::Any )
+		if ( !condition->IsMet( context ) )
 		{
-			continue;
+			return false;
 		}
-
-		ApplyGlobalEconomyModifiersInternal( record.Card, record.StackCount );
 	}
-
-	// Single broadcast after full recalculation
-	OnEconomyBonusesChanged.Broadcast( EconomyBonuses_ );
+	return true;
 }
 
 int32 UCardSubsystem::GetProductionBonus( EResourceTargetType resourceType ) const
@@ -522,30 +381,14 @@ int32 UCardSubsystem::GetMaintenanceCostReduction( EResourceTargetType resourceT
 	return EconomyBonuses_.GetMaintenanceReduction( resourceType );
 }
 
-// =============================================================================
-// Building Queries
-// =============================================================================
-
-TArray<ABuilding*> UCardSubsystem::GetAllBuildings() const
+void UCardSubsystem::AddEconomyProductionBonus( EResourceTargetType target, int32 delta )
 {
-	TArray<ABuilding*> buildings;
+	EconomyBonuses_.AddProductionBonus( target, delta );
+}
 
-	UWorld* world = GetWorldSafe();
-	if ( !world )
-	{
-		return buildings;
-	}
-
-	for ( TActorIterator<ABuilding> it( world ); it; ++it )
-	{
-		ABuilding* building = *it;
-		if ( building && !building->IsDestroyed() )
-		{
-			buildings.Add( building );
-		}
-	}
-
-	return buildings;
+void UCardSubsystem::AddEconomyMaintenanceReduction( EResourceTargetType target, int32 delta )
+{
+	EconomyBonuses_.AddMaintenanceReduction( target, delta );
 }
 
 int32 UCardSubsystem::GetCardStackCount( const UCardDataAsset* card ) const
@@ -560,77 +403,264 @@ int32 UCardSubsystem::GetCardStackCount( const UCardDataAsset* card ) const
 	return 0;
 }
 
+bool UCardSubsystem::IsCardUnlocked( const UCardDataAsset* card ) const
+{
+	if ( !card )
+	{
+		return false;
+	}
+
+	UCardDataAsset* mutableCard = const_cast<UCardDataAsset*>( card );
+
+	if ( RuntimeLocked_.Contains( mutableCard ) )
+	{
+		return false;
+	}
+
+	if ( RuntimeUnlocked_.Contains( mutableCard ) )
+	{
+		return true;
+	}
+
+	return card->bUnlockedByDefault;
+}
+
+void UCardSubsystem::UnlockCard( UCardDataAsset* card )
+{
+	if ( !card )
+	{
+		return;
+	}
+
+	RuntimeLocked_.Remove( card );
+	if ( !card->bUnlockedByDefault )
+	{
+		RuntimeUnlocked_.Add( card );
+	}
+
+	UE_LOG( LogCardSubsystem, Log, TEXT( "Card '%s' unlocked" ), *card->CardName.ToString() );
+}
+
+void UCardSubsystem::LockCard( UCardDataAsset* card )
+{
+	if ( !card )
+	{
+		return;
+	}
+
+	RuntimeUnlocked_.Remove( card );
+	if ( card->bUnlockedByDefault )
+	{
+		RuntimeLocked_.Add( card );
+	}
+
+	UE_LOG( LogCardSubsystem, Log, TEXT( "Card '%s' locked" ), *card->CardName.ToString() );
+}
+
+void UCardSubsystem::UnlockCardByID( FName cardID )
+{
+	if ( !PoolConfig_ || cardID.IsNone() )
+	{
+		return;
+	}
+
+	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	{
+		if ( card && card->CardID == cardID )
+		{
+			UnlockCard( card.Get() );
+			return;
+		}
+	}
+
+	UE_LOG( LogCardSubsystem, Warning, TEXT( "UnlockCardByID: '%s' not found in pool" ), *cardID.ToString() );
+}
+
+void UCardSubsystem::LockCardByID( FName cardID )
+{
+	if ( !PoolConfig_ || cardID.IsNone() )
+	{
+		return;
+	}
+
+	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	{
+		if ( card && card->CardID == cardID )
+		{
+			LockCard( card.Get() );
+			return;
+		}
+	}
+
+	UE_LOG( LogCardSubsystem, Warning, TEXT( "LockCardByID: '%s' not found in pool" ), *cardID.ToString() );
+}
+
+void UCardSubsystem::ResetUnlocksToDefaults()
+{
+	RuntimeUnlocked_.Empty();
+	RuntimeLocked_.Empty();
+	UE_LOG( LogCardSubsystem, Log, TEXT( "Card unlocks reset to defaults" ) );
+}
+
+TArray<UCardDataAsset*> UCardSubsystem::GetUnlockedCards() const
+{
+	TArray<UCardDataAsset*> result;
+	if ( !PoolConfig_ )
+	{
+		return result;
+	}
+
+	result.Reserve( PoolConfig_->CardPool.Num() );
+	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	{
+		if ( card && IsCardUnlocked( card.Get() ) )
+		{
+			result.Add( card.Get() );
+		}
+	}
+	return result;
+}
+
 void UCardSubsystem::ResetCardHistory()
 {
-	// Revert building modifications BEFORE clearing history
-	RevertAllBuildingModifiers();
+	for ( int32 i = AppliedCardHistory_.Num() - 1; i >= 0; --i )
+	{
+		RevertAppliedRecord( AppliedCardHistory_[i] );
+	}
 
 	AppliedCardHistory_.Empty();
+	AcquisitionLog_.Empty();
 	EconomyBonuses_.Reset();
 	CurrentWaveNumber_ = 0;
+
+	UWorld* world = GetWorldSafe();
+	if ( world )
+	{
+		for ( TActorIterator<ABuilding> it( world ); it; ++it )
+		{
+			if ( ABuilding* b = *it )
+			{
+				if ( UCardEffectHostComponent* host = b->FindComponentByClass<UCardEffectHostComponent>() )
+				{
+					host->ClearAll();
+				}
+			}
+		}
+	}
 
 	OnEconomyBonusesChanged.Broadcast( EconomyBonuses_ );
 
 	UE_LOG( LogCardSubsystem, Log, TEXT( "Card history reset — all modifiers reverted" ) );
 }
 
-void UCardSubsystem::RevertAllBuildingModifiers()
+void UCardSubsystem::RevertAppliedRecord( const FAppliedCardRecord& record )
 {
+	UCardDataAsset* card = record.Card;
+	if ( !card )
+	{
+		return;
+	}
+
 	TArray<ABuilding*> buildings = GetAllBuildings();
 
-	for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
+	for ( int32 stackStep = record.StackCount; stackStep >= 1; --stackStep )
 	{
-		if ( !record.Card )
+		for ( int32 eventIndex = 0; eventIndex < card->Events.Num(); ++eventIndex )
 		{
-			continue;
-		}
+			const FCardEvent& event = card->Events[eventIndex];
 
-		const bool bIsGlobal = ( record.Card->TargetFilter.BuildingType == EBuildingType::Any );
-
-		bool bHasTargetedModifiers =
-		    record.Card->HasBuildingModifiers() || ( record.Card->HasResourceModifiers() && !bIsGlobal );
-
-		if ( !bHasTargetedModifiers )
-		{
-			continue;
-		}
-
-		for ( ABuilding* building : buildings )
-		{
-			if ( !record.Card->AppliesToBuilding( building ) )
+			bool bHasGlobal = false;
+			bool bHasPerBuilding = false;
+			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 			{
-				continue;
+				if ( !effect )
+				{
+					continue;
+				}
+				if ( effect->IsGlobalEffect() )
+				{
+					bHasGlobal = true;
+				}
+				else
+				{
+					bHasPerBuilding = true;
+				}
 			}
 
-			// Apply inverse modifiers for each stack
-			for ( int32 stack = 0; stack < record.StackCount; ++stack )
+			if ( bHasGlobal )
 			{
-				for ( const FCardStatModifier& modifier : record.Card->Modifiers )
+				FCardEffectContext ctx = MakeContext( card, eventIndex, stackStep, record.WaveSelected, nullptr );
+				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 				{
-					if ( !modifier.IsValid() )
+					if ( effect && effect->IsGlobalEffect() )
+					{
+						effect->Revert( ctx );
+					}
+				}
+			}
+
+			if ( bHasPerBuilding )
+			{
+				for ( ABuilding* building : buildings )
+				{
+					if ( !IsValid( building ) || !event.MatchesBuilding( building ) )
 					{
 						continue;
 					}
-
-					// Skip resource modifiers on global cards (economy, not building)
-					if ( modifier.IsResourceModifier() && bIsGlobal )
+					FCardEffectContext ctx = MakeContext( card, eventIndex, stackStep, record.WaveSelected, building );
+					for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 					{
-						continue;
+						if ( effect && !effect->IsGlobalEffect() )
+						{
+							effect->Revert( ctx );
+						}
 					}
-
-					// Create inverted modifier
-					FCardStatModifier inverseMod = modifier;
-					inverseMod.FlatValue = -modifier.FlatValue;
-
-					ApplyModifierToBuilding( inverseMod, building );
 				}
 			}
 		}
 	}
+}
 
-	UE_LOG(
-	    LogCardSubsystem, Log, TEXT( "Reverted building modifiers from %d card records" ), AppliedCardHistory_.Num()
-	);
+TArray<ABuilding*> UCardSubsystem::GetAllBuildings() const
+{
+	TArray<ABuilding*> buildings;
+
+	UWorld* world = GetWorldSafe();
+	if ( !world )
+	{
+		return buildings;
+	}
+
+	for ( TActorIterator<ABuilding> it( world ); it; ++it )
+	{
+		ABuilding* building = *it;
+		if ( IsValid( building ) )
+		{
+			buildings.Add( building );
+		}
+	}
+
+	return buildings;
+}
+
+UCardEffectHostComponent* UCardSubsystem::EnsureEffectHost( ABuilding* building ) const
+{
+	if ( !building )
+	{
+		return nullptr;
+	}
+
+	if ( UCardEffectHostComponent* existing = building->FindComponentByClass<UCardEffectHostComponent>() )
+	{
+		return existing;
+	}
+
+	UCardEffectHostComponent* host = NewObject<UCardEffectHostComponent>( building );
+	if ( host )
+	{
+		host->RegisterComponent();
+	}
+	return host;
 }
 
 TArray<FAppliedCardBonus> UCardSubsystem::GetBuildingBonuses( const ABuilding* building ) const
@@ -644,29 +674,25 @@ TArray<FAppliedCardBonus> UCardSubsystem::GetBuildingBonuses( const ABuilding* b
 
 	for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
 	{
-		if ( !record.Card || !record.Card->AppliesToBuilding( building ) )
+		if ( !record.Card )
 		{
 			continue;
 		}
 
-		for ( const FCardStatModifier& modifier : record.Card->Modifiers )
+		for ( const FCardEvent& event : record.Card->Events )
 		{
-			if ( !modifier.IsValid() )
+			if ( !event.MatchesBuilding( building ) )
 			{
 				continue;
 			}
 
-			// Skip resource modifiers on global cards (they're economy, not per-building)
-			const bool bIsGlobal = ( record.Card->TargetFilter.BuildingType == EBuildingType::Any );
-			if ( modifier.IsResourceModifier() && bIsGlobal )
+			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 			{
-				continue;
+				if ( effect && !effect->IsGlobalEffect() )
+				{
+					bonuses.Add( FAppliedCardBonus( record.Card, effect, record.WaveSelected ) );
+				}
 			}
-
-			FCardStatModifier totalMod = modifier;
-			totalMod.FlatValue *= record.StackCount;
-
-			bonuses.Add( FAppliedCardBonus( record.Card, totalMod, record.WaveSelected ) );
 		}
 	}
 
@@ -680,24 +706,61 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 		return;
 	}
 
-	// Apply all existing cards to newly placed building
 	for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
 	{
-		if ( !record.Card )
+		UCardDataAsset* card = record.Card;
+		if ( !card )
 		{
 			continue;
 		}
 
-		// Check if card has modifiers that target this building
-		const bool bIsGlobal = ( record.Card->TargetFilter.BuildingType == EBuildingType::Any );
-		bool bHasTargetedModifiers =
-		    record.Card->HasBuildingModifiers() || ( record.Card->HasResourceModifiers() && !bIsGlobal );
-
-		if ( bHasTargetedModifiers && record.Card->AppliesToBuilding( building ) )
+		for ( int32 stack = 0; stack < record.StackCount; ++stack )
 		{
-			for ( int32 i = 0; i < record.StackCount; ++i )
+			for ( int32 eventIndex = 0; eventIndex < card->Events.Num(); ++eventIndex )
 			{
-				ApplyCardToBuilding( record.Card, building );
+				const FCardEvent& event = card->Events[eventIndex];
+
+				bool bHasPerBuilding = false;
+				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+				{
+					if ( effect && !effect->IsGlobalEffect() )
+					{
+						bHasPerBuilding = true;
+						break;
+					}
+				}
+				if ( !bHasPerBuilding )
+				{
+					continue;
+				}
+
+				if ( !event.MatchesBuilding( building ) )
+				{
+					continue;
+				}
+
+				FCardEffectContext ctx = MakeContext( card, eventIndex, stack + 1, record.WaveSelected, building );
+				if ( !EvaluateConditions( event, ctx ) )
+				{
+					continue;
+				}
+
+				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+				{
+					if ( !effect || effect->IsGlobalEffect() )
+					{
+						continue;
+					}
+					effect->Apply( ctx );
+
+					if ( effect->RequiresRuntimeRegistration() )
+					{
+						if ( UCardEffectHostComponent* host = EnsureEffectHost( building ) )
+						{
+							host->RegisterEffect( card, eventIndex, effect );
+						}
+					}
+				}
 			}
 		}
 	}
@@ -705,9 +768,39 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 	UE_LOG( LogCardSubsystem, Log, TEXT( "Applied existing cards to new building: %s" ), *building->GetName() );
 }
 
-// =============================================================================
-// GameLoop Integration
-// =============================================================================
+void UCardSubsystem::DebugApplyCardByID( FName cardID )
+{
+	if ( !PoolConfig_ || cardID.IsNone() )
+	{
+		return;
+	}
+
+	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	{
+		if ( card && card->CardID == cardID )
+		{
+			ApplySingleCard( card.Get(), CurrentWaveNumber_ );
+			UE_LOG( LogCardSubsystem, Log, TEXT( "Debug: applied card '%s'" ), *cardID.ToString() );
+			return;
+		}
+	}
+
+	UE_LOG( LogCardSubsystem, Warning, TEXT( "Debug: card '%s' not found in pool" ), *cardID.ToString() );
+}
+
+void UCardSubsystem::ToggleDebugShowAll()
+{
+	if ( !PoolConfig_ )
+	{
+		UE_LOG( LogCardSubsystem, Warning, TEXT( "ToggleDebugShowAll: no pool config set" ) );
+		return;
+	}
+
+	PoolConfig_->bDebugShowAllCards = !PoolConfig_->bDebugShowAllCards;
+	UE_LOG(
+	    LogCardSubsystem, Log, TEXT( "Debug ShowAllCards = %d" ),
+	    PoolConfig_->bDebugShowAllCards ? 1 : 0 );
+}
 
 void UCardSubsystem::BindToGameLoop()
 {
@@ -775,16 +868,15 @@ void UCardSubsystem::NotifyGameLoopToProceed()
 	if ( UGameLoopManager* gameLoop = CachedGameLoop_.Get() )
 	{
 		gameLoop->ConfirmRewardPhase();
+		return;
 	}
-	else
+
+	UCoreManager* coreManager = UCoreManager::Get( GetGameInstance() );
+	if ( coreManager )
 	{
-		UCoreManager* coreManager = UCoreManager::Get( GetGameInstance() );
-		if ( coreManager )
+		if ( UGameLoopManager* loop = coreManager->GetGameLoop() )
 		{
-			if ( UGameLoopManager* loop = coreManager->GetGameLoop() )
-			{
-				loop->ConfirmRewardPhase();
-			}
+			loop->ConfirmRewardPhase();
 		}
 	}
 }

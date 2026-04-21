@@ -1,39 +1,11 @@
 #include "Cards/CardDataAsset.h"
 
-#include "Building/Building.h"
+#include "Cards/CardCondition.h"
+#include "Cards/CardEffect.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
-
-UCardDataAsset::UCardDataAsset()
-{
-	SelectionWeight = 100.0f;
-}
-
-bool UCardDataAsset::AppliesToBuilding( const ABuilding* building ) const
-{
-	return TargetFilter.MatchesBuilding( building );
-}
-
-FText UCardDataAsset::GetFormattedDescription() const
-{
-	FString result = Description.ToString();
-
-	for ( int32 i = 0; i < Modifiers.Num(); ++i )
-	{
-		FString placeholder = FString::Printf( TEXT( "{%d}" ), i );
-		FString value = FString::Printf( TEXT( "%d" ), FMath::Abs( Modifiers[i].FlatValue ) );
-		result = result.Replace( *placeholder, *value );
-	}
-
-	return FText::FromString( result );
-}
-
-FText UCardDataAsset::GetTargetDescription() const
-{
-	return TargetFilter.GetTargetDescription();
-}
 
 FLinearColor UCardDataAsset::GetRarityColor() const
 {
@@ -59,40 +31,54 @@ FLinearColor UCardDataAsset::GetRarityColor() const
 	}
 }
 
-bool UCardDataAsset::HasValidModifiers() const
+FText UCardDataAsset::BuildDescription() const
 {
-	for ( const FCardStatModifier& mod : Modifiers )
+	if ( !Description.IsEmpty() )
 	{
-		if ( mod.IsValid() )
+		return Description;
+	}
+
+	TArray<FString> parts;
+
+	for ( const FCardEvent& event : Events )
+	{
+		for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 		{
-			return true;
+			if ( !effect )
+			{
+				continue;
+			}
+			FText text = effect->GetDisplayText();
+			if ( !text.IsEmpty() )
+			{
+				parts.Add( text.ToString() );
+			}
 		}
 	}
-	return false;
+
+	return FText::FromString( FString::Join( parts, TEXT( "\n" ) ) );
 }
 
-bool UCardDataAsset::HasBuildingModifiers() const
+FText UCardDataAsset::GetTargetDescription() const
 {
-	for ( const FCardStatModifier& mod : Modifiers )
+	if ( Events.Num() == 0 )
 	{
-		if ( mod.IsBuildingStatModifier() )
-		{
-			return true;
-		}
+		return FText::GetEmpty();
 	}
-	return false;
-}
 
-bool UCardDataAsset::HasResourceModifiers() const
-{
-	for ( const FCardStatModifier& mod : Modifiers )
+	if ( Events.Num() == 1 )
 	{
-		if ( mod.IsResourceModifier() )
-		{
-			return true;
-		}
+		return Events[0].TargetFilter.GetTargetDescription();
 	}
-	return false;
+
+	TSet<FString> uniqueTargets;
+	for ( const FCardEvent& event : Events )
+	{
+		uniqueTargets.Add( event.TargetFilter.GetTargetDescription().ToString() );
+	}
+
+	TArray<FString> asArray = uniqueTargets.Array();
+	return FText::FromString( FString::Join( asArray, TEXT( ", " ) ) );
 }
 
 #if WITH_EDITOR
@@ -112,60 +98,73 @@ EDataValidationResult UCardDataAsset::IsDataValid( FDataValidationContext& conte
 		result = EDataValidationResult::Invalid;
 	}
 
-	if ( Modifiers.Num() == 0 )
+	if ( Events.Num() == 0 )
 	{
-		context.AddWarning( FText::FromString( TEXT( "Card has no modifiers" ) ) );
+		context.AddWarning( FText::FromString(
+			TEXT( "Card has no events — it will have no effect when applied" ) ) );
 	}
 
-	if ( TargetFilter.BuildingType == EBuildingType::Specific )
+	for ( int32 i = 0; i < Events.Num(); ++i )
 	{
-		if ( TargetFilter.SpecificBuildingClasses.Num() == 0 )
+		const FCardEvent& event = Events[i];
+
+		if ( event.Effects.Num() == 0 )
 		{
-			context.AddError( FText::FromString(
-				TEXT( "Specific BuildingType selected but no classes specified" ) )
-			);
-			result = EDataValidationResult::Invalid;
+			context.AddWarning( FText::FromString(
+				FString::Printf( TEXT( "Event %d has no effects" ), i ) ) );
 		}
 
-		for ( int32 i = 0; i < TargetFilter.SpecificBuildingClasses.Num(); ++i )
+		for ( int32 j = 0; j < event.Effects.Num(); ++j )
 		{
-			if ( !TargetFilter.SpecificBuildingClasses[i] )
+			if ( !event.Effects[j] )
 			{
 				context.AddWarning( FText::FromString(
-					FString::Printf( TEXT( "SpecificBuildingClasses[%d] is null" ), i )
-				) );
+					FString::Printf( TEXT( "Event %d, Effect %d is null" ), i, j ) ) );
 			}
 		}
-	}
 
-	for ( int32 i = 0; i < Modifiers.Num(); ++i )
-	{
-		const FCardStatModifier& mod = Modifiers[i];
-
-		if ( !mod.IsValid() )
+		for ( int32 j = 0; j < event.Conditions.Num(); ++j )
 		{
-			context.AddWarning( FText::FromString(
-				FString::Printf( TEXT( "Modifier %d is invalid (None stat or zero value)" ), i )
-			) );
+			if ( !event.Conditions[j] )
+			{
+				context.AddWarning( FText::FromString(
+					FString::Printf( TEXT( "Event %d, Condition %d is null" ), i, j ) ) );
+			}
 		}
 
-		if ( mod.Stat == EBuildingStat::BuildingProduction &&
-		     TargetFilter.BuildingType != EBuildingType::Resource &&
-		     TargetFilter.BuildingType != EBuildingType::Any &&
-		     TargetFilter.BuildingType != EBuildingType::Specific )
+		if ( event.TargetFilter.BuildingType == EBuildingType::Specific &&
+		     event.TargetFilter.SpecificBuildingClasses.Num() == 0 )
 		{
-			context.AddWarning( FText::FromString(
-				FString::Printf(
-					TEXT( "Modifier %d is BuildingProduction but TargetFilter is not Resource — "
-					      "will only affect AResourceBuilding subclasses" ), i )
-			) );
+			context.AddError( FText::FromString(
+				FString::Printf( TEXT( "Event %d: Specific BuildingType selected but no classes listed" ), i ) ) );
+			result = EDataValidationResult::Invalid;
 		}
 	}
 
-	if ( SelectionWeight <= 0.0f )
+	if ( BaseWeight <= 0.f )
 	{
-		context.AddError( FText::FromString( TEXT( "SelectionWeight must be > 0" ) ) );
+		context.AddError( FText::FromString( TEXT( "BaseWeight must be > 0" ) ) );
 		result = EDataValidationResult::Invalid;
+	}
+
+	for ( const auto& pair : WeightMultipliers_Up )
+	{
+		if ( pair.Value <= 0.f )
+		{
+			context.AddWarning( FText::FromString( TEXT( "WeightMultipliers_Up has non-positive value" ) ) );
+		}
+	}
+	for ( const auto& pair : WeightMultipliers_Down )
+	{
+		if ( pair.Value <= 0.f )
+		{
+			context.AddWarning( FText::FromString( TEXT( "WeightMultipliers_Down has non-positive value" ) ) );
+		}
+	}
+
+	if ( ExcludedCards.Contains( const_cast<UCardDataAsset*>( this ) ) )
+	{
+		context.AddWarning( FText::FromString( TEXT( "Card excludes itself — redundant, will be filtered anyway" ) ) );
 	}
 
 	return result;

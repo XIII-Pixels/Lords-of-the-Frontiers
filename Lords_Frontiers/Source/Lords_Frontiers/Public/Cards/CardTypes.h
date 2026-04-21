@@ -6,45 +6,23 @@
 #include "CardTypes.generated.h"
 
 class UCardDataAsset;
+class UCardCondition;
+class UCardEffect;
+class UCardEffectHostComponent;
+class UCardSubsystem;
+class ABuilding;
 
-/**
- * EBuildingStat
- *
- * Stats that can be modified by cards.
- * Three categories:
- *   1. Building Stats — modify FEntityStats on matching buildings
- *   2. Global Economy — modify FEconomyBonuses (applied by EconomyComponent)
- *   3. Direct Building — modify building properties (MaintenanceCost, Production)
- */
 UENUM( BlueprintType )
-enum class EBuildingStat : uint8
+enum class ECardCategory : uint8
 {
-	None						UMETA( DisplayName = "None" ),
-
-	// === Building Stats (FEntityStats) ===
-	MaxHealth					UMETA( DisplayName = "Max Health" ),
-	AttackDamage				UMETA( DisplayName = "Attack Damage" ),
-	AttackRange					UMETA( DisplayName = "Attack Range" ),
-	AttackCooldown				UMETA( DisplayName = "Attack Cooldown" ),
-	MaxSpeed					UMETA( DisplayName = "Max Speed (Suddenly there will be units:) )" ),
-
-	// === Resource Modifiers ===
-	// Routing depends on the card's TargetFilter:
-	//   TargetFilter == Any  → applied as global economy bonus (FEconomyBonuses)
-	//   TargetFilter != Any  → applied directly to matching buildings
-
-	/** Modifies maintenance cost. Negative = cheaper. */
-	MaintenanceCost				UMETA( DisplayName = "Maintenance Cost" ),
-
-	/** Modifies resource production amount. */
-	BuildingProduction			UMETA( DisplayName = "Production" ),
+	None		UMETA( DisplayName = "None" ),
+	Offensive	UMETA( DisplayName = "Offensive" ),
+	Defensive	UMETA( DisplayName = "Defensive" ),
+	Economy		UMETA( DisplayName = "Economy" ),
+	Utility		UMETA( DisplayName = "Utility" ),
+	Special		UMETA( DisplayName = "Special" ),
 };
 
-/**
- * EResourceTargetType
- *
- * Which resource type the economy/direct modifier affects.
- */
 UENUM( BlueprintType )
 enum class EResourceTargetType : uint8
 {
@@ -55,11 +33,6 @@ enum class EResourceTargetType : uint8
 	Progress	UMETA( DisplayName = "Progress" ),
 };
 
-/**
- * EBuildingType
- *
- * Building categories for card targeting.
- */
 UENUM( BlueprintType )
 enum class EBuildingType : uint8
 {
@@ -71,9 +44,14 @@ enum class EBuildingType : uint8
 	Specific		UMETA( DisplayName = "Specific Classes" ),
 };
 
-/**
- * ECardRarity
- */
+UENUM( BlueprintType )
+enum class ETargetStateFilter : uint8
+{
+	Alive	UMETA( DisplayName = "Alive Only" ),
+	Dead	UMETA( DisplayName = "Destroyed Only" ),
+	Any		UMETA( DisplayName = "Any State" ),
+};
+
 UENUM( BlueprintType )
 enum class ECardRarity : uint8
 {
@@ -86,7 +64,6 @@ enum class ECardRarity : uint8
 
 namespace CardTypeHelpers
 {
-	/** Converts EResourceTargetType to EResourceType. Returns None for All. */
 	inline EResourceType ToResourceType( EResourceTargetType target )
 	{
 		switch ( target )
@@ -99,7 +76,6 @@ namespace CardTypeHelpers
 		}
 	}
 
-	/** Converts EResourceType to EResourceTargetType. Returns All for None/Max. */
 	inline EResourceTargetType ToResourceTargetType( EResourceType type )
 	{
 		switch ( type )
@@ -112,7 +88,6 @@ namespace CardTypeHelpers
 		}
 	}
 
-	/** Returns array of all concrete resource types (excludes None/Max). */
 	inline TArray<EResourceType> GetAllResourceTypes()
 	{
 		return {
@@ -123,7 +98,6 @@ namespace CardTypeHelpers
 		};
 	}
 
-	/** Returns resource display name. */
 	inline FString GetResourceName( EResourceTargetType target )
 	{
 		switch ( target )
@@ -138,74 +112,6 @@ namespace CardTypeHelpers
 	}
 }
 
-/**
- * FCardStatModifier
- *
- * Single stat modification applied by a card.
- * Uses flat values (not percentages).
- */
-USTRUCT( BlueprintType )
-struct LORDS_FRONTIERS_API FCardStatModifier
-{
-	GENERATED_BODY()
-
-	/** Which stat to modify */
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Modifier" )
-	EBuildingStat Stat = EBuildingStat::None;
-
-	/** Flat value to add (can be negative) */
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Modifier" )
-	int32 FlatValue = 0;
-
-	/**
-	 * Which resource type to affect.
-	 * Shown for: MaintenanceCost, BuildingProduction.
-	 */
-UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Modifier",
-    meta = ( EditCondition = "Stat == EBuildingStat::MaintenanceCost || Stat == EBuildingStat::BuildingProduction",
-        EditConditionHides ) )
-	EResourceTargetType ResourceTarget = EResourceTargetType::All;
-
-	FCardStatModifier() = default;
-
-	FCardStatModifier( EBuildingStat stat, int32 value )
-		: Stat( stat )
-		, FlatValue( value )
-	{
-	}
-
-	FCardStatModifier( EBuildingStat stat, int32 value, EResourceTargetType resourceTarget )
-		: Stat( stat )
-		, FlatValue( value )
-		, ResourceTarget( resourceTarget )
-	{
-	}
-
-	bool IsValid() const
-	{
-		return Stat != EBuildingStat::None && FlatValue != 0;
-	}
-
-	/** Returns true if this is a resource modifier (MaintenanceCost or BuildingProduction) */
-	bool IsResourceModifier() const
-	{
-		return Stat == EBuildingStat::MaintenanceCost ||
-		       Stat == EBuildingStat::BuildingProduction;
-	}
-
-	/** Returns true if this modifies FEntityStats (MaxHealth, AttackDamage, etc.) */
-	bool IsBuildingStatModifier() const
-	{
-		return IsValid() && !IsResourceModifier();
-	}
-
-	/** Returns display text like "+10 Attack Damage" or "-3 Gold Maintenance" */
-	FText GetDisplayText() const;
-};
-
-/**
- * FBuildingTargetFilter
- */
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FBuildingTargetFilter
 {
@@ -224,18 +130,63 @@ struct LORDS_FRONTIERS_API FBuildingTargetFilter
 	bool MatchesBuilding( const AActor* building ) const;
 };
 
-/**
- * FEconomyBonuses
- *
- * Aggregated economy bonuses from all applied cards.
- * Used by EconomyComponent for global resource calculations.
- */
+USTRUCT( BlueprintType )
+struct LORDS_FRONTIERS_API FCardEffectContext
+{
+	GENERATED_BODY()
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	TWeakObjectPtr<UCardDataAsset> SourceCard;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	TWeakObjectPtr<ABuilding> Building;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	TWeakObjectPtr<AActor> EventInstigator;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	TWeakObjectPtr<UCardEffectHostComponent> EffectHost;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	TWeakObjectPtr<UCardSubsystem> Subsystem;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	int32 EventIndex = INDEX_NONE;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	int32 WaveNumber = 0;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	int32 StackCount = 1;
+};
+
+USTRUCT( BlueprintType )
+struct LORDS_FRONTIERS_API FCardEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Event" )
+	FBuildingTargetFilter TargetFilter;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Event" )
+	ETargetStateFilter StateFilter = ETargetStateFilter::Alive;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Event",
+		meta = ( AllowAbstract = "false" ) )
+	TArray<TObjectPtr<UCardCondition>> Conditions;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Event",
+		meta = ( AllowAbstract = "false" ) )
+	TArray<TObjectPtr<UCardEffect>> Effects;
+
+	bool MatchesBuilding( const ABuilding* building ) const;
+};
+
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FEconomyBonuses
 {
 	GENERATED_BODY()
 
-	// === Production Bonuses ===
 	UPROPERTY( BlueprintReadOnly, Category = "Production" )
 	int32 GoldProductionBonus = 0;
 
@@ -248,7 +199,6 @@ struct LORDS_FRONTIERS_API FEconomyBonuses
 	UPROPERTY( BlueprintReadOnly, Category = "Production" )
 	int32 ProgressProductionBonus = 0;
 
-	// === Maintenance Cost Reduction ===
 	UPROPERTY( BlueprintReadOnly, Category = "Costs" )
 	int32 GoldMaintenanceReduction = 0;
 
@@ -273,23 +223,12 @@ struct LORDS_FRONTIERS_API FEconomyBonuses
 		ProgressMaintenanceReduction = 0;
 	}
 
-	/**
-	 * Applies a resource modifier as a global economy bonus.
-	 * MaintenanceCost: negative FlatValue → positive reduction
-	 * BuildingProduction: FlatValue added directly as production bonus
-	 */
-	void ApplyModifier( const FCardStatModifier& modifier );
-
-	/** Returns production bonus for a specific target type */
+	void AddProductionBonus( EResourceTargetType target, int32 delta );
+	void AddMaintenanceReduction( EResourceTargetType target, int32 delta );
 	int32 GetProductionBonus( EResourceTargetType target ) const;
-
-	/** Returns maintenance reduction for a specific target type */
 	int32 GetMaintenanceReduction( EResourceTargetType target ) const;
 };
 
-/**
- * FAppliedCardBonus
- */
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FAppliedCardBonus
 {
@@ -299,24 +238,21 @@ struct LORDS_FRONTIERS_API FAppliedCardBonus
 	TObjectPtr<UCardDataAsset> SourceCard = nullptr;
 
 	UPROPERTY( BlueprintReadOnly, Category = "Bonus" )
-	FCardStatModifier Modifier;
+	TObjectPtr<UCardEffect> Effect = nullptr;
 
 	UPROPERTY( BlueprintReadOnly, Category = "Bonus" )
 	int32 WaveApplied = 0;
 
 	FAppliedCardBonus() = default;
 
-	FAppliedCardBonus( UCardDataAsset* card, const FCardStatModifier& mod, int32 wave )
+	FAppliedCardBonus( UCardDataAsset* card, UCardEffect* effect, int32 wave )
 		: SourceCard( card )
-		, Modifier( mod )
+		, Effect( effect )
 		, WaveApplied( wave )
 	{
 	}
 };
 
-/**
- * FCardChoice
- */
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FCardChoice
 {
@@ -332,9 +268,6 @@ struct LORDS_FRONTIERS_API FCardChoice
 	int32 WaveNumber = 0;
 };
 
-/**
- * FAppliedCardRecord
- */
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FAppliedCardRecord
 {

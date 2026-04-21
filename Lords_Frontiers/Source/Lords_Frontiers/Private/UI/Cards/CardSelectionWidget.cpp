@@ -9,6 +9,9 @@
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
+#include "Components/PanelSlot.h"
+#include "Components/ScrollBox.h"
+#include "Components/ScrollBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -110,9 +113,17 @@ TArray<UCardDataAsset*> UCardSelectionWidget::GetSelectedCards() const
 
 void UCardSelectionWidget::CreateCardWidgets( const TArray<UCardDataAsset*>& cards )
 {
-	if ( !CardsContainer || !CardWidgetClass )
+	if ( !CardWidgetClass )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "CardSelectionWidget: CardsContainer or CardWidgetClass not set!" ) );
+		UE_LOG( LogTemp, Error, TEXT( "CardSelectionWidget: CardWidgetClass not set!" ) );
+		return;
+	}
+
+	if ( !CardsScrollBox && !CardsContainer )
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "CardSelectionWidget: no CardsScrollBox or CardsContainer bound in the widget blueprint" ) );
 		return;
 	}
 
@@ -132,12 +143,25 @@ void UCardSelectionWidget::CreateCardWidgets( const TArray<UCardDataAsset*>& car
 		cardWidget->SetCardData( cardData );
 		cardWidget->OnCardClicked.AddDynamic( this, &UCardSelectionWidget::HandleCardClicked );
 
-		UHorizontalBoxSlot* slot = CardsContainer->AddChildToHorizontalBox( cardWidget );
-		if ( slot )
+		if ( CardsScrollBox )
 		{
-			slot->SetPadding( FMargin( CardSpacing * 0.5f, 0.0f ) );
-			slot->SetHorizontalAlignment( HAlign_Center );
-			slot->SetVerticalAlignment( VAlign_Center );
+			UPanelSlot* panelSlot = CardsScrollBox->AddChild( cardWidget );
+			if ( UScrollBoxSlot* slot = Cast<UScrollBoxSlot>( panelSlot ) )
+			{
+				slot->SetPadding( FMargin( CardSpacing * 0.5f, 0.0f ) );
+				slot->SetHorizontalAlignment( HAlign_Center );
+				slot->SetVerticalAlignment( VAlign_Center );
+			}
+		}
+		else if ( CardsContainer )
+		{
+			UHorizontalBoxSlot* slot = CardsContainer->AddChildToHorizontalBox( cardWidget );
+			if ( slot )
+			{
+				slot->SetPadding( FMargin( CardSpacing * 0.5f, 0.0f ) );
+				slot->SetHorizontalAlignment( HAlign_Center );
+				slot->SetVerticalAlignment( VAlign_Center );
+			}
 		}
 
 		CardWidgets_.Add( cardWidget );

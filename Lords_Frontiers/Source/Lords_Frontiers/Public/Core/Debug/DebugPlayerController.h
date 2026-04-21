@@ -25,6 +25,21 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	USelectionManagerComponent* GetSelectionManager() const;
 
+	UFUNCTION( Exec )
+	void Card_ToggleDebug();
+
+	UFUNCTION( Exec )
+	void Card_Apply( FName cardID );
+
+	UFUNCTION( Exec )
+	void Card_Unlock( FName cardID );
+
+	UFUNCTION( Exec )
+	void Card_Lock( FName cardID );
+
+	UFUNCTION( Exec )
+	void Card_ResetUnlocks();
+
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;

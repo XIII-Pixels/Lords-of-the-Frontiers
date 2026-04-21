@@ -65,6 +65,10 @@ struct FEntityStats
 
 	float BurstDelay() const;
 
+	int32 CritChance() const;
+
+	int32 CritDamageBonus() const;
+
 	EBurstTargetMode BurstTargetMode() const;
 	// setters
 	void SetMaxHealth( int maxHealth ); // min = 1
@@ -125,32 +129,42 @@ struct FEntityStats
 	bool IsAtFullHealth() const;
 
 private:
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats", meta = ( CardModifiable, DisplayName = "Max Health" ) )
 	int MaxHealth_ = 100;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings|Stats" )
 	int Health_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( CardModifiable, DisplayName = "Attack Range" ) )
 	float AttackRange_ = 200.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( CardModifiable, DisplayName = "Attack Damage" ) )
 	int AttackDamage_ = 10;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( CardModifiable, DisplayName = "Attack Cooldown" ) )
 	float AttackCooldown_ = 1.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats", meta = ( CardModifiable, DisplayName = "Max Speed" ) )
 	float MaxSpeed_ = 300.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( CardModifiable, DisplayName = "Splash Radius" ) )
 	float SplashRadius_ = 0.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( ClampMin = "1", ClampMax = "10" ) )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack",
+		meta = ( CardModifiable, DisplayName = "Burst Count", ClampMin = "1", ClampMax = "10" ) )
 	int32 BurstCount_ = 1;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( ClampMin = "0.05" ) )
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack",
+		meta = ( CardModifiable, DisplayName = "Burst Delay", ClampMin = "0.05" ) )
 	float BurstDelay_ = 0.15f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack",
+		meta = ( CardModifiable, DisplayName = "Crit Chance %", ClampMin = "0", ClampMax = "100" ) )
+	int32 CritChance_ = 0;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack",
+		meta = ( CardModifiable, DisplayName = "Crit Damage Bonus %", ClampMin = "0" ) )
+	int32 CritDamageBonus_ = 0;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack" )
 	EBurstTargetMode BurstTargetMode_ = EBurstTargetMode::SameTarget;

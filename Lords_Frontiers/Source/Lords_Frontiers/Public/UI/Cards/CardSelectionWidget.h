@@ -13,6 +13,7 @@ class UCardSubsystem;
 class UButton;
 class UTextBlock;
 class UHorizontalBox;
+class UScrollBox;
 class UImage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardSelectionComplete, const TArray<UCardDataAsset*>&, SelectedCards );
@@ -74,7 +75,10 @@ protected:
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card Selection" )
 	void OnWidgetHiding();
 
-	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UScrollBox> CardsScrollBox;
+
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UHorizontalBox> CardsContainer;
 
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )

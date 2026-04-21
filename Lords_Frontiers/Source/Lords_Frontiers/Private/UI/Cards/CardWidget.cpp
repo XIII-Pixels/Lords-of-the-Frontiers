@@ -143,7 +143,7 @@ void UCardWidget::UpdateCardVisuals()
 
 	if ( DescriptionText )
 	{
-		DescriptionText->SetText( CardData_->GetFormattedDescription() );
+		DescriptionText->SetText( CardData_->BuildDescription() );
 	}
 
 	if ( TargetText )
