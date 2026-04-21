@@ -63,6 +63,18 @@ enum class ETargetStateFilter : uint8
 };
 
 UENUM( BlueprintType )
+enum class ECardTriggerReason : uint8
+{
+	Apply			UMETA( DisplayName = "Apply" ),
+	Revert			UMETA( DisplayName = "Revert" ),
+	AttackFired		UMETA( DisplayName = "Attack Fired" ),
+	TargetChanged	UMETA( DisplayName = "Target Changed" ),
+	HitLanded		UMETA( DisplayName = "Hit Landed" ),
+	Damaged			UMETA( DisplayName = "Damaged" ),
+	Ruined			UMETA( DisplayName = "Ruined" ),
+};
+
+UENUM( BlueprintType )
 enum class ECardRarity : uint8
 {
 	Common		UMETA( DisplayName = "Common" ),
@@ -172,6 +184,9 @@ struct LORDS_FRONTIERS_API FCardEffectContext
 
 	UPROPERTY( BlueprintReadOnly, Category = "Context" )
 	int32 StackCount = 1;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	ECardTriggerReason TriggerReason = ECardTriggerReason::Apply;
 };
 
 USTRUCT( BlueprintType )

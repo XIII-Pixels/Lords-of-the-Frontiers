@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cards/CardTypes.h"
+
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 
@@ -7,6 +9,7 @@
 
 class UCardDataAsset;
 class UCardEffect;
+class UAttackRangedComponent;
 
 USTRUCT()
 struct FRegisteredCardEffect
@@ -31,6 +34,9 @@ class LORDS_FRONTIERS_API UCardEffectHostComponent : public UActorComponent
 public:
 	UCardEffectHostComponent();
 
+	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
+
 	void RegisterEffect( UCardDataAsset* card, int32 eventIndex, UCardEffect* effect );
 	void UnregisterBySourceCard( UCardDataAsset* card );
 	void ClearAll();
@@ -52,10 +58,25 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Card|Counters" )
 	static FName MakeCounterKey( const UCardDataAsset* card, int32 eventIndex, FName localTag );
 
+protected:
+	void BindAttackDelegates();
+	void UnbindAttackDelegates();
+
+	UFUNCTION()
+	void HandleAttackFired( AActor* target );
+
+	UFUNCTION()
+	void HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget );
+
+	void DispatchTrigger( ECardTriggerReason reason, AActor* instigator );
+
 private:
 	UPROPERTY()
 	TArray<FRegisteredCardEffect> Active_;
 
 	UPROPERTY()
 	TMap<FName, int32> Counters_;
+
+	TWeakObjectPtr<UAttackRangedComponent> BoundAttack_;
+	bool bIsBoundToAttack_ = false;
 };

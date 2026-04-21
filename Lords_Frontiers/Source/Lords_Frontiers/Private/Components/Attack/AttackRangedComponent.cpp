@@ -53,7 +53,14 @@ void UAttackRangedComponent::LookTick()
 
 	Look();
 
-	bDidSeeTarget_ = prevTarget && ( prevTarget == GetOwner<IAttacker>()->AttackTarget() );
+	AActor* newTarget = GetOwner<IAttacker>()->AttackTarget().Get();
+
+	bDidSeeTarget_ = prevTarget && ( prevTarget == newTarget );
+
+	if ( prevTarget != newTarget )
+	{
+		OnAttackTargetChanged.Broadcast( prevTarget, newTarget );
+	}
 }
 
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
@@ -81,8 +88,10 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	const int32 burstCount = ownerEntity->Stats().BurstCount();
 	if ( burstCount <= 1 )
 	{
-		FireSingleProjectile( ownerAttacker->AttackTarget().Get() );
+		AActor* target = ownerAttacker->AttackTarget().Get();
+		FireSingleProjectile( target );
 		ownerEntity->Stats().StartCooldown( gameTime );
+		OnAttackFired.Broadcast( target );
 		return;
 	}
 
@@ -352,6 +361,7 @@ void UAttackRangedComponent::FireNextBurstShot()
 	if ( target.IsValid() )
 	{
 		FireSingleProjectile( target );
+		OnAttackFired.Broadcast( target.Get() );
 	}
 	++CurrentBurstIndex_;
 	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )

@@ -6,6 +6,40 @@
 
 #include "CardConditionStubs.generated.h"
 
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Attack Fired" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnAttackFired : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::AttackFired;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On attack fired" ) );
+	}
+};
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Target Changed" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnTargetChanged : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::TargetChanged;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On target change" ) );
+	}
+};
+
 UCLASS( BlueprintType, meta = ( DisplayName = "Condition: After N Shots" ) )
 class LORDS_FRONTIERS_API UCardCondition_AfterNShots : public UCardCondition
 {
@@ -16,10 +50,7 @@ public:
 		meta = ( ClampMin = "1" ) )
 	int32 N = 5;
 
-	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
-	{
-		return false;
-	}
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override;
 
 	virtual FText GetDisplayText_Implementation() const override
 	{

@@ -1,11 +1,27 @@
 #include "Cards/CardEffectHostComponent.h"
 
+#include "Building/DefensiveBuilding.h"
+#include "Cards/CardCondition.h"
 #include "Cards/CardDataAsset.h"
 #include "Cards/CardEffect.h"
+#include "Cards/CardSubsystem.h"
+#include "Components/Attack/AttackRangedComponent.h"
 
 UCardEffectHostComponent::UCardEffectHostComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UCardEffectHostComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	BindAttackDelegates();
+}
+
+void UCardEffectHostComponent::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	UnbindAttackDelegates();
+	Super::EndPlay( endPlayReason );
 }
 
 void UCardEffectHostComponent::RegisterEffect( UCardDataAsset* card, int32 eventIndex, UCardEffect* effect )
@@ -20,6 +36,8 @@ void UCardEffectHostComponent::RegisterEffect( UCardDataAsset* card, int32 event
 	record.EventIndex = eventIndex;
 	record.Effect = effect;
 	Active_.Add( record );
+
+	BindAttackDelegates();
 }
 
 void UCardEffectHostComponent::UnregisterBySourceCard( UCardDataAsset* card )
@@ -39,6 +57,7 @@ void UCardEffectHostComponent::ClearAll()
 {
 	Active_.Empty();
 	Counters_.Empty();
+	UnbindAttackDelegates();
 }
 
 int32 UCardEffectHostComponent::GetCounter( FName key ) const
@@ -66,4 +85,105 @@ FName UCardEffectHostComponent::MakeCounterKey( const UCardDataAsset* card, int3
 {
 	const FString cardName = card ? card->GetName() : TEXT( "null" );
 	return FName( *FString::Printf( TEXT( "%s#%d#%s" ), *cardName, eventIndex, *localTag.ToString() ) );
+}
+
+void UCardEffectHostComponent::BindAttackDelegates()
+{
+	if ( bIsBoundToAttack_ )
+	{
+		return;
+	}
+
+	ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( GetOwner() );
+	if ( !tower )
+	{
+		return;
+	}
+
+	UAttackRangedComponent* attack = tower->FindComponentByClass<UAttackRangedComponent>();
+	if ( !attack )
+	{
+		return;
+	}
+
+	attack->OnAttackFired.AddDynamic( this, &UCardEffectHostComponent::HandleAttackFired );
+	attack->OnAttackTargetChanged.AddDynamic( this, &UCardEffectHostComponent::HandleAttackTargetChanged );
+
+	BoundAttack_ = attack;
+	bIsBoundToAttack_ = true;
+}
+
+void UCardEffectHostComponent::UnbindAttackDelegates()
+{
+	if ( !bIsBoundToAttack_ )
+	{
+		return;
+	}
+
+	if ( UAttackRangedComponent* attack = BoundAttack_.Get() )
+	{
+		attack->OnAttackFired.RemoveDynamic( this, &UCardEffectHostComponent::HandleAttackFired );
+		attack->OnAttackTargetChanged.RemoveDynamic( this, &UCardEffectHostComponent::HandleAttackTargetChanged );
+	}
+
+	BoundAttack_.Reset();
+	bIsBoundToAttack_ = false;
+}
+
+void UCardEffectHostComponent::HandleAttackFired( AActor* target )
+{
+	DispatchTrigger( ECardTriggerReason::AttackFired, target );
+}
+
+void UCardEffectHostComponent::HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget )
+{
+	DispatchTrigger( ECardTriggerReason::TargetChanged, newTarget );
+}
+
+void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActor* instigator )
+{
+	if ( Active_.Num() == 0 )
+	{
+		return;
+	}
+
+	UCardSubsystem* subsystem = UCardSubsystem::Get( this );
+	ABuilding* building = Cast<ABuilding>( GetOwner() );
+
+	for ( const FRegisteredCardEffect& rec : Active_ )
+	{
+		if ( !rec.Effect || !rec.SourceCard )
+		{
+			continue;
+		}
+
+		FCardEffectContext ctx;
+		ctx.SourceCard = rec.SourceCard;
+		ctx.Building = building;
+		ctx.EventIndex = rec.EventIndex;
+		ctx.EffectHost = this;
+		ctx.Subsystem = subsystem;
+		ctx.EventInstigator = instigator;
+		ctx.TriggerReason = reason;
+
+		if ( rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )
+		{
+			const FCardEvent& event = rec.SourceCard->Events[rec.EventIndex];
+			bool bConditionsPass = true;
+			for ( const TObjectPtr<UCardCondition>& cond : event.Conditions )
+			{
+				if ( cond && !cond->IsMet( ctx ) )
+				{
+					bConditionsPass = false;
+					break;
+				}
+			}
+			if ( !bConditionsPass )
+			{
+				continue;
+			}
+		}
+
+		rec.Effect->Execute( ctx );
+	}
 }

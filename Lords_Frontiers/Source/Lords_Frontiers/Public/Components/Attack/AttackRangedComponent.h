@@ -14,6 +14,9 @@ class IEntity;
 class USphereComponent;
 class ABaseProjectile;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnAttackFired, AActor*, Target );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnAttackTargetChanged, AActor*, OldTarget, AActor*, NewTarget );
+
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
 UCLASS( meta = ( BlueprintSpawnableComponent ), ClassGroup = ( Attack ) )
@@ -40,6 +43,12 @@ public:
 	virtual void DeactivateSight() override;
 
 	virtual bool DidSeeTargetLastTick() override;
+
+	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
+	FOnAttackFired OnAttackFired;
+
+	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
+	FOnAttackTargetChanged OnAttackTargetChanged;
 
 protected:
 	virtual void OnRegister() override;
