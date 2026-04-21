@@ -3,6 +3,7 @@
 #include "Building/Building.h"
 #include "Cards/CardEffectHostComponent.h"
 #include "Cards/CardEffects/CardEffect_StatModifier.h"
+#include "Cards/CardEffects/StatReflectionHelpers.h"
 #include "EntityStats.h"
 
 #include "UObject/UnrealType.h"
@@ -11,33 +12,6 @@ namespace
 {
 	const FName StacksTag( TEXT( "stacks" ) );
 	const FName AccumulatedTag( TEXT( "accum" ) );
-
-	FNumericProperty* FindNumericProperty( FName statName )
-	{
-		if ( statName.IsNone() )
-		{
-			return nullptr;
-		}
-		FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( statName );
-		return CastField<FNumericProperty>( prop );
-	}
-
-	void ApplyStatDelta( ABuilding* building, FName statName, float delta )
-	{
-		if ( !building || FMath::IsNearlyZero( delta ) )
-		{
-			return;
-		}
-		FNumericProperty* prop = FindNumericProperty( statName );
-		if ( !prop )
-		{
-			return;
-		}
-		FEntityStats& stats = building->Stats();
-		void* addr = prop->ContainerPtrToValuePtr<void>( &stats );
-		const double current = prop->GetFloatingPointPropertyValue( addr );
-		prop->SetFloatingPointPropertyValue( addr, current + delta );
-	}
 }
 
 void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext& context )
@@ -61,7 +35,7 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 		const int32 accumMilli = host->GetCounter( accumKey );
 		if ( accumMilli != 0 )
 		{
-			ApplyStatDelta( building, StatName, -static_cast<float>( accumMilli ) / 1000.f );
+			CardStatReflection::ApplyStatDelta( building, StatName, -static_cast<float>( accumMilli ) / 1000.f );
 			host->SetCounter( accumKey, 0 );
 		}
 		return;
@@ -91,7 +65,7 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 		return;
 	}
 
-	ApplyStatDelta( building, StatName, step );
+	CardStatReflection::ApplyStatDelta( building, StatName, step );
 	host->SetCounter( accumKey, accumMilli + FMath::RoundToInt( step * 1000.f ) );
 }
 
@@ -110,7 +84,7 @@ void UCardEffect_StackingBuff::Revert_Implementation( const FCardEffectContext& 
 	const int32 accumMilli = host->GetCounter( accumKey );
 	if ( accumMilli != 0 )
 	{
-		ApplyStatDelta( building, StatName, -static_cast<float>( accumMilli ) / 1000.f );
+		CardStatReflection::ApplyStatDelta( building, StatName, -static_cast<float>( accumMilli ) / 1000.f );
 		host->SetCounter( accumKey, 0 );
 	}
 }

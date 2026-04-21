@@ -3,6 +3,7 @@
 #include "Building/Building.h"
 #include "Cards/CardEffectHostComponent.h"
 #include "Cards/CardEffects/CardEffect_StatModifier.h"
+#include "Cards/CardEffects/StatReflectionHelpers.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Entity.h"
@@ -16,33 +17,6 @@
 namespace
 {
 	const FName AppliedMilliTag( TEXT( "aura_applied_milli" ) );
-
-	FNumericProperty* FindNumericProperty( FName statName )
-	{
-		if ( statName.IsNone() )
-		{
-			return nullptr;
-		}
-		FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( statName );
-		return CastField<FNumericProperty>( prop );
-	}
-
-	void ApplyStatDelta( ABuilding* building, FName statName, float delta )
-	{
-		if ( !building || FMath::IsNearlyZero( delta ) )
-		{
-			return;
-		}
-		FNumericProperty* prop = FindNumericProperty( statName );
-		if ( !prop )
-		{
-			return;
-		}
-		FEntityStats& stats = building->Stats();
-		void* addr = prop->ContainerPtrToValuePtr<void>( &stats );
-		const double current = prop->GetFloatingPointPropertyValue( addr );
-		prop->SetFloatingPointPropertyValue( addr, current + delta );
-	}
 }
 
 void UCardEffect_AuraStacker::Execute_Implementation( const FCardEffectContext& context )
@@ -136,7 +110,7 @@ void UCardEffect_AuraStacker::Execute_Implementation( const FCardEffectContext& 
 		return;
 	}
 
-	ApplyStatDelta( building, StatName, diff );
+	CardStatReflection::ApplyStatDelta( building, StatName, diff );
 	host->SetCounter( appliedKey, FMath::RoundToInt( desired * 1000.f ) );
 }
 
@@ -155,7 +129,7 @@ void UCardEffect_AuraStacker::Revert_Implementation( const FCardEffectContext& c
 	const int32 appliedMilli = host->GetCounter( appliedKey );
 	if ( appliedMilli != 0 )
 	{
-		ApplyStatDelta( building, StatName, -static_cast<float>( appliedMilli ) / 1000.f );
+		CardStatReflection::ApplyStatDelta( building, StatName, -static_cast<float>( appliedMilli ) / 1000.f );
 		host->SetCounter( appliedKey, 0 );
 	}
 }

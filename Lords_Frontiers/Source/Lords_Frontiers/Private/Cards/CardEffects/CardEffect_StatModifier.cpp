@@ -1,6 +1,7 @@
 #include "Cards/CardEffects/CardEffect_StatModifier.h"
 
 #include "Building/Building.h"
+#include "Cards/CardEffects/StatReflectionHelpers.h"
 #include "EntityStats.h"
 
 #include "UObject/UnrealType.h"
@@ -14,17 +15,6 @@ DEFINE_LOG_CATEGORY_STATIC( LogCardStatModifier, Log, All );
 namespace
 {
 	const FName CardModifiableMeta( TEXT( "CardModifiable" ) );
-
-	FNumericProperty* FindNumericProperty( FName statName )
-	{
-		if ( statName.IsNone() )
-		{
-			return nullptr;
-		}
-
-		FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( statName );
-		return CastField<FNumericProperty>( prop );
-	}
 }
 
 void UCardEffect_StatModifier::Apply_Implementation( const FCardEffectContext& context )
@@ -45,7 +35,7 @@ void UCardEffect_StatModifier::ApplyDelta( const FCardEffectContext& context, fl
 		return;
 	}
 
-	FNumericProperty* prop = FindNumericProperty( StatName );
+	FNumericProperty* prop = CardStatReflection::FindNumericProperty( StatName );
 	if ( !prop )
 	{
 		UE_LOG(
