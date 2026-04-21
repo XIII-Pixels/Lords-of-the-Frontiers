@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lords_Frontiers/Public/Waves/Wave.h"
-
+#include "Lords_Frontiers/Public/Waves/EnemyBuff.h"
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
@@ -32,6 +32,9 @@ struct FEnemySpawnSettings
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
 	TArray<FPortalSpawnEntry> Portals;
+
+	UPROPERTY( EditAnywhere, Category = "Spawn" )
+	FEnemyBuff Buff;
 };
 
 

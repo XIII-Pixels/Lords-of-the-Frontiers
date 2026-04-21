@@ -66,10 +66,6 @@ public:
 		return bHasRequestedFirstWave_;
 	}
 
-	
-	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Buffs" )
-	TMap<TSubclassOf<AUnit>, FEnemyBuff> EnemyBuffs;
-
 	// Current wave index (0-based)
 	int32 CurrentWaveIndex = 0;
 

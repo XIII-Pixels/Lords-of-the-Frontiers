@@ -247,11 +247,11 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 
 		for ( AActor* Actor : FoundSpawnPoints )
 		{
-			if ( AEnemyGroupSpawnPoint* SP = Cast<AEnemyGroupSpawnPoint>( Actor ) )
+			if ( AEnemyGroupSpawnPoint* spawnPoint = Cast<AEnemyGroupSpawnPoint>( Actor ) )
 			{
-				if ( SP->SpawnPointId == SpawnPointId )
+				if ( spawnPoint->SpawnPointId == SpawnPointId )
 				{
-					SpawnPoint = SP;
+					SpawnPoint = spawnPoint;
 					break;
 				}
 			}
@@ -278,10 +278,10 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 
 	if ( AUnit* defaultUnit = Cast<AUnit>( EnemyClass->GetDefaultObject() ) )
 	{
-		if ( UCapsuleComponent* C = defaultUnit->FindComponentByClass<UCapsuleComponent>() )
+		if ( UCapsuleComponent* comp = defaultUnit->FindComponentByClass<UCapsuleComponent>() )
 		{
-			capsuleRadius = C->GetUnscaledCapsuleRadius();
-			capsuleHalfHeight = C->GetUnscaledCapsuleHalfHeight();
+			capsuleRadius = comp->GetUnscaledCapsuleRadius();
+			capsuleHalfHeight = comp->GetUnscaledCapsuleHalfHeight();
 		}
 	}
 
@@ -304,10 +304,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 		return;
 	}
 
-	if ( FEnemyBuff* buff = EnemyBuffs.Find( TSubclassOf<AUnit>( EnemyClass ) ) )
-	{
-		spawned->ChangeStats( buff );
-	}
+	spawned->ChangeStats( &SpawnSettings->Buff );
 
 	UGameplayStatics::FinishSpawningActor( spawned, FinalTransform );
 
@@ -650,30 +647,24 @@ void AWaveManager::UpdateSpawnCounts( int32 waveIndex )
 		return;
 	}
 
-	const UWaveData* WaveData = WaveConfig_->Waves[waveIndex];
+	UWaveData* WaveData = WaveConfig_->Waves[waveIndex];
 	if ( !WaveData )
 	{
 		return;
 	}
 
-	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
+	for ( TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
 	{
-		const TSubclassOf<AUnit>& EnemyClass = Pair.Key;
-		const FEnemySpawnSettings& SpawnSettings = Pair.Value;
+		FEnemySpawnSettings& SpawnSettings = Pair.Value;
 
 		int32 TotalCount = 0;
+
 		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings.Portals )
 		{
 			TotalCount += FMath::Max( 0, PortalEntry.Count );
 		}
 
-		if ( TotalCount > 0 )
-		{
-			if ( FEnemyBuff* buff = EnemyBuffs.Find( EnemyClass ) )
-			{
-				buff->SpawnCount += TotalCount;
-			}
-		}
+		SpawnSettings.Buff.SpawnCount = TotalCount;
 	}
 }
 
