@@ -42,7 +42,7 @@ void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 
 void UMainMenuUIManager::OnNewGameButtonClicked()
 {
-	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadRunLevel();
+	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadLevel( 0 );
 }
 
 void UMainMenuUIManager::OnExitGameButtonClicked()

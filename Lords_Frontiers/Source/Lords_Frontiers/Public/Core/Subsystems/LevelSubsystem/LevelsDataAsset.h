@@ -7,6 +7,19 @@
 
 #include "LevelsDataAsset.generated.h"
 
+/** (Gregory-hub) */
+USTRUCT( BlueprintType )
+struct FLevelData
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere )
+	FName Name;
+
+	UPROPERTY( EditAnywhere )
+	TSoftObjectPtr<UWorld> Level;
+};
+
 /** (Gregory-hub)
  * Contains all game levels */
 UCLASS()
@@ -19,11 +32,5 @@ public:
 	TSoftObjectPtr<UWorld> MainMenuLevel;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSoftObjectPtr<UWorld> RunLevel;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSoftObjectPtr<UWorld> WinLevel;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSoftObjectPtr<UWorld> LoseLevel;
+	TArray<FLevelData> GameplayLevels;
 };

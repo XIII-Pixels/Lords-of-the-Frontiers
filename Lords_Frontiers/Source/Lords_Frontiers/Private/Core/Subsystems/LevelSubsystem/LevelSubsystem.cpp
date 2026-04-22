@@ -12,27 +12,23 @@ void ULevelSubsystem::LoadMainMenu() const
 	}
 }
 
-void ULevelSubsystem::LoadRunLevel() const
+void ULevelSubsystem::LoadLevel( int index )
 {
-	if ( Levels_ )
+	if ( Levels_ && index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
-		LoadLevel( Levels_->RunLevel, "run level" );
+		LoadLevel( Levels_->GameplayLevels[index].Level, FString::Printf( TEXT( "level %d" ), index ) );
+		CurrentLevelIndex_ = index;
 	}
 }
 
-void ULevelSubsystem::LoadWinLevel() const
+void ULevelSubsystem::LoadNextLevel()
 {
-	if ( Levels_ )
+	if ( Levels_ && CurrentLevelIndex_ >= -1 && CurrentLevelIndex_ + 1 < Levels_->GameplayLevels.Num() )
 	{
-		LoadLevel( Levels_->WinLevel, "win level" );
-	}
-}
-
-void ULevelSubsystem::LoadLoseLevel() const
-{
-	if ( Levels_ )
-	{
-		LoadLevel( Levels_->LoseLevel, "lose level" );
+		++CurrentLevelIndex_;
+		LoadLevel(
+		    Levels_->GameplayLevels[CurrentLevelIndex_].Level, FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
+		);
 	}
 }
 
