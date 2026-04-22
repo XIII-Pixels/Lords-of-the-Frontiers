@@ -179,7 +179,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UFollowComponent> FollowComponent_;
 
-	UPROPERTY()
+	UPROPERTY( EditDefaultsOnly )
 	TObjectPtr<UAttackComponent> AttackComponent_;
 
 	UPROPERTY( EditDefaultsOnly )

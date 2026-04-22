@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/Attack/AttackRangedComponent.h"
-
 #include "AI/Path/Path.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/Path/PathTargetPoint.h"
@@ -42,9 +41,6 @@ void UAttackRangedComponent::OnRegister()
 void UAttackRangedComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ChooseAttackMode();
-	ActivateSight();
 }
 
 void UAttackRangedComponent::LookTick()
@@ -146,15 +142,6 @@ void UAttackRangedComponent::Look()
 		return;
 	}
 
-	const UPathPointsManager* pathPointsManager = nullptr;
-	if ( const UCoreManager* coreManager = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
-	{
-		if ( const AUnitAIManager* aiManager = coreManager->GetUnitAIManager() )
-		{
-			pathPointsManager = aiManager->PathPointsManager();
-		}
-	}
-
 	ownerAttacker->SetAttackTarget( nullptr );
 
 	TArray<AActor*> overlappingActors;
@@ -168,20 +155,7 @@ void UAttackRangedComponent::Look()
 			continue;
 		}
 
-		bool enemyPositionAttackable = false;
-		if ( AttackFilter_ == EAttackFilter::Everything )
-		{
-			enemyPositionAttackable = true;
-		}
-		else if ( AttackFilter_ == EAttackFilter::WhatIsOnPath && pathPointsManager )
-		{
-			if ( const AUnit* unit = GetOwner<AUnit>() )
-			{
-				enemyPositionAttackable = pathPointsManager->ActorIsOnPath( actor, unit->Path() );
-			}
-		}
-
-		if ( enemyPositionAttackable && CanSeeEnemy( actor ) )
+		if ( EnemyIsValid( actor ) && ActorPositionIsAttackable( actor ) && CanSeeEnemy( actor ) )
 		{
 			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
 			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
@@ -193,23 +167,36 @@ void UAttackRangedComponent::Look()
 	}
 }
 
-void UAttackRangedComponent::ChooseAttackMode()
+bool UAttackRangedComponent::ActorPositionIsAttackable( const AActor* actor ) const
 {
-	if ( GetOwner()->IsA( AUnit::StaticClass() ) )
+	if ( AttackFilter_ == EAttackFilter::Everything )
 	{
-		// Not good: coupling with AUnit class. No owner class dependencies should be in this class
-		// TODO: Separate components for unit and for building
-		AttackFilter_ = EAttackFilter::WhatIsOnPath;
+		return true;
 	}
-	else
+
+	const UPathPointsManager* pathPointsManager = nullptr;
+	if ( const UCoreManager* coreManager =
+	         UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
-		AttackFilter_ = EAttackFilter::Everything;
+		if ( const AUnitAIManager* aiManager = coreManager->GetUnitAIManager() )
+		{
+			pathPointsManager = aiManager->PathPointsManager();
+		}
 	}
+
+	if ( AttackFilter_ == EAttackFilter::WhatIsOnPath && pathPointsManager )
+	{
+		if ( const AUnit* unit = GetOwner<AUnit>() )
+		{
+			return pathPointsManager->ActorIsOnPath( actor, unit->Path() );
+		}
+	}
+
+	return false;
 }
 
-bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
+bool UAttackRangedComponent::EnemyIsValid( const AActor* enemyActor ) const
 {
-	// it is assumed the actor is inside the sight sphere
 	const IEntity* ownerEntity = GetOwner<IEntity>();
 	if ( !ownerEntity )
 	{
@@ -217,22 +204,25 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 	}
 
 	const auto enemy = Cast<IEntity>( enemyActor );
-	if ( enemy && enemy->Stats().IsAlive() && enemy->Team() != ownerEntity->Team() )
+	return enemy && enemy->Stats().IsAlive() && enemy->Team() != ownerEntity->Team();
+}
+
+bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
+{
+	// it is assumed the enemy is inside the sight sphere
+	if ( !bCanAttackBackward_ ) // look in half-circle in front of unit
 	{
-		if ( !bCanAttackBackward_ ) // look in half-circle in front of unit
-		{
-			const float dot = FVector::DotProduct(
-			    enemyActor->GetActorLocation() - GetOwner()->GetActorLocation(), GetOwner()->GetActorForwardVector()
-			);
-			if ( dot > 0 )
-			{
-				return true;
-			}
-		}
-		else // look around unit
+		const float dot = FVector::DotProduct(
+		    enemyActor->GetActorLocation() - GetOwner()->GetActorLocation(), GetOwner()->GetActorForwardVector()
+		);
+		if ( dot > 0 )
 		{
 			return true;
 		}
+	}
+	else // look around unit
+	{
+		return true;
 	}
 	return false;
 }
