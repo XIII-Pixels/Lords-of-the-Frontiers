@@ -6,6 +6,7 @@
 #include "Cards/CardDataAsset.h"
 #include "Cards/CardEffect.h"
 #include "Cards/CardSubsystem.h"
+#include "Cards/Feedback/CardFeedback.h"
 #include "Components/Attack/AttackRangedComponent.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
@@ -304,6 +305,8 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 	UCardSubsystem* subsystem = UCardSubsystem::Get( this );
 	ABuilding* building = Cast<ABuilding>( GetOwner() );
 
+	TSet<UCardDataAsset*> firedCards;
+
 	for ( const FRegisteredCardEffect& rec : Active_ )
 	{
 		if ( !rec.Effect || !rec.SourceCard )
@@ -339,5 +342,21 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 		}
 
 		rec.Effect->Execute( ctx );
+		firedCards.Add( rec.SourceCard );
+	}
+
+	if ( !building || firedCards.Num() == 0 )
+	{
+		return;
+	}
+
+	for ( UCardDataAsset* card : firedCards )
+	{
+		if ( !card || !card->bShowIconOnTrigger || !card->FeedbackIconOverride )
+		{
+			continue;
+		}
+
+		UCardFeedback::ShowIconOnActor( this, building, card->FeedbackIconOverride );
 	}
 }

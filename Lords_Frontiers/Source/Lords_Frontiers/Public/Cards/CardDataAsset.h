@@ -34,6 +34,12 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
 	ECardCategory Category = ECardCategory::None;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Feedback" )
+	bool bShowIconOnTrigger = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Feedback" )
+	TObjectPtr<UTexture2D> FeedbackIconOverride = nullptr;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Events" )
 	TArray<FCardEvent> Events;
 

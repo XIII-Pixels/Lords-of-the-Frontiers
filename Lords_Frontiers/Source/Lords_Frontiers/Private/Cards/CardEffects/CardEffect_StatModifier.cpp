@@ -35,8 +35,7 @@ void UCardEffect_StatModifier::ApplyDelta( const FCardEffectContext& context, fl
 		return;
 	}
 
-	FNumericProperty* prop = CardStatReflection::FindNumericProperty( StatName );
-	if ( !prop )
+	if ( !CardStatReflection::FindNumericProperty( StatName ) )
 	{
 		UE_LOG(
 		    LogCardStatModifier, Warning,
@@ -46,11 +45,7 @@ void UCardEffect_StatModifier::ApplyDelta( const FCardEffectContext& context, fl
 		return;
 	}
 
-	FEntityStats& stats = building->Stats();
-	void* addr = prop->ContainerPtrToValuePtr<void>( &stats );
-
-	const double current = prop->GetFloatingPointPropertyValue( addr );
-	prop->SetFloatingPointPropertyValue( addr, current + signedDelta );
+	CardStatReflection::ApplyStatDelta( building, StatName, signedDelta );
 }
 
 FText UCardEffect_StatModifier::GetDisplayText_Implementation() const
