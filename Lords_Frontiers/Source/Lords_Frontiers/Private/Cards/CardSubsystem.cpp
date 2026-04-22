@@ -56,6 +56,13 @@ void UCardSubsystem::Deinitialize()
 
 void UCardSubsystem::SetPoolConfig( UCardPoolConfig* config )
 {
+	if ( AppliedCardHistory_.Num() > 0 )
+	{
+		UE_LOG( LogCardSubsystem, Log, TEXT( "SetPoolConfig: resetting previous match history (%d records)" ),
+			AppliedCardHistory_.Num() );
+		ResetCardHistory();
+	}
+
 	PoolConfig_ = config;
 
 	if ( !PoolConfig_ )
