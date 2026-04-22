@@ -4,7 +4,7 @@
 
 #include "AI/EntityAIController.h"
 
-#include "Components/Attack/AttackComponent.h"
+#include "Components/Attack/BuildingAttackRangedComponent.h"
 #include "Components/DecalComponent.h"
 
 ADefensiveBuilding::ADefensiveBuilding()
@@ -13,6 +13,9 @@ ADefensiveBuilding::ADefensiveBuilding()
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	BuildingAIControllerClass_ = AEntityAIController::StaticClass();
+
+	AttackComponent_ = CreateDefaultSubobject<UBuildingAttackRangedComponent>( TEXT( "Attack Ranged " ) );
+	AttackComponent_->SetupAttachment( RootComponent );
 
 	RangeDecalComponent_ = CreateDefaultSubobject<UDecalComponent>( TEXT( "RangeDecal" ) );
 	RangeDecalComponent_->SetupAttachment( RootComponent );
@@ -43,20 +46,20 @@ void ADefensiveBuilding::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TArray<UAttackComponent*> attackComponents;
-	GetComponents( attackComponents );
-
-	if ( attackComponents.Num() == 1 )
-	{
-		AttackComponent_ = attackComponents[0];
-	}
-	else
-	{
-		UE_LOG(
-		    LogTemp, Error, TEXT( "Number of unit attack component is not equal to 1 (number: %d)" ),
-		    attackComponents.Num()
-		);
-	}
+	// TArray<UBuildingAttackRangedComponent*> attackComponents;
+	// GetComponents( attackComponents );
+	//
+	// if ( attackComponents.Num() == 1 )
+	// {
+	// 	AttackComponent_ = attackComponents[0];
+	// }
+	// else
+	// {
+	// 	UE_LOG(
+	// 	    LogTemp, Error, TEXT( "Number of unit attack component is not equal to 1 (number: %d)" ),
+	// 	    attackComponents.Num()
+	// 	);
+	// }
 }
 
 void ADefensiveBuilding::OnDeath()

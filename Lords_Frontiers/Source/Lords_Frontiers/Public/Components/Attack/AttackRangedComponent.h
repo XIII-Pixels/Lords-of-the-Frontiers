@@ -3,7 +3,6 @@
 #pragma once
 
 #include "AttackComponent.h"
-#include "EntityStats.h"
 #include "Attacker.h"
 
 #include "CoreMinimal.h"
@@ -16,7 +15,7 @@ class ABaseProjectile;
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
-UCLASS( meta = ( BlueprintSpawnableComponent ), ClassGroup = ( Attack ) )
+UCLASS()
 class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponent
 {
 	GENERATED_BODY()
@@ -52,9 +51,12 @@ protected:
 	// Look around
 	void Look();
 
-	void ChooseAttackMode();
+	virtual void SetAttackMode() PURE_VIRTUAL( UAttackRangedComponent::SetAttackMode, );
 
-	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
+	// Methods used by Look() to filter enemies that owner can see. Can be overriden in subclasses
+	virtual bool ActorPositionIsAttackable( const AActor* actor ) const;
+	virtual bool EnemyIsValid( const AActor* enemyActor ) const;
+	virtual bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
@@ -62,22 +64,22 @@ protected:
 
 	TArray<TObjectPtr<AActor>> FindNeighborTargets( int32 count ) const;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	float LookForwardTimeInterval_ = 0.2f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	bool bCanAttackBackward_ = true;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	TSubclassOf<ABaseProjectile> ProjectileClass_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	float ProjectileSpeed_ = 1500.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FVector ProjectileSpawnPosition_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	UPROPERTY( EditAnywhere, Category = "Settings" )
 	bool bProjectileTracksTarget_ = true;
 
 	TObjectPtr<USphereComponent> SightSphere_;
