@@ -17,6 +17,14 @@ class ABaseProjectile;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnAttackFired, AActor*, Target );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnAttackTargetChanged, AActor*, OldTarget, AActor*, NewTarget );
 
+UENUM( BlueprintType )
+enum class ETowerTargetPriority : uint8
+{
+	Closest		UMETA( DisplayName = "Closest (Default)" ),
+	LowestHP	UMETA( DisplayName = "Lowest HP" ),
+	HighestHP	UMETA( DisplayName = "Highest HP" ),
+};
+
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
 UCLASS( meta = ( BlueprintSpawnableComponent ), ClassGroup = ( Attack ) )
@@ -52,6 +60,18 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
 	void FireExtraProjectile( AActor* target, float damageMultiplier = 1.f );
+
+	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
+	void SetTargetPriority( ETowerTargetPriority priority )
+	{
+		TargetPriority_ = priority;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Attack|Cards" )
+	ETowerTargetPriority GetTargetPriority() const
+	{
+		return TargetPriority_;
+	}
 
 protected:
 	virtual void OnRegister() override;
@@ -91,6 +111,9 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	bool bProjectileTracksTarget_ = true;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	ETowerTargetPriority TargetPriority_ = ETowerTargetPriority::Closest;
 
 	TObjectPtr<USphereComponent> SightSphere_;
 

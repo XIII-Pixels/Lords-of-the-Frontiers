@@ -169,7 +169,10 @@ void UAttackRangedComponent::Look()
 	TArray<AActor*> overlappingActors;
 	SightSphere_->GetOverlappingActors( overlappingActors, AActor::StaticClass() );
 
-	float minDistance = -1.0f;
+	AActor* bestTarget = nullptr;
+	float bestScore = 0.f;
+	bool bHasBest = false;
+
 	for ( auto actor : overlappingActors )
 	{
 		if ( actor == GetOwner() )
@@ -190,15 +193,43 @@ void UAttackRangedComponent::Look()
 			}
 		}
 
-		if ( enemyPositionAttackable && CanSeeEnemy( actor ) )
+		if ( !enemyPositionAttackable || !CanSeeEnemy( actor ) )
 		{
-			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
-			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
-			{
-				ownerAttacker->SetAttackTarget( actor );
-				minDistance = distance;
-			}
+			continue;
 		}
+
+		float score = 0.f;
+		switch ( TargetPriority_ )
+		{
+		case ETowerTargetPriority::LowestHP:
+		{
+			const IEntity* entity = Cast<IEntity>( actor );
+			score = entity ? -static_cast<float>( entity->Stats().Health() ) : 0.f;
+			break;
+		}
+		case ETowerTargetPriority::HighestHP:
+		{
+			const IEntity* entity = Cast<IEntity>( actor );
+			score = entity ? static_cast<float>( entity->Stats().Health() ) : 0.f;
+			break;
+		}
+		case ETowerTargetPriority::Closest:
+		default:
+			score = -FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
+			break;
+		}
+
+		if ( !bHasBest || score > bestScore )
+		{
+			bestTarget = actor;
+			bestScore = score;
+			bHasBest = true;
+		}
+	}
+
+	if ( bestTarget )
+	{
+		ownerAttacker->SetAttackTarget( bestTarget );
 	}
 }
 

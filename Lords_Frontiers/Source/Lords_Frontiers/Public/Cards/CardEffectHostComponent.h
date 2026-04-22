@@ -75,7 +75,7 @@ protected:
 	void HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget );
 
 	UFUNCTION()
-	void HandleOwnerDamaged( class ABuilding* building, int32 damage );
+	void HandleOwnerDamaged( class ABuilding* building, int32 damage, AActor* instigator );
 
 	UFUNCTION()
 	void HandleOwnerRuined( class ABuilding* building );

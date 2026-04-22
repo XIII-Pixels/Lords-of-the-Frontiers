@@ -25,6 +25,10 @@ public:
 	{
 	}
 
+	virtual void OnReapply( AActor* owner, FActiveStatus& state ) const
+	{
+	}
+
 	virtual void OnTick( AActor* owner, FActiveStatus& state ) const
 	{
 	}
@@ -74,6 +78,14 @@ public:
 		meta = ( ClampMin = "0", ClampMax = "99" ) )
 	float SpeedReductionPercent = 25.f;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status" )
+	bool bStackable = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status",
+		meta = ( ClampMin = "0", ClampMax = "99", EditCondition = "bStackable" ) )
+	float MaxStackedPercent = 50.f;
+
 	virtual void OnApply( AActor* owner, FActiveStatus& state ) const override;
+	virtual void OnReapply( AActor* owner, FActiveStatus& state ) const override;
 	virtual void OnRemove( AActor* owner, FActiveStatus& state ) const override;
 };

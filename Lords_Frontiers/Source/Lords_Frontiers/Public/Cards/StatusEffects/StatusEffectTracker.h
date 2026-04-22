@@ -18,6 +18,7 @@ struct FActiveStatus
 	float ExpiresAt = 0.f;
 	float NextTickAt = 0.f;
 	float CachedOriginal = 0.f;
+	float StackAmount = 0.f;
 };
 
 UCLASS( ClassGroup = ( Cards ), meta = ( BlueprintSpawnableComponent ) )

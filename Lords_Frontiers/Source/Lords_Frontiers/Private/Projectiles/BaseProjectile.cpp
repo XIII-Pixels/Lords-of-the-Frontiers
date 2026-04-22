@@ -247,7 +247,7 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 		{
 			if ( target->Stats().IsAlive() )
 			{
-				target->TakeDamage( Damage_ );
+				target->TakeDamage( Damage_, GetOwner() );
 				FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), hitActor, Damage_, false );
 			}
 		}
@@ -319,7 +319,7 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 
 		if ( enemy->Stats().IsAlive() && enemy->Team() != ownerEntity->Team() )
 		{
-			enemy->TakeDamage( Damage_ );
+			enemy->TakeDamage( Damage_, GetOwner() );
 			FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), overlapActor, Damage_, true );
 			damagedActors.Add( overlapActor );
 		}

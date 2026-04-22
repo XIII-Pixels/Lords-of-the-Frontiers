@@ -15,7 +15,7 @@ class UBoxComponent;
 class UNiagaraSystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -41,7 +41,7 @@ public:
 
 	virtual ETeam Team() const override;
 
-	virtual void TakeDamage( int damage ) override;
+	virtual void TakeDamage( int damage, AActor* instigator = nullptr ) override;
 
 	virtual void OnSelected_Implementation() override;
 

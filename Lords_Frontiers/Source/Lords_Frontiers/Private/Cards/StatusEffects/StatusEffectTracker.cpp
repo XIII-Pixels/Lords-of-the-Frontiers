@@ -74,6 +74,7 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def )
 		{
 			existing->NextTickAt = now + def->GetTickInterval();
 		}
+		def->OnReapply( GetOwner(), *existing );
 		return;
 	}
 

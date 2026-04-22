@@ -39,16 +39,16 @@ namespace CardStatReflection
 		return static_cast<double>( prop->GetSignedIntPropertyValue( addr ) );
 	}
 
-	inline void ApplyStatDelta( ABuilding* building, FName statName, float delta )
+	inline float ApplyStatDelta( ABuilding* building, FName statName, float delta )
 	{
 		if ( !building || FMath::IsNearlyZero( delta ) )
 		{
-			return;
+			return 0.f;
 		}
 		FNumericProperty* prop = FindNumericProperty( statName );
 		if ( !prop )
 		{
-			return;
+			return 0.f;
 		}
 		FEntityStats& stats = building->Stats();
 		void* addr = prop->ContainerPtrToValuePtr<void>( &stats );
@@ -57,7 +57,7 @@ namespace CardStatReflection
 		{
 			const double current = prop->GetFloatingPointPropertyValue( addr );
 			prop->SetFloatingPointPropertyValue( addr, current + delta );
-			return;
+			return delta;
 		}
 
 		if ( prop->IsInteger() )
@@ -65,6 +65,9 @@ namespace CardStatReflection
 			const int64 current = prop->GetSignedIntPropertyValue( addr );
 			const int64 rounded = static_cast<int64>( FMath::RoundToInt( delta ) );
 			prop->SetIntPropertyValue( addr, current + rounded );
+			return static_cast<float>( rounded );
 		}
+
+		return 0.f;
 	}
 }

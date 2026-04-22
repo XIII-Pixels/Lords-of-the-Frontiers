@@ -190,9 +190,9 @@ void UCardEffectHostComponent::UnbindBuildingDelegates()
 	bIsBoundToBuilding_ = false;
 }
 
-void UCardEffectHostComponent::HandleOwnerDamaged( ABuilding* building, int32 damage )
+void UCardEffectHostComponent::HandleOwnerDamaged( ABuilding* building, int32 damage, AActor* instigator )
 {
-	DispatchTrigger( ECardTriggerReason::Damaged, nullptr );
+	DispatchTrigger( ECardTriggerReason::Damaged, instigator );
 }
 
 void UCardEffectHostComponent::HandleOwnerRuined( ABuilding* building )

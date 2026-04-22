@@ -74,8 +74,11 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 		return;
 	}
 
-	CardStatReflection::ApplyStatDelta( building, StatName, step );
-	host->SetCounter( accumKey, accumMilli + FMath::RoundToInt( step * 1000.f ) );
+	const float appliedDelta = CardStatReflection::ApplyStatDelta( building, StatName, step );
+	if ( !FMath::IsNearlyZero( appliedDelta ) )
+	{
+		host->SetCounter( accumKey, accumMilli + FMath::RoundToInt( appliedDelta * 1000.f ) );
+	}
 }
 
 void UCardEffect_StackingBuff::Revert_Implementation( const FCardEffectContext& context )

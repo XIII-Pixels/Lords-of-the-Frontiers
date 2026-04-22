@@ -110,8 +110,8 @@ void UCardEffect_AuraStacker::Execute_Implementation( const FCardEffectContext& 
 		return;
 	}
 
-	CardStatReflection::ApplyStatDelta( building, StatName, diff );
-	host->SetCounter( appliedKey, FMath::RoundToInt( desired * 1000.f ) );
+	const float appliedDelta = CardStatReflection::ApplyStatDelta( building, StatName, diff );
+	host->SetCounter( appliedKey, appliedMilli + FMath::RoundToInt( appliedDelta * 1000.f ) );
 }
 
 void UCardEffect_AuraStacker::Revert_Implementation( const FCardEffectContext& context )
