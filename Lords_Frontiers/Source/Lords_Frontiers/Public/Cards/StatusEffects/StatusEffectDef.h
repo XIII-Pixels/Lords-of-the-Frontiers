@@ -89,3 +89,28 @@ public:
 	virtual void OnReapply( AActor* owner, FActiveStatus& state ) const override;
 	virtual void OnRemove( AActor* owner, FActiveStatus& state ) const override;
 };
+
+UCLASS( BlueprintType, meta = ( DisplayName = "Status: Attack Speed Slow" ) )
+class LORDS_FRONTIERS_API UStatusEffect_AttackSlow : public UStatusEffectDef
+{
+	GENERATED_BODY()
+
+public:
+	UStatusEffect_AttackSlow();
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status",
+		meta = ( ClampMin = "0", ClampMax = "99",
+			ToolTip = "How much slower the target attacks while active. 16 = 16% slower." ) )
+	float AttackSpeedReductionPercent = 25.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status" )
+	bool bStackable = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status",
+		meta = ( ClampMin = "0", ClampMax = "99", EditCondition = "bStackable" ) )
+	float MaxStackedPercent = 50.f;
+
+	virtual void OnApply( AActor* owner, FActiveStatus& state ) const override;
+	virtual void OnReapply( AActor* owner, FActiveStatus& state ) const override;
+	virtual void OnRemove( AActor* owner, FActiveStatus& state ) const override;
+};
