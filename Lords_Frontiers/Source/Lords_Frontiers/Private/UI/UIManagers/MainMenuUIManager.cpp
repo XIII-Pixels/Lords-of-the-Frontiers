@@ -3,7 +3,7 @@
 #include "UI/UIManagers/MainMenuUIManager.h"
 
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
-#include "UI/Widgets/MainMenuWidget.h"
+#include "UI/MainMenuWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
@@ -12,21 +12,7 @@
 
 void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 {
-	const auto* world = GetWorld();
-	if ( !world )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "UMainMenuUIManager: failed to get World" ) );
-		return;
-	}
-
-	auto* controller = world->GetFirstPlayerController();
-	if ( !controller )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "UMainMenuUIManager: failed to get PlayerController" ) );
-		return;
-	}
-
-	Widget_ = CreateWidget<UMainMenuWidget>( controller, widgetClass );
+	Super::SetupWidget( widgetClass );
 
 	auto widget = Cast<UMainMenuWidget>( Widget_ );
 	if ( widget && widget->NewGameButton )
@@ -42,7 +28,7 @@ void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 
 void UMainMenuUIManager::OnNewGameButtonClicked()
 {
-	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadLevel( 0 );
+	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadLevelChoosingLevel();
 }
 
 void UMainMenuUIManager::OnExitGameButtonClicked()

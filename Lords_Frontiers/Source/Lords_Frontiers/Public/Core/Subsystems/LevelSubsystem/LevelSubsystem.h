@@ -18,7 +18,8 @@ class LORDS_FRONTIERS_API ULevelSubsystem : public UGameInstanceSubsystem
 
 public:
 	void LoadMainMenu() const;
-	void LoadLevel( int index );
+	void LoadLevelChoosingLevel() const;
+	void LoadGameplayLevel( int index );
 	void LoadNextLevel();
 
 	void SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels );

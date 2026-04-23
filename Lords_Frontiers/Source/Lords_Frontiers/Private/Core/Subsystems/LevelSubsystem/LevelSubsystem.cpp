@@ -12,11 +12,19 @@ void ULevelSubsystem::LoadMainMenu() const
 	}
 }
 
-void ULevelSubsystem::LoadLevel( int index )
+void ULevelSubsystem::LoadLevelChoosingLevel() const
+{
+	if ( Levels_ )
+	{
+		LoadLevel( Levels_->LevelChoosingLevel, "level choosing level" );
+	}
+}
+
+void ULevelSubsystem::LoadGameplayLevel( int index )
 {
 	if ( Levels_ && index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
-		LoadLevel( Levels_->GameplayLevels[index].Level, FString::Printf( TEXT( "level %d" ), index ) );
+		LoadLevel( Levels_->GameplayLevels[index], FString::Printf( TEXT( "gameplay level %d" ), index ) );
 		CurrentLevelIndex_ = index;
 	}
 }
@@ -27,7 +35,7 @@ void ULevelSubsystem::LoadNextLevel()
 	{
 		++CurrentLevelIndex_;
 		LoadLevel(
-		    Levels_->GameplayLevels[CurrentLevelIndex_].Level, FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
+		    Levels_->GameplayLevels[CurrentLevelIndex_], FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
 		);
 	}
 }
