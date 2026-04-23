@@ -9,6 +9,8 @@
 
 #include "LevelSubsystem.generated.h"
 
+enum class ELevelStatus;
+
 /** (Gregory-hub)
  * Subsystem for level loading */
 UCLASS()
@@ -23,6 +25,8 @@ public:
 	void LoadNextLevel();
 
 	void SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels );
+
+	ELevelStatus GetLevelStatus( int index ) const;
 
 protected:
 	UPROPERTY()

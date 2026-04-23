@@ -2,6 +2,9 @@
 
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 
+#include "Core/Saving/GameSaveData.h"
+#include "Core/Saving/GameSaver.h"
+
 #include "Kismet/GameplayStatics.h"
 
 void ULevelSubsystem::LoadMainMenu() const
@@ -50,13 +53,48 @@ void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Failed to set up levels" ) );
 	}
+
+	if ( const auto* gameInstance = GetGameInstance() )
+	{
+		if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
+		{
+			if ( Levels_->GameplayLevels.Num() > 0 )
+			{
+				gameSaver->UpdateLevelStatus(
+				    Levels_->GameplayLevels[0].ToSoftObjectPath().ToString(), ELevelStatus::Unlocked
+				);
+			}
+
+			if ( Levels_->GameplayLevels.Num() > 1 )
+			{
+				gameSaver->UpdateLevelStatus(
+				    Levels_->GameplayLevels[1].ToSoftObjectPath().ToString(), ELevelStatus::Unlocked
+				);
+			}
+		}
+	}
+}
+
+ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
+{
+	if ( index >= 0 && index < Levels_->GameplayLevels.Num() )
+	{
+		if ( const auto* gameInstance = GetGameInstance() )
+		{
+			if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
+			{
+				return gameSaver->GetLevelStatus( Levels_->GameplayLevels[index].ToSoftObjectPath().ToString() );
+			}
+		}
+	}
+	return ELevelStatus::Undefined;
 }
 
 void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName ) const
 {
 	if ( !level.IsNull() )
 	{
-		UGameplayStatics::OpenLevel( GetWorld(), FName( *level.ToSoftObjectPath().GetLongPackageName() ) );
+		UGameplayStatics::OpenLevelBySoftObjectPtr( GetWorld(), level );
 	}
 	else
 	{
