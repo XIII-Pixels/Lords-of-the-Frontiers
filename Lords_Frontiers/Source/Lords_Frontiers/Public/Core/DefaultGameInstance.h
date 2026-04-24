@@ -10,6 +10,7 @@
 #include "DefaultGameInstance.generated.h"
 
 class ACardFeedbackPopup;
+class ACardIconStrip;
 
 /** (Gregory-hub) */
 UCLASS( Abstract )
@@ -25,10 +26,18 @@ public:
 		return CardFeedbackPopupClass_;
 	}
 
+	TSubclassOf<ACardIconStrip> GetCardIconStripClass() const
+	{
+		return CardIconStripClass_;
+	}
+
 protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
 	TObjectPtr<ULevelsDataAsset> Levels_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Cards" )
 	TSubclassOf<ACardFeedbackPopup> CardFeedbackPopupClass_;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Cards" )
+	TSubclassOf<ACardIconStrip> CardIconStripClass_;
 };

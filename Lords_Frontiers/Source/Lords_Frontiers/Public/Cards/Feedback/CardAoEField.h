@@ -21,7 +21,9 @@ public:
 		float duration,
 		float tickInterval,
 		int32 damagePerTick,
-		UStatusEffectDef* statusPerTick );
+		UStatusEffectDef* statusPerTick,
+		bool bDebugDrawRadius = false,
+		const FColor& debugColor = FColor::Yellow );
 
 protected:
 	virtual void BeginPlay() override;
@@ -36,6 +38,9 @@ protected:
 	float Duration_ = 0.f;
 	float TickInterval_ = 1.f;
 	int32 DamagePerTick_ = 0;
+
+	bool bDebugDrawRadius_ = false;
+	FColor DebugColor_ = FColor::Yellow;
 
 	UPROPERTY()
 	TObjectPtr<UStatusEffectDef> StatusPerTick_;

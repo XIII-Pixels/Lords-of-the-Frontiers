@@ -23,6 +23,13 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect" )
 	TObjectPtr<UStatusEffectDef> StatusToApply;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Debug" )
+	bool bDebugDrawRadius = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Debug",
+		meta = ( EditCondition = "bDebugDrawRadius" ) )
+	FColor DebugColor = FColor::Orange;
+
 	virtual void Execute_Implementation( const FCardEffectContext& context ) override;
 	virtual bool RequiresRuntimeRegistration_Implementation() const override
 	{

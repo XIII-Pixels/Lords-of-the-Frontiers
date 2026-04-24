@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cards/CardTypes.h"
+#include "Cards/Visuals/CardVisualTypes.h"
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
@@ -14,6 +15,9 @@ class LORDS_FRONTIERS_API UCardEffect : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	FCardVisualConfig VisualConfig;
+
 	UFUNCTION( BlueprintNativeEvent, Category = "Card|Effect" )
 	void Apply( const FCardEffectContext& context );
 	virtual void Apply_Implementation( const FCardEffectContext& context )

@@ -6,11 +6,34 @@
 #include "Cards/CardDataAsset.h"
 #include "Cards/CardEffect.h"
 #include "Cards/CardSubsystem.h"
-#include "Cards/Feedback/CardFeedback.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Components/Attack/AttackRangedComponent.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
+
+namespace
+{
+	bool HasStickyVisual( const UCardEffect* effect )
+	{
+		if ( !effect )
+		{
+			return false;
+		}
+
+		const FCardVisualConfig& cfg = effect->VisualConfig;
+
+		const bool bLoopingNiagara = !cfg.Niagara.System.IsNull()
+			&& cfg.Niagara.bLoop
+			&& cfg.Niagara.SpawnOn != ECardVisualTarget::None;
+
+		const bool bStickyIcon = !cfg.Icon.Icon.IsNull()
+			&& cfg.Icon.Mode == ECardVisualIconMode::Sticky
+			&& cfg.Icon.ShowOn != ECardVisualTarget::None;
+
+		return bLoopingNiagara || bStickyIcon;
+	}
+}
 
 UCardEffectHostComponent::UCardEffectHostComponent()
 {
@@ -46,6 +69,15 @@ void UCardEffectHostComponent::RegisterEffect( UCardDataAsset* card, int32 event
 	record.SourceCard = card;
 	record.EventIndex = eventIndex;
 	record.Effect = effect;
+
+	if ( HasStickyVisual( effect ) )
+	{
+		if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+		{
+			record.StickyHandle = visuals->BeginSticky( effect->VisualConfig, GetOwner(), nullptr );
+		}
+	}
+
 	Active_.Add( record );
 
 	BindAttackDelegates();
@@ -61,14 +93,35 @@ void UCardEffectHostComponent::UnregisterBySourceCard( UCardDataAsset* card )
 		return;
 	}
 
-	Active_.RemoveAll( [card]( const FRegisteredCardEffect& r )
+	UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this );
+
+	for ( int32 i = Active_.Num() - 1; i >= 0; --i )
 	{
-		return r.SourceCard == card;
-	} );
+		if ( Active_[i].SourceCard != card )
+		{
+			continue;
+		}
+		if ( visuals && Active_[i].StickyHandle.IsValid() )
+		{
+			visuals->EndSticky( Active_[i].StickyHandle );
+		}
+		Active_.RemoveAt( i );
+	}
 }
 
 void UCardEffectHostComponent::ClearAll()
 {
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		for ( FRegisteredCardEffect& rec : Active_ )
+		{
+			if ( rec.StickyHandle.IsValid() )
+			{
+				visuals->EndSticky( rec.StickyHandle );
+			}
+		}
+	}
+
 	Active_.Empty();
 	Counters_.Empty();
 	UnbindAttackDelegates();
@@ -310,9 +363,8 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 	}
 
 	UCardSubsystem* subsystem = UCardSubsystem::Get( this );
+	UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this );
 	ABuilding* building = Cast<ABuilding>( GetOwner() );
-
-	TSet<UCardDataAsset*> firedCards;
 
 	for ( const FRegisteredCardEffect& rec : Active_ )
 	{
@@ -350,21 +402,10 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 		}
 
 		rec.Effect->Execute( ctx );
-		firedCards.Add( rec.SourceCard );
-	}
 
-	if ( !building || firedCards.Num() == 0 )
-	{
-		return;
-	}
-
-	for ( UCardDataAsset* card : firedCards )
-	{
-		if ( !card || !card->bShowIconOnTrigger || !card->FeedbackIconOverride )
+		if ( visuals && building )
 		{
-			continue;
+			visuals->PlayOneShot( rec.Effect->VisualConfig, building, instigator );
 		}
-
-		UCardFeedback::ShowIconOnActor( this, building, card->FeedbackIconOverride );
 	}
 }
