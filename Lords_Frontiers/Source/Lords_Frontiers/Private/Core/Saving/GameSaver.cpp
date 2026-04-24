@@ -18,6 +18,11 @@ void UGameSaver::UpdateCurrentLevelStatus( ELevelStatus levelStatus ) const
 
 void UGameSaver::UpdateLevelStatus( const FString& levelPath, ELevelStatus levelStatus ) const
 {
+	if ( levelPath.IsEmpty() )
+	{
+		return;
+	}
+
 	UGameSaveData* saveData = Cast<UGameSaveData>( UGameplayStatics::LoadGameFromSlot( SaveSlotName_, 0 ) );
 	if ( !saveData )
 	{
@@ -38,8 +43,18 @@ ELevelStatus UGameSaver::GetCurrentLevelStatus() const
 	return GetLevelStatus( world->GetPathName() );
 }
 
+void UGameSaver::Clear() const
+{
+	UGameplayStatics::DeleteGameInSlot( SaveSlotName_, 0 );
+}
+
 ELevelStatus UGameSaver::GetLevelStatus( const FString& levelPath ) const
 {
+	if ( levelPath.IsEmpty() )
+	{
+		return ELevelStatus::Undefined;
+	}
+
 	UGameSaveData* saveData = Cast<UGameSaveData>( UGameplayStatics::LoadGameFromSlot( SaveSlotName_, 0 ) );
 	if ( saveData && saveData->StatusLevels.Contains( levelPath ) )
 	{

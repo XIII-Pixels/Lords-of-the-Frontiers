@@ -27,7 +27,7 @@ void ULevelSubsystem::LoadGameplayLevel( int index )
 {
 	if ( Levels_ && index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
-		LoadLevel( Levels_->GameplayLevels[index], FString::Printf( TEXT( "gameplay level %d" ), index ) );
+		LoadLevel( Levels_->GameplayLevels[index].Level, FString::Printf( TEXT( "gameplay level %d" ), index ) );
 		CurrentLevelIndex_ = index;
 	}
 }
@@ -38,7 +38,7 @@ void ULevelSubsystem::LoadNextLevel()
 	{
 		++CurrentLevelIndex_;
 		LoadLevel(
-		    Levels_->GameplayLevels[CurrentLevelIndex_], FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
+		    Levels_->GameplayLevels[CurrentLevelIndex_].Level, FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
 		);
 	}
 }
@@ -52,24 +52,21 @@ void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 	else
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Failed to set up levels" ) );
+		return;
 	}
 
 	if ( const auto* gameInstance = GetGameInstance() )
 	{
 		if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
 		{
-			if ( Levels_->GameplayLevels.Num() > 0 )
+			for ( auto [level, unlocked] : Levels_->GameplayLevels )
 			{
-				gameSaver->UpdateLevelStatus(
-				    Levels_->GameplayLevels[0].ToSoftObjectPath().ToString(), ELevelStatus::Unlocked
-				);
-			}
-
-			if ( Levels_->GameplayLevels.Num() > 1 )
-			{
-				gameSaver->UpdateLevelStatus(
-				    Levels_->GameplayLevels[1].ToSoftObjectPath().ToString(), ELevelStatus::Unlocked
-				);
+				if ( gameSaver->GetLevelStatus( level.ToSoftObjectPath().ToString() ) == ELevelStatus::Undefined )
+				{
+					gameSaver->UpdateLevelStatus(
+					    level.ToSoftObjectPath().ToString(), unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
+					);
+				}
 			}
 		}
 	}
@@ -83,7 +80,7 @@ ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 		{
 			if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
 			{
-				return gameSaver->GetLevelStatus( Levels_->GameplayLevels[index].ToSoftObjectPath().ToString() );
+				return gameSaver->GetLevelStatus( Levels_->GameplayLevels[index].Level.ToSoftObjectPath().ToString() );
 			}
 		}
 	}

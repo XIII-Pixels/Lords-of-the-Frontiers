@@ -22,6 +22,12 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 		return;
 	}
 
+	ULevelSubsystem* levelSubsystem = nullptr;
+	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( GetWorld() ) )
+	{
+		levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>();
+	}
+
 	TArray<UWidget*> allWidgets;
 	if ( Widget_ )
 	{
@@ -35,6 +41,22 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 			if ( levelButton->Butt != menuWidget->BackButton )
 			{
 				levelButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonClicked );
+
+				if ( levelSubsystem )
+				{
+					switch ( levelSubsystem->GetLevelStatus( levelButton->LevelIndex() ) )
+					{
+					case ELevelStatus::Unlocked:
+						levelButton->SetStateUnlocked();
+						break;
+					case ELevelStatus::Completed:
+						levelButton->SetStateCompleted();
+						break;
+					default:
+						levelButton->SetStateLocked();
+						break;
+					}
+				}
 			}
 		}
 	}

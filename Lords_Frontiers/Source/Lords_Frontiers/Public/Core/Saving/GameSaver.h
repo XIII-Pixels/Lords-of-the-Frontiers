@@ -22,6 +22,8 @@ public:
 	ELevelStatus GetLevelStatus( const FString& levelPath ) const;
 	ELevelStatus GetCurrentLevelStatus() const;
 
+	void Clear() const;
+
 private:
 	FString SaveSlotName_ = "One Save Slot To Rule Them All";
 };

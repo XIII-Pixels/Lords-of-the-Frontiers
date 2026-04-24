@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include "Core/Saving/GameSaveData.h"
+
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
 
 #include "LevelButton.generated.h"
 
+class UImage;
+enum class ELevelStatus;
 class UButton;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnLevelClicked, int32, LevelIndex );
@@ -24,12 +28,34 @@ public:
 	UFUNCTION()
 	void HandleClick();
 
+	void SetStateLocked();
+	void SetStateUnlocked();
+	void SetStateCompleted();
+
+	int LevelIndex() const
+	{
+		return LevelIndex_;
+	}
+
 	UPROPERTY( BlueprintAssignable )
 	FOnLevelClicked OnClicked;
 
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> Butt;
 
+	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
+	TObjectPtr<UImage> StatusImage;
+
+protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( ExposeOnSpawn = true ) )
-	int LevelIndex = -1;
+	int LevelIndex_ = -1;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( ExposeOnSpawn = true ) )
+	TObjectPtr<UTexture2D> TextureLocked_ = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( ExposeOnSpawn = true ) )
+	TObjectPtr<UTexture2D> TextureUnlocked_ = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings", meta = ( ExposeOnSpawn = true ) )
+	TObjectPtr<UTexture2D> TextureCompleted_ = nullptr;
 };
