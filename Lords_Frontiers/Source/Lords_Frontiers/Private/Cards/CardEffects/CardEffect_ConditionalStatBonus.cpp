@@ -10,7 +10,7 @@
 
 namespace
 {
-	FName MakeAppliedKey( const UCardDataAsset* card )
+	FName MakeCondAppliedKey( const UCardDataAsset* card )
 	{
 		const FString cardName = card ? card->GetName() : TEXT( "null" );
 		return FName( *FString::Printf( TEXT( "%s#cond_applied" ), *cardName ) );
@@ -33,7 +33,7 @@ void UCardEffect_ConditionalStatBonus::Execute_Implementation( const FCardEffect
 
 	const bool bConditionMet = ActiveWhile ? ActiveWhile->IsMet( context ) : true;
 
-	const FName key = MakeAppliedKey( context.SourceCard.Get() );
+	const FName key = MakeCondAppliedKey( context.SourceCard.Get() );
 	const int32 appliedMilli = host->GetCounter( key );
 	const bool bApplied = appliedMilli != 0;
 
@@ -61,7 +61,7 @@ void UCardEffect_ConditionalStatBonus::Revert_Implementation( const FCardEffectC
 		return;
 	}
 
-	const FName key = MakeAppliedKey( context.SourceCard.Get() );
+	const FName key = MakeCondAppliedKey( context.SourceCard.Get() );
 	const int32 appliedMilli = host->GetCounter( key );
 	if ( appliedMilli != 0 )
 	{
