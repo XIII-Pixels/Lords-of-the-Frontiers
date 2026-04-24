@@ -181,7 +181,7 @@ void UAttackRangedComponent::Look()
 			}
 		}
 
-		if ( enemyPositionAttackable && CanSeeEnemy( actor ) )
+		if ( enemyPositionAttackable && CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
 			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
@@ -294,7 +294,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 		{
 			continue;
 		}
-		if ( CanSeeEnemy( actor ) )
+		if ( CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			float distance = FVector::DistSquared( ownerLocation, actor->GetActorLocation() );
 			candidates.Add( { actor, distance } );
