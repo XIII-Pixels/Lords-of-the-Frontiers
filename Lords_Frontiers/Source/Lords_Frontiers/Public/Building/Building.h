@@ -111,6 +111,10 @@ protected:
 	virtual void OnDeath();
 
 	void FinalizeRuin();
+	
+	void SubscribeHealthBar();
+
+	void UnsubscribeHealthBar();
 
 	void ActivateBuildingMesh();
 

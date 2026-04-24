@@ -2,7 +2,6 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "VFX/EntityVFXConfig.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -66,21 +65,39 @@ void ABuilding::BeginPlay()
 	ResolveVFXDefaults();
 	SpawnConstructionVFX();
 
-	if ( HealthBarConfig_ )
+	SubscribeHealthBar();
+}
+
+void ABuilding::SubscribeHealthBar()
+{
+	if ( !HealthBarConfig_ )
 	{
-		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
-		    this,
-		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+	    this,
+	    [ this ]( int, int )
+	    {
+		    if ( UWorld* world = GetWorld() )
 		    {
-			    if ( UWorld* world = GetWorld() )
+			    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
 			    {
-				    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
-				    {
-					    pool->ShowFor( this, HealthBarConfig_ );
-				    }
+				    pool->ShowFor( this, HealthBarConfig_ );
 			    }
 		    }
-		);
+	    }
+	);
+}
+
+void ABuilding::UnsubscribeHealthBar()
+{
+	if ( HealthBarSubscription_.IsValid() )
+	{
+		Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+		HealthBarSubscription_.Reset();
 	}
 }
 
@@ -91,8 +108,7 @@ void ABuilding::OnDeath()
 		return;
 	}
 
-	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
-	HealthBarSubscription_.Reset();
+	UnsubscribeHealthBar();
 
 	if ( UWorld* world = GetWorld() )
 	{
@@ -395,6 +411,8 @@ void ABuilding::RestoreFromRuins()
 
 	ActivateBuildingMesh();
 
+	SubscribeHealthBar();
+
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
 	if ( CollisionComponent_ )
@@ -426,6 +444,8 @@ void ABuilding::FullRestore()
 		}
 		SetCanAffectNavigationGeneration( true );
 	}
+
+	SubscribeHealthBar();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 }
