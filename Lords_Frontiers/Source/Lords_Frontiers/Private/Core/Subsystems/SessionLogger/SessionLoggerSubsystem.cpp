@@ -903,59 +903,73 @@ void USessionLoggerSubsystem::CaptureEnemySpawnData( int32 waveIndex )
 		return;
 	}
 
-	const TArray<FWave>& waves = WaveManager_->Waves;
-	if ( !waves.IsValidIndex( waveIndex ) )
+	if ( !WaveManager_->WaveConfig_ )
 	{
 		return;
 	}
 
-	const FWave& wave = waves[waveIndex];
-	for ( int32 i = 0; i < wave.EnemyGroups.Num(); ++i )
+	if ( !WaveManager_->WaveConfig_->Waves.IsValidIndex( waveIndex ) )
 	{
-		const FEnemyGroup& group = wave.EnemyGroups[i];
-		if ( !group.IsValid() )
+		return;
+	}
+
+	const UWaveData* wave = WaveManager_->WaveConfig_->Waves[waveIndex];
+	if ( !wave )
+	{
+		return;
+	}
+
+	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& pair : wave->EnemySpawnMap )
+	{
+		const TSubclassOf<AUnit>& enemyClass = pair.Key;
+		const FEnemySpawnSettings& spawnSettings = pair.Value;
+
+		if ( !enemyClass )
 		{
 			continue;
 		}
 
-		FLogEnemySpawnRecord record;
-		record.EnemyClass = group.EnemyClass ? group.EnemyClass->GetFName() : NAME_None;
-		record.Count = group.Count;
-		record.SpawnPointId = wave.GetSpawnPointIdForGroup( i );
-		record.GroupIndex = i;
-
-		waveData->EnemiesSpawned.Add( record );
-
-		if ( !group.EnemyClass )
+		for ( const FPortalSpawnEntry& portalEntry : spawnSettings.Portals )
 		{
-			continue;
+			if ( portalEntry.Count <= 0 || portalEntry.SpawnPointId.IsNone() )
+			{
+				continue;
+			}
+
+			FLogEnemySpawnRecord record;
+			record.EnemyClass = enemyClass->GetFName();
+			record.Count = portalEntry.Count;
+			record.SpawnPointId = portalEntry.SpawnPointId;
+			record.GroupIndex = -1;
+
+			waveData->EnemiesSpawned.Add( record );
 		}
 
-		const AUnit* cdo = group.EnemyClass->GetDefaultObject<AUnit>();
-		if ( !cdo )
-		{
-			continue;
-		}
-
-		// Skip if we already have stats for this class
 		bool bAlreadyHas = false;
 		for ( const FLogEnemyTypeStats& existing : waveData->EnemyTypeStats )
 		{
-			if ( existing.EnemyClass == record.EnemyClass )
+			if ( existing.EnemyClass == enemyClass->GetFName() )
 			{
 				bAlreadyHas = true;
 				break;
 			}
 		}
+
 		if ( bAlreadyHas )
 		{
 			continue;
 		}
 
-		FLogEnemyTypeStats eStats;
-		eStats.EnemyClass = record.EnemyClass;
+		const AUnit* cdo = enemyClass->GetDefaultObject<AUnit>();
+		if ( !cdo )
+		{
+			continue;
+		}
 
-		const FEntityStats& unitStats = const_cast<AUnit*>( cdo )->Stats();
+		FLogEnemyTypeStats eStats;
+		eStats.EnemyClass = enemyClass->GetFName();
+
+		const FEntityStats& unitStats = cdo->Stats();
 		eStats.MaxHealth = unitStats.MaxHealth();
 		eStats.AttackDamage = unitStats.AttackDamage();
 		eStats.AttackRange = unitStats.AttackRange();
@@ -964,20 +978,19 @@ void USessionLoggerSubsystem::CaptureEnemySpawnData( int32 waveIndex )
 		eStats.SplashRadius = unitStats.SplashRadius();
 		eStats.BurstCount = unitStats.BurstCount();
 
-		const FEnemyBuff* buff = WaveManager_->EnemyBuffs.Find( group.EnemyClass );
-		if ( buff )
-		{
-			eStats.MaxHealth = static_cast<int32>( eStats.MaxHealth * buff->HealthMultiplier );
-			eStats.AttackDamage = static_cast<int32>( eStats.AttackDamage * buff->AttackDamageMultiplier );
-			eStats.AttackRange *= buff->AttackRangeMultiplier;
-			eStats.AttackCooldown *= buff->AttackCooldownMultiplier;
-			eStats.MaxSpeed *= buff->MaxSpeedMultiplier;
-		}
+		const FEnemyBuff& buff = spawnSettings.Buff;
+
+		eStats.MaxHealth =
+		    static_cast<int32>( eStats.MaxHealth * FMath::Pow( buff.HealthMultiplier, buff.SpawnCount ) );
+		eStats.AttackDamage =
+		    static_cast<int32>( eStats.AttackDamage * FMath::Pow( buff.AttackDamageMultiplier, buff.SpawnCount ) );
+		eStats.AttackRange *= FMath::Pow( buff.AttackRangeMultiplier, buff.SpawnCount );
+		eStats.AttackCooldown *= FMath::Pow( buff.AttackCooldownMultiplier, buff.SpawnCount );
+		eStats.MaxSpeed *= FMath::Pow( buff.MaxSpeedMultiplier, buff.SpawnCount );
 
 		waveData->EnemyTypeStats.Add( eStats );
 	}
 }
-
 void USessionLoggerSubsystem::CollectBonusDataForBuilding(
     ABuilding* building, const FIntPoint& buildingCoords, TArray<FLogBonusRecord>& OutReceived,
     TArray<FLogBonusRecord>& OutGiven

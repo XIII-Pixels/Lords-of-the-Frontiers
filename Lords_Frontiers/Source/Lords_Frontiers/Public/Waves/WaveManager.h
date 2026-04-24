@@ -3,6 +3,7 @@
 #include "EnemyBuff.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/WaveConfig.h"
+#include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "Wave.h"
 
 #include "CoreMinimal.h"
@@ -65,10 +66,6 @@ public:
 		return bHasRequestedFirstWave_;
 	}
 
-	
-	UPROPERTY( EditAnywhere, Category = "Settings|Wave|Buffs" )
-	TMap<TSubclassOf<AUnit>, FEnemyBuff> EnemyBuffs;
-
 	// Current wave index (0-based)
 	int32 CurrentWaveIndex = 0;
 
@@ -114,8 +111,8 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
 	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
-	UPROPERTY( EditAnywhere, Category = "WaveConfig" )
-	UWaveConfigData* WaveConfig_;
+	UPROPERTY( EditAnywhere, Category = "Settings|WaveConfig" )
+	TObjectPtr<UWaveConfigData> WaveConfig_ = nullptr;
 
 	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
 	void SetWaveConfig( UWaveConfigData* newConfig );
@@ -123,17 +120,21 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Wave|Config" )
 	void ApplyWaveConfig();
 
+	const UWaveData* GetWaveData( int32 Index ) const;
+
+	int32 GetWavesCount() const;
+
 protected:
 	virtual void BeginPlay() override;
 
 	// Internal helper to schedule all spawn timers for a wave
-	void ScheduleWaveSpawns( const FWave& wave, int32 waveIndex );
+	void ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveIndex );
 
 	UFUNCTION( BlueprintCallable )
 	void UpdateSpawnCounts( int32 waveIndex );
 	// Schedules spawn for a single enemy (called via timer)
 	UFUNCTION()
-	void SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyIndex );
+	void SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnPointId, int32 enemyIndex );
 
 	// Called when a scheduled wave-end timer elapses
 	UFUNCTION()

@@ -49,7 +49,7 @@ public:
 
 	virtual void TakeDamage( int damage ) override;
 
-	void ChangeStats( FEnemyBuff* buff );
+	void ChangeStats( const FEnemyBuff* buff );
 
 	virtual FEntityStats& Stats() override
 	{
