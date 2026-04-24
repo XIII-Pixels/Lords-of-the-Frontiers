@@ -139,6 +139,12 @@ protected:
 
 	void ActivateRuinsMesh();
 
+	void UpdateSelectionOverlay();
+
+	void ShowSelectionOverlay();
+
+	void HideSelectionOverlay();
+
 	UPROPERTY()
 	TObjectPtr<UBoxComponent> CollisionComponent_;
 
@@ -153,6 +159,13 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UStaticMesh> BuildingMesh_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UMaterialInterface> SelectionMaterial_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMeshComponent> SelectionOverlayMesh_;
+
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	FVector2D AnimationRateRange_ = FVector2D( 0.8f, 1.2f );

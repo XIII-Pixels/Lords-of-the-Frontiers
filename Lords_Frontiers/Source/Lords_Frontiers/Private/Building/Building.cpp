@@ -26,6 +26,14 @@ ABuilding::ABuilding()
 	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
 	SkeletalMeshComponent_->SetupAttachment( RootComponent );
+
+	SelectionOverlayMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionOverlayMesh" ) );
+	SelectionOverlayMesh_->SetupAttachment( RootComponent );
+	SelectionOverlayMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	SelectionOverlayMesh_->SetGenerateOverlapEvents( false );
+	SelectionOverlayMesh_->SetCastShadow( false );
+	SelectionOverlayMesh_->SetHiddenInGame( true );
+	SelectionOverlayMesh_->SetVisibility( false );
 }
 
 void ABuilding::BeginPlay()
@@ -59,6 +67,9 @@ void ABuilding::BeginPlay()
 
 	ResolveVFXDefaults();
 	SpawnConstructionVFX();
+
+	UpdateSelectionOverlay();
+	HideSelectionOverlay();
 }
 
 void ABuilding::OnDeath()
@@ -221,6 +232,7 @@ void ABuilding::FinalizeRuin()
 		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::ActivateBuildingMesh()
@@ -236,6 +248,7 @@ void ABuilding::ActivateBuildingMesh()
 		SkeletalMeshComponent_->SetVisibility( false );
 		StaticMeshComponent_->SetVisibility( true );
 	}
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::ActivateRuinsMesh()
@@ -247,6 +260,7 @@ void ABuilding::ActivateRuinsMesh()
 		SkeletalMeshComponent_->SetVisibility( false );
 		StaticMeshComponent_->SetVisibility( true );
 	}
+	UpdateSelectionOverlay();
 }
 
 FEntityStats& ABuilding::Stats()
@@ -314,6 +328,9 @@ void ABuilding::OnSelected_Implementation()
 	{
 		StaticMeshComponent_->SetRenderCustomDepth( true );
 	}
+
+	UpdateSelectionOverlay();
+	ShowSelectionOverlay();
 }
 
 void ABuilding::OnDeselected_Implementation()
@@ -326,6 +343,8 @@ void ABuilding::OnDeselected_Implementation()
 	}
 
 	StaticMeshComponent_->SetRenderCustomDepth( false );
+
+	HideSelectionOverlay();
 }
 
 bool ABuilding::CanBeSelected_Implementation() const
@@ -370,6 +389,8 @@ void ABuilding::RestoreFromRuins()
 	}
 
 	ActivateBuildingMesh();
+
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::FullRestore()
@@ -454,4 +475,48 @@ FResourceProduction ABuilding::GetRelocationCost() const
 FResourceProduction ABuilding::GetDemolitionRefund() const
 {
 	return DemolitionRefund_;
+}
+
+void ABuilding::UpdateSelectionOverlay()
+{
+	if ( !SelectionOverlayMesh_ )
+	{
+		return;
+	}
+
+	UStaticMesh* meshToUse = nullptr;
+
+	if ( StaticMeshComponent_ )
+	{
+		meshToUse = StaticMeshComponent_->GetStaticMesh();
+	}
+
+	if ( !meshToUse && BuildingMesh_ )
+	{
+		meshToUse = BuildingMesh_;
+	}
+
+	if ( meshToUse )
+	{
+		SelectionOverlayMesh_->SetStaticMesh( meshToUse );
+		SelectionOverlayMesh_->SetMaterial( 0, SelectionMaterial_ );
+	}
+}
+
+void ABuilding::ShowSelectionOverlay()
+{
+	if ( SelectionOverlayMesh_ )
+	{
+		SelectionOverlayMesh_->SetVisibility( true );
+		SelectionOverlayMesh_->SetHiddenInGame( false );
+	}
+}
+
+void ABuilding::HideSelectionOverlay()
+{
+	if ( SelectionOverlayMesh_ )
+	{
+		SelectionOverlayMesh_->SetVisibility( false );
+		SelectionOverlayMesh_->SetHiddenInGame( true );
+	}
 }
