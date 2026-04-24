@@ -1,6 +1,8 @@
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 
 #include "Building/Building.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/StrategyCamera.h"
 #include "Entity.h"
 #include "UI/GameHUD.h"
 #include "UI/HealthBar/HealthBarConfigDataAsset.h"
@@ -9,8 +11,6 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Camera/CameraComponent.h"
-#include "Camera/StrategyCamera.h"
 #include "Components/VerticalBox.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/World.h"
@@ -31,6 +31,7 @@ void UHealthBarPoolSubsystem::Deinitialize()
 	ActiveBars_.Empty();
 	Pools_.Empty();
 	WarmedClasses_.Empty();
+	LastDisplayedPercent_.Empty();
 
 	Super::Deinitialize();
 }
@@ -83,8 +84,9 @@ void UHealthBarPoolSubsystem::PreWarm( TSubclassOf<UHealthBarWidget> widgetClass
 	WarmedClasses_.Add( widgetClass );
 }
 
-TSubclassOf<UHealthBarWidget>
-UHealthBarPoolSubsystem::ResolveWidgetClass( AActor* entity, UHealthBarConfigDataAsset* config ) const
+TSubclassOf<UHealthBarWidget> UHealthBarPoolSubsystem::ResolveWidgetClass(
+    AActor* entity, UHealthBarConfigDataAsset* config
+) const
 {
 	if ( !config )
 	{
@@ -150,15 +152,26 @@ void UHealthBarPoolSubsystem::ShowFor( AActor* entity, UHealthBarConfigDataAsset
 		return;
 	}
 
+	const FEntityStats& stats = entityInterface->Stats();
+	const bool bIsBossEntity = IsBoss( entity );
+	const bool bAtFullHealth = stats.IsAtFullHealth();
+
 	if ( FActiveHealthBar* existing = ActiveBars_.Find( entity ) )
 	{
-		existing->HideTimer = config->HideDelay_;
-		existing->TouchOrder = ++TouchCounter_;
+		if ( !bAtFullHealth || bIsBossEntity )
+		{
+			existing->HideTimer = config->HideDelay_;
+			existing->TouchOrder = ++TouchCounter_;
+		}
 		if ( existing->Widget )
 		{
-			const FEntityStats& stats = entityInterface->Stats();
 			existing->Widget->SetHealth( stats.Health(), stats.MaxHealth() );
 		}
+		return;
+	}
+
+	if ( bAtFullHealth && !bIsBossEntity )
+	{
 		return;
 	}
 
@@ -172,7 +185,7 @@ void UHealthBarPoolSubsystem::ShowFor( AActor* entity, UHealthBarConfigDataAsset
 	bar.Entity = entity;
 	bar.Widget = widget;
 	bar.Config = config;
-	bar.bIsBoss = IsBoss( entity );
+	bar.bIsBoss = bIsBossEntity;
 	bar.HideTimer = config->HideDelay_;
 	bar.TouchOrder = ++TouchCounter_;
 
@@ -184,10 +197,18 @@ void UHealthBarPoolSubsystem::ShowFor( AActor* entity, UHealthBarConfigDataAsset
 	{
 		AttachWorldBar( bar, widget );
 	}
+	
+	if ( const float* savedPercent = LastDisplayedPercent_.Find( entity ) )
+	{
+		widget->ResetTo( *savedPercent );
+		LastDisplayedPercent_.Remove( entity );
+	}
+	else
+	{
+		widget->ResetToFull();
+	}
 
-	const FEntityStats& stats = entityInterface->Stats();
 	widget->SetHealth( stats.Health(), stats.MaxHealth() );
-	widget->SnapToTarget();
 
 	widget->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
 	widget->OnShow();
@@ -210,6 +231,19 @@ void UHealthBarPoolSubsystem::HideFor( AActor* entity )
 
 	if ( bar.Widget )
 	{
+		bool bRememberPercent = true;
+		if ( const IEntity* entityInterface = Cast<IEntity>( entity ) )
+		{
+			bRememberPercent = entityInterface->Stats().IsAlive();
+		}
+		if ( bRememberPercent )
+		{
+			LastDisplayedPercent_.Add( entity, bar.Widget->GetDisplayedPercent() );
+		}
+		else
+		{
+			LastDisplayedPercent_.Remove( entity );
+		}
 		bar.Widget->OnHide();
 	}
 
@@ -410,7 +444,6 @@ float UHealthBarPoolSubsystem::GetCameraZoomAlpha() const
 
 	return FMath::Clamp( 1.0f - closeness, 0.0f, 1.0f );
 }
-
 
 void UHealthBarPoolSubsystem::Tick( float deltaTime )
 {

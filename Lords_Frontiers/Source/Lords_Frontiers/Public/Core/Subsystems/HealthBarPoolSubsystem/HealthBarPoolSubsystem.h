@@ -105,6 +105,8 @@ private:
 	UPROPERTY()
 	TMap<TWeakObjectPtr<AActor>, FActiveHealthBar> ActiveBars_;
 
+	TMap<TWeakObjectPtr<AActor>, float> LastDisplayedPercent_;
+
 	uint64 TouchCounter_ = 0;
 
 	float CachedHideDelay_ = 3.0f;

@@ -27,6 +27,25 @@ void UHealthBarWidget::SnapToTarget()
 	}
 }
 
+void UHealthBarWidget::ResetToFull()
+{
+	ResetTo( 1.0f );
+}
+
+void UHealthBarWidget::ResetTo( float percent )
+{
+	const float clamped = FMath::Clamp( percent, 0.0f, 1.0f );
+	DisplayedPercent_ = clamped;
+	DrainStartPercent_ = clamped;
+	TargetPercent_ = clamped;
+	DrainElapsed_ = 0.0f;
+
+	if ( HealthBar )
+	{
+		HealthBar->SetPercent( clamped );
+	}
+}
+
 void UHealthBarWidget::TickAnim( float deltaTime )
 {
 	if ( FMath::IsNearlyEqual( DisplayedPercent_, TargetPercent_ ) )
@@ -60,11 +79,6 @@ void UHealthBarWidget::ApplyCameraScale( float zoomAlpha )
 {
 	const float clamped = FMath::Clamp( zoomAlpha, 0.0f, 1.0f );
 	const float scale = FMath::Lerp( MaxScale_, MinScale_, clamped );
-
-	UE_LOG(
-	    LogTemp, Warning, TEXT( "[HPBar] widget %s alpha=%.3f Min=%.2f Max=%.2f -> scale=%.3f" ), *GetName(), clamped,
-	    MinScale_, MaxScale_, scale
-	);
 
 	FWidgetTransform transform = GetRenderTransform();
 	transform.Scale = FVector2D( scale, scale );

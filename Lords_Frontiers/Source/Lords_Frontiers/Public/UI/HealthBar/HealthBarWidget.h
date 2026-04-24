@@ -20,6 +20,17 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "HealthBar" )
 	void SnapToTarget();
 
+	UFUNCTION( BlueprintCallable, Category = "HealthBar" )
+	void ResetToFull();
+
+	UFUNCTION( BlueprintCallable, Category = "HealthBar" )
+	void ResetTo( float percent );
+
+	float GetDisplayedPercent() const
+	{
+		return DisplayedPercent_;
+	}
+
 	UFUNCTION( BlueprintNativeEvent, Category = "HealthBar" )
 	void OnShow();
 	virtual void OnShow_Implementation()
