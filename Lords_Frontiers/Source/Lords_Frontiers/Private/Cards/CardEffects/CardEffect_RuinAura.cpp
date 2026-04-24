@@ -3,6 +3,7 @@
 #include "Building/Building.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
+#include "Cards/Visuals/CardAoEDebug.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -32,12 +33,19 @@ void UCardEffect_RuinAura::Execute_Implementation( const FCardEffectContext& con
 	const IEntity* ownerEntity = Cast<IEntity>( building );
 	const ETeam ownerTeam = ownerEntity ? ownerEntity->Team() : ETeam::Cat;
 
+	const FVector center = building->GetActorLocation();
+
+	if ( bDebugDrawRadius )
+	{
+		CardAoEDebug::DrawRadius( building, center, Radius, 0.6f, DebugColor );
+	}
+
 	TArray<FOverlapResult> overlaps;
 	FCollisionQueryParams params;
 	params.AddIgnoredActor( building );
 
 	world->OverlapMultiByChannel(
-		overlaps, building->GetActorLocation(), FQuat::Identity,
+		overlaps, center, FQuat::Identity,
 		ECC_Entity, FCollisionShape::MakeSphere( Radius ), params );
 
 	TSet<AActor*> seen;

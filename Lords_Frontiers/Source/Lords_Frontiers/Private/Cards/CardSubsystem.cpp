@@ -7,7 +7,7 @@
 #include "Cards/CardEffectHostComponent.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardPoolResolver.h"
-#include "Cards/Feedback/CardFeedback.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 
@@ -323,7 +323,7 @@ void UCardSubsystem::ApplyCardEvent(
 				: false;
 
 			UCardEffectHostComponent* host = nullptr;
-			bool bAnyOneShotApplied = false;
+			UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this );
 			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 			{
 				if ( !effect || effect->IsGlobalEffect() )
@@ -346,13 +346,11 @@ void UCardSubsystem::ApplyCardEvent(
 				else if ( bOneShotPassesConditions )
 				{
 					effect->Apply( ctx );
-					bAnyOneShotApplied = true;
+					if ( visuals )
+					{
+						visuals->PlayOneShot( effect->VisualConfig, building, nullptr );
+					}
 				}
-			}
-
-			if ( bAnyOneShotApplied && card->bShowIconOnTrigger && card->FeedbackIconOverride )
-			{
-				UCardFeedback::ShowIconOnActor( this, building, card->FeedbackIconOverride );
 			}
 
 			affected++;

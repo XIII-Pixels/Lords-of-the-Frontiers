@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cards/Visuals/CardVisualTypes.h"
+
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
@@ -20,6 +22,9 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status",
 		meta = ( ClampMin = "0.1" ) )
 	float Duration = 3.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status|Visuals" )
+	FCardVisualConfig VisualConfig;
 
 	virtual void OnApply( AActor* owner, FActiveStatus& state ) const
 	{

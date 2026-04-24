@@ -1,11 +1,14 @@
 #pragma once
 
+#include "Cards/Visuals/CardVisualTypes.h"
+
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 
 #include "CardFeedback.generated.h"
 
-class ACardFeedbackPopup;
+class AActor;
+class UTexture2D;
 
 UCLASS()
 class LORDS_FRONTIERS_API UCardFeedback : public UBlueprintFunctionLibrary
@@ -22,6 +25,23 @@ public:
 		float durationSeconds = 1.0f,
 		float floatHeight = 120.f );
 
-private:
-	static TSubclassOf<ACardFeedbackPopup> ResolvePopupClass( const UObject* worldContextObject );
+	UFUNCTION( BlueprintCallable, Category = "Card|Feedback",
+		meta = ( WorldContext = "worldContextObject" ) )
+	static void PlayVisuals(
+		const UObject* worldContextObject,
+		const FCardVisualConfig& config,
+		AActor* owner,
+		AActor* target );
+
+	UFUNCTION( BlueprintCallable, Category = "Card|Feedback",
+		meta = ( WorldContext = "worldContextObject" ) )
+	static FCardVisualHandle BeginStickyVisual(
+		const UObject* worldContextObject,
+		const FCardVisualConfig& config,
+		AActor* owner,
+		AActor* target );
+
+	UFUNCTION( BlueprintCallable, Category = "Card|Feedback",
+		meta = ( WorldContext = "worldContextObject" ) )
+	static void StopStickyVisual( const UObject* worldContextObject, FCardVisualHandle handle );
 };

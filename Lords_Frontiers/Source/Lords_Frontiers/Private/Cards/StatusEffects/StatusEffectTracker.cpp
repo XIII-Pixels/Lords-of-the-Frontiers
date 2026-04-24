@@ -1,6 +1,7 @@
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 
 #include "Cards/StatusEffects/StatusEffectDef.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 
 #include "Engine/World.h"
 
@@ -53,6 +54,7 @@ void UStatusEffectTracker::TickComponent(
 			{
 				state->Def->OnRemove( owner, *state );
 			}
+			ReleaseStatusVisual( *state );
 			Active_.Remove( key );
 		}
 	}
@@ -85,6 +87,11 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def )
 
 	def->OnApply( GetOwner(), state );
 
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		state.VisualHandle = visuals->BeginSticky( def->VisualConfig, GetOwner(), nullptr );
+	}
+
 	Active_.Add( def->StatusTag, state );
 }
 
@@ -115,6 +122,7 @@ void UStatusEffectTracker::RemoveStatus( UStatusEffectDef* def )
 		{
 			state->Def->OnRemove( GetOwner(), *state );
 		}
+		ReleaseStatusVisual( *state );
 		Active_.Remove( def->StatusTag );
 	}
 }
@@ -128,8 +136,23 @@ void UStatusEffectTracker::ClearAll()
 		{
 			pair.Value.Def->OnRemove( owner, pair.Value );
 		}
+		ReleaseStatusVisual( pair.Value );
 	}
 	Active_.Empty();
+}
+
+void UStatusEffectTracker::ReleaseStatusVisual( FActiveStatus& state )
+{
+	if ( !state.VisualHandle.IsValid() )
+	{
+		return;
+	}
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndSticky( state.VisualHandle );
+	}
+	state.VisualHandle.Reset();
 }
 
 UStatusEffectTracker* UStatusEffectTracker::EnsureOn( AActor* actor )

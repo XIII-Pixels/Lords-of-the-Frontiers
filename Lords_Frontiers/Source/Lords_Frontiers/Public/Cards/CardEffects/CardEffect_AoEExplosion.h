@@ -37,6 +37,17 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect" )
 	EAoECenterOrigin CenterOrigin = EAoECenterOrigin::EventInstigator;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Debug" )
+	bool bDebugDrawRadius = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Debug",
+		meta = ( ClampMin = "0.0", EditCondition = "bDebugDrawRadius" ) )
+	float DebugDrawDuration = 1.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Debug",
+		meta = ( EditCondition = "bDebugDrawRadius" ) )
+	FColor DebugColor = FColor::Red;
+
 	virtual void Execute_Implementation( const FCardEffectContext& context ) override;
 	virtual bool RequiresRuntimeRegistration_Implementation() const override
 	{

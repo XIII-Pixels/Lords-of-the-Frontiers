@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cards/CardTypes.h"
+#include "Cards/Visuals/CardVisualTypes.h"
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -24,7 +25,11 @@ struct FRegisteredCardEffect
 
 	UPROPERTY()
 	TObjectPtr<UCardEffect> Effect = nullptr;
+
+	UPROPERTY()
+	FCardVisualHandle StickyHandle;
 };
+
 
 UCLASS( ClassGroup = ( Cards ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API UCardEffectHostComponent : public UActorComponent

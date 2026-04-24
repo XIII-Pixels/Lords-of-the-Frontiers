@@ -2,6 +2,7 @@
 
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
+#include "Cards/Visuals/CardAoEDebug.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -25,7 +26,9 @@ void ACardAoEField::Initialize(
 	float duration,
 	float tickInterval,
 	int32 damagePerTick,
-	UStatusEffectDef* statusPerTick )
+	UStatusEffectDef* statusPerTick,
+	bool bDebugDrawRadius,
+	const FColor& debugColor )
 {
 	Instigator_ = instigator;
 	Radius_ = FMath::Max( 0.f, radius );
@@ -33,6 +36,8 @@ void ACardAoEField::Initialize(
 	TickInterval_ = FMath::Max( 0.05f, tickInterval );
 	DamagePerTick_ = damagePerTick;
 	StatusPerTick_ = statusPerTick;
+	bDebugDrawRadius_ = bDebugDrawRadius;
+	DebugColor_ = debugColor;
 	Elapsed_ = 0.f;
 	NextTickAt_ = TickInterval_;
 }
@@ -47,6 +52,11 @@ void ACardAoEField::Tick( float deltaTime )
 	Super::Tick( deltaTime );
 
 	Elapsed_ += deltaTime;
+
+	if ( bDebugDrawRadius_ )
+	{
+		CardAoEDebug::DrawRadius( this, GetActorLocation(), Radius_, 0.f, DebugColor_ );
+	}
 
 	if ( Elapsed_ >= NextTickAt_ )
 	{

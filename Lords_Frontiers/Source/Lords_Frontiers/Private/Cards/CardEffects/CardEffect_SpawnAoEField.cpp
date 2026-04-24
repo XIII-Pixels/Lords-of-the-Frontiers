@@ -49,7 +49,9 @@ void UCardEffect_SpawnAoEField::Execute_Implementation( const FCardEffectContext
 		return;
 	}
 
-	field->Initialize( building, Radius, Duration, TickInterval, DamagePerTick, StatusPerTick );
+	field->Initialize(
+		building, Radius, Duration, TickInterval, DamagePerTick, StatusPerTick,
+		bDebugDrawRadius, DebugColor );
 }
 
 FText UCardEffect_SpawnAoEField::GetDisplayText_Implementation() const

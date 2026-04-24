@@ -3,6 +3,7 @@
 #include "Building/Building.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
+#include "Cards/Visuals/CardAoEDebug.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -42,8 +43,15 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 	params.AddIgnoredActor( ownerBuilding );
 	params.AddIgnoredActor( centerActor );
 
+	const FVector center = centerActor->GetActorLocation();
+
+	if ( bDebugDrawRadius )
+	{
+		CardAoEDebug::DrawRadius( ownerBuilding, center, Radius, DebugDrawDuration, DebugColor );
+	}
+
 	const bool bAny = world->OverlapMultiByChannel(
-		overlaps, centerActor->GetActorLocation(), FQuat::Identity,
+		overlaps, center, FQuat::Identity,
 		ECC_Entity, FCollisionShape::MakeSphere( Radius ), params );
 
 	if ( !bAny )

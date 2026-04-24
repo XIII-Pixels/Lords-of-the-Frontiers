@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cards/Visuals/CardVisualTypes.h"
+
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 
@@ -19,6 +21,9 @@ struct FActiveStatus
 	float NextTickAt = 0.f;
 	float CachedOriginal = 0.f;
 	float StackAmount = 0.f;
+
+	UPROPERTY()
+	FCardVisualHandle VisualHandle;
 };
 
 UCLASS( ClassGroup = ( Cards ), meta = ( BlueprintSpawnableComponent ) )
@@ -49,6 +54,8 @@ public:
 	static UStatusEffectTracker* EnsureOn( AActor* actor );
 
 private:
+	void ReleaseStatusVisual( FActiveStatus& state );
+
 	UPROPERTY()
 	TMap<FName, FActiveStatus> Active_;
 };

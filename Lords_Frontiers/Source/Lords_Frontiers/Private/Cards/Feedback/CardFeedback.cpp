@@ -1,10 +1,6 @@
 #include "Cards/Feedback/CardFeedback.h"
 
-#include "Cards/Feedback/CardFeedbackPopup.h"
-#include "Core/DefaultGameInstance.h"
-
-#include "Engine/World.h"
-#include "Kismet/GameplayStatics.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCardFeedback, Log, All );
 
@@ -20,43 +16,52 @@ void UCardFeedback::ShowIconOnActor(
 		return;
 	}
 
-	UWorld* world = GEngine ? GEngine->GetWorldFromContextObject( worldContextObject, EGetWorldErrorMode::LogAndReturnNull ) : nullptr;
-	if ( !world )
+	UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( worldContextObject );
+	if ( !visuals )
 	{
+		UE_LOG( LogCardFeedback, Warning, TEXT( "ShowIconOnActor: CardVisualSubsystem unavailable" ) );
 		return;
 	}
 
-	TSubclassOf<ACardFeedbackPopup> popupClass = ResolvePopupClass( worldContextObject );
-	if ( !popupClass )
-	{
-		UE_LOG(
-		    LogCardFeedback, Warning,
-		    TEXT( "CardFeedback: no popup class configured on GameInstance — skipping icon on %s" ),
-		    *owner->GetName() );
-		return;
-	}
+	FCardVisualConfig config;
+	config.Icon.Icon = icon;
+	config.Icon.ShowOn = ECardVisualTarget::Owner;
+	config.Icon.Mode = ECardVisualIconMode::Popup;
+	config.Icon.PopupDurationSeconds = durationSeconds;
+	config.Icon.PopupFloatHeight = floatHeight;
 
-	FActorSpawnParameters params;
-	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	params.Owner = owner;
-
-	const FVector spawnLoc = owner->GetActorLocation();
-	ACardFeedbackPopup* popup = world->SpawnActor<ACardFeedbackPopup>( popupClass, spawnLoc, FRotator::ZeroRotator, params );
-	if ( !popup )
-	{
-		return;
-	}
-
-	popup->Initialize( owner, icon, durationSeconds, floatHeight );
+	visuals->PlayOneShot( config, owner, nullptr );
 }
 
-TSubclassOf<ACardFeedbackPopup> UCardFeedback::ResolvePopupClass( const UObject* worldContextObject )
+void UCardFeedback::PlayVisuals(
+	const UObject* worldContextObject,
+	const FCardVisualConfig& config,
+	AActor* owner,
+	AActor* target )
 {
-	UGameInstance* gi = UGameplayStatics::GetGameInstance( worldContextObject );
-	UDefaultGameInstance* defaultGI = Cast<UDefaultGameInstance>( gi );
-	if ( !defaultGI )
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( worldContextObject ) )
 	{
-		return nullptr;
+		visuals->PlayOneShot( config, owner, target );
 	}
-	return defaultGI->GetCardFeedbackPopupClass();
+}
+
+FCardVisualHandle UCardFeedback::BeginStickyVisual(
+	const UObject* worldContextObject,
+	const FCardVisualConfig& config,
+	AActor* owner,
+	AActor* target )
+{
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( worldContextObject ) )
+	{
+		return visuals->BeginSticky( config, owner, target );
+	}
+	return FCardVisualHandle();
+}
+
+void UCardFeedback::StopStickyVisual( const UObject* worldContextObject, FCardVisualHandle handle )
+{
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( worldContextObject ) )
+	{
+		visuals->EndSticky( handle );
+	}
 }
