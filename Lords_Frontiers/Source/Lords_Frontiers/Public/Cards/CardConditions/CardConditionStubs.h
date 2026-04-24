@@ -25,6 +25,23 @@ public:
 	}
 };
 
+UCLASS( BlueprintType, meta = ( DisplayName = "Condition: Before Attack Fire" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnBeforeAttackFire : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::BeforeAttackFire;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "Before attack fire" ) );
+	}
+};
+
 UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Target Changed" ) )
 class LORDS_FRONTIERS_API UCardCondition_OnTargetChanged : public UCardCondition
 {

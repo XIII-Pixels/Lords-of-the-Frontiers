@@ -44,9 +44,9 @@ void UCardEffect_DamageReflect::Execute_Implementation( const FCardEffectContext
 		return;
 	}
 
-	const int32 damageTaken = FMath::Max( 1, building->Stats().MaxHealth() - building->Stats().Health() );
+	const int32 incomingDamage = FMath::Max( 1, context.ActionMagnitude );
 	const int32 reflect = FMath::Max( MinReflectDamage,
-		FMath::RoundToInt( static_cast<float>( damageTaken ) * ReflectPercent / 100.f ) );
+		FMath::RoundToInt( static_cast<float>( incomingDamage ) * ReflectPercent / 100.f ) );
 
 	attackerEntity->TakeDamage( reflect, building );
 }

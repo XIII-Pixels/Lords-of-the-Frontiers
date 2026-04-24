@@ -89,7 +89,9 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	if ( burstCount <= 1 )
 	{
 		AActor* target = ownerAttacker->AttackTarget().Get();
+		OnBeforeAttackFire.Broadcast( target );
 		FireSingleProjectile( target );
+		PendingDamageBonusPercent_ = 0.f;
 		ownerEntity->Stats().StartCooldown( gameTime );
 		OnAttackFired.Broadcast( target );
 		return;
@@ -342,14 +344,21 @@ void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target
 		return;
 	}
 
-	int32 finalDamage = ownerEntity->Stats().AttackDamage();
+	float damageFloat = static_cast<float>( ownerEntity->Stats().AttackDamage() );
+
+	if ( !FMath::IsNearlyZero( PendingDamageBonusPercent_ ) )
+	{
+		damageFloat *= ( 1.f + PendingDamageBonusPercent_ / 100.f );
+	}
 
 	const int32 critChance = ownerEntity->Stats().CritChance();
 	if ( critChance > 0 && FMath::RandRange( 1, 100 ) <= critChance )
 	{
 		const float critMultiplier = 1.f + static_cast<float>( ownerEntity->Stats().CritDamageBonus() ) / 100.f;
-		finalDamage = FMath::RoundToInt( static_cast<float>( finalDamage ) * critMultiplier );
+		damageFloat *= critMultiplier;
 	}
+
+	const int32 finalDamage = FMath::RoundToInt( damageFloat );
 
 	const bool bInitialized = projectile->Initialize(
 	    GetOwner(), target.Get(), finalDamage, ProjectileSpeed_, ProjectileSpawnPosition_,
@@ -430,7 +439,9 @@ void UAttackRangedComponent::FireNextBurstShot()
 
 	if ( target.IsValid() )
 	{
+		OnBeforeAttackFire.Broadcast( target.Get() );
 		FireSingleProjectile( target );
+		PendingDamageBonusPercent_ = 0.f;
 		OnAttackFired.Broadcast( target.Get() );
 	}
 	++CurrentBurstIndex_;

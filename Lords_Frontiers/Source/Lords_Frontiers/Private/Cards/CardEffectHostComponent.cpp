@@ -124,6 +124,7 @@ void UCardEffectHostComponent::BindAttackDelegates()
 	}
 
 	attack->OnAttackFired.AddDynamic( this, &UCardEffectHostComponent::HandleAttackFired );
+	attack->OnBeforeAttackFire.AddDynamic( this, &UCardEffectHostComponent::HandleBeforeAttackFire );
 	attack->OnAttackTargetChanged.AddDynamic( this, &UCardEffectHostComponent::HandleAttackTargetChanged );
 
 	BoundAttack_ = attack;
@@ -140,6 +141,7 @@ void UCardEffectHostComponent::UnbindAttackDelegates()
 	if ( UAttackRangedComponent* attack = BoundAttack_.Get() )
 	{
 		attack->OnAttackFired.RemoveDynamic( this, &UCardEffectHostComponent::HandleAttackFired );
+		attack->OnBeforeAttackFire.RemoveDynamic( this, &UCardEffectHostComponent::HandleBeforeAttackFire );
 		attack->OnAttackTargetChanged.RemoveDynamic( this, &UCardEffectHostComponent::HandleAttackTargetChanged );
 	}
 
@@ -150,6 +152,11 @@ void UCardEffectHostComponent::UnbindAttackDelegates()
 void UCardEffectHostComponent::HandleAttackFired( AActor* target )
 {
 	DispatchTrigger( ECardTriggerReason::AttackFired, target );
+}
+
+void UCardEffectHostComponent::HandleBeforeAttackFire( AActor* target )
+{
+	DispatchTrigger( ECardTriggerReason::BeforeAttackFire, target );
 }
 
 void UCardEffectHostComponent::HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget )
@@ -192,7 +199,7 @@ void UCardEffectHostComponent::UnbindBuildingDelegates()
 
 void UCardEffectHostComponent::HandleOwnerDamaged( ABuilding* building, int32 damage, AActor* instigator )
 {
-	DispatchTrigger( ECardTriggerReason::Damaged, instigator );
+	DispatchTrigger( ECardTriggerReason::Damaged, instigator, damage );
 }
 
 void UCardEffectHostComponent::HandleOwnerRuined( ABuilding* building )
@@ -295,7 +302,7 @@ void UCardEffectHostComponent::HandleDamageDealt( AActor* instigator, AActor* ta
 	}
 }
 
-void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActor* instigator )
+void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActor* instigator, int32 magnitude )
 {
 	if ( Active_.Num() == 0 )
 	{
@@ -321,6 +328,7 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 		ctx.EffectHost = this;
 		ctx.Subsystem = subsystem;
 		ctx.EventInstigator = instigator;
+		ctx.ActionMagnitude = magnitude;
 		ctx.TriggerReason = reason;
 
 		if ( rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )

@@ -65,16 +65,17 @@ enum class ETargetStateFilter : uint8
 UENUM( BlueprintType )
 enum class ECardTriggerReason : uint8
 {
-	Apply			UMETA( DisplayName = "Apply" ),
-	Revert			UMETA( DisplayName = "Revert" ),
-	AttackFired		UMETA( DisplayName = "Attack Fired" ),
-	TargetChanged	UMETA( DisplayName = "Target Changed" ),
-	HitLanded		UMETA( DisplayName = "Hit Landed" ),
-	KillLanded		UMETA( DisplayName = "Kill Landed" ),
-	Missed			UMETA( DisplayName = "Missed" ),
-	Damaged			UMETA( DisplayName = "Damaged" ),
-	Ruined			UMETA( DisplayName = "Ruined" ),
-	AuraTick		UMETA( DisplayName = "Aura Tick" ),
+	Apply				UMETA( DisplayName = "Apply" ),
+	Revert				UMETA( DisplayName = "Revert" ),
+	BeforeAttackFire	UMETA( DisplayName = "Before Attack Fire" ),
+	AttackFired			UMETA( DisplayName = "Attack Fired" ),
+	TargetChanged		UMETA( DisplayName = "Target Changed" ),
+	HitLanded			UMETA( DisplayName = "Hit Landed" ),
+	KillLanded			UMETA( DisplayName = "Kill Landed" ),
+	Missed				UMETA( DisplayName = "Missed" ),
+	Damaged				UMETA( DisplayName = "Damaged" ),
+	Ruined				UMETA( DisplayName = "Ruined" ),
+	AuraTick			UMETA( DisplayName = "Aura Tick" ),
 };
 
 UENUM( BlueprintType )
@@ -187,6 +188,9 @@ struct LORDS_FRONTIERS_API FCardEffectContext
 
 	UPROPERTY( BlueprintReadOnly, Category = "Context" )
 	int32 StackCount = 1;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	int32 ActionMagnitude = 0;
 
 	UPROPERTY( BlueprintReadOnly, Category = "Context" )
 	ECardTriggerReason TriggerReason = ECardTriggerReason::Apply;

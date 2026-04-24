@@ -9,6 +9,8 @@
 
 #include "UObject/UnrealType.h"
 
+DEFINE_LOG_CATEGORY_STATIC( LogCardStackingBuff, Log, All );
+
 namespace
 {
 	FName MakeStackingKey( const UCardDataAsset* card )
@@ -33,9 +35,15 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 	{
 		if ( !bResetOnTargetChange )
 		{
+			UE_LOG( LogCardStackingBuff, Verbose,
+				TEXT( "[%s] TargetChanged — but bResetOnTargetChange=false, skipping" ),
+				*GetName() );
 			return;
 		}
 		const int32 accumMilli = host->GetCounter( accumKey );
+		UE_LOG( LogCardStackingBuff, Log,
+			TEXT( "[%s] TargetChanged reset: accumMilli=%d → applying delta=%.3f on %s" ),
+			*GetName(), accumMilli, -static_cast<float>( accumMilli ) / 1000.f, *StatName.ToString() );
 		if ( accumMilli != 0 )
 		{
 			CardStatReflection::ApplyStatDelta( building, StatName, -static_cast<float>( accumMilli ) / 1000.f );
@@ -79,6 +87,10 @@ void UCardEffect_StackingBuff::Execute_Implementation( const FCardEffectContext&
 	{
 		host->SetCounter( accumKey, accumMilli + FMath::RoundToInt( appliedDelta * 1000.f ) );
 	}
+	UE_LOG( LogCardStackingBuff, Verbose,
+		TEXT( "[%s] reason=%d accumBefore=%d stepIntended=%.3f appliedDelta=%.3f accumAfter=%d" ),
+		*GetName(), static_cast<int32>( context.TriggerReason ),
+		accumMilli, step, appliedDelta, host->GetCounter( accumKey ) );
 }
 
 void UCardEffect_StackingBuff::Revert_Implementation( const FCardEffectContext& context )

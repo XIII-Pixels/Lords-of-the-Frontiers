@@ -15,7 +15,7 @@ namespace
 		return FName( *FString::Printf( TEXT( "%s#oneshot_counter" ), *cardName ) );
 	}
 
-	FName MakeOneShotAppliedKey( const UCardDataAsset* card )
+	FName MakeAppliedKey( const UCardDataAsset* card )
 	{
 		const FString cardName = card ? card->GetName() : TEXT( "null" );
 		return FName( *FString::Printf( TEXT( "%s#oneshot_applied" ), *cardName ) );
@@ -37,7 +37,7 @@ void UCardEffect_OneShotStatModifier::Execute_Implementation( const FCardEffectC
 	}
 
 	const FName shotsKey = MakeShotsKey( context.SourceCard.Get() );
-	const FName appliedKey = MakeOneShotAppliedKey( context.SourceCard.Get() );
+	const FName appliedKey = MakeAppliedKey( context.SourceCard.Get() );
 
 	const int32 previousApplied = host->GetCounter( appliedKey );
 	if ( previousApplied != 0 )
@@ -69,7 +69,7 @@ void UCardEffect_OneShotStatModifier::Revert_Implementation( const FCardEffectCo
 		return;
 	}
 
-	const FName appliedKey = MakeOneShotAppliedKey( context.SourceCard.Get() );
+	const FName appliedKey = MakeAppliedKey( context.SourceCard.Get() );
 	const int32 previousApplied = host->GetCounter( appliedKey );
 	if ( previousApplied != 0 )
 	{

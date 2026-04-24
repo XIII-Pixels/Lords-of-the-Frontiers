@@ -748,16 +748,24 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 			{
 				const FCardEvent& event = card->Events[eventIndex];
 
-				bool bHasPerBuilding = false;
+				bool bHasOneShot = false;
+				bool bHasRuntime = false;
 				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 				{
-					if ( effect && !effect->IsGlobalEffect() )
+					if ( !effect || effect->IsGlobalEffect() )
 					{
-						bHasPerBuilding = true;
-						break;
+						continue;
+					}
+					if ( effect->RequiresRuntimeRegistration() )
+					{
+						bHasRuntime = true;
+					}
+					else
+					{
+						bHasOneShot = true;
 					}
 				}
-				if ( !bHasPerBuilding )
+				if ( !bHasOneShot && !bHasRuntime )
 				{
 					continue;
 				}
@@ -768,25 +776,34 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 				}
 
 				FCardEffectContext ctx = MakeContext( card, eventIndex, stack + 1, record.WaveSelected, building );
-				if ( !EvaluateConditions( event, ctx ) )
-				{
-					continue;
-				}
 
+				const bool bOneShotPassesConditions = bHasOneShot
+					? EvaluateConditions( event, ctx )
+					: false;
+
+				UCardEffectHostComponent* host = nullptr;
 				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 				{
 					if ( !effect || effect->IsGlobalEffect() )
 					{
 						continue;
 					}
-					effect->Apply( ctx );
 
 					if ( effect->RequiresRuntimeRegistration() )
 					{
-						if ( UCardEffectHostComponent* host = EnsureEffectHost( building ) )
+						if ( !host )
+						{
+							host = EnsureEffectHost( building );
+							ctx.EffectHost = host;
+						}
+						if ( host )
 						{
 							host->RegisterEffect( card, eventIndex, effect );
 						}
+					}
+					else if ( bOneShotPassesConditions )
+					{
+						effect->Apply( ctx );
 					}
 				}
 			}

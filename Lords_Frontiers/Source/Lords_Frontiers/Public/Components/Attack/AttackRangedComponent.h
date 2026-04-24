@@ -15,6 +15,7 @@ class USphereComponent;
 class ABaseProjectile;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnAttackFired, AActor*, Target );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBeforeAttackFire, AActor*, Target );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnAttackTargetChanged, AActor*, OldTarget, AActor*, NewTarget );
 
 UENUM( BlueprintType )
@@ -56,10 +57,25 @@ public:
 	FOnAttackFired OnAttackFired;
 
 	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
+	FOnBeforeAttackFire OnBeforeAttackFire;
+
+	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
 	FOnAttackTargetChanged OnAttackTargetChanged;
 
 	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
 	void FireExtraProjectile( AActor* target, float damageMultiplier = 1.f );
+
+	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
+	void AddPendingDamageBonus( float bonusPercent )
+	{
+		PendingDamageBonusPercent_ += bonusPercent;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Attack|Cards" )
+	float GetPendingDamageBonus() const
+	{
+		return PendingDamageBonusPercent_;
+	}
 
 	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
 	void SetTargetPriority( ETowerTargetPriority priority )
@@ -130,4 +146,6 @@ protected:
 	FTimerHandle BurstTimerHandle_;
 
 	bool bDidSeeTarget_ = false;
+
+	float PendingDamageBonusPercent_ = 0.f;
 };

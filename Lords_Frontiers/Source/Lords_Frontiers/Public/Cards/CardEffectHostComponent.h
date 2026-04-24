@@ -72,6 +72,9 @@ protected:
 	void HandleAttackFired( AActor* target );
 
 	UFUNCTION()
+	void HandleBeforeAttackFire( AActor* target );
+
+	UFUNCTION()
 	void HandleAttackTargetChanged( AActor* oldTarget, AActor* newTarget );
 
 	UFUNCTION()
@@ -86,7 +89,7 @@ protected:
 	UFUNCTION()
 	void HandleAuraTick();
 
-	void DispatchTrigger( ECardTriggerReason reason, AActor* instigator );
+	void DispatchTrigger( ECardTriggerReason reason, AActor* instigator, int32 magnitude = 0 );
 
 	void StartAuraTimer();
 	void StopAuraTimer();
