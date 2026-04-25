@@ -2,11 +2,16 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "VFX/EntityVFXConfig.h"
+#include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Resources/EconomyComponent.h"
+#include "UI/HealthBar/HealthBarConfigDataAsset.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "VFX/EntityVFXConfig.h"
+
 #include "Components/BoxComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 ABuilding::ABuilding()
@@ -59,6 +64,41 @@ void ABuilding::BeginPlay()
 
 	ResolveVFXDefaults();
 	SpawnConstructionVFX();
+
+	SubscribeHealthBar();
+}
+
+void ABuilding::SubscribeHealthBar()
+{
+	if ( !HealthBarConfig_ )
+	{
+		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+	    this,
+	    [ this ]( int, int )
+	    {
+		    if ( UWorld* world = GetWorld() )
+		    {
+			    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+			    {
+				    pool->ShowFor( this, HealthBarConfig_ );
+			    }
+		    }
+	    }
+	);
+}
+
+void ABuilding::UnsubscribeHealthBar()
+{
+	if ( HealthBarSubscription_.IsValid() )
+	{
+		Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+		HealthBarSubscription_.Reset();
+	}
 }
 
 void ABuilding::OnDeath()
@@ -66,6 +106,16 @@ void ABuilding::OnDeath()
 	if ( bIsRuined_ )
 	{
 		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+		{
+			pool->HideFor( this );
+		}
 	}
 
 	SpawnDestructionVFX();
@@ -364,6 +414,8 @@ void ABuilding::RestoreFromRuins()
 
 	ActivateBuildingMesh();
 
+	SubscribeHealthBar();
+
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
 	if ( CollisionComponent_ )
@@ -395,6 +447,8 @@ void ABuilding::FullRestore()
 		}
 		SetCanAffectNavigationGeneration( true );
 	}
+
+	SubscribeHealthBar();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 }
@@ -433,4 +487,28 @@ UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> building
 		return cdo->BuildingIcon;
 	}
 	return nullptr;
+}
+int32 ABuilding::GetBuildingTotalCostGold() const
+{
+	int32 total = 0;
+	total += BuildingCost_.Gold;
+	total += BuildingCost_.Food;
+	total += BuildingCost_.Population;
+	total += BuildingCost_.Progress;
+	return total;
+}
+
+int32 ABuilding::GetRelocationGoldCost() const
+{
+	return FMath::Max( 0, RelocationCost_.Gold );
+}
+
+FResourceProduction ABuilding::GetRelocationCost() const
+{
+	return RelocationCost_;
+}
+
+FResourceProduction ABuilding::GetDemolitionRefund() const
+{
+	return DemolitionRefund_;
 }

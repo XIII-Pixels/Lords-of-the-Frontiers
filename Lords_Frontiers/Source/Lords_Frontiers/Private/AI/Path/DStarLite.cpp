@@ -20,6 +20,7 @@ void UDStarLite::Initialize( const FPathConfig& config )
 	}
 
 	EmptyCellTravelTime_ = config.EmptyCellTravelTime;
+	bIgnoreObstacles_ = config.bIgnoreObstacles;
 
 	if ( config.UnitDamage > 0.0f && config.UnitCooldown > 0.0f )
 	{
@@ -250,7 +251,7 @@ TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
 			continue;
 		}
 
-		if ( !Grid_->GetCell( next.X, next.Y )->bIsWalkable )
+		if ( !bIgnoreObstacles_ && !Grid_->GetCell( next.X, next.Y )->bIsWalkable )
 		{
 			continue;
 		}
@@ -299,8 +300,8 @@ float UDStarLite::Cost( const FIntPoint& a, const FIntPoint& b ) const
 		const FGridCell* cellX = Grid_->GetCell( a.X + ( b.X - a.X ), a.Y );
 		const FGridCell* cellY = Grid_->GetCell( a.X, a.Y + ( b.Y - a.Y ) );
 
-		const bool cellXBlocked = !cellX || !cellX->bIsWalkable || cellX->bIsOccupied;
-		const bool cellYBlocked = !cellY || !cellY->bIsWalkable || cellY->bIsOccupied;
+		const bool cellXBlocked = !cellX || ( !bIgnoreObstacles_ && ( !cellX->bIsWalkable || cellX->bIsOccupied ) );
+		const bool cellYBlocked = !cellY || ( !bIgnoreObstacles_ && ( !cellY->bIsWalkable || cellY->bIsOccupied ) );
 
 		if ( cellXBlocked || cellYBlocked )
 		{

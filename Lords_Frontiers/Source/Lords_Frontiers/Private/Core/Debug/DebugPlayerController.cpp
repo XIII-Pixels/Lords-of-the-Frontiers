@@ -80,10 +80,8 @@ void ADebugPlayerController::HandleLeftClick()
 		{
 			UE_LOG(
 			    LogTemp, Warning,
-			    TEXT(
-			        "HandleLeftClick: BuildManager_ became invalid before "
-			        "ConfirmPlacing"
-			    )
+			    TEXT( "HandleLeftClick: BuildManager_ became invalid before "
+			          "ConfirmPlacing" )
 			);
 		}
 		return;
@@ -128,7 +126,15 @@ void ADebugPlayerController::HandleLeftClick()
 		GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "SelectSingle" ) );
 	}
 	selection->SelectSingle( hitActor );
+
+	if ( GEngine )
+	{
+		GEngine->AddOnScreenDebugMessage(
+		    -1, 2.0f, FColor::Yellow, FString::Printf( TEXT( "Hit actor: %s" ), *GetNameSafe( hit.GetActor() ) )
+		);
+	}
 }
+
 
 void ADebugPlayerController::HandleRightClick()
 {

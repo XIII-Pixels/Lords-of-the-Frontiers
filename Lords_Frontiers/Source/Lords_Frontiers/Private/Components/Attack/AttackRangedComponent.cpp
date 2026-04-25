@@ -53,14 +53,7 @@ void UAttackRangedComponent::LookTick()
 
 	Look();
 
-	AActor* newTarget = GetOwner<IAttacker>()->AttackTarget().Get();
-
-	bDidSeeTarget_ = prevTarget && ( prevTarget == newTarget );
-
-	if ( prevTarget != newTarget )
-	{
-		OnAttackTargetChanged.Broadcast( prevTarget, newTarget );
-	}
+	bDidSeeTarget_ = prevTarget && ( prevTarget == GetOwner<IAttacker>()->AttackTarget() );
 }
 
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
@@ -88,12 +81,8 @@ void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	const int32 burstCount = ownerEntity->Stats().BurstCount();
 	if ( burstCount <= 1 )
 	{
-		AActor* target = ownerAttacker->AttackTarget().Get();
-		OnBeforeAttackFire.Broadcast( target );
-		FireSingleProjectile( target );
-		PendingDamageBonusPercent_ = 0.f;
+		FireSingleProjectile( ownerAttacker->AttackTarget().Get() );
 		ownerEntity->Stats().StartCooldown( gameTime );
-		OnAttackFired.Broadcast( target );
 		return;
 	}
 
@@ -171,10 +160,7 @@ void UAttackRangedComponent::Look()
 	TArray<AActor*> overlappingActors;
 	SightSphere_->GetOverlappingActors( overlappingActors, AActor::StaticClass() );
 
-	AActor* bestTarget = nullptr;
-	float bestScore = 0.f;
-	bool bHasBest = false;
-
+	float minDistance = -1.0f;
 	for ( auto actor : overlappingActors )
 	{
 		if ( actor == GetOwner() )
@@ -195,52 +181,24 @@ void UAttackRangedComponent::Look()
 			}
 		}
 
-		if ( !enemyPositionAttackable || !CanSeeEnemy( actor ) )
+		if ( enemyPositionAttackable && CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
-			continue;
+			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
+			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
+			{
+				ownerAttacker->SetAttackTarget( actor );
+				minDistance = distance;
+			}
 		}
-
-		float score = 0.f;
-		switch ( TargetPriority_ )
-		{
-		case ETowerTargetPriority::LowestHP:
-		{
-			const IEntity* entity = Cast<IEntity>( actor );
-			score = entity ? -static_cast<float>( entity->Stats().Health() ) : 0.f;
-			break;
-		}
-		case ETowerTargetPriority::HighestHP:
-		{
-			const IEntity* entity = Cast<IEntity>( actor );
-			score = entity ? static_cast<float>( entity->Stats().Health() ) : 0.f;
-			break;
-		}
-		case ETowerTargetPriority::Closest:
-		default:
-			score = -FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
-			break;
-		}
-
-		if ( !bHasBest || score > bestScore )
-		{
-			bestTarget = actor;
-			bestScore = score;
-			bHasBest = true;
-		}
-	}
-
-	if ( bestTarget )
-	{
-		ownerAttacker->SetAttackTarget( bestTarget );
 	}
 }
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	if ( GetOwner()->IsA( AUnit::StaticClass() ) )
+	// Bad: hard linked to ABuilding and AUnit
+	// TODO: Separate components for unit and for building
+	if ( GetOwner<AUnit>() )
 	{
-		// Not good: coupling with AUnit class. No owner class dependencies should be in this class
-		// TODO: Separate components for unit and for building
 		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 	else
@@ -279,158 +237,6 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 	return false;
 }
 
-void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMultiplier )
-{
-	UWorld* world = GetOwner() ? GetOwner()->GetWorld() : nullptr;
-	if ( !world )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: world is null" ) );
-		return;
-	}
-	if ( !target )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: target is null" ) );
-		return;
-	}
-	if ( !ProjectileClass_ )
-	{
-		UE_LOG( LogTemp, Warning,
-			TEXT( "FireExtraProjectile: ProjectileClass_ not set on %s" ),
-			GetOwner() ? *GetOwner()->GetName() : TEXT( "null" ) );
-		return;
-	}
-
-	const IEntity* ownerEntity = GetOwner<IEntity>();
-	if ( !ownerEntity )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: owner is not IEntity" ) );
-		return;
-	}
-
-	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
-	if ( !pool )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: ProjectilePoolSubsystem missing" ) );
-		return;
-	}
-
-	ABaseProjectile* projectile = pool->AcquireProjectile( ProjectileClass_ );
-	if ( !projectile )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: pool returned null projectile" ) );
-		return;
-	}
-
-	const int32 scaledDamage = FMath::RoundToInt(
-		static_cast<float>( ownerEntity->Stats().AttackDamage() ) * damageMultiplier );
-
-	FVector spawnOffset = ProjectileSpawnPosition_;
-	if ( AActor* owner = GetOwner() )
-	{
-		const FVector toTarget = ( target->GetActorLocation() - owner->GetActorLocation() ).GetSafeNormal2D();
-		const FVector right = FVector::CrossProduct( toTarget, FVector::UpVector ).GetSafeNormal();
-		const float jitter = FMath::FRandRange( -60.f, 60.f );
-		spawnOffset += right * jitter;
-	}
-
-	const bool bInitialized = projectile->Initialize(
-	    GetOwner(), target, scaledDamage, ProjectileSpeed_, spawnOffset,
-	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_ );
-
-	if ( !bInitialized )
-	{
-		UE_LOG( LogTemp, Warning,
-			TEXT( "FireExtraProjectile: Initialize returned false (target invalid?)" ) );
-		pool->ReturnProjectile( projectile );
-		return;
-	}
-
-	UE_LOG( LogTemp, Log,
-		TEXT( "FireExtraProjectile: %s → %s for damage %d" ),
-		*GetOwner()->GetName(), *target->GetName(), scaledDamage );
-
-	OnBeforeAttackFire.Broadcast( target );
-	OnAttackFired.Broadcast( target );
-}
-
-void UAttackRangedComponent::FireShrapnel(
-	const FVector& spawnLocation, int32 count, float damageMultiplier,
-	float spreadDegrees, float range, float speed, float splashRadius,
-	TSubclassOf<ABaseProjectile> overrideClass )
-{
-	if ( count <= 0 || range <= 0.f || speed <= 0.f )
-	{
-		return;
-	}
-
-	UWorld* world = GetOwner() ? GetOwner()->GetWorld() : nullptr;
-	if ( !world )
-	{
-		return;
-	}
-
-	TSubclassOf<ABaseProjectile> projectileClass = overrideClass ? overrideClass : ProjectileClass_;
-	if ( !projectileClass )
-	{
-		UE_LOG( LogTemp, Warning,
-			TEXT( "FireShrapnel: no projectile class on %s" ),
-			GetOwner() ? *GetOwner()->GetName() : TEXT( "null" ) );
-		return;
-	}
-
-	const IEntity* ownerEntity = GetOwner<IEntity>();
-	if ( !ownerEntity )
-	{
-		return;
-	}
-
-	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
-	if ( !pool )
-	{
-		return;
-	}
-
-	const int32 scaledDamage = FMath::RoundToInt(
-		static_cast<float>( ownerEntity->Stats().AttackDamage() ) * damageMultiplier );
-
-	const float spread = FMath::Clamp( spreadDegrees, 0.f, 360.f );
-	const float baseYaw = FMath::FRandRange( 0.f, 360.f );
-
-	for ( int32 i = 0; i < count; ++i )
-	{
-		ABaseProjectile* projectile = pool->AcquireProjectile( projectileClass );
-		if ( !projectile )
-		{
-			continue;
-		}
-
-		float yawDeg = 0.f;
-		if ( count == 1 )
-		{
-			yawDeg = baseYaw;
-		}
-		else if ( FMath::IsNearlyEqual( spread, 360.f ) )
-		{
-			yawDeg = baseYaw + ( 360.f / count ) * i;
-		}
-		else
-		{
-			const float step = spread / ( count - 1 );
-			yawDeg = baseYaw - spread * 0.5f + step * i;
-		}
-
-		const FVector direction = FRotator( 0.f, yawDeg, 0.f ).Vector();
-
-		const bool bInitialized = projectile->InitializeDirectional(
-			GetOwner(), spawnLocation, direction, scaledDamage, speed, range, splashRadius );
-
-		if ( !bInitialized )
-		{
-			pool->ReturnProjectile( projectile );
-		}
-	}
-}
-
 void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target ) const
 {
 	UWorld* world = GetOwner()->GetWorld();
@@ -457,24 +263,8 @@ void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target
 		return;
 	}
 
-	float damageFloat = static_cast<float>( ownerEntity->Stats().AttackDamage() );
-
-	if ( !FMath::IsNearlyZero( PendingDamageBonusPercent_ ) )
-	{
-		damageFloat *= ( 1.f + PendingDamageBonusPercent_ / 100.f );
-	}
-
-	const int32 critChance = ownerEntity->Stats().CritChance();
-	if ( critChance > 0 && FMath::RandRange( 1, 100 ) <= critChance )
-	{
-		const float critMultiplier = 1.f + static_cast<float>( ownerEntity->Stats().CritDamageBonus() ) / 100.f;
-		damageFloat *= critMultiplier;
-	}
-
-	const int32 finalDamage = FMath::RoundToInt( damageFloat );
-
 	const bool bInitialized = projectile->Initialize(
-	    GetOwner(), target.Get(), finalDamage, ProjectileSpeed_, ProjectileSpawnPosition_,
+	    GetOwner(), target.Get(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
 	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_
 	);
 
@@ -504,7 +294,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 		{
 			continue;
 		}
-		if ( CanSeeEnemy( actor ) )
+		if ( CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			float distance = FVector::DistSquared( ownerLocation, actor->GetActorLocation() );
 			candidates.Add( { actor, distance } );
@@ -552,10 +342,7 @@ void UAttackRangedComponent::FireNextBurstShot()
 
 	if ( target.IsValid() )
 	{
-		OnBeforeAttackFire.Broadcast( target.Get() );
 		FireSingleProjectile( target );
-		PendingDamageBonusPercent_ = 0.f;
-		OnAttackFired.Broadcast( target.Get() );
 	}
 	++CurrentBurstIndex_;
 	if ( CurrentBurstIndex_ >= BurstTargets_.Num() )

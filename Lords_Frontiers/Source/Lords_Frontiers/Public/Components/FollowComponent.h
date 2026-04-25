@@ -32,9 +32,14 @@ protected:
 	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
 
 	void MoveTowardsTarget( float deltaTime );
-	void SnapToGround() const;
+	virtual void SnapToGround() const;
 	void Sway( float deltaTime );
 	void ResolveUnitOnUnwalkableCell();
+
+	virtual FVector ProjectMoveLocation( const FVector& location ) const
+	{
+		return location;
+	}
 
 	void Rotate( float deltaTime );
 	void RotateTowardsAttackTarget( float deltaTime );

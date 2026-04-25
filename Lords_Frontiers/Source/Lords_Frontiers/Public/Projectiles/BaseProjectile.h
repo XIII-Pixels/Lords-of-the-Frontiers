@@ -11,6 +11,7 @@
 
 class USphereComponent;
 class UNiagaraSystem;
+class UNiagaraComponent;
 
 inline const FVector PooledLocation{ 0.0f, 0.0f, -10000.0f };
 
@@ -27,6 +28,9 @@ public:
 
 	virtual void ActivateFromPool() override;
 	virtual void DeactivateToPool() override;
+
+	void BeginDeactivation();
+	void FinalizeDeactivation();
 
 	virtual void Tick( float deltaTime ) override;
 
@@ -62,6 +66,9 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	float MaxLifetime = 5.0f;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
+	float TrailFadeDuration_ = 2.0f;
+
 	float SplashRadius_ = 0.0f;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
@@ -75,6 +82,8 @@ protected:
 	float FlightDuration_ = 0.0f;
 
 	FTimerHandle LifetimeTimerHandle;
+	FTimerHandle TrailFinishTimerHandle;
+	bool bIsPendingReturn_ = false;
 
 	virtual void DealDamage( AActor* hitActor ) const;
 
