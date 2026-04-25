@@ -87,6 +87,8 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 		return;
 	}
 
+	const float radiusSq = Radius * Radius;
+
 	TSet<AActor*> alreadyAffected;
 	int32 affected = 0;
 	for ( const FOverlapResult& result : overlaps )
@@ -97,6 +99,12 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 			continue;
 		}
 		alreadyAffected.Add( hitActor );
+
+		const FVector enemyXY( hitActor->GetActorLocation().X, hitActor->GetActorLocation().Y, center.Z );
+		if ( FVector::DistSquared( center, enemyXY ) > radiusSq )
+		{
+			continue;
+		}
 
 		IEntity* enemy = Cast<IEntity>( hitActor );
 		if ( !enemy || !enemy->Stats().IsAlive() || enemy->Team() == ownerTeam )

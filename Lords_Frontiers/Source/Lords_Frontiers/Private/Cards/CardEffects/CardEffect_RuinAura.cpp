@@ -48,6 +48,8 @@ void UCardEffect_RuinAura::Execute_Implementation( const FCardEffectContext& con
 		overlaps, center, FQuat::Identity,
 		ECC_Entity, FCollisionShape::MakeSphere( Radius ), params );
 
+	const float radiusSq = Radius * Radius;
+
 	TSet<AActor*> seen;
 	for ( const FOverlapResult& result : overlaps )
 	{
@@ -57,6 +59,12 @@ void UCardEffect_RuinAura::Execute_Implementation( const FCardEffectContext& con
 			continue;
 		}
 		seen.Add( hitActor );
+
+		const FVector enemyXY( hitActor->GetActorLocation().X, hitActor->GetActorLocation().Y, center.Z );
+		if ( FVector::DistSquared( center, enemyXY ) > radiusSq )
+		{
+			continue;
+		}
 
 		IEntity* enemy = Cast<IEntity>( hitActor );
 		if ( !enemy || !enemy->Stats().IsAlive() || enemy->Team() == ownerTeam )

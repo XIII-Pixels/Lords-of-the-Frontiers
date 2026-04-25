@@ -95,6 +95,9 @@ void ACardAoEField::ApplyToEnemies()
 		overlaps, GetActorLocation(), FQuat::Identity,
 		ECC_Entity, FCollisionShape::MakeSphere( Radius_ ), params );
 
+	const FVector center = GetActorLocation();
+	const float radiusSq = Radius_ * Radius_;
+
 	TSet<AActor*> seen;
 	for ( const FOverlapResult& result : overlaps )
 	{
@@ -104,6 +107,12 @@ void ACardAoEField::ApplyToEnemies()
 			continue;
 		}
 		seen.Add( hitActor );
+
+		const FVector enemyXY( hitActor->GetActorLocation().X, hitActor->GetActorLocation().Y, center.Z );
+		if ( FVector::DistSquared( center, enemyXY ) > radiusSq )
+		{
+			continue;
+		}
 
 		IEntity* enemy = Cast<IEntity>( hitActor );
 		if ( !enemy || !enemy->Stats().IsAlive() || enemy->Team() == instigatorTeam )
