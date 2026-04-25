@@ -24,9 +24,12 @@ public:
 	void LoadGameplayLevel( int index );
 	void LoadNextLevel();
 
-	void SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels );
+	void SetLevels( TSoftObjectPtr<ULevelsDataAsset> levels );
+	void ResetSavedLevelStatuses() const;
 
 	ELevelStatus GetLevelStatus( int index ) const;
+
+	void UnlockNextLevel() const;
 
 protected:
 	UPROPERTY()

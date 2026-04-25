@@ -16,10 +16,10 @@ class LORDS_FRONTIERS_API UGameSaver : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	void UpdateLevelStatus( const FString& levelPath, ELevelStatus levelStatus ) const;
+	void UpdateLevelStatus( const FString& levelName, ELevelStatus levelStatus ) const;
 	void UpdateCurrentLevelStatus( ELevelStatus levelStatus ) const;
 
-	ELevelStatus GetLevelStatus( const FString& levelPath ) const;
+	ELevelStatus GetLevelStatus( const FString& levelName ) const;
 	ELevelStatus GetCurrentLevelStatus() const;
 
 	void Clear() const;

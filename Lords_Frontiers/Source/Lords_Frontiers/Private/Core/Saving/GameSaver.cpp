@@ -8,17 +8,12 @@
 
 void UGameSaver::UpdateCurrentLevelStatus( ELevelStatus levelStatus ) const
 {
-	const UWorld* world = GetWorld();
-	if ( !world )
-	{
-		return;
-	}
-	UpdateLevelStatus( world->GetPathName(), levelStatus );
+	UpdateLevelStatus( UGameplayStatics::GetCurrentLevelName( this, true ), levelStatus );
 }
 
-void UGameSaver::UpdateLevelStatus( const FString& levelPath, ELevelStatus levelStatus ) const
+void UGameSaver::UpdateLevelStatus( const FString& levelName, ELevelStatus levelStatus ) const
 {
-	if ( levelPath.IsEmpty() )
+	if ( levelName.IsEmpty() )
 	{
 		return;
 	}
@@ -29,36 +24,38 @@ void UGameSaver::UpdateLevelStatus( const FString& levelPath, ELevelStatus level
 		saveData = Cast<UGameSaveData>( UGameplayStatics::CreateSaveGameObject( UGameSaveData::StaticClass() ) );
 	}
 
-	saveData->StatusLevels.Add( levelPath, levelStatus );
+	saveData->StatusLevels.FindOrAdd( levelName ) = levelStatus;
 	UGameplayStatics::SaveGameToSlot( saveData, SaveSlotName_, 0 );
+	UE_LOG(
+	    LogTemp, Log, TEXT( "UGameSaver: status of %s was updated to %i" ), *levelName,
+	    saveData->StatusLevels[levelName]
+	);
 }
 
 ELevelStatus UGameSaver::GetCurrentLevelStatus() const
 {
-	const UWorld* world = GetWorld();
-	if ( !world )
-	{
-		return ELevelStatus::Undefined;
-	}
-	return GetLevelStatus( world->GetPathName() );
+	return GetLevelStatus( UGameplayStatics::GetCurrentLevelName( this, true ) );
 }
 
-void UGameSaver::Clear() const
+ELevelStatus UGameSaver::GetLevelStatus( const FString& levelName ) const
 {
-	UGameplayStatics::DeleteGameInSlot( SaveSlotName_, 0 );
-}
-
-ELevelStatus UGameSaver::GetLevelStatus( const FString& levelPath ) const
-{
-	if ( levelPath.IsEmpty() )
+	if ( levelName.IsEmpty() )
 	{
 		return ELevelStatus::Undefined;
 	}
 
 	UGameSaveData* saveData = Cast<UGameSaveData>( UGameplayStatics::LoadGameFromSlot( SaveSlotName_, 0 ) );
-	if ( saveData && saveData->StatusLevels.Contains( levelPath ) )
+	if ( saveData && saveData->StatusLevels.Contains( levelName ) )
 	{
-		return saveData->StatusLevels[levelPath];
+		UE_LOG( LogTemp, Log, TEXT( "UGameSaver: status of %s: %i" ), *levelName, saveData->StatusLevels[levelName] );
+		return saveData->StatusLevels[levelName];
 	}
+	UE_LOG( LogTemp, Log, TEXT( "UGameSaver: status of %s: %i" ), *levelName, ELevelStatus::Undefined );
 	return ELevelStatus::Undefined;
+}
+
+void UGameSaver::Clear() const
+{
+	UGameplayStatics::DeleteGameInSlot( SaveSlotName_, 0 );
+	UE_LOG( LogTemp, Warning, TEXT( "UGameSaver: all save data was cleared for slot %s" ), *SaveSlotName_ );
 }

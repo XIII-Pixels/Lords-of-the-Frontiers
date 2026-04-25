@@ -43,7 +43,7 @@ void ULevelSubsystem::LoadNextLevel()
 	}
 }
 
-void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
+void ULevelSubsystem::SetLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 {
 	if ( ULevelsDataAsset* loaded = levels.LoadSynchronous() )
 	{
@@ -51,10 +51,13 @@ void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 	}
 	else
 	{
-		UE_LOG( LogTemp, Error, TEXT( "Failed to set up levels" ) );
+		UE_LOG( LogTemp, Error, TEXT( "ULevelSubsystem: Failed to load levels data asset" ) );
 		return;
 	}
+}
 
+void ULevelSubsystem::ResetSavedLevelStatuses() const
+{
 	if ( const auto* gameInstance = GetGameInstance() )
 	{
 		if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
@@ -64,7 +67,7 @@ void ULevelSubsystem::SetupLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 				if ( gameSaver->GetLevelStatus( level.ToSoftObjectPath().ToString() ) == ELevelStatus::Undefined )
 				{
 					gameSaver->UpdateLevelStatus(
-					    level.ToSoftObjectPath().ToString(), unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
+					    level.GetAssetName(), unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
 					);
 				}
 			}
@@ -80,11 +83,33 @@ ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 		{
 			if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
 			{
-				return gameSaver->GetLevelStatus( Levels_->GameplayLevels[index].Level.ToSoftObjectPath().ToString() );
+				return gameSaver->GetLevelStatus( Levels_->GameplayLevels[index].Level.GetAssetName() );
 			}
 		}
 	}
 	return ELevelStatus::Undefined;
+}
+
+void ULevelSubsystem::UnlockNextLevel() const
+{
+	int index = CurrentLevelIndex_ + 1;
+	if ( index >= 0 && index < Levels_->GameplayLevels.Num() )
+	{
+		if ( const auto* gameInstance = GetGameInstance() )
+		{
+			if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
+			{
+				const ELevelStatus currentStatus =
+				    gameSaver->GetLevelStatus( Levels_->GameplayLevels[index].Level.GetAssetName() );
+				if ( currentStatus == ELevelStatus::Locked || currentStatus == ELevelStatus::Undefined )
+				{
+					gameSaver->UpdateLevelStatus(
+					    Levels_->GameplayLevels[index].Level.GetAssetName(), ELevelStatus::Unlocked
+					);
+				}
+			}
+		}
+	}
 }
 
 void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName ) const

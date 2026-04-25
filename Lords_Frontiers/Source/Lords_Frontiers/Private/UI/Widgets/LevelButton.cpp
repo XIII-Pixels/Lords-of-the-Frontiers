@@ -29,12 +29,15 @@ void ULevelButton::SetStateLocked()
 
 	if ( StatusImage )
 	{
-		StatusImage->SetBrushFromTexture( TextureLocked_ );
-		StatusImage->SetOpacity( 1.0f );
-	}
-	else
-	{
-		StatusImage->SetOpacity( 0.0f );
+		if ( TextureLocked_ )
+		{
+			StatusImage->SetBrushFromTexture( TextureLocked_ );
+			StatusImage->SetVisibility( ESlateVisibility::Visible );
+		}
+		else
+		{
+			StatusImage->SetVisibility( ESlateVisibility::Collapsed );
+		}
 	}
 }
 
@@ -47,12 +50,15 @@ void ULevelButton::SetStateUnlocked()
 
 	if ( StatusImage )
 	{
-		StatusImage->SetBrushFromTexture( TextureUnlocked_ );
-		StatusImage->SetOpacity( 1.0f );
-	}
-	else
-	{
-		StatusImage->SetOpacity( 0.0f );
+		if ( TextureUnlocked_ )
+		{
+			StatusImage->SetBrushFromTexture( TextureUnlocked_ );
+			StatusImage->SetVisibility( ESlateVisibility::Visible );
+		}
+		else
+		{
+			StatusImage->SetVisibility( ESlateVisibility::Collapsed );
+		}
 	}
 }
 
@@ -65,11 +71,14 @@ void ULevelButton::SetStateCompleted()
 
 	if ( StatusImage )
 	{
-		StatusImage->SetBrushFromTexture( TextureCompleted_ );
-		StatusImage->SetOpacity( 1.0f );
-	}
-	else
-	{
-		StatusImage->SetOpacity( 0.0f );
+		if ( TextureCompleted_ )
+		{
+			StatusImage->SetBrushFromTexture( TextureCompleted_ );
+			StatusImage->SetVisibility( ESlateVisibility::Visible );
+		}
+		else
+		{
+			StatusImage->SetVisibility( ESlateVisibility::Collapsed );
+		}
 	}
 }

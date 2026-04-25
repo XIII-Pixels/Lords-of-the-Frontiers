@@ -10,12 +10,26 @@ void UDefaultGameInstance::Init()
 {
 	Super::Init();
 
+	const UGameSaver* gameSaver = GetSubsystem<UGameSaver>();
+	ULevelSubsystem* levelSubsystem = GetSubsystem<ULevelSubsystem>();
+	bool mustClearSaveData = GameSaverConfig && GameSaverConfig->bClearAllSaveDataOnGameStart;
+
 #if !UE_BUILD_SHIPPING
-	if ( GameSaverConfig && GameSaverConfig->bClearAllSaveDataOnGameStart )
+	if ( gameSaver && mustClearSaveData )
 	{
-		GetSubsystem<UGameSaver>()->Clear();
+		gameSaver->Clear();
 	}
 #endif
 
-	GetSubsystem<ULevelSubsystem>()->SetupLevels( Levels_ );
+	if ( levelSubsystem )
+	{
+		levelSubsystem->SetLevels( Levels_ );
+	}
+
+#if !UE_BUILD_SHIPPING
+	if ( mustClearSaveData && levelSubsystem )
+	{
+		levelSubsystem->ResetSavedLevelStatuses();
+	}
+#endif
 }
