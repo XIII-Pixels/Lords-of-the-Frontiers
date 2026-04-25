@@ -42,14 +42,16 @@ public:
 	virtual void BeginPlay() override;
 
 	void StartFollowing() const;
-
 	void StopFollowing() const;
+
+	void EnableMovement() const;
+	void DisableMovement() const;
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual void TakeDamage( int damage ) override;
 
-	void ChangeStats( FEnemyBuff* buff );
+	void ChangeStats( const FEnemyBuff* buff );
 
 	virtual FEntityStats& Stats() override
 	{

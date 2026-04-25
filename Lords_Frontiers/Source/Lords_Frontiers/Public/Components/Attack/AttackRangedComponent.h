@@ -4,6 +4,7 @@
 
 #include "AttackComponent.h"
 #include "Attacker.h"
+#include "EntityStats.h"
 
 #include "CoreMinimal.h"
 
@@ -57,6 +58,11 @@ protected:
 	virtual bool ActorPositionIsAttackable( const AActor* actor ) const;
 	virtual bool EnemyIsValid( const AActor* enemyActor ) const;
 	virtual bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
+
+	virtual bool IsAttackable( TObjectPtr<AActor> enemyActor ) const
+	{
+		return true;
+	}
 
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 

@@ -56,12 +56,22 @@ void UProjectilePoolSubsystem::ReturnProjectile( ABaseProjectile* projectile )
 	{
 		return;
 	}
-	projectile->DeactivateToPool();
-	TSubclassOf<ABaseProjectile> projectileClass = projectile->GetClass();
-	Pools.FindOrAdd( projectileClass ).Projectiles.Add( projectile );
 
+	TSubclassOf<ABaseProjectile> projectileClass = projectile->GetClass();
 	int32& count = ActiveCounts.FindOrAdd( projectileClass );
 	count = FMath::Max( 0, count - 1 );
+
+	projectile->BeginDeactivation();
+}
+
+void UProjectilePoolSubsystem::FinalizeReturn( ABaseProjectile* projectile )
+{
+	if ( !IsValid( projectile ) )
+	{
+		return;
+	}
+	TSubclassOf<ABaseProjectile> projectileClass = projectile->GetClass();
+	Pools.FindOrAdd( projectileClass ).Projectiles.Add( projectile );
 }
 
 void UProjectilePoolSubsystem::PreWarmPool( TSubclassOf<ABaseProjectile> projectileClass, int32 count )
@@ -78,7 +88,6 @@ void UProjectilePoolSubsystem::PreWarmPool( TSubclassOf<ABaseProjectile> project
 		if ( ABaseProjectile* proj = CreateNewProjectile( projectileClass ) )
 		{
 			proj->DeactivateToPool();
-			pool.Projectiles.Add( proj );
 		}
 	}
 }

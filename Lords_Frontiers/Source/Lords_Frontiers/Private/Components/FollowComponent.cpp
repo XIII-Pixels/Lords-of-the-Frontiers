@@ -104,8 +104,9 @@ void UFollowComponent::MoveTowardsTarget( float deltaTime )
 		return;
 	}
 
-	const FVector targetLocation = Unit_->FollowedTarget()->GetActorLocation();
-	const FVector actorLocation = GetActorLocation();
+	const FVector targetLocation = ProjectMoveLocation( Unit_->FollowedTarget()->GetActorLocation() );
+	const FVector actorLocation = ProjectMoveLocation( GetActorLocation() );
+
 	CurrentDirection_ = ( targetLocation - actorLocation ).GetSafeNormal();
 	CurrentDirection_.Z = 0.0f;
 

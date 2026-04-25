@@ -369,6 +369,8 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 			StageProgressBar->ResetProgressImmediate();
 		}
 	}
+
+	UpdateExtraButtonsVisibility();
 }
 
 void UGameHUDWidget::HandleBonusPreviewUpdated( const TArray<FBonusIconData>& BonusIcons )
@@ -673,13 +675,102 @@ void UGameHUDWidget::OnEndTurnClicked()
 void UGameHUDWidget::OnRelocateBuildingClicked()
 {
 	UE_LOG( LogTemp, Log, TEXT( "Relocate building clicked" ) );
+
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		return;
+	}
+
+	if ( UGameLoopManager* gL = coreManager->GetGameLoop() )
+	{
+		if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
+		{
+			UE_LOG( LogTemp, Warning, TEXT( "Relocate: blocked during combat phase" ) );
+			return;
+		}
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	ABuildManager* buildManager = coreManager->GetBuildManager();
+	UResourceManager* resourceManager = coreManager->GetResourceManager();
+
+	if ( !selectionManager || !buildManager || !resourceManager )
+	{
+		return;
+	}
+
+	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding || !selectedBuilding->CanBeRelocated() )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Relocate: building invalid" ) );
+		return;
+	}
+
+	const int32 cost = selectedBuilding->GetRelocationGoldCost();
+
+	if ( !resourceManager->HasEnoughResource( EResourceType::Gold, cost ) )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Relocate: not enough gold" ) );
+		return;
+	}
+
+	buildManager->StartRelocatingBuilding( selectedBuilding );
+
+	selectionManager->ClearSelection();
+	HandleSelectionChanged();
+	UpdateExtraButtonsVisibility();
 }
 
 void UGameHUDWidget::OnRemoveBuildingClicked()
 {
 	UE_LOG( LogTemp, Log, TEXT( "Remove building clicked" ) );
-}
 
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		return;
+	}
+
+	if ( UGameLoopManager* gL = coreManager->GetGameLoop() )
+	{
+		if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
+		{
+			UE_LOG( LogTemp, Warning, TEXT( "Remove: blocked during combat phase" ) );
+			return;
+		}
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	ABuildManager* buildManager = coreManager->GetBuildManager();
+	UResourceManager* resourceManager = coreManager->GetResourceManager();
+
+	if ( !selectionManager || !buildManager || !resourceManager )
+	{
+		return;
+	}
+
+	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding || !selectedBuilding->CanBeRemoved() )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Remove: building invalid" ) );
+		return;
+	}
+
+	const FResourceProduction refund = selectedBuilding->GetDemolitionRefund();
+
+	if ( !buildManager->RemoveExistingBuilding( selectedBuilding ) )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "Remove: demolition failed, no refund granted" ) );
+		return;
+	}
+
+	resourceManager->AddResources( refund );
+	
+	selectionManager->ClearSelection();
+	HandleSelectionChanged();
+	UpdateExtraButtonsVisibility();
+}
 void UGameHUDWidget::OnDefensiveBuildingsClicked()
 {
 	ShowDefensiveBuildings();
@@ -1351,4 +1442,102 @@ void UGameHUDWidget::InitializeTooltipWidget(
 			OutTooltip->ForceHide();
 		}
 	}
+}
+
+void UGameHUDWidget::HandleSelectionChanged()
+{
+	UE_LOG(
+	    LogTemp, Warning,
+	    TEXT(
+	        "UGameHUDWidget::HandleSelectionChanged "
+	    )
+	);
+	UpdateExtraButtonsVisibility();
+
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		return;
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	if ( !selectionManager )
+	{
+		return;
+	}
+
+	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	if ( !selectedBuilding )
+	{
+		return;
+	}
+}
+
+void UGameHUDWidget::UpdateExtraButtonsVisibility()
+{
+	UCoreManager* coreManager = UCoreManager::Get( this );
+	if ( !coreManager )
+	{
+		if ( ButtonRelocateBuilding )
+		{
+			ButtonRelocateBuilding->SetVisibility( ESlateVisibility::Collapsed );
+		}
+
+		if ( ButtonRemoveBuilding )
+		{
+			ButtonRemoveBuilding->SetVisibility( ESlateVisibility::Collapsed );
+		}
+
+		return;
+	}
+
+	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
+	ABuildManager* buildManager = coreManager->GetBuildManager();
+	UGameLoopManager* gL = coreManager->GetGameLoop();
+
+	ABuilding* selectedBuilding = selectionManager ? selectionManager->GetPrimarySelectedBuilding() : nullptr;
+	const bool bHasSelectedBuilding = IsValid( selectedBuilding );
+
+	const bool bIsPlacing = buildManager && buildManager->IsPlacing();
+
+	const bool bIsCombatPhase = gL && gL->GetCurrentPhase() == EGameLoopPhase::Combat;
+
+	const bool bShowRelocateButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRelocated();
+
+	const bool bShowRemoveButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRemoved();
+
+	if ( ButtonRelocateBuilding )
+	{
+		ButtonRelocateBuilding->SetVisibility(
+		    bShowRelocateButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		);
+		ButtonRelocateBuilding->SetIsEnabled( bShowRelocateButton && !bIsCombatPhase );
+		ButtonRelocateBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
+	}
+
+	if ( ButtonRemoveBuilding )
+	{
+		ButtonRemoveBuilding->SetVisibility(
+		    bShowRemoveButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
+		);
+		ButtonRemoveBuilding->SetIsEnabled( bShowRemoveButton && !bIsCombatPhase );
+		ButtonRemoveBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
+	}
+}
+void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelectionManager )
+{
+	UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager called: %s" ), *GetNameSafe( InSelectionManager ) );
+
+	SelectionManager = InSelectionManager;
+	if ( !SelectionManager )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "InitSelectionManager: SelectionManager is null" ) );
+		return;
+	}
+
+	SelectionManager->OnSelectionChanged.AddDynamic( this, &UGameHUDWidget::HandleSelectionChanged );
+
+	UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager: subscribed to OnSelectionChanged" ) );
+
+	HandleSelectionChanged();
 }

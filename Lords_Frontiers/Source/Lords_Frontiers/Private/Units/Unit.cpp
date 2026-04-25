@@ -92,6 +92,22 @@ void AUnit::StopFollowing() const
 	}
 }
 
+void AUnit::EnableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Activate();
+	}
+}
+
+void AUnit::DisableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Deactivate();
+	}
+}
+
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
 	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
@@ -259,18 +275,28 @@ void AUnit::ResolveVFXDefaults()
 	}
 }
 
-void AUnit::ChangeStats( FEnemyBuff* buff )
+void AUnit::ChangeStats( const FEnemyBuff* buff )
 {
+	if ( !buff )
+	{
+		return;
+	}
+
 	Stats_.SetMaxHealth(
 	    FMath::FloorToInt( Stats_.MaxHealth() * FMath::Pow( buff->HealthMultiplier, buff->SpawnCount ) )
 	);
+
 	Stats_.SetAttackRange( Stats_.AttackRange() * FMath::Pow( buff->AttackRangeMultiplier, buff->SpawnCount ) );
+
 	Stats_.SetAttackDamage(
 	    FMath::FloorToInt( Stats_.AttackDamage() * FMath::Pow( buff->AttackDamageMultiplier, buff->SpawnCount ) )
 	);
+
 	Stats_.SetAttackCooldown(
 	    Stats_.AttackCooldown() * FMath::Pow( buff->AttackCooldownMultiplier, buff->SpawnCount )
 	);
+
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
+
 	Stats_.Heal( Stats_.MaxHealth() );
 }
