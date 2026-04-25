@@ -273,7 +273,7 @@ public:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UVerticalBox> BossBarsContainer;
 
-	void AddBossBar( UHealthBarWidget* bar );
+	bool AddBossBar( UHealthBarWidget* bar );
 
 	void RemoveBossBar( UHealthBarWidget* bar );
 

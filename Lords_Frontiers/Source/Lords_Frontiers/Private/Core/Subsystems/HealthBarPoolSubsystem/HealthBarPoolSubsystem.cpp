@@ -191,7 +191,11 @@ void UHealthBarPoolSubsystem::ShowFor( AActor* entity, UHealthBarConfigDataAsset
 
 	if ( bar.bIsBoss )
 	{
-		AttachBossBar( bar, widget );
+		if ( !AttachBossBar( bar, widget ) )
+		{
+			ReleaseWidget( widget );
+			return;
+		}
 	}
 	else
 	{
@@ -363,14 +367,15 @@ void UHealthBarPoolSubsystem::AttachWorldBar( FActiveHealthBar& bar, UHealthBarW
 	bar.WidgetComponent = comp;
 }
 
-void UHealthBarPoolSubsystem::AttachBossBar( FActiveHealthBar& bar, UHealthBarWidget* widget )
+bool UHealthBarPoolSubsystem::AttachBossBar( FActiveHealthBar& bar, UHealthBarWidget* widget )
 {
 	UGameHUDWidget* hud = ResolveHUD();
 	if ( !hud )
 	{
-		return;
+		UE_LOG( LogTemp, Warning, TEXT( "UHealthBarPoolSubsystem::AttachBossBar: HUD widget not found yet" ) );
+		return false;
 	}
-	hud->AddBossBar( widget );
+	return hud->AddBossBar( widget );
 }
 
 void UHealthBarPoolSubsystem::DetachBar( FActiveHealthBar& bar )

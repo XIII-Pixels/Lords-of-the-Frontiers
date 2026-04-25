@@ -90,7 +90,7 @@ private:
 
 	void AttachWorldBar( FActiveHealthBar& bar, UHealthBarWidget* widget );
 
-	void AttachBossBar( FActiveHealthBar& bar, UHealthBarWidget* widget );
+	bool AttachBossBar( FActiveHealthBar& bar, UHealthBarWidget* widget );
 
 	void DetachBar( FActiveHealthBar& bar );
 

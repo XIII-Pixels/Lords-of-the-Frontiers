@@ -1444,13 +1444,22 @@ void UGameHUDWidget::InitializeTooltipWidget(
 	}
 }
 
-void UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
+bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
 {
-	if ( !bar || !BossBarsContainer )
+	if ( !bar )
 	{
-		return;
+		return false;
+	}
+	if ( !BossBarsContainer )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" )
+		);
+		return false;
 	}
 	BossBarsContainer->AddChildToVerticalBox( bar );
+	return true;
 }
 
 void UGameHUDWidget::RemoveBossBar( UHealthBarWidget* bar )
