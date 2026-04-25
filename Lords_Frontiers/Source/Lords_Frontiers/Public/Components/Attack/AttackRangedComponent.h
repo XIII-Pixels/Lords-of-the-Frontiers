@@ -3,8 +3,8 @@
 #pragma once
 
 #include "AttackComponent.h"
-#include "EntityStats.h"
 #include "Attacker.h"
+#include "EntityStats.h"
 
 #include "CoreMinimal.h"
 
@@ -56,6 +56,10 @@ protected:
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
 
+	virtual bool IsAttackable( TObjectPtr<AActor> enemyActor ) const
+	{
+		return true;
+	}
 
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 

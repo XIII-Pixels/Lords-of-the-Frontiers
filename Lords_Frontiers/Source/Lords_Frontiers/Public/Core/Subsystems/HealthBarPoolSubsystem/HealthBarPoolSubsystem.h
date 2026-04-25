@@ -78,7 +78,6 @@ public:
 	int32 GetPooledCount( TSubclassOf<UHealthBarWidget> widgetClass ) const;
 
 private:
-
 	UHealthBarWidget* AcquireWidget( TSubclassOf<UHealthBarWidget> widgetClass );
 
 	void ReleaseWidget( UHealthBarWidget* widget );

@@ -70,7 +70,7 @@ public:
 	{
 		return MaxZoom_;
 	}
-	
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

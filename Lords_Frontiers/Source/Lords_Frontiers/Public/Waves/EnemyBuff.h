@@ -11,8 +11,6 @@ USTRUCT( BlueprintType )
 struct FEnemyBuff
 {
 	GENERATED_BODY()
-	UPROPERTY( EditAnywhere, Category = "Settings|Buff" )
-	int32 SpawnCount = 0;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Buff|Multiply" )
 	float HealthMultiplier = 1.0f;

@@ -181,7 +181,7 @@ void UAttackRangedComponent::Look()
 			}
 		}
 
-		if ( enemyPositionAttackable && CanSeeEnemy( actor ) )
+		if ( enemyPositionAttackable && CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
 			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
@@ -195,10 +195,10 @@ void UAttackRangedComponent::Look()
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	if ( GetOwner()->IsA( AUnit::StaticClass() ) )
+	// Bad: hard linked to ABuilding and AUnit
+	// TODO: Separate components for unit and for building
+	if ( GetOwner<AUnit>() )
 	{
-		// Not good: coupling with AUnit class. No owner class dependencies should be in this class
-		// TODO: Separate components for unit and for building
 		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 	else
@@ -294,7 +294,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 		{
 			continue;
 		}
-		if ( CanSeeEnemy( actor ) )
+		if ( CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			float distance = FVector::DistSquared( ownerLocation, actor->GetActorLocation() );
 			candidates.Add( { actor, distance } );

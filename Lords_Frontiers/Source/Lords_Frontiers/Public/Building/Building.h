@@ -98,6 +98,30 @@ public:
 		return bIsRuined_;
 	}
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Build" )
+	bool CanBeRelocated() const
+	{
+		return bCanBeRelocated_;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Build" )
+	bool CanBeRemoved() const
+	{
+		return bCanBeRemoved_;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	int32 GetBuildingTotalCostGold() const;
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	int32 GetRelocationGoldCost() const;
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	FResourceProduction GetRelocationCost() const;
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	FResourceProduction GetDemolitionRefund() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
@@ -111,7 +135,7 @@ protected:
 	virtual void OnDeath();
 
 	void FinalizeRuin();
-	
+
 	void SubscribeHealthBar();
 
 	void UnsubscribeHealthBar();
@@ -177,6 +201,18 @@ protected:
 	float ResolvedConstructionDelay_ = 0.0f;
 
 	void SpawnConstructionVFX();
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	bool bCanBeRelocated_ = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	bool bCanBeRemoved_ = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	FResourceProduction RelocationCost_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	FResourceProduction DemolitionRefund_;
 
 private:
 	FTimerHandle RuinTimerHandle_;

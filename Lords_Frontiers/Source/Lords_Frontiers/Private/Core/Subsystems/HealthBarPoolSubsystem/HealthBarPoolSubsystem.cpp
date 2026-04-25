@@ -197,7 +197,7 @@ void UHealthBarPoolSubsystem::ShowFor( AActor* entity, UHealthBarConfigDataAsset
 	{
 		AttachWorldBar( bar, widget );
 	}
-	
+
 	if ( const float* savedPercent = LastDisplayedPercent_.Find( entity ) )
 	{
 		widget->ResetTo( *savedPercent );
@@ -207,7 +207,6 @@ void UHealthBarPoolSubsystem::ShowFor( AActor* entity, UHealthBarConfigDataAsset
 	{
 		widget->ResetToFull();
 	}
-
 	widget->SetHealth( stats.Health(), stats.MaxHealth() );
 
 	widget->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
