@@ -474,24 +474,23 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		return;
 	}
 
-	float orthoWidth = 2048.0f;
+	float scale = BaseBonusIconScale;
 	if ( pc->PlayerCameraManager )
 	{
-		AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget();
-		if ( viewTarget )
+		if ( AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget() )
 		{
-			UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>();
-			if ( cam )
+			if ( UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>() )
 			{
-				orthoWidth = cam->OrthoWidth;
+				if ( cam->ProjectionMode == ECameraProjectionMode::Orthographic && cam->OrthoWidth > KINDA_SMALL_NUMBER )
+				{
+					constexpr float baseOrthoWidth = 2048.0f;
+					scale = ( baseOrthoWidth / cam->OrthoWidth ) * BaseBonusIconScale;
+				}
 			}
 		}
 	}
+	scale = FMath::Clamp( scale, MinBonusIconScale, MaxBonusIconScale );
 
-	const float baseOrthoWigth = 2048.0f;
-	const float baseScale = 0.5f;
-	const float scale =
-	    FMath::Clamp( ( baseOrthoWigth / orthoWidth ) * BaseBonusIconScale, MinBonusIconScale, MaxBonusIconScale );
 	const float buildingHeight = 80.0f;
 
 	const float worldPadding = -15.0f;
@@ -507,7 +506,7 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			continue;
 		}
 
-		if ( scale <= MinBonusIconScale + 0.01f )
+		if ( scale <= MinBonusIconScale + KINDA_SMALL_NUMBER )
 		{
 			ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::Collapsed );
 			continue;

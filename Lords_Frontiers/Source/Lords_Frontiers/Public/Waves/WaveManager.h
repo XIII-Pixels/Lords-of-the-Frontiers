@@ -124,14 +124,14 @@ public:
 
 	int32 GetWavesCount() const;
 
+	const FEnemyBuff* FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const;
+
 protected:
 	virtual void BeginPlay() override;
 
 	// Internal helper to schedule all spawn timers for a wave
 	void ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveIndex );
 
-	UFUNCTION( BlueprintCallable )
-	void UpdateSpawnCounts( int32 waveIndex );
 	// Schedules spawn for a single enemy (called via timer)
 	UFUNCTION()
 	void SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnPointId, int32 enemyIndex );
