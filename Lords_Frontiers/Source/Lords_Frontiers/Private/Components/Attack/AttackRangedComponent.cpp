@@ -195,10 +195,10 @@ void UAttackRangedComponent::Look()
 
 void UAttackRangedComponent::ChooseAttackMode()
 {
-	if ( GetOwner()->IsA( AUnit::StaticClass() ) )
+	// Bad: hard linked to ABuilding and AUnit
+	// TODO: Separate components for unit and for building
+	if ( GetOwner<AUnit>() )
 	{
-		// Not good: coupling with AUnit class. No owner class dependencies should be in this class
-		// TODO: Separate components for unit and for building
 		AttackFilter_ = EAttackFilter::WhatIsOnPath;
 	}
 	else

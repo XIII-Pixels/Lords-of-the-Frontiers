@@ -88,6 +88,22 @@ void AUnit::StopFollowing() const
 	}
 }
 
+void AUnit::EnableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Activate();
+	}
+}
+
+void AUnit::DisableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Deactivate();
+	}
+}
+
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
 	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )

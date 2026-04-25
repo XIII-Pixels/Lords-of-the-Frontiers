@@ -42,8 +42,10 @@ public:
 	virtual void BeginPlay() override;
 
 	void StartFollowing() const;
-
 	void StopFollowing() const;
+
+	void EnableMovement() const;
+	void DisableMovement() const;
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
