@@ -13,7 +13,7 @@ class LORDS_FRONTIERS_API UCardEffect_DamageReflect : public UCardEffect
 
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect",
-		meta = ( ClampMin = "0.0", ClampMax = "10.0" ) )
+		meta = ( ClampMin = "0.0", ClampMax = "100.0" ) )
 	float ReflectPercent = 25.f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect",

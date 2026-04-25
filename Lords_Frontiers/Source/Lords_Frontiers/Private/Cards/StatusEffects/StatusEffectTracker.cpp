@@ -101,10 +101,6 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def, AActor* instigato
 	if ( FActiveStatus* existing = Active_.Find( def->StatusTag ) )
 	{
 		existing->ExpiresAt = now + def->Duration;
-		if ( def->GetTickInterval() > 0.f )
-		{
-			existing->NextTickAt = now + def->GetTickInterval();
-		}
 		if ( instigator )
 		{
 			existing->Instigator = instigator;

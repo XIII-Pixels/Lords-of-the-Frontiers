@@ -2,3 +2,4 @@
 
 FOnDamageDealt FDamageEvents::OnDamageDealt;
 FOnProjectileMissed FDamageEvents::OnProjectileMissed;
+FOnProjectileLanded FDamageEvents::OnProjectileLanded;

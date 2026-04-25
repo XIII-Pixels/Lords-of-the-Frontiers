@@ -32,6 +32,10 @@ public:
 	{
 		return true;
 	}
+	virtual bool WantsTargetChangedReset_Implementation() const override
+	{
+		return bResetOnTargetChange;
+	}
 	virtual FText GetDisplayText_Implementation() const override;
 
 	UFUNCTION()

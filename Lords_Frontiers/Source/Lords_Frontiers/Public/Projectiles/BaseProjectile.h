@@ -36,6 +36,11 @@ public:
 	    bool bTrackTarget = true
 	);
 
+	bool InitializeDirectional(
+	    AActor* inInstigator, const FVector& startLocation, const FVector& direction, int inDamage, float inSpeed,
+	    float inMaxRange, float inSplashRadius = 0.f
+	);
+
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	EProjectileType ProjectileType = EProjectileType::Arrow_Tower;
 
@@ -52,6 +57,7 @@ protected:
 	float MaxRange_ = 0.0f;
 	float ArcScale_ = 1.0f;
 	float GroundZ_ = 0.0f;
+	bool bSuppressCardTriggers_ = false;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	float MaxLifetime = 5.0f;

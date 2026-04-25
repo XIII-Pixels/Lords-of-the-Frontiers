@@ -324,8 +324,17 @@ void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMu
 	const int32 scaledDamage = FMath::RoundToInt(
 		static_cast<float>( ownerEntity->Stats().AttackDamage() ) * damageMultiplier );
 
+	FVector spawnOffset = ProjectileSpawnPosition_;
+	if ( AActor* owner = GetOwner() )
+	{
+		const FVector toTarget = ( target->GetActorLocation() - owner->GetActorLocation() ).GetSafeNormal2D();
+		const FVector right = FVector::CrossProduct( toTarget, FVector::UpVector ).GetSafeNormal();
+		const float jitter = FMath::FRandRange( -60.f, 60.f );
+		spawnOffset += right * jitter;
+	}
+
 	const bool bInitialized = projectile->Initialize(
-	    GetOwner(), target, scaledDamage, ProjectileSpeed_, ProjectileSpawnPosition_,
+	    GetOwner(), target, scaledDamage, ProjectileSpeed_, spawnOffset,
 	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_ );
 
 	if ( !bInitialized )
@@ -336,9 +345,90 @@ void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMu
 		return;
 	}
 
-	UE_LOG( LogTemp, Verbose,
+	UE_LOG( LogTemp, Log,
 		TEXT( "FireExtraProjectile: %s → %s for damage %d" ),
 		*GetOwner()->GetName(), *target->GetName(), scaledDamage );
+
+	OnBeforeAttackFire.Broadcast( target );
+	OnAttackFired.Broadcast( target );
+}
+
+void UAttackRangedComponent::FireShrapnel(
+	const FVector& spawnLocation, int32 count, float damageMultiplier,
+	float spreadDegrees, float range, float speed, float splashRadius,
+	TSubclassOf<ABaseProjectile> overrideClass )
+{
+	if ( count <= 0 || range <= 0.f || speed <= 0.f )
+	{
+		return;
+	}
+
+	UWorld* world = GetOwner() ? GetOwner()->GetWorld() : nullptr;
+	if ( !world )
+	{
+		return;
+	}
+
+	TSubclassOf<ABaseProjectile> projectileClass = overrideClass ? overrideClass : ProjectileClass_;
+	if ( !projectileClass )
+	{
+		UE_LOG( LogTemp, Warning,
+			TEXT( "FireShrapnel: no projectile class on %s" ),
+			GetOwner() ? *GetOwner()->GetName() : TEXT( "null" ) );
+		return;
+	}
+
+	const IEntity* ownerEntity = GetOwner<IEntity>();
+	if ( !ownerEntity )
+	{
+		return;
+	}
+
+	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
+	if ( !pool )
+	{
+		return;
+	}
+
+	const int32 scaledDamage = FMath::RoundToInt(
+		static_cast<float>( ownerEntity->Stats().AttackDamage() ) * damageMultiplier );
+
+	const float spread = FMath::Clamp( spreadDegrees, 0.f, 360.f );
+	const float baseYaw = FMath::FRandRange( 0.f, 360.f );
+
+	for ( int32 i = 0; i < count; ++i )
+	{
+		ABaseProjectile* projectile = pool->AcquireProjectile( projectileClass );
+		if ( !projectile )
+		{
+			continue;
+		}
+
+		float yawDeg = 0.f;
+		if ( count == 1 )
+		{
+			yawDeg = baseYaw;
+		}
+		else if ( FMath::IsNearlyEqual( spread, 360.f ) )
+		{
+			yawDeg = baseYaw + ( 360.f / count ) * i;
+		}
+		else
+		{
+			const float step = spread / ( count - 1 );
+			yawDeg = baseYaw - spread * 0.5f + step * i;
+		}
+
+		const FVector direction = FRotator( 0.f, yawDeg, 0.f ).Vector();
+
+		const bool bInitialized = projectile->InitializeDirectional(
+			GetOwner(), spawnLocation, direction, scaledDamage, speed, range, splashRadius );
+
+		if ( !bInitialized )
+		{
+			pool->ReturnProjectile( projectile );
+		}
+	}
 }
 
 void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target ) const

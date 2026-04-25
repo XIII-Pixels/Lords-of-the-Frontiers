@@ -89,12 +89,16 @@ protected:
 	void HandleOwnerRuined( class ABuilding* building );
 
 	void HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash );
-	void HandleProjectileMissed( AActor* instigator );
+	void HandleProjectileMissed( AActor* instigator, const FVector& impactLocation );
+	void HandleProjectileLanded( AActor* instigator, const FVector& impactLocation );
 
 	UFUNCTION()
 	void HandleAuraTick();
 
 	void DispatchTrigger( ECardTriggerReason reason, AActor* instigator, int32 magnitude = 0 );
+	void DispatchTriggerAtLocation( ECardTriggerReason reason, const FVector& location, int32 magnitude = 0 );
+	void DispatchInternal( ECardTriggerReason reason, AActor* instigator, int32 magnitude,
+		bool bHasExplicitLocation, const FVector& explicitLocation );
 
 	void StartAuraTimer();
 	void StopAuraTimer();
@@ -113,6 +117,7 @@ private:
 
 	FDelegateHandle DamageEventHandle_;
 	FDelegateHandle MissEventHandle_;
+	FDelegateHandle LandedEventHandle_;
 	bool bIsBoundToDamageEvents_ = false;
 
 	FTimerHandle AuraTimerHandle_;

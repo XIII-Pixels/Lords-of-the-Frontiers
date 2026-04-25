@@ -65,6 +65,11 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
 	void FireExtraProjectile( AActor* target, float damageMultiplier = 1.f );
 
+	void FireShrapnel(
+		const FVector& spawnLocation, int32 count, float damageMultiplier,
+		float spreadDegrees, float range, float speed, float splashRadius,
+		TSubclassOf<ABaseProjectile> overrideClass );
+
 	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
 	void AddPendingDamageBonus( float bonusPercent )
 	{

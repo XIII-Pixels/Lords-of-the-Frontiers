@@ -144,6 +144,24 @@ public:
 	}
 };
 
+UCLASS( BlueprintType,
+	meta = ( DisplayName = "Condition: On Projectile Landed (ground impact)" ) )
+class LORDS_FRONTIERS_API UCardCondition_OnLanded : public UCardCondition
+{
+	GENERATED_BODY()
+
+public:
+	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override
+	{
+		return context.TriggerReason == ECardTriggerReason::Landed;
+	}
+
+	virtual FText GetDisplayText_Implementation() const override
+	{
+		return FText::FromString( TEXT( "On projectile landed" ) );
+	}
+};
+
 UCLASS( BlueprintType, meta = ( DisplayName = "Condition: On Aura Tick" ) )
 class LORDS_FRONTIERS_API UCardCondition_OnAuraTick : public UCardCondition
 {

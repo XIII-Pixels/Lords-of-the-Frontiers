@@ -5,11 +5,21 @@
 
 DEFINE_LOG_CATEGORY_STATIC( LogCardSpawnExtraProjectile, Log, All );
 
+namespace
+{
+	bool GIsFiringExtraProjectile = false;
+}
+
 void UCardEffect_SpawnExtraProjectile::Execute_Implementation( const FCardEffectContext& context )
 {
 	if ( context.TriggerReason != ECardTriggerReason::AttackFired &&
 	     context.TriggerReason != ECardTriggerReason::HitLanded &&
 	     context.TriggerReason != ECardTriggerReason::KillLanded )
+	{
+		return;
+	}
+
+	if ( GIsFiringExtraProjectile )
 	{
 		return;
 	}
@@ -40,6 +50,7 @@ void UCardEffect_SpawnExtraProjectile::Execute_Implementation( const FCardEffect
 		*GetName(), ExtraProjectileCount, DamageMultiplier,
 		*building->GetName(), *target->GetName() );
 
+	TGuardValue<bool> reentryGuard( GIsFiringExtraProjectile, true );
 	for ( int32 i = 0; i < ExtraProjectileCount; ++i )
 	{
 		attack->FireExtraProjectile( target, DamageMultiplier );

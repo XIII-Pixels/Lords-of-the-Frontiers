@@ -268,6 +268,7 @@ void UCardEffectHostComponent::BindDamageEvents()
 
 	DamageEventHandle_ = FDamageEvents::OnDamageDealt.AddUObject( this, &UCardEffectHostComponent::HandleDamageDealt );
 	MissEventHandle_ = FDamageEvents::OnProjectileMissed.AddUObject( this, &UCardEffectHostComponent::HandleProjectileMissed );
+	LandedEventHandle_ = FDamageEvents::OnProjectileLanded.AddUObject( this, &UCardEffectHostComponent::HandleProjectileLanded );
 	bIsBoundToDamageEvents_ = true;
 }
 
@@ -280,18 +281,39 @@ void UCardEffectHostComponent::UnbindDamageEvents()
 
 	FDamageEvents::OnDamageDealt.Remove( DamageEventHandle_ );
 	FDamageEvents::OnProjectileMissed.Remove( MissEventHandle_ );
+	FDamageEvents::OnProjectileLanded.Remove( LandedEventHandle_ );
 	DamageEventHandle_.Reset();
 	MissEventHandle_.Reset();
+	LandedEventHandle_.Reset();
 	bIsBoundToDamageEvents_ = false;
 }
 
-void UCardEffectHostComponent::HandleProjectileMissed( AActor* instigator )
+void UCardEffectHostComponent::HandleProjectileMissed( AActor* instigator, const FVector& impactLocation )
 {
 	if ( instigator != GetOwner() )
 	{
 		return;
 	}
-	DispatchTrigger( ECardTriggerReason::Missed, nullptr );
+	UE_LOG( LogCardEffectHost, Log,
+		TEXT( "[%s] HandleProjectileMissed at %s active=%d" ),
+		*GetNameSafe( GetOwner() ),
+		*impactLocation.ToCompactString(),
+		Active_.Num() );
+	DispatchTriggerAtLocation( ECardTriggerReason::Missed, impactLocation );
+}
+
+void UCardEffectHostComponent::HandleProjectileLanded( AActor* instigator, const FVector& impactLocation )
+{
+	if ( instigator != GetOwner() )
+	{
+		return;
+	}
+	UE_LOG( LogCardEffectHost, Log,
+		TEXT( "[%s] HandleProjectileLanded at %s active=%d" ),
+		*GetNameSafe( GetOwner() ),
+		*impactLocation.ToCompactString(),
+		Active_.Num() );
+	DispatchTriggerAtLocation( ECardTriggerReason::Landed, impactLocation );
 }
 
 void UCardEffectHostComponent::StartAuraTimer()
@@ -367,6 +389,17 @@ void UCardEffectHostComponent::HandleDamageDealt( AActor* instigator, AActor* ta
 
 void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActor* instigator, int32 magnitude )
 {
+	DispatchInternal( reason, instigator, magnitude, false, FVector::ZeroVector );
+}
+
+void UCardEffectHostComponent::DispatchTriggerAtLocation( ECardTriggerReason reason, const FVector& location, int32 magnitude )
+{
+	DispatchInternal( reason, nullptr, magnitude, true, location );
+}
+
+void UCardEffectHostComponent::DispatchInternal( ECardTriggerReason reason, AActor* instigator, int32 magnitude,
+	bool bHasExplicitLocation, const FVector& explicitLocation )
+{
 	if ( Active_.Num() == 0 )
 	{
 		return;
@@ -390,6 +423,12 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 			continue;
 		}
 
+		const bool bIsTargetChanged = ( reason == ECardTriggerReason::TargetChanged );
+		if ( bIsTargetChanged && !rec.Effect->WantsTargetChangedReset() )
+		{
+			continue;
+		}
+
 		FCardEffectContext ctx;
 		ctx.SourceCard = rec.SourceCard;
 		ctx.Building = building;
@@ -399,14 +438,20 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 		ctx.EventInstigator = instigator;
 		ctx.ActionMagnitude = magnitude;
 		ctx.TriggerReason = reason;
-		if ( instigator )
+		if ( bHasExplicitLocation )
+		{
+			ctx.EventLocation = explicitLocation;
+			ctx.bHasEventLocation = true;
+		}
+		else if ( instigator )
 		{
 			ctx.EventLocation = instigator->GetActorLocation();
 			ctx.bHasEventLocation = true;
 		}
 
 		bool bConditionsPass = true;
-		if ( rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )
+		const bool bBypassConditions = bIsTargetChanged;
+		if ( !bBypassConditions && rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )
 		{
 			const FCardEvent& event = rec.SourceCard->Events[rec.EventIndex];
 			for ( const TObjectPtr<UCardCondition>& cond : event.Conditions )
@@ -436,7 +481,7 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 
 		rec.Effect->Execute( ctx );
 
-		if ( visuals && building )
+		if ( !bBypassConditions && visuals && building )
 		{
 			visuals->PlayOneShot( rec.Effect->VisualConfig, building, instigator );
 		}

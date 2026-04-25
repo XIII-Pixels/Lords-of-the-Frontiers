@@ -56,4 +56,11 @@ public:
 	{
 		return false;
 	}
+
+	UFUNCTION( BlueprintNativeEvent, BlueprintPure, Category = "Card|Effect" )
+	bool WantsTargetChangedReset() const;
+	virtual bool WantsTargetChangedReset_Implementation() const
+	{
+		return false;
+	}
 };

@@ -12,7 +12,9 @@ void UCardEffect_SpawnAoEField::Execute_Implementation( const FCardEffectContext
 {
 	if ( context.TriggerReason != ECardTriggerReason::HitLanded &&
 	     context.TriggerReason != ECardTriggerReason::KillLanded &&
-	     context.TriggerReason != ECardTriggerReason::AttackFired )
+	     context.TriggerReason != ECardTriggerReason::AttackFired &&
+	     context.TriggerReason != ECardTriggerReason::Missed &&
+	     context.TriggerReason != ECardTriggerReason::Landed )
 	{
 		return;
 	}
