@@ -2,14 +2,13 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Resources/EconomyComponent.h"
 #include "Utilities/TraceChannelMappings.h"
-
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
+
 ABuilding::ABuilding()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -431,4 +430,28 @@ UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> building
 		return cdo->BuildingIcon;
 	}
 	return nullptr;
+}
+int32 ABuilding::GetBuildingTotalCostGold() const
+{
+	int32 total = 0;
+	total += BuildingCost_.Gold;
+	total += BuildingCost_.Food;
+	total += BuildingCost_.Population;
+	total += BuildingCost_.Progress;
+	return total;
+}
+
+int32 ABuilding::GetRelocationGoldCost() const
+{
+	return FMath::Max( 0, RelocationCost_.Gold );
+}
+
+FResourceProduction ABuilding::GetRelocationCost() const
+{
+	return RelocationCost_;
+}
+
+FResourceProduction ABuilding::GetDemolitionRefund() const
+{
+	return DemolitionRefund_;
 }

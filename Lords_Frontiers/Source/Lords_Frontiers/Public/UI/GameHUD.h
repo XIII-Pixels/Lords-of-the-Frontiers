@@ -8,6 +8,7 @@
 #include "Resources/GameResource.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
@@ -267,6 +268,9 @@ public:
 	UFUNCTION( BlueprintCallable )
 	void TogglePauseMenu();
 
+	UFUNCTION()
+	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -469,8 +473,15 @@ protected:
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
 
-	UFUNCTION()
 	void HandleGameEnded( EGameResult Result );
+
+	void UpdateExtraButtonsVisibility();
+
+	UFUNCTION()
+	void HandleSelectionChanged();
+
+	UPROPERTY()
+	TObjectPtr<USelectionManagerComponent> SelectionManager;
 
 	UFUNCTION()
 	void OnSpeedButtonClicked();

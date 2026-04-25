@@ -3,8 +3,8 @@
 #pragma once
 
 #include "AttackComponent.h"
-#include "EntityStats.h"
 #include "Attacker.h"
+#include "EntityStats.h"
 
 #include "CoreMinimal.h"
 
@@ -37,8 +37,9 @@ public:
 	}
 
 	virtual void ActivateSight() override;
-
 	virtual void DeactivateSight() override;
+
+	virtual bool DidSeeTargetLastTick() override;
 
 protected:
 	virtual void OnRegister() override;
@@ -54,6 +55,11 @@ protected:
 	void ChooseAttackMode();
 
 	bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
+
+	virtual bool IsAttackable( TObjectPtr<AActor> enemyActor ) const
+	{
+		return true;
+	}
 
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
@@ -77,7 +83,7 @@ protected:
 	FVector ProjectileSpawnPosition_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
-	bool bTrackTarget_ = true;
+	bool bProjectileTracksTarget_ = true;
 
 	TObjectPtr<USphereComponent> SightSphere_;
 
@@ -92,4 +98,6 @@ protected:
 	TArray<TWeakObjectPtr<AActor>> BurstTargets_;
 
 	FTimerHandle BurstTimerHandle_;
+
+	bool bDidSeeTarget_ = false;
 };

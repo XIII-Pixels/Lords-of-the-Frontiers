@@ -9,11 +9,12 @@
 
 #include "EnemyAggressionComponent.generated.h"
 
+class AUnit;
 class UPath;
 class AUnitAIManager;
 class UTargetBuildingTracker;
 class ABuilding;
-
+struct FPathConfig;
 /** (Gregory-hub)
  * Finds closest building that unit should attack */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
@@ -40,7 +41,7 @@ public:
 
 	UPath* Path() const
 	{
-		return Path_;	
+		return Path_;
 	}
 
 	void SetPath( UPath* path )
@@ -56,7 +57,16 @@ protected:
 
 	bool IsCloseToTarget() const;
 
+	virtual FVector ProjectReachLocation( const FVector& location ) const
+	{
+		return location;
+	}
+
 	void FindPathToClosestBuilding();
+
+	virtual FPathConfig BuildPathConfig(
+	    const AUnit& unit, const FVector& start, const FVector& goal, float emptyCellTravelTime
+	) const;
 
 	virtual void
 	TickComponent( float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;

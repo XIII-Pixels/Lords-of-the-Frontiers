@@ -53,6 +53,9 @@ public:
 
 	void SpendResources( const FResourceProduction& cost );
 
+	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )
+	void AddResources( const FResourceProduction& amount );
+
 	int32 ForceSpendResource( EResourceType type, int32 quantity );
 
 private:

@@ -80,7 +80,31 @@ void UResourceManager::SpendResources( const FResourceProduction& cost )
 {
 	for ( const auto& Pair : cost.ToMap() )
 	{
-		TrySpendResource( Pair.Key, Pair.Value );
+		const int32 value = Pair.Value;
+		if ( value > 0 )
+		{
+			TrySpendResource( Pair.Key, value );
+		}
+		else if ( value < 0 )
+		{
+			AddResource( Pair.Key, -value );
+		}
+	}
+}
+
+void UResourceManager::AddResources( const FResourceProduction& amount )
+{
+	for ( const auto& Pair : amount.ToMap() )
+	{
+		const int32 value = Pair.Value;
+		if ( value > 0 )
+		{
+			AddResource( Pair.Key, value );
+		}
+		else if ( value < 0 )
+		{
+			ForceSpendResource( Pair.Key, -value );
+		}
 	}
 }
 

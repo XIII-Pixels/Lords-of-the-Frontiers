@@ -27,9 +27,10 @@ public:
 	virtual void Attack( TObjectPtr<AActor> hitActor ) PURE_VIRTUAL();
 
 	virtual TObjectPtr<const AActor> AttackTarget() const
-	    PURE_VIRTUAL( UAttackComponentBase::AttackTarget, { return nullptr; } );
+	    PURE_VIRTUAL( UAttackComponent::AttackTarget, { return nullptr; } );
 
 	virtual void ActivateSight() PURE_VIRTUAL();
-
 	virtual void DeactivateSight() PURE_VIRTUAL();
+
+	virtual bool DidSeeTargetLastTick() PURE_VIRTUAL( UAttackComponent::DidSeeTargetLastTick, { return false; } );
 };

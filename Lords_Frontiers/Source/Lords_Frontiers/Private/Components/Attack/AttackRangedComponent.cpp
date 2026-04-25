@@ -43,13 +43,17 @@ void UAttackRangedComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ChooseAttackMode();
 	ActivateSight();
 }
 
 void UAttackRangedComponent::LookTick()
 {
-	ChooseAttackMode();
+	AActor* prevTarget = GetOwner<IAttacker>()->AttackTarget().Get();
+
 	Look();
+
+	bDidSeeTarget_ = prevTarget && ( prevTarget == GetOwner<IAttacker>()->AttackTarget() );
 }
 
 void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
@@ -129,6 +133,11 @@ void UAttackRangedComponent::DeactivateSight()
 	}
 }
 
+bool UAttackRangedComponent::DidSeeTargetLastTick()
+{
+	return bDidSeeTarget_;
+}
+
 void UAttackRangedComponent::Look()
 {
 	IAttacker* ownerAttacker = GetOwner<IAttacker>();
@@ -172,7 +181,7 @@ void UAttackRangedComponent::Look()
 			}
 		}
 
-		if ( enemyPositionAttackable && CanSeeEnemy( actor ) )
+		if ( enemyPositionAttackable && CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			const float distance = FVector::Distance( GetOwner()->GetActorLocation(), actor->GetActorLocation() );
 			if ( !ownerAttacker->AttackTarget().IsValid() || distance < minDistance )
@@ -256,7 +265,7 @@ void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target
 
 	const bool bInitialized = projectile->Initialize(
 	    GetOwner(), target.Get(), ownerEntity->Stats().AttackDamage(), ProjectileSpeed_, ProjectileSpawnPosition_,
-	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bTrackTarget_
+	    ownerEntity->Stats().SplashRadius(), ownerEntity->Stats().AttackRange(), bProjectileTracksTarget_
 	);
 
 	if ( !bInitialized )
@@ -285,7 +294,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 		{
 			continue;
 		}
-		if ( CanSeeEnemy( actor ) )
+		if ( CanSeeEnemy( actor ) && IsAttackable( actor ) )
 		{
 			float distance = FVector::DistSquared( ownerLocation, actor->GetActorLocation() );
 			candidates.Add( { actor, distance } );

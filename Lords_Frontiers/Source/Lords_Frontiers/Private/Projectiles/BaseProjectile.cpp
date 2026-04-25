@@ -3,7 +3,7 @@
 #include "Projectiles/BaseProjectile.h"
 
 #include "Core/CoreManager.h"
-#include "Core/EntityVFXConfig.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Core/Subsystems/ProjectilePoolSubsystem/ProjectilePoolSubsystem.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "DrawDebugHelpers.h"
@@ -12,8 +12,10 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Utilities/TraceChannelMappings.h"
 
+#include "Components/MeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/OverlapResult.h"
+#include "TimerManager.h"
 
 ABaseProjectile::ABaseProjectile()
 {
@@ -33,17 +35,92 @@ ABaseProjectile::ABaseProjectile()
 	CollisionComp_->OnComponentBeginOverlap.AddDynamic( this, &ABaseProjectile::OnCollisionStart );
 }
 
-void ABaseProjectile::DeactivateToPool()
+void ABaseProjectile::BeginDeactivation()
 {
+	if ( bIsPendingReturn_ )
+	{
+		return;
+	}
+	bIsPendingReturn_ = true;
+
 	bIsActive_ = false;
 	SetActorEnableCollision( false );
-
-	SetActorHiddenInGame( true );
-
 	SetActorTickEnabled( false );
 
-	GetWorld()->GetTimerManager().ClearAllTimersForObject( this );
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( LifetimeTimerHandle );
+	}
 
+	TArray<UMeshComponent*> meshes;
+	GetComponents<UMeshComponent>( meshes );
+	for ( UMeshComponent* mesh : meshes )
+	{
+		if ( mesh )
+		{
+			mesh->SetVisibility( false, false );
+		}
+	}
+
+	TArray<UNiagaraComponent*> niagaraComps;
+	GetComponents<UNiagaraComponent>( niagaraComps );
+	for ( UNiagaraComponent* niagara : niagaraComps )
+	{
+		if ( !niagara )
+		{
+			continue;
+		}
+		niagara->SetAutoDestroy( false );
+		niagara->Deactivate();
+	}
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( TrailFadeDuration_ > 0.0f )
+		{
+			world->GetTimerManager().SetTimer(
+			    TrailFinishTimerHandle, this, &ABaseProjectile::FinalizeDeactivation, TrailFadeDuration_, false
+			);
+		}
+		else
+		{
+			FinalizeDeactivation();
+		}
+	}
+	else
+	{
+		FinalizeDeactivation();
+	}
+}
+
+void ABaseProjectile::FinalizeDeactivation()
+{
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( TrailFinishTimerHandle );
+	}
+
+	TArray<UNiagaraComponent*> niagaraComps;
+	GetComponents<UNiagaraComponent>( niagaraComps );
+	for ( UNiagaraComponent* niagara : niagaraComps )
+	{
+		if ( niagara )
+		{
+			niagara->DeactivateImmediate();
+		}
+	}
+
+	TArray<UMeshComponent*> meshes;
+	GetComponents<UMeshComponent>( meshes );
+	for ( UMeshComponent* mesh : meshes )
+	{
+		if ( mesh )
+		{
+			mesh->SetVisibility( true, false );
+		}
+	}
+
+	SetActorHiddenInGame( true );
 	SetActorLocation( PooledLocation );
 
 	Target_ = nullptr;
@@ -58,10 +135,32 @@ void ABaseProjectile::DeactivateToPool()
 
 	GroundZ_ = 0.0f;
 	bTrackTarget_ = GetDefault<ABaseProjectile>( GetClass() )->bTrackTarget_;
+
+	bIsPendingReturn_ = false;
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>() )
+		{
+			pool->FinalizeReturn( this );
+		}
+	}
+}
+
+void ABaseProjectile::DeactivateToPool()
+{
+	BeginDeactivation();
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( TrailFinishTimerHandle );
+	}
+	FinalizeDeactivation();
 }
 
 void ABaseProjectile::ActivateFromPool()
 {
+	bIsPendingReturn_ = false;
+
 	StartLocation_ = GetActorLocation();
 
 	if ( Target_.IsValid() )
@@ -83,6 +182,27 @@ void ABaseProjectile::ActivateFromPool()
 	SetActorHiddenInGame( false );
 	SetActorTickEnabled( true );
 	SetActorEnableCollision( true );
+
+	TArray<UMeshComponent*> meshes;
+	GetComponents<UMeshComponent>( meshes );
+	for ( UMeshComponent* mesh : meshes )
+	{
+		if ( mesh )
+		{
+			mesh->SetVisibility( true, false );
+		}
+	}
+
+	TArray<UNiagaraComponent*> niagaraComps;
+	GetComponents<UNiagaraComponent>( niagaraComps );
+	for ( UNiagaraComponent* niagara : niagaraComps )
+	{
+		if ( niagara )
+		{
+			niagara->SetAutoDestroy( false );
+			niagara->Activate( true );
+		}
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(
 	    LifetimeTimerHandle, this, &ABaseProjectile::OnLifetimeExpired, MaxLifetime, false
@@ -127,10 +247,13 @@ bool ABaseProjectile::Initialize(
 		GroundZ_ = TargetPos.Z;
 	}
 
-	const FVector SpawnLocation = inInstigator->GetActorLocation() + spawnOffset;
-	const FVector ToTarget = inTarget->GetActorLocation() - SpawnLocation;
+	const FVector spawnLocation =
+	    inInstigator->GetActorLocation() +
+	    spawnOffset.RotateAngleAxis( inInstigator->GetActorRotation().Yaw, FVector::UpVector );
 
-	SetActorLocationAndRotation( SpawnLocation, ToTarget.Rotation() );
+	const FVector toTarget = inTarget->GetActorLocation() - spawnLocation;
+
+	SetActorLocationAndRotation( spawnLocation, toTarget.Rotation() );
 
 	ActivateFromPool();
 

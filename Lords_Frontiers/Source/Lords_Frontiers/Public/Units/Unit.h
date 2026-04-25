@@ -8,6 +8,7 @@
 #include "Entity.h"
 #include "EntityStats.h"
 
+#include "Animation/AnimationConfig.h"
 #include "Components/Attack/AttackComponent.h"
 #include "Components/EnemyAggressionComponent.h"
 #include "CoreMinimal.h"
@@ -119,21 +120,25 @@ public:
 		return nullptr;
 	}
 
-	TObjectPtr<USceneComponent> VisualMesh()
+	USkeletalMeshComponent* SkeletalMeshComponent()
 	{
-		return VisualMesh_;
+		return SkeletalMeshComponent_;
 	}
 
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
 protected:
+	virtual void Tick( float deltaSeconds ) override;
+
 	void OnDeath();
 
 	void SpawnDeathVFX();
 
-	void FinalizeDestroy();
-
 	void ResolveVFXDefaults();
+
+	void Animate( float deltaTime ) const;
+
+	void PlayAnimation( const FAnimationConfig& animation ) const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -147,9 +152,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> HitVFX_;
 
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|VFX", meta = ( Units = "s" ) )
-	float DeathDestroyDelay_ = -1.0f;
-
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
 
@@ -162,6 +164,17 @@ protected:
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<const ABuilding> TargetBuilding_;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation" )
+	FAnimationConfig AttackAnimation_;
+
+	UPROPERTY(
+	    EditDefaultsOnly, Category = "Settings",
+	    meta =
+	        ( ClampMin = 0.0f, Units = "s",
+	          ToolTip = "Adjust this so unit attack hit moment aligns with animation attack moment" )
+	)
+	float AttackPreHitDelay_ = 0.0f;
+
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
@@ -171,13 +184,16 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UAttackComponent> AttackComponent_;
 
+	UPROPERTY( EditDefaultsOnly )
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent_;
+
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
-	UPROPERTY()
-	TObjectPtr<USceneComponent> VisualMesh_;
-
+	FTimerHandle AttackTimerHandle_;
+	FTimerHandle AnimationTickTimerHandle_;
 	FTimerHandle DeathTimerHandle_;
+	FTimerHandle DeathVFXTimerHandle_;
 
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedDeathVFX_;
@@ -185,5 +201,5 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
 
-	float ResolvedDeathDestroyDelay_ = 1.0f;
+	float ResolvedDeathVFXDelay_ = 0.0f;
 };
