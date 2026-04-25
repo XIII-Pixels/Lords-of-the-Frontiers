@@ -11,13 +11,14 @@ UStatusEffect_Burn::UStatusEffect_Burn()
 
 void UStatusEffect_Burn::OnTick( AActor* owner, FActiveStatus& state ) const
 {
-	if ( IEntity* entity = Cast<IEntity>( owner ) )
+	IEntity* entity = Cast<IEntity>( owner );
+	if ( !entity || !entity->Stats().IsAlive() )
 	{
-		if ( entity->Stats().IsAlive() )
-		{
-			entity->TakeDamage( DamagePerTick );
-		}
+		return;
 	}
+
+	AActor* instigator = state.Instigator.Get();
+	entity->TakeDamage( DamagePerTick, instigator );
 }
 
 UStatusEffect_Slow::UStatusEffect_Slow()

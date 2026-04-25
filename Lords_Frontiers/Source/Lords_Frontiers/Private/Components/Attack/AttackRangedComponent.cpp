@@ -282,26 +282,42 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMultiplier )
 {
 	UWorld* world = GetOwner() ? GetOwner()->GetWorld() : nullptr;
-	if ( !world || !target || !ProjectileClass_ )
+	if ( !world )
 	{
+		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: world is null" ) );
+		return;
+	}
+	if ( !target )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: target is null" ) );
+		return;
+	}
+	if ( !ProjectileClass_ )
+	{
+		UE_LOG( LogTemp, Warning,
+			TEXT( "FireExtraProjectile: ProjectileClass_ not set on %s" ),
+			GetOwner() ? *GetOwner()->GetName() : TEXT( "null" ) );
 		return;
 	}
 
 	const IEntity* ownerEntity = GetOwner<IEntity>();
 	if ( !ownerEntity )
 	{
+		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: owner is not IEntity" ) );
 		return;
 	}
 
 	UProjectilePoolSubsystem* pool = world->GetSubsystem<UProjectilePoolSubsystem>();
 	if ( !pool )
 	{
+		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: ProjectilePoolSubsystem missing" ) );
 		return;
 	}
 
 	ABaseProjectile* projectile = pool->AcquireProjectile( ProjectileClass_ );
 	if ( !projectile )
 	{
+		UE_LOG( LogTemp, Warning, TEXT( "FireExtraProjectile: pool returned null projectile" ) );
 		return;
 	}
 
@@ -314,8 +330,15 @@ void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMu
 
 	if ( !bInitialized )
 	{
+		UE_LOG( LogTemp, Warning,
+			TEXT( "FireExtraProjectile: Initialize returned false (target invalid?)" ) );
 		pool->ReturnProjectile( projectile );
+		return;
 	}
+
+	UE_LOG( LogTemp, Verbose,
+		TEXT( "FireExtraProjectile: %s → %s for damage %d" ),
+		*GetOwner()->GetName(), *target->GetName(), scaledDamage );
 }
 
 void UAttackRangedComponent::FireSingleProjectile( TWeakObjectPtr<AActor> target ) const

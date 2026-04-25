@@ -265,7 +265,11 @@ class LORDS_FRONTIERS_API UCardCondition_TargetHasStatus : public UCardCondition
 
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Condition" )
-	TObjectPtr<UStatusEffectDef> RequiredStatus;
+	ECardStatusKind StatusKind = ECardStatusKind::Burn;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Condition",
+		meta = ( ToolTip = "Optional: if set, takes precedence over StatusKind." ) )
+	TObjectPtr<UStatusEffectDef> CustomStatus;
 
 	virtual bool IsMet_Implementation( const FCardEffectContext& context ) const override;
 

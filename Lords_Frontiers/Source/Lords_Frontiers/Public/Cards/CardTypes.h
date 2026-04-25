@@ -63,6 +63,15 @@ enum class ETargetStateFilter : uint8
 };
 
 UENUM( BlueprintType )
+enum class ECardStatusKind : uint8
+{
+	Burn		UMETA( DisplayName = "Burn (Fire DOT)" ),
+	Slow		UMETA( DisplayName = "Slow (Movement)" ),
+	AttackSlow	UMETA( DisplayName = "Slow (Attack Speed)" ),
+	AnySlow		UMETA( DisplayName = "Slow (Any)" ),
+};
+
+UENUM( BlueprintType )
 enum class ECardTriggerReason : uint8
 {
 	Apply				UMETA( DisplayName = "Apply" ),
@@ -194,6 +203,12 @@ struct LORDS_FRONTIERS_API FCardEffectContext
 
 	UPROPERTY( BlueprintReadOnly, Category = "Context" )
 	ECardTriggerReason TriggerReason = ECardTriggerReason::Apply;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	FVector EventLocation = FVector::ZeroVector;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Context" )
+	bool bHasEventLocation = false;
 };
 
 USTRUCT( BlueprintType )

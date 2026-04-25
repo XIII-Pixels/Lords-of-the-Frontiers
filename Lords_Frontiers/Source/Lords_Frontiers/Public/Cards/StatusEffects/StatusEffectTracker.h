@@ -23,6 +23,9 @@ struct FActiveStatus
 	float StackAmount = 0.f;
 
 	UPROPERTY()
+	TWeakObjectPtr<AActor> Instigator;
+
+	UPROPERTY()
 	FCardVisualHandle VisualHandle;
 };
 
@@ -35,9 +38,10 @@ public:
 	UStatusEffectTracker();
 
 	virtual void TickComponent( float dt, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction ) override;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
 	UFUNCTION( BlueprintCallable, Category = "Status" )
-	void ApplyStatus( UStatusEffectDef* def );
+	void ApplyStatus( UStatusEffectDef* def, AActor* instigator = nullptr );
 
 	UFUNCTION( BlueprintPure, Category = "Status" )
 	bool HasStatus( const UStatusEffectDef* def ) const;

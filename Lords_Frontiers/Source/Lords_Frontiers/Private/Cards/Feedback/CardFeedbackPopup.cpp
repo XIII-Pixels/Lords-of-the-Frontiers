@@ -144,6 +144,7 @@ void ACardFeedbackPopup::Tick( float deltaTime )
 
 	if ( !OwnerActor_.IsValid() )
 	{
+		DeactivateToPool();
 		OnPopupFinished.Broadcast( this );
 		return;
 	}

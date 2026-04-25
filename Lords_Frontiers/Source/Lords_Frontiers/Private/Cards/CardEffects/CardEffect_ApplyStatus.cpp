@@ -1,5 +1,6 @@
 #include "Cards/CardEffects/CardEffect_ApplyStatus.h"
 
+#include "Building/Building.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 
@@ -25,7 +26,7 @@ void UCardEffect_ApplyStatus::Execute_Implementation( const FCardEffectContext& 
 	UStatusEffectTracker* tracker = UStatusEffectTracker::EnsureOn( target );
 	if ( tracker )
 	{
-		tracker->ApplyStatus( StatusToApply );
+		tracker->ApplyStatus( StatusToApply, context.Building.Get() );
 	}
 }
 

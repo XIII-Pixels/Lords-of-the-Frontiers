@@ -11,14 +11,36 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 
+DEFINE_LOG_CATEGORY_STATIC( LogCardAoEExplosion, Log, All );
+
 void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext& context )
 {
 	ABuilding* ownerBuilding = context.Building.Get();
 	AActor* instigatorActor = context.EventInstigator.Get();
 
-	AActor* centerActor = CenterOrigin == EAoECenterOrigin::OwnerBuilding ? Cast<AActor>( ownerBuilding ) : instigatorActor;
-	if ( !centerActor || !ownerBuilding )
+	if ( !ownerBuilding )
 	{
+		UE_LOG( LogCardAoEExplosion, Warning, TEXT( "[%s] ownerBuilding is null" ), *GetName() );
+		return;
+	}
+
+	FVector center = FVector::ZeroVector;
+	if ( CenterOrigin == EAoECenterOrigin::OwnerBuilding )
+	{
+		center = ownerBuilding->GetActorLocation();
+	}
+	else if ( instigatorActor )
+	{
+		center = instigatorActor->GetActorLocation();
+	}
+	else if ( context.bHasEventLocation )
+	{
+		center = context.EventLocation;
+	}
+	else
+	{
+		UE_LOG( LogCardAoEExplosion, Warning,
+			TEXT( "[%s] no center available — explosion skipped" ), *GetName() );
 		return;
 	}
 
@@ -41,9 +63,10 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 	TArray<FOverlapResult> overlaps;
 	FCollisionQueryParams params;
 	params.AddIgnoredActor( ownerBuilding );
-	params.AddIgnoredActor( centerActor );
-
-	const FVector center = centerActor->GetActorLocation();
+	if ( instigatorActor )
+	{
+		params.AddIgnoredActor( instigatorActor );
+	}
 
 	if ( bDebugDrawRadius )
 	{
@@ -54,12 +77,18 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 		overlaps, center, FQuat::Identity,
 		ECC_Entity, FCollisionShape::MakeSphere( Radius ), params );
 
+	UE_LOG( LogCardAoEExplosion, Log,
+		TEXT( "[%s] center=%s radius=%.1f finalDamage=%d overlaps=%d" ),
+		*GetName(), *center.ToCompactString(),
+		Radius, finalDamage, overlaps.Num() );
+
 	if ( !bAny )
 	{
 		return;
 	}
 
 	TSet<AActor*> alreadyAffected;
+	int32 affected = 0;
 	for ( const FOverlapResult& result : overlaps )
 	{
 		AActor* hitActor = result.GetActor();
@@ -77,17 +106,21 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 
 		if ( finalDamage > 0 )
 		{
-			enemy->TakeDamage( finalDamage );
+			enemy->TakeDamage( finalDamage, ownerBuilding );
 		}
 
 		if ( StatusToApply )
 		{
 			if ( UStatusEffectTracker* tracker = UStatusEffectTracker::EnsureOn( hitActor ) )
 			{
-				tracker->ApplyStatus( StatusToApply );
+				tracker->ApplyStatus( StatusToApply, ownerBuilding );
 			}
 		}
+		++affected;
 	}
+
+	UE_LOG( LogCardAoEExplosion, Log,
+		TEXT( "[%s] affected %d enemies" ), *GetName(), affected );
 }
 
 FText UCardEffect_AoEExplosion::GetDisplayText_Implementation() const

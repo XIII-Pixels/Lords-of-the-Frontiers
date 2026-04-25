@@ -11,6 +11,12 @@ UStatusEffectTracker::UStatusEffectTracker()
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
+void UStatusEffectTracker::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	ClearAll();
+	Super::EndPlay( endPlayReason );
+}
+
 void UStatusEffectTracker::TickComponent(
 	float dt, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction )
 {
@@ -22,27 +28,50 @@ void UStatusEffectTracker::TickComponent(
 	}
 
 	AActor* owner = GetOwner();
-	const float now = GetWorld()->GetTimeSeconds();
+	UWorld* world = GetWorld();
+	if ( !owner || !world )
+	{
+		return;
+	}
+	const float now = world->GetTimeSeconds();
+
+	TArray<FName> keys;
+	Active_.GenerateKeyArray( keys );
 
 	TArray<FName> expired;
-	for ( auto& pair : Active_ )
+	for ( const FName& key : keys )
 	{
-		FActiveStatus& state = pair.Value;
-		if ( !state.Def )
+		FActiveStatus* state = Active_.Find( key );
+		if ( !state )
 		{
-			expired.Add( pair.Key );
+			continue;
+		}
+		if ( !state->Def )
+		{
+			expired.Add( key );
 			continue;
 		}
 
-		if ( state.Def->GetTickInterval() > 0.f && now >= state.NextTickAt )
+		if ( state->Def->GetTickInterval() > 0.f && now >= state->NextTickAt )
 		{
-			state.Def->OnTick( owner, state );
-			state.NextTickAt = now + state.Def->GetTickInterval();
+			state->Def->OnTick( owner, *state );
+
+			if ( !IsValid( this ) || !IsValid( owner ) )
+			{
+				return;
+			}
+
+			state = Active_.Find( key );
+			if ( !state || !state->Def )
+			{
+				continue;
+			}
+			state->NextTickAt = now + state->Def->GetTickInterval();
 		}
 
-		if ( now >= state.ExpiresAt )
+		if ( now >= state->ExpiresAt )
 		{
-			expired.Add( pair.Key );
+			expired.Add( key );
 		}
 	}
 
@@ -60,7 +89,7 @@ void UStatusEffectTracker::TickComponent(
 	}
 }
 
-void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def )
+void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def, AActor* instigator )
 {
 	if ( !def || def->StatusTag.IsNone() )
 	{
@@ -76,6 +105,10 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def )
 		{
 			existing->NextTickAt = now + def->GetTickInterval();
 		}
+		if ( instigator )
+		{
+			existing->Instigator = instigator;
+		}
 		def->OnReapply( GetOwner(), *existing );
 		return;
 	}
@@ -84,6 +117,7 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def )
 	state.Def = def;
 	state.ExpiresAt = now + def->Duration;
 	state.NextTickAt = def->GetTickInterval() > 0.f ? now + def->GetTickInterval() : MAX_flt;
+	state.Instigator = instigator;
 
 	def->OnApply( GetOwner(), state );
 

@@ -3,6 +3,7 @@
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Cards/Visuals/CardAoEDebug.h"
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -112,6 +113,10 @@ void ACardAoEField::ApplyToEnemies()
 
 		if ( DamagePerTick_ > 0 )
 		{
+			if ( instigator )
+			{
+				FDamageEvents::OnDamageDealt.Broadcast( instigator, hitActor, DamagePerTick_, true );
+			}
 			enemy->TakeDamage( DamagePerTick_, instigator );
 		}
 
@@ -119,7 +124,7 @@ void ACardAoEField::ApplyToEnemies()
 		{
 			if ( UStatusEffectTracker* tracker = UStatusEffectTracker::EnsureOn( hitActor ) )
 			{
-				tracker->ApplyStatus( StatusPerTick_ );
+				tracker->ApplyStatus( StatusPerTick_, instigator );
 			}
 		}
 	}

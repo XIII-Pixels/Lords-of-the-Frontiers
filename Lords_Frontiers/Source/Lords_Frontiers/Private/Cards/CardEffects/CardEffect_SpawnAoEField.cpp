@@ -26,13 +26,33 @@ void UCardEffect_SpawnAoEField::Execute_Implementation( const FCardEffectContext
 
 	ABuilding* building = context.Building.Get();
 	AActor* victim = context.EventInstigator.Get();
-	AActor* centerActor = CenterOrigin == EAoECenterOrigin::OwnerBuilding ? Cast<AActor>( building ) : victim;
-	if ( !centerActor )
+
+	FVector spawnLocation = FVector::ZeroVector;
+	UWorld* world = nullptr;
+	if ( CenterOrigin == EAoECenterOrigin::OwnerBuilding )
+	{
+		if ( !building )
+		{
+			return;
+		}
+		spawnLocation = building->GetActorLocation();
+		world = building->GetWorld();
+	}
+	else if ( victim )
+	{
+		spawnLocation = victim->GetActorLocation();
+		world = victim->GetWorld();
+	}
+	else if ( context.bHasEventLocation )
+	{
+		spawnLocation = context.EventLocation;
+		world = building ? building->GetWorld() : nullptr;
+	}
+	else
 	{
 		return;
 	}
 
-	UWorld* world = centerActor->GetWorld();
 	if ( !world )
 	{
 		return;
@@ -43,7 +63,7 @@ void UCardEffect_SpawnAoEField::Execute_Implementation( const FCardEffectContext
 	params.Owner = building;
 
 	ACardAoEField* field = world->SpawnActor<ACardAoEField>(
-		FieldClass, centerActor->GetActorLocation(), FRotator::ZeroRotator, params );
+		FieldClass, spawnLocation, FRotator::ZeroRotator, params );
 	if ( !field )
 	{
 		return;

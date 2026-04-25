@@ -33,34 +33,65 @@ bool UCardCondition_AfterNShots::IsMet_Implementation( const FCardEffectContext&
 	return ( count % divisor ) == 0;
 }
 
+namespace
+{
+	FName StatusKindToTag( ECardStatusKind kind )
+	{
+		switch ( kind )
+		{
+		case ECardStatusKind::Burn:       return FName( TEXT( "Status.Burn" ) );
+		case ECardStatusKind::Slow:       return FName( TEXT( "Status.Slow" ) );
+		case ECardStatusKind::AttackSlow: return FName( TEXT( "Status.AttackSlow" ) );
+		default:                          return NAME_None;
+		}
+	}
+}
+
 bool UCardCondition_TargetHasStatus::IsMet_Implementation( const FCardEffectContext& context ) const
 {
-	if ( !RequiredStatus )
-	{
-		return false;
-	}
-
 	AActor* target = context.EventInstigator.Get();
 	if ( !target )
 	{
 		return false;
 	}
 
-	if ( const UStatusEffectTracker* tracker = target->FindComponentByClass<UStatusEffectTracker>() )
+	const UStatusEffectTracker* tracker = target->FindComponentByClass<UStatusEffectTracker>();
+	if ( !tracker )
 	{
-		return tracker->HasStatus( RequiredStatus );
+		return false;
 	}
-	return false;
+
+	if ( CustomStatus )
+	{
+		return tracker->HasStatus( CustomStatus );
+	}
+
+	if ( StatusKind == ECardStatusKind::AnySlow )
+	{
+		return tracker->HasStatusTag( FName( TEXT( "Status.Slow" ) ) )
+			|| tracker->HasStatusTag( FName( TEXT( "Status.AttackSlow" ) ) );
+	}
+
+	const FName tag = StatusKindToTag( StatusKind );
+	return !tag.IsNone() && tracker->HasStatusTag( tag );
 }
 
 FText UCardCondition_TargetHasStatus::GetDisplayText_Implementation() const
 {
-	if ( !RequiredStatus )
+	if ( CustomStatus )
 	{
-		return FText::FromString( TEXT( "Target has status" ) );
+		return FText::FromString(
+			FString::Printf( TEXT( "Target has %s" ), *CustomStatus->StatusTag.ToString() ) );
 	}
-	return FText::FromString(
-		FString::Printf( TEXT( "Target has %s" ), *RequiredStatus->StatusTag.ToString() ) );
+	const TCHAR* name = TEXT( "?" );
+	switch ( StatusKind )
+	{
+	case ECardStatusKind::Burn:       name = TEXT( "Burn" ); break;
+	case ECardStatusKind::Slow:       name = TEXT( "Slow" ); break;
+	case ECardStatusKind::AttackSlow: name = TEXT( "Attack Slow" ); break;
+	case ECardStatusKind::AnySlow:    name = TEXT( "Any Slow" ); break;
+	}
+	return FText::FromString( FString::Printf( TEXT( "Target has %s" ), name ) );
 }
 
 namespace

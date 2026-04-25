@@ -66,14 +66,14 @@ void UCardEffect_RuinAura::Execute_Implementation( const FCardEffectContext& con
 
 		if ( DamagePerTick > 0 )
 		{
-			enemy->TakeDamage( DamagePerTick );
+			enemy->TakeDamage( DamagePerTick, building );
 		}
 
 		if ( StatusToApply )
 		{
 			if ( UStatusEffectTracker* tracker = UStatusEffectTracker::EnsureOn( hitActor ) )
 			{
-				tracker->ApplyStatus( StatusToApply );
+				tracker->ApplyStatus( StatusToApply, building );
 			}
 		}
 	}

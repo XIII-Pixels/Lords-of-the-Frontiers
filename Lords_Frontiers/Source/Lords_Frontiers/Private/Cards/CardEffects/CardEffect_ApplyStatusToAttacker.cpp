@@ -1,5 +1,6 @@
 #include "Cards/CardEffects/CardEffect_ApplyStatusToAttacker.h"
 
+#include "Building/Building.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Entity.h"
@@ -31,7 +32,7 @@ void UCardEffect_ApplyStatusToAttacker::Execute_Implementation( const FCardEffec
 
 	if ( UStatusEffectTracker* tracker = UStatusEffectTracker::EnsureOn( attacker ) )
 	{
-		tracker->ApplyStatus( StatusToApply );
+		tracker->ApplyStatus( StatusToApply, context.Building.Get() );
 	}
 }
 

@@ -12,6 +12,8 @@
 #include "Entity.h"
 #include "EntityStats.h"
 
+DEFINE_LOG_CATEGORY_STATIC( LogCardEffectHost, Log, All );
+
 namespace
 {
 	bool HasStickyVisual( const UCardEffect* effect )
@@ -51,10 +53,7 @@ void UCardEffectHostComponent::BeginPlay()
 
 void UCardEffectHostComponent::EndPlay( const EEndPlayReason::Type endPlayReason )
 {
-	StopAuraTimer();
-	UnbindAttackDelegates();
-	UnbindBuildingDelegates();
-	UnbindDamageEvents();
+	ClearAll();
 	Super::EndPlay( endPlayReason );
 }
 
@@ -344,14 +343,25 @@ void UCardEffectHostComponent::HandleDamageDealt( AActor* instigator, AActor* ta
 		return;
 	}
 
-	DispatchTrigger( ECardTriggerReason::HitLanded, target );
+	const IEntity* entity = Cast<IEntity>( target );
+	const bool bWillBeKilled = entity
+		&& entity->Stats().IsAlive()
+		&& entity->Stats().Health() <= damage;
 
-	if ( const IEntity* entity = Cast<IEntity>( target ) )
+	UE_LOG( LogCardEffectHost, Verbose,
+		TEXT( "[%s] HandleDamageDealt target=%s damage=%d entity=%d willKill=%d hp=%d" ),
+		*GetNameSafe( GetOwner() ),
+		*GetNameSafe( target ),
+		damage,
+		entity ? 1 : 0,
+		bWillBeKilled ? 1 : 0,
+		entity ? entity->Stats().Health() : -1 );
+
+	DispatchTrigger( ECardTriggerReason::HitLanded, target, damage );
+
+	if ( bWillBeKilled )
 	{
-		if ( !entity->Stats().IsAlive() )
-		{
-			DispatchTrigger( ECardTriggerReason::KillLanded, target );
-		}
+		DispatchTrigger( ECardTriggerReason::KillLanded, target, damage );
 	}
 }
 
@@ -365,6 +375,13 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 	UCardSubsystem* subsystem = UCardSubsystem::Get( this );
 	UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this );
 	ABuilding* building = Cast<ABuilding>( GetOwner() );
+
+	UE_LOG( LogCardEffectHost, Verbose,
+		TEXT( "[%s] DispatchTrigger reason=%d active=%d instigator=%s" ),
+		*GetNameSafe( GetOwner() ),
+		static_cast<int32>( reason ),
+		Active_.Num(),
+		*GetNameSafe( instigator ) );
 
 	for ( const FRegisteredCardEffect& rec : Active_ )
 	{
@@ -382,24 +399,40 @@ void UCardEffectHostComponent::DispatchTrigger( ECardTriggerReason reason, AActo
 		ctx.EventInstigator = instigator;
 		ctx.ActionMagnitude = magnitude;
 		ctx.TriggerReason = reason;
+		if ( instigator )
+		{
+			ctx.EventLocation = instigator->GetActorLocation();
+			ctx.bHasEventLocation = true;
+		}
 
+		bool bConditionsPass = true;
 		if ( rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )
 		{
 			const FCardEvent& event = rec.SourceCard->Events[rec.EventIndex];
-			bool bConditionsPass = true;
 			for ( const TObjectPtr<UCardCondition>& cond : event.Conditions )
 			{
 				if ( cond && !cond->IsMet( ctx ) )
 				{
 					bConditionsPass = false;
+					UE_LOG( LogCardEffectHost, Verbose,
+						TEXT( "  card=%s event=%d cond=%s FAIL" ),
+						*GetNameSafe( rec.SourceCard ),
+						rec.EventIndex,
+						*GetNameSafe( cond ) );
 					break;
 				}
 			}
-			if ( !bConditionsPass )
-			{
-				continue;
-			}
 		}
+		if ( !bConditionsPass )
+		{
+			continue;
+		}
+
+		UE_LOG( LogCardEffectHost, Verbose,
+			TEXT( "  card=%s event=%d effect=%s EXECUTE" ),
+			*GetNameSafe( rec.SourceCard ),
+			rec.EventIndex,
+			*GetNameSafe( rec.Effect ) );
 
 		rec.Effect->Execute( ctx );
 
