@@ -294,39 +294,17 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 	    /*bProjectToNavMesh=*/false
 	);
 
-	unitBuilder->CreateNewUnit( enemyClass, finalTransform, this, GetInstigator() );
-	unitBuilder->ApplyBuff( EnemyBuffs.Find( enemyClass ) );
+	unitBuilder->CreateNewUnit( EnemyClass, finalTransform, this, GetInstigator() );
+	unitBuilder->ApplyBuff( &SpawnSettings->Buff );
 	TWeakObjectPtr<AUnit> spawned = unitBuilder->SpawnUnitAndFinish();
 
-	if ( !spawned.IsValid() )
+	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
 	{
 		if ( bLogSpawning )
 		{
 			UE_LOG(
 			    LogTemp, Warning,
 			    TEXT( "WaveManager: Failed to spawn actor for Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
-			    waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
-			);
-		}
-		return;
-	}
-
-	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
-	{
-		UE_LOG(
-		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
-		    groupIndex
-		);
-		return;
-	}
-
-	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
-	{
-		if ( bLogSpawning )
-		{
-			UE_LOG(
-			    LogTemp, Warning,
-			    TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
 			    waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
 			);
 		}
@@ -394,8 +372,6 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed." ) );
 		}
 	}
-
-	UpdateSpawnCounts( waveIndex );
 }
 
 void AWaveManager::AdvanceToNextWave()
@@ -563,34 +539,6 @@ void AWaveManager::BroadcastAllWavesCompleted()
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed (BroadcastAllWavesCompleted)" ) );
-	}
-}
-
-void AWaveManager::UpdateSpawnCounts( int32 waveIndex )
-{
-	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( waveIndex ) )
-	{
-		return;
-	}
-
-	UWaveData* WaveData = WaveConfig_->Waves[waveIndex];
-	if ( !WaveData )
-	{
-		return;
-	}
-
-	for ( TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
-	{
-		FEnemySpawnSettings& SpawnSettings = Pair.Value;
-
-		int32 TotalCount = 0;
-
-		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings.Portals )
-		{
-			TotalCount += FMath::Max( 0, PortalEntry.Count );
-		}
-
-		SpawnSettings.Buff.SpawnCount = TotalCount;
 	}
 }
 
@@ -784,4 +732,16 @@ const UWaveData* AWaveManager::GetWaveData( int32 Index ) const
 int32 AWaveManager::GetWavesCount() const
 {
     return WaveConfig_ ? WaveConfig_->Waves.Num() : 0;
+}
+
+const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const
+{
+	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
+	if ( !WaveData || !EnemyClass )
+	{
+		return nullptr;
+	}
+
+	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
+	return SpawnSettings ? &SpawnSettings->Buff : nullptr;
 }

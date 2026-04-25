@@ -126,7 +126,7 @@ void USpawnAbilityComponent::SpawnUnit() const
 	{
 		if ( const auto* waveManager = coreManager->GetWaveManager() )
 		{
-			UnitBuilder_->ApplyBuff( waveManager->EnemyBuffs.Find( SpawnedClass_ ) );
+			UnitBuilder_->ApplyBuff( waveManager->FindBuffForCurrentWave( SpawnedClass_ ) );
 		}
 	}
 	UnitBuilder_->SpawnUnitAndFinish();

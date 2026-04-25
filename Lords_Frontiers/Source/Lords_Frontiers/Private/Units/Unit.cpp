@@ -278,21 +278,15 @@ void AUnit::ChangeStats( const FEnemyBuff* buff )
 		return;
 	}
 
-	Stats_.SetMaxHealth(
-	    FMath::FloorToInt( Stats_.MaxHealth() * FMath::Pow( buff->HealthMultiplier, buff->SpawnCount ) )
-	);
+	Stats_.SetMaxHealth( FMath::FloorToInt( Stats_.MaxHealth() * buff->HealthMultiplier ) );
 
-	Stats_.SetAttackRange( Stats_.AttackRange() * FMath::Pow( buff->AttackRangeMultiplier, buff->SpawnCount ) );
+	Stats_.SetAttackRange( Stats_.AttackRange() * buff->AttackRangeMultiplier );
 
-	Stats_.SetAttackDamage(
-	    FMath::FloorToInt( Stats_.AttackDamage() * FMath::Pow( buff->AttackDamageMultiplier, buff->SpawnCount ) )
-	);
+	Stats_.SetAttackDamage( FMath::FloorToInt( Stats_.AttackDamage() * buff->AttackDamageMultiplier ) );
 
-	Stats_.SetAttackCooldown(
-	    Stats_.AttackCooldown() * FMath::Pow( buff->AttackCooldownMultiplier, buff->SpawnCount )
-	);
+	Stats_.SetAttackCooldown( Stats_.AttackCooldown() * buff->AttackCooldownMultiplier );
 
-	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
+	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * buff->MaxSpeedMultiplier );
 
 	Stats_.Heal( Stats_.MaxHealth() );
 }

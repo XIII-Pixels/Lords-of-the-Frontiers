@@ -473,6 +473,7 @@ protected:
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
 
+	UFUNCTION()
 	void HandleGameEnded( EGameResult Result );
 
 	void UpdateExtraButtonsVisibility();
