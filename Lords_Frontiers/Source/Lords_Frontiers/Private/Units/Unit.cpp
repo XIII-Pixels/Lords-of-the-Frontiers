@@ -5,14 +5,17 @@
 #include "AI/EntityAIController.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
+#include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
+#include "UI/HealthBar/HealthBarConfigDataAsset.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Components/FollowComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 AUnit::AUnit()
@@ -70,6 +73,31 @@ void AUnit::BeginPlay()
 	}
 
 	ResolveVFXDefaults();
+
+	if ( HealthBarConfig_ )
+	{
+		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+		    this,
+		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		    {
+			    if ( UWorld* world = GetWorld() )
+			    {
+				    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+				    {
+					    pool->ShowFor( this, HealthBarConfig_ );
+				    }
+			    }
+		    }
+		);
+
+		if ( bIsBoss_ )
+		{
+			if ( UHealthBarPoolSubsystem* pool = GetWorld()->GetSubsystem<UHealthBarPoolSubsystem>() )
+			{
+				pool->ShowFor( this, HealthBarConfig_ );
+			}
+		}
+	}
 }
 
 void AUnit::StartFollowing() const
@@ -164,6 +192,17 @@ void AUnit::TakeDamage( int damage )
 
 void AUnit::OnDeath()
 {
+	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+	HealthBarSubscription_.Reset();
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+		{
+			pool->HideFor( this );
+		}
+	}
+
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->DeactivateSight();

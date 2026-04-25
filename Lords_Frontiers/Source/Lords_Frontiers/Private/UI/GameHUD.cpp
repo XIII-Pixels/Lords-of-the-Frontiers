@@ -7,6 +7,7 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
+#include "UI/HealthBar/HealthBarWidget.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
@@ -1441,6 +1442,33 @@ void UGameHUDWidget::InitializeTooltipWidget(
 			OutTooltip->ForceHide();
 		}
 	}
+}
+
+bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
+{
+	if ( !bar )
+	{
+		return false;
+	}
+	if ( !BossBarsContainer )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" )
+		);
+		return false;
+	}
+	BossBarsContainer->AddChildToVerticalBox( bar );
+	return true;
+}
+
+void UGameHUDWidget::RemoveBossBar( UHealthBarWidget* bar )
+{
+	if ( !bar || !BossBarsContainer )
+	{
+		return;
+	}
+	BossBarsContainer->RemoveChild( bar );
 }
 
 void UGameHUDWidget::HandleSelectionChanged()

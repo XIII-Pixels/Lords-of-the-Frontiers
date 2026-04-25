@@ -13,6 +13,7 @@
 class UEconomyComponent;
 class UBoxComponent;
 class UNiagaraSystem;
+class UHealthBarConfigDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
 
@@ -135,6 +136,10 @@ protected:
 
 	void FinalizeRuin();
 
+	void SubscribeHealthBar();
+
+	void UnsubscribeHealthBar();
+
 	void ActivateBuildingMesh();
 
 	void ActivateRuinsMesh();
@@ -162,6 +167,11 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|HealthBar" )
+	TObjectPtr<UHealthBarConfigDataAsset> HealthBarConfig_;
+
+	FDelegateHandle HealthBarSubscription_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
 	FResourceProduction BuildingCost_;
