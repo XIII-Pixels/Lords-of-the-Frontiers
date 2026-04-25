@@ -11,6 +11,7 @@
 #include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
 
+#include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/FollowComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -22,6 +23,9 @@ AUnit::AUnit()
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 	SetRootComponent( CollisionComponent_ );
+
+	AttackComponent_ = CreateDefaultSubobject<UUnitAttackRangedComponent>( TEXT( "Attack Ranged " ) );
+	AttackComponent_->SetupAttachment( RootComponent );
 
 	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
 	SkeletalMeshComponent_->SetupAttachment( RootComponent );
@@ -49,20 +53,20 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-	TArray<UAttackComponent*> attackComponents;
-	GetComponents( attackComponents );
-
-	if ( attackComponents.Num() == 1 )
-	{
-		AttackComponent_ = attackComponents[0];
-	}
-	else
-	{
-		UE_LOG(
-		    LogTemp, Error, TEXT( "Unit: number of unit attack components is not equal to 1 (number: %d)" ),
-		    attackComponents.Num()
-		);
-	}
+	// TArray<UAttackComponent*> attackComponents;
+	// GetComponents( attackComponents );
+	//
+	// if ( attackComponents.Num() == 1 )
+	// {
+	// 	AttackComponent_ = attackComponents[0];
+	// }
+	// else
+	// {
+	// 	UE_LOG(
+	// 	    LogTemp, Error, TEXT( "Unit: number of unit attack components is not equal to 1 (number: %d)" ),
+	// 	    attackComponents.Num()
+	// 	);
+	// }
 
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
