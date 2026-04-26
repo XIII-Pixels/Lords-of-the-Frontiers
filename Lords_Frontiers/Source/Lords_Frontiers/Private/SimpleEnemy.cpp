@@ -52,9 +52,8 @@ void ASimpleEnemy::BeginPlay()
 #endif
 }
 
-void ASimpleEnemy::TakeDamage( int DamageAmount )
+void ASimpleEnemy::TakeDamage( int DamageAmount, AActor* /*instigator*/ )
 {
-	// Basic guard
 	if ( DamageAmount <= 0 || Health <= 0 )
 	{
 		return;

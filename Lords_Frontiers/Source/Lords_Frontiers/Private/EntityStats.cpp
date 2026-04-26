@@ -65,6 +65,16 @@ float FEntityStats::BurstDelay() const
 	return BurstDelay_;
 }
 
+int32 FEntityStats::CritChance() const
+{
+	return CritChance_;
+}
+
+int32 FEntityStats::CritDamageBonus() const
+{
+	return CritDamageBonus_;
+}
+
 EBurstTargetMode FEntityStats::BurstTargetMode() const
 {
 	return BurstTargetMode_;

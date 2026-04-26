@@ -176,7 +176,7 @@ void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 	}
 }
 
-void AUnit::TakeDamage( int damage )
+void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 {
 	if ( !Stats_.IsAlive() )
 	{
