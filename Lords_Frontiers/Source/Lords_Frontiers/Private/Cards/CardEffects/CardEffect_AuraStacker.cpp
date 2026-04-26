@@ -141,10 +141,10 @@ FText UCardEffect_AuraStacker::GetDisplayText_Implementation() const
 		return FText::GetEmpty();
 	}
 
-	FString statDisplay = StatName.ToString();
-	if ( FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( StatName ) )
+	FString statDisplay = CardStatReflection::GetStatDisplayName( StatName );
+	if ( statDisplay.IsEmpty() )
 	{
-		statDisplay = prop->GetDisplayNameText().ToString();
+		statDisplay = StatName.ToString();
 	}
 
 	const FString statusText = RequiredStatus

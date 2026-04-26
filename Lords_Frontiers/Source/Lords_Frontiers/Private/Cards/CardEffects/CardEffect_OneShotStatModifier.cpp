@@ -85,10 +85,10 @@ FText UCardEffect_OneShotStatModifier::GetDisplayText_Implementation() const
 		return FText::GetEmpty();
 	}
 
-	FString displayName = StatName.ToString();
-	if ( FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( StatName ) )
+	FString displayName = CardStatReflection::GetStatDisplayName( StatName );
+	if ( displayName.IsEmpty() )
 	{
-		displayName = prop->GetDisplayNameText().ToString();
+		displayName = StatName.ToString();
 	}
 
 	return FText::FromString(

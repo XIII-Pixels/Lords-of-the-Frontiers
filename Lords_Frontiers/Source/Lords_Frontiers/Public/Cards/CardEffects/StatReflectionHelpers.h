@@ -18,6 +18,24 @@ namespace CardStatReflection
 		return CastField<FNumericProperty>( prop );
 	}
 
+	inline FString GetStatDisplayName( FName statName )
+	{
+		if ( statName.IsNone() )
+		{
+			return FString();
+		}
+		FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( statName );
+		if ( !prop )
+		{
+			return statName.ToString();
+		}
+#if WITH_EDITOR
+		return prop->GetDisplayNameText().ToString();
+#else
+		return prop->GetName();
+#endif
+	}
+
 	inline double ReadStatValue( ABuilding* building, FName statName )
 	{
 		if ( !building )
