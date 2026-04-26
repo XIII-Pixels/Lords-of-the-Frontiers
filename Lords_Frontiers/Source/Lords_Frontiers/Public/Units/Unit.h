@@ -50,7 +50,7 @@ public:
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
-	virtual void TakeDamage( int damage ) override;
+	virtual void TakeDamage( int damage, AActor* instigator = nullptr ) override;
 
 	void ChangeStats( const FEnemyBuff* buff );
 

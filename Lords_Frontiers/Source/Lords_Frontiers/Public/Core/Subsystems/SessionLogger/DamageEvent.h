@@ -16,7 +16,18 @@
  */
 DECLARE_MULTICAST_DELEGATE_FourParams( FOnDamageDealt, AActor*, AActor*, int, bool );
 
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnProjectileMissed, AActor*, const FVector& );
+
+/**
+ * Fired when a projectile reaches its target location (FlightProgress = 1.0),
+ * regardless of whether it hit an enemy or impacted on empty ground.
+ * Mid-flight collisions do NOT raise this event.
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams( FOnProjectileLanded, AActor*, const FVector& );
+
 struct LORDS_FRONTIERS_API FDamageEvents
 {
 	static FOnDamageDealt OnDamageDealt;
+	static FOnProjectileMissed OnProjectileMissed;
+	static FOnProjectileLanded OnProjectileLanded;
 };

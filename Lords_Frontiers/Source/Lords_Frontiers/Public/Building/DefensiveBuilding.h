@@ -5,6 +5,7 @@
 #include "Attacker.h"
 #include "Building/Building.h"
 #include "Building/WallTypes.h"
+#include "Cards/CardTypes.h"
 #include "ControlledByTree.h"
 
 #include "CoreMinimal.h"
@@ -59,10 +60,19 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Preview" )
 	void HideAttackRange();
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Building" )
+	EDefensiveTowerType DefensiveTowerType() const
+	{
+		return DefensiveTowerType_;
+	}
+
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void OnDeath() override;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Building" )
+	EDefensiveTowerType DefensiveTowerType_ = EDefensiveTowerType::Generic;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Wall" )
 	FWallMeshSet WallMeshSet_;

@@ -319,7 +319,7 @@ ETeam ABuilding::Team() const
 	return Stats_.Team();
 }
 
-void ABuilding::TakeDamage( int damage )
+void ABuilding::TakeDamage( int damage, AActor* instigator )
 {
 	if ( !Stats_.IsAlive() )
 	{
@@ -327,6 +327,9 @@ void ABuilding::TakeDamage( int damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+
+	OnBuildingDamaged.Broadcast( this, damage, instigator );
+
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
