@@ -9,6 +9,8 @@
 
 #include "DefaultGameInstance.generated.h"
 
+class UGameSaverConfig;
+
 /** (Gregory-hub) */
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UDefaultGameInstance : public UGameInstance
@@ -17,6 +19,9 @@ class LORDS_FRONTIERS_API UDefaultGameInstance : public UGameInstance
 
 public:
 	virtual void Init() override;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Saving" )
+	TObjectPtr<UGameSaverConfig> GameSaverConfig;
 
 protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )

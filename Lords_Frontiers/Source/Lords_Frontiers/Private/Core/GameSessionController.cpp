@@ -1,9 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Core/GameSessionController.h"
-#include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
+
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Core/Saving/GameSaveData.h"
+#include "Core/Saving/GameSaver.h"
+#include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
+#include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
 
 void UGameSessionController::Initialize( FSubsystemCollectionBase& Collection )
 {
@@ -60,6 +64,18 @@ void UGameSessionController::EndGame( EGameResult result )
 	switch ( result )
 	{
 	case EGameResult::Win:
+		if ( const auto* gameInstance = GetGameInstance() )
+		{
+			if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
+			{
+				gameSaver->UpdateCurrentLevelStatus( ELevelStatus::Completed );
+			}
+			if ( const auto* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>() )
+			{
+				levelSubsystem->UnlockNextLevel();
+			}
+		}
+
 		EnterVictoryPhase();
 		break;
 	case EGameResult::Lose:

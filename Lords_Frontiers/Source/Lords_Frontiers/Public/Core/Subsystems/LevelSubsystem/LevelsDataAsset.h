@@ -7,6 +7,22 @@
 
 #include "LevelsDataAsset.generated.h"
 
+USTRUCT()
+struct FGameplayLevelData
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditDefaultsOnly )
+	TSoftObjectPtr<UWorld> Level;
+
+	UPROPERTY(
+	    EditDefaultsOnly,
+	    meta =
+	        ( Tooltip = "Warning: changes are applied only if GameSaverConfig bClearAllSaveDataOnGameStart is checked" )
+	)
+	bool Unlocked = false;
+};
+
 /** (Gregory-hub)
  * Contains all game levels */
 UCLASS()
@@ -19,11 +35,8 @@ public:
 	TSoftObjectPtr<UWorld> MainMenuLevel;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSoftObjectPtr<UWorld> RunLevel;
+	TSoftObjectPtr<UWorld> LevelChoosingLevel;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSoftObjectPtr<UWorld> WinLevel;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TSoftObjectPtr<UWorld> LoseLevel;
+	TArray<FGameplayLevelData> GameplayLevels;
 };
