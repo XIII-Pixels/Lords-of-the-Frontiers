@@ -17,18 +17,18 @@ struct FPortalSpawnEntry
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn", meta = ( ClampMin = "0" ) )
 	int32 Count = 0;
-};
-
-USTRUCT( BlueprintType )
-struct FEnemySpawnSettings
-{
-	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
 	float StartDelay = 0.f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
 	float SpawnInterval = 1.f;
+};
+
+USTRUCT( BlueprintType )
+struct FEnemySpawnSettings
+{
+	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
 	TArray<FPortalSpawnEntry> Portals;

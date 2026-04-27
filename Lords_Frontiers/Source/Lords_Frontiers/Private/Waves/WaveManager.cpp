@@ -151,27 +151,17 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 
 	ClearActiveTimers();
 
-	TArray<TSubclassOf<AUnit>> EnemyClasses;
-	WaveData->EnemySpawnMap.GetKeys( EnemyClasses );
-
-	EnemyClasses.Sort( []( const TSubclassOf<AUnit>& A, const TSubclassOf<AUnit>& B )
-	                   { return GetNameSafe( A.Get() ) < GetNameSafe( B.Get() ); } );
-
-	for ( const TSubclassOf<AUnit>& EnemyClassKey : EnemyClasses )
+	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
 	{
-		const UClass* EnemyClass = EnemyClassKey.Get();
+		const TSubclassOf<AUnit>& EnemyClass = Pair.Key;
+		const FEnemySpawnSettings& SpawnSettings = Pair.Value;
+
 		if ( !EnemyClass )
 		{
 			continue;
 		}
 
-		const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClassKey );
-		if ( !SpawnSettings )
-		{
-			continue;
-		}
-
-		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings->Portals )
+		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings.Portals )
 		{
 			if ( PortalEntry.Count <= 0 || PortalEntry.SpawnPointId.IsNone() )
 			{
@@ -180,8 +170,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 
 			for ( int32 enemyIndex = 0; enemyIndex < PortalEntry.Count; ++enemyIndex )
 			{
-				const float timeFromWaveStart =
-				    SpawnSettings->StartDelay + ( enemyIndex * SpawnSettings->SpawnInterval ) + 0.05f;
+				const float timeFromWaveStart = PortalEntry.StartDelay + ( enemyIndex * PortalEntry.SpawnInterval );
 
 				if ( timeFromWaveStart < 0.f )
 				{
@@ -190,8 +179,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 
 				FTimerDelegate spawnDelegate;
 				spawnDelegate.BindUFunction(
-				    this, FName( "SpawnEnemy" ), waveIndex, const_cast<UClass*>( EnemyClass ), PortalEntry.SpawnPointId,
-				    enemyIndex
+				    this, FName( "SpawnEnemy" ), waveIndex, EnemyClass, PortalEntry.SpawnPointId, enemyIndex
 				);
 
 				FTimerHandle timerHandle;
@@ -203,7 +191,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 				{
 					UE_LOG(
 					    LogTemp, Log,
-					    TEXT( "WaveManager: Scheduled spawn Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d] at +%f s" ),
+					    TEXT( "WaveManager: Scheduled spawn Wave[%d] Enemy[%s] Portal[%s] EnemyIndex[%d] at +%f s" ),
 					    waveIndex, *GetNameSafe( EnemyClass ), *PortalEntry.SpawnPointId.ToString(), enemyIndex,
 					    timeFromWaveStart
 					);
