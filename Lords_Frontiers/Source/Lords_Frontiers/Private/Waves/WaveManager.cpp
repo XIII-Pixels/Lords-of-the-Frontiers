@@ -63,7 +63,7 @@ void AWaveManager::StartWaves()
 		return;
 	}
 
-	BuildWavePresetCache();
+	BuildSelectedWavePresetCache();
 
 	const int32 StartIndex = ClampWaveIndex( CurrentWaveIndex );
 	if ( StartIndex == INDEX_NONE )
@@ -71,6 +71,7 @@ void AWaveManager::StartWaves()
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
 	}
+	UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Using WaveConfig=%s" ), *GetNameSafe( WaveConfig_ ) );
 
 	bHasRequestedFirstWave_ = true;
 	StartWaveAtIndex( StartIndex );
@@ -81,6 +82,12 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	if ( !WaveConfig_ )
 	{
 		return;
+	}
+
+	if ( SelectedWavePresets_.Num() == 0 )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Selected preset cache is empty, building now." ) );
+		BuildSelectedWavePresetCache();
 	}
 
 	const int32 clampedIndex = ClampWaveIndex( waveIndex );
@@ -99,7 +106,7 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 
 	CurrentWaveIndex = clampedIndex;
 
-	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
+	const UWaveData* WaveData = GetSelectedWaveData( CurrentWaveIndex );
 	if ( !WaveData )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no valid preset. Skipping." ), CurrentWaveIndex );
@@ -167,7 +174,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 
 			for ( int32 enemyIndex = 0; enemyIndex < PortalEntry.Count; ++enemyIndex )
 			{
-				const float timeFromWaveStart = PortalEntry.StartDelay + ( enemyIndex * PortalEntry.SpawnInterval );
+				const float timeFromWaveStart = PortalEntry.StartDelay + ( enemyIndex * PortalEntry.SpawnInterval ) + 0.1f; //DO NOT REMOVE THIS 0.1F. Spawn amount breaks without it
 
 				if ( timeFromWaveStart < 0.f )
 				{
@@ -215,7 +222,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 		return;
 	}
 
-	const UWaveData* WaveData = GetWaveData( waveIndex );
+	const UWaveData* WaveData = GetSelectedWaveData( CurrentWaveIndex );
 	if ( !WaveData )
 	{
 		return;
@@ -413,6 +420,7 @@ void AWaveManager::CancelCurrentWave()
 
 void AWaveManager::RestartWaves()
 {
+	SelectedWavePresets_.Empty();
 	CancelCurrentWave();
 	CurrentWaveIndex = 0;
 	StartWaves();
@@ -607,7 +615,7 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 		return result;
 	}
 
-	const UWaveData* WaveData = GetWaveData( targetWaveIndex );
+	const UWaveData* WaveData = GetSelectedWaveData( targetWaveIndex );
 	if ( !WaveData )
 	{
 		return result;
@@ -742,18 +750,17 @@ void AWaveManager::ClearWavePresetCache()
 
 const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Slot ) const
 {
-	float totalWeight = 0.0f;
+	float totalWeight = 0.f;
 
 	for ( const FWeightedWavePreset& entry : Slot.Presets )
 	{
-		if ( entry.Preset && entry.Weight > 0.0f )
+		if ( entry.Preset && entry.Weight > 0.f )
 		{
 			totalWeight += entry.Weight;
 		}
 	}
 
-	// fallback to first valid preset if all weights are zero or negative (or if there are no presets)
-	if ( totalWeight <= 0.0f )
+	if ( totalWeight <= 0.f )
 	{
 		for ( const FWeightedWavePreset& entry : Slot.Presets )
 		{
@@ -765,12 +772,12 @@ const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Sl
 		return nullptr;
 	}
 
-	const float roll = FMath::FRandRange( 0.0f, totalWeight );
-	float accumulated = 0.0f;
+	const float roll = FMath::FRandRange( 0.f, totalWeight );
+	float accumulated = 0.f;
 
 	for ( const FWeightedWavePreset& entry : Slot.Presets )
 	{
-		if ( !entry.Preset || entry.Weight <= 0.0f )
+		if ( !entry.Preset || entry.Weight <= 0.f )
 		{
 			continue;
 		}
@@ -793,22 +800,52 @@ const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Sl
 	return nullptr;
 }
 
-void AWaveManager::BuildWavePresetCache()
+void AWaveManager::BuildSelectedWavePresetCache()
 {
-	ClearWavePresetCache();
+	SelectedWavePresets_.Empty();
 
 	if ( !WaveConfig_ )
 	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: WaveConfig_ is NULL" ) );
 		return;
 	}
+
+	UE_LOG(
+	    LogTemp, Warning, TEXT( "WaveManager: WaveConfig = %s, Waves=%d" ), *GetNameSafe( WaveConfig_ ),
+	    WaveConfig_->Waves.Num()
+	);
 
 	for ( int32 waveIndex = 0; waveIndex < WaveConfig_->Waves.Num(); ++waveIndex )
 	{
 		const FWavePresetSlot& slot = WaveConfig_->Waves[waveIndex];
+
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave[%d] presets=%d" ), waveIndex, slot.Presets.Num() );
+
+		for ( int32 i = 0; i < slot.Presets.Num(); ++i )
+		{
+			const FWeightedWavePreset& entry = slot.Presets[i];
+			UE_LOG(
+			    LogTemp, Warning, TEXT( "  preset[%d]=%s weight=%.3f valid=%d" ), i, *GetNameSafe( entry.Preset ),
+			    entry.Weight, entry.Preset ? 1 : 0
+			);
+		}
+
 		const UWaveData* chosen = PickWeightedWavePreset( slot );
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave[%d] chosen=%s" ), waveIndex, *GetNameSafe( chosen ) );
+
 		if ( chosen )
 		{
 			SelectedWavePresets_.Add( waveIndex, const_cast<UWaveData*>( chosen ) );
 		}
 	}
+}
+
+const UWaveData* AWaveManager::GetSelectedWaveData( int32 WaveIndex ) const
+{
+	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( WaveIndex ) )
+	{
+		return found->Get();
+	}
+
+	return nullptr;
 }

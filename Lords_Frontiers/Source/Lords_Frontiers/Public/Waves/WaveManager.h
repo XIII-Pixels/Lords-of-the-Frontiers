@@ -129,10 +129,11 @@ public:
 
 	const FEnemyBuff* FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const;
 
+	const UWaveData* GetSelectedWaveData( int32 WaveIndex ) const;
+
+	void BuildSelectedWavePresetCache();
 
 	const UWaveData* PickWeightedWavePreset( const FWavePresetSlot& Slot ) const;
-
-	void BuildWavePresetCache();
 
 	void ClearWavePresetCache();
 
