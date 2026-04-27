@@ -56,8 +56,12 @@ public:
 		return GroundHeight_;
 	}
 
-protected:
+	bool MustDestroyReachedPoints() const
+	{
+		return bDestroyReachedPoints;
+	}
 
+protected:
 	virtual void BeginPlay() override;
 
 	void FindGoalActor();
@@ -70,6 +74,9 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	float PathPointReachRadius_ = 100.0f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	bool bDestroyReachedPoints = false;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
 	float GroundHeight_ = 10.0f;

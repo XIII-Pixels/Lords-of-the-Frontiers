@@ -32,3 +32,8 @@ const TArray<FIntPoint>& UPath::GetPoints() const
 {
 	return PathPoints_;
 }
+
+void UPath::RemovePoint( int index )
+{
+	PathPoints_.RemoveAt( index );
+}

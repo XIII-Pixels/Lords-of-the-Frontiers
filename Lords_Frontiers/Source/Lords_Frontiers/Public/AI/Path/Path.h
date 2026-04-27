@@ -35,6 +35,8 @@ public:
 
 	const TArray<FIntPoint>& GetPoints() const;
 
+	void RemovePoint( int index );
+
 private:
 	UPROPERTY()
 	TObjectPtr<UDStarLite> DStarLite_;

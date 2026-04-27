@@ -18,7 +18,18 @@ public:
 	void Show();
 	void Hide();
 
+	void IncreaseRefCount();
+	void DecreaseRefCount();
+
+	int RefCount() const
+	{
+		return RefCount_;
+	}
+
 private:
 	UPROPERTY( EditAnywhere )
 	TObjectPtr<UStaticMeshComponent> Mesh_;
+
+	// Number of objects that use this point
+	int RefCount_ = 0;
 };

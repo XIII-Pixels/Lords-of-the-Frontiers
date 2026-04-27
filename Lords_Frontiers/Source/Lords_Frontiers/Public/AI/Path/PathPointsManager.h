@@ -20,13 +20,15 @@ class LORDS_FRONTIERS_API UPathPointsManager : public UObject
 public:
 	virtual void PostInitProperties() override;
 
-	void InitializeGrid();
+	void GetAccessToGrid();
 
-	void AddPathPoints( const UPath& path );
+	void RegisterPathPoints( const UPath& path );
 	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
 
 	// Remove point by value
-	void Remove( const FIntPoint& point );
+	void ReleasePathPoint( const FIntPoint& point );
+	// Remove points in the path
+	void ReleasePath( const UPath* path );
 	// Remove all points
 	void Empty();
 

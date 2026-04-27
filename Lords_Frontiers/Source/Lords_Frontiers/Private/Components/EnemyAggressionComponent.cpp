@@ -59,13 +59,16 @@ void UEnemyAggressionComponent::TickComponent(
 
 void UEnemyAggressionComponent::FollowNextPathTarget()
 {
-	AdvancePathPointIndex();
+	if ( UnitAIManager_.IsValid() && Path_ && UnitAIManager_->MustDestroyReachedPoints() )
+	{
+		UnitAIManager_->PathPointsManager()->ReleasePathPoint( Path_->GetPoints()[PathPointIndex_] );
+		Path_->RemovePoint( PathPointIndex_ );
+	}
+	else
+	{
+		++PathPointIndex_;
+	}
 	FollowPath();
-}
-
-void UEnemyAggressionComponent::AdvancePathPointIndex()
-{
-	++PathPointIndex_;
 }
 
 void UEnemyAggressionComponent::FollowPath() const
@@ -99,10 +102,8 @@ void UEnemyAggressionComponent::FollowPath() const
 		{
 			UE_LOG(
 			    LogTemp, Error,
-			    TEXT(
-			        "UEnemyAggressionComponent::FollowPath: PathPointIndex_ is out of range; failed to get "
-			        "UnitAIManager_::GoalActor"
-			    )
+			    TEXT( "UEnemyAggressionComponent::FollowPath: PathPointIndex_ is out of range; failed to get "
+			          "UnitAIManager_::GoalActor" )
 			);
 			unit->SetFollowedTarget( nullptr );
 		}
@@ -143,7 +144,7 @@ bool UEnemyAggressionComponent::IsCloseToTarget() const
 	return distanceSq < radiusSq;
 }
 
-void UEnemyAggressionComponent::FindPathToClosestBuilding()
+void UEnemyAggressionComponent::FindPathToClosestBuilding( bool clearOldPath )
 {
 	AUnit* unit = GetOwner<AUnit>();
 	if ( !unit )
@@ -170,16 +171,16 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 
 	if ( unit->TargetBuilding().IsValid() && grid )
 	{
+		UnitAIManager_->PathPointsManager()->ReleasePath( Path_ );
+		SetPath( nullptr );
+
 		UPath* path = NewObject<UPath>( unit );
 		const float emptyCellTravelTime = grid->GetCellSize() / unit->Stats().MaxSpeed();
 		path->Initialize( BuildPathConfig(
 		    *unit, unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), emptyCellTravelTime
 		) );
 		path->CalculateOrUpdate();
-		if ( UnitAIManager_.IsValid() )
-		{
-			UnitAIManager_->PathPointsManager()->AddPathPoints( *path );
-		}
+		UnitAIManager_->PathPointsManager()->RegisterPathPoints( *path );
 
 		SetPath( path );
 		FollowPath();

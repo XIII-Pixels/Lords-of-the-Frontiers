@@ -62,7 +62,7 @@ protected:
 		return location;
 	}
 
-	void FindPathToClosestBuilding();
+	void FindPathToClosestBuilding( bool clearOldPath = false );
 
 	virtual FPathConfig BuildPathConfig(
 	    const AUnit& unit, const FVector& start, const FVector& goal, float emptyCellTravelTime

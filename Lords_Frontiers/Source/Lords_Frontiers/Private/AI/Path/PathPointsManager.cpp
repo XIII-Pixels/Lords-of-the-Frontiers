@@ -18,7 +18,7 @@ void UPathPointsManager::PostInitProperties()
 	}
 }
 
-void UPathPointsManager::InitializeGrid()
+void UPathPointsManager::GetAccessToGrid()
 {
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
@@ -26,11 +26,11 @@ void UPathPointsManager::InitializeGrid()
 	}
 }
 
-void UPathPointsManager::AddPathPoints( const UPath& path )
+void UPathPointsManager::RegisterPathPoints( const UPath& path )
 {
 	if ( !Grid_.IsValid() )
 	{
-		InitializeGrid();
+		GetAccessToGrid();
 
 		if ( !Grid_.IsValid() )
 		{
@@ -49,7 +49,11 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 
 	for ( const FIntPoint& point : path.GetPoints() )
 	{
-		if ( !PathPoints_.Contains( point ) )
+		if ( PathPoints_.Contains( point ) )
+		{
+			PathPoints_[point]->IncreaseRefCount();
+		}
+		else
 		{
 			FVector location;
 			if ( !Grid_->GetCellWorldCenter( point, location ) )
@@ -76,6 +80,7 @@ void UPathPointsManager::AddPathPoints( const UPath& path )
 			{
 				bPointsVisible_ ? ShowPoint( pathPoint ) : HidePoint( pathPoint );
 				PathPoints_.Add( point, pathPoint );
+				pathPoint->IncreaseRefCount();
 			}
 		}
 	}
@@ -93,17 +98,33 @@ TWeakObjectPtr<APathTargetPoint> UPathPointsManager::GetTargetPoint( const FIntP
 	}
 }
 
-void UPathPointsManager::Remove( const FIntPoint& point )
+void UPathPointsManager::ReleasePathPoint( const FIntPoint& point )
 {
-	if ( TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
+	if ( const TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
 	{
 		const TObjectPtr<APathTargetPoint> pathPoint = *found;
 		if ( IsValid( pathPoint ) )
 		{
-			pathPoint->Destroy();
+			pathPoint->DecreaseRefCount();
+			if ( pathPoint->RefCount() <= 0 )
+			{
+				pathPoint->Destroy();
+				PathPoints_.Remove( point );
+			}
 		}
+	}
+}
 
-		PathPoints_.Remove( point );
+void UPathPointsManager::ReleasePath( const UPath* path )
+{
+	if ( !path )
+	{
+		return;
+	}
+
+	for ( const FIntPoint& point : path->GetPoints() )
+	{
+		ReleasePathPoint( point );
 	}
 }
 
