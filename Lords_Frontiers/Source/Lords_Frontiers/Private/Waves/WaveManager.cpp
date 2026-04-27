@@ -706,9 +706,9 @@ void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& propertyChange
 #endif
 const UWaveData* AWaveManager::GetWaveData( int32 Index ) const
 {
-	if ( const TObjectPtr<UWaveData>* Found = SelectedWavePresets_.Find( Index ) )
+	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( Index ) )
 	{
-		return Found->Get();
+		return found->Get();
 	}
 
 	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( Index ) )
@@ -725,14 +725,14 @@ int32 AWaveManager::GetWavesCount() const
 
 const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const
 {
-	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
-	if ( !WaveData || !EnemyClass )
+	const UWaveData* waveData = GetWaveData( CurrentWaveIndex );
+	if ( !waveData || !EnemyClass )
 	{
 		return nullptr;
 	}
 
-	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
-	return SpawnSettings ? &SpawnSettings->Buff : nullptr;
+	const FEnemySpawnSettings* spawnSettings = waveData->EnemySpawnMap.Find( EnemyClass );
+	return spawnSettings ? &spawnSettings->Buff : nullptr;
 }
 
 void AWaveManager::ClearWavePresetCache()
@@ -742,51 +742,51 @@ void AWaveManager::ClearWavePresetCache()
 
 const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Slot ) const
 {
-	float TotalWeight = 0.0f;
+	float totalWeight = 0.0f;
 
-	for ( const FWeightedWavePreset& Entry : Slot.Presets )
+	for ( const FWeightedWavePreset& entry : Slot.Presets )
 	{
-		if ( Entry.Preset && Entry.Weight > 0.0f )
+		if ( entry.Preset && entry.Weight > 0.0f )
 		{
-			TotalWeight += Entry.Weight;
+			totalWeight += entry.Weight;
 		}
 	}
 
 	// fallback to first valid preset if all weights are zero or negative (or if there are no presets)
-	if ( TotalWeight <= 0.0f )
+	if ( totalWeight <= 0.0f )
 	{
-		for ( const FWeightedWavePreset& Entry : Slot.Presets )
+		for ( const FWeightedWavePreset& entry : Slot.Presets )
 		{
-			if ( Entry.Preset )
+			if ( entry.Preset )
 			{
-				return Entry.Preset.Get();
+				return entry.Preset.Get();
 			}
 		}
 		return nullptr;
 	}
 
-	const float Roll = FMath::FRandRange( 0.0f, TotalWeight );
-	float Accumulated = 0.0f;
+	const float roll = FMath::FRandRange( 0.0f, totalWeight );
+	float accumulated = 0.0f;
 
-	for ( const FWeightedWavePreset& Entry : Slot.Presets )
+	for ( const FWeightedWavePreset& entry : Slot.Presets )
 	{
-		if ( !Entry.Preset || Entry.Weight <= 0.0f )
+		if ( !entry.Preset || entry.Weight <= 0.0f )
 		{
 			continue;
 		}
 
-		Accumulated += Entry.Weight;
-		if ( Roll <= Accumulated )
+		accumulated += entry.Weight;
+		if ( roll <= accumulated )
 		{
-			return Entry.Preset.Get();
+			return entry.Preset.Get();
 		}
 	}
 
-	for ( const FWeightedWavePreset& Entry : Slot.Presets )
+	for ( const FWeightedWavePreset& entry : Slot.Presets )
 	{
-		if ( Entry.Preset )
+		if ( entry.Preset )
 		{
-			return Entry.Preset.Get();
+			return entry.Preset.Get();
 		}
 	}
 
@@ -802,13 +802,13 @@ void AWaveManager::BuildWavePresetCache()
 		return;
 	}
 
-	for ( int32 WaveIndex = 0; WaveIndex < WaveConfig_->Waves.Num(); ++WaveIndex )
+	for ( int32 waveIndex = 0; waveIndex < WaveConfig_->Waves.Num(); ++waveIndex )
 	{
-		const FWavePresetSlot& Slot = WaveConfig_->Waves[WaveIndex];
-		const UWaveData* Chosen = PickWeightedWavePreset( Slot );
-		if ( Chosen )
+		const FWavePresetSlot& slot = WaveConfig_->Waves[waveIndex];
+		const UWaveData* chosen = PickWeightedWavePreset( slot );
+		if ( chosen )
 		{
-			SelectedWavePresets_.Add( WaveIndex, const_cast<UWaveData*>( Chosen ) );
+			SelectedWavePresets_.Add( waveIndex, const_cast<UWaveData*>( chosen ) );
 		}
 	}
 }
