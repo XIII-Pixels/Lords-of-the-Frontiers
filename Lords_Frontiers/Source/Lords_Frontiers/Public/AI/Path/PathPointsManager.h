@@ -6,6 +6,7 @@
 
 #include "PathPointsManager.generated.h"
 
+class AUnit;
 class AGridManager;
 class UPath;
 class APathTargetPoint;
@@ -18,11 +19,9 @@ class LORDS_FRONTIERS_API UPathPointsManager : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void PostInitProperties() override;
-
 	void GetAccessToGrid();
 
-	void RegisterPathPoints( const UPath& path );
+	void RegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass );
 	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
 
 	// Remove point by value
@@ -53,11 +52,6 @@ public:
 		GoalActor_ = goalActor;
 	}
 
-	void SetPathTargetPointClass( const TSubclassOf<APathTargetPoint>& pathTargetPointClass )
-	{
-		PathTargetPointClass_ = pathTargetPointClass;
-	}
-
 	void SetPointReachRadius( float pointReachRadius )
 	{
 		PointReachRadius_ = pointReachRadius;
@@ -79,9 +73,6 @@ private:
 
 	UPROPERTY( EditAnywhere )
 	TWeakObjectPtr<AActor> GoalActor_;
-
-	UPROPERTY( EditAnywhere )
-	TSubclassOf<APathTargetPoint> PathTargetPointClass_;
 
 	UPROPERTY( EditAnywhere )
 	float PointReachRadius_ = 100.0f;

@@ -11,6 +11,15 @@ AUnitAIManager::AUnitAIManager()
 {
 }
 
+TSubclassOf<APathTargetPoint> AUnitAIManager::GetPathPointClass( TSubclassOf<AUnit> unitClass ) const
+{
+	if ( PathPointClassOverrides_.Contains( unitClass ) )
+	{
+		return PathPointClassOverrides_[unitClass];
+	}
+	return DefaultPathPointClass_;
+}
+
 void AUnitAIManager::BeginPlay()
 {
 	Super::BeginPlay();
@@ -22,7 +31,6 @@ void AUnitAIManager::BeginPlay()
 
 	// PathPointsManager settings
 	PathPointsManager_->SetGoalActor( GoalActor_ );
-	PathPointsManager_->SetPathTargetPointClass( PathPointClass_ );
 	PathPointsManager_->SetPointReachRadius( PathPointReachRadius_ );
 
 	// TargetBuildingTracker settings

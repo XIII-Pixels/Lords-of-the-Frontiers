@@ -3,20 +3,11 @@
 
 #include "AI/Path/Path.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Grid/GridManager.h"
 
 #include "Kismet/GameplayStatics.h"
-
-void UPathPointsManager::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	if ( !PathTargetPointClass_ )
-	{
-		PathTargetPointClass_ = APathTargetPoint::StaticClass();
-	}
-}
 
 void UPathPointsManager::GetAccessToGrid()
 {
@@ -26,7 +17,7 @@ void UPathPointsManager::GetAccessToGrid()
 	}
 }
 
-void UPathPointsManager::RegisterPathPoints( const UPath& path )
+void UPathPointsManager::RegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass )
 {
 	if ( !Grid_.IsValid() )
 	{
@@ -39,7 +30,16 @@ void UPathPointsManager::RegisterPathPoints( const UPath& path )
 		}
 	}
 
-	if ( !PathTargetPointClass_ )
+	TSubclassOf<APathTargetPoint> pathPointClass = nullptr;
+	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* unitAIManager = cm->GetUnitAIManager() )
+		{
+			pathPointClass = unitAIManager->GetPathPointClass( unitClass );
+		}
+	}
+
+	if ( !pathPointClass )
 	{
 		UE_LOG(
 		    LogTemp, Error, TEXT( "PathPointsManager: PathTargetPointClass not specified. Cannot add path targets" )
@@ -73,7 +73,7 @@ void UPathPointsManager::RegisterPathPoints( const UPath& path )
 			APathTargetPoint* pathPoint = nullptr;
 			if ( UWorld* world = GetWorld() )
 			{
-				pathPoint = world->SpawnActor<APathTargetPoint>( PathTargetPointClass_, transform, spawnInfo );
+				pathPoint = world->SpawnActor<APathTargetPoint>( pathPointClass, transform, spawnInfo );
 			}
 
 			if ( pathPoint )

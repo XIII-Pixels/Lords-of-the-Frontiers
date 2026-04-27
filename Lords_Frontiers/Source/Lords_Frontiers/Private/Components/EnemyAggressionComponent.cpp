@@ -144,7 +144,7 @@ bool UEnemyAggressionComponent::IsCloseToTarget() const
 	return distanceSq < radiusSq;
 }
 
-void UEnemyAggressionComponent::FindPathToClosestBuilding( bool clearOldPath )
+void UEnemyAggressionComponent::FindPathToClosestBuilding()
 {
 	AUnit* unit = GetOwner<AUnit>();
 	if ( !unit )
@@ -180,7 +180,7 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding( bool clearOldPath )
 		    *unit, unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), emptyCellTravelTime
 		) );
 		path->CalculateOrUpdate();
-		UnitAIManager_->PathPointsManager()->RegisterPathPoints( *path );
+		UnitAIManager_->PathPointsManager()->RegisterPathPoints( *path, GetOwner()->GetClass() );
 
 		SetPath( path );
 		FollowPath();

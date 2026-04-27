@@ -15,6 +15,7 @@ class AUnitAIManager;
 class UTargetBuildingTracker;
 class ABuilding;
 struct FPathConfig;
+
 /** (Gregory-hub)
  * Finds closest building that unit should attack */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
@@ -53,8 +54,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	void AdvancePathPointIndex();
-
 	bool IsCloseToTarget() const;
 
 	virtual FVector ProjectReachLocation( const FVector& location ) const
@@ -62,7 +61,7 @@ protected:
 		return location;
 	}
 
-	void FindPathToClosestBuilding( bool clearOldPath = false );
+	void FindPathToClosestBuilding();
 
 	virtual FPathConfig BuildPathConfig(
 	    const AUnit& unit, const FVector& start, const FVector& goal, float emptyCellTravelTime

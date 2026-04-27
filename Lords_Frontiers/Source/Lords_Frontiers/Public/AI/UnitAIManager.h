@@ -41,10 +41,12 @@ public:
 		return GoalActor_;
 	}
 
-	TSubclassOf<const APathTargetPoint> PathPointClass() const
+	TSubclassOf<APathTargetPoint> DefaultPathPointClass() const
 	{
-		return PathPointClass_;
+		return DefaultPathPointClass_;
 	}
+
+	TSubclassOf<APathTargetPoint> GetPathPointClass( TSubclassOf<AUnit> unitClass ) const;
 
 	float PathPointReachRadius() const
 	{
@@ -70,7 +72,10 @@ protected:
 	TSubclassOf<AActor> GoalActorClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	TSubclassOf<APathTargetPoint> PathPointClass_;
+	TSubclassOf<APathTargetPoint> DefaultPathPointClass_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	TMap<TSubclassOf<AUnit>, TSubclassOf<APathTargetPoint>> PathPointClassOverrides_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	float PathPointReachRadius_ = 100.0f;
