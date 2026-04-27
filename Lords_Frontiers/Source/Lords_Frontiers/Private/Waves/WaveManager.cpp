@@ -57,22 +57,23 @@ int32 AWaveManager::ClampWaveIndex( int32 waveIndex ) const
 
 void AWaveManager::StartWaves()
 {
-	if ( !WaveConfig_ || GetWavesCount() == 0 )
+	if ( !WaveConfig_ || WaveConfig_->Waves.Num() == 0 )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
 	}
 
-	const int32 startIndex = ClampWaveIndex( CurrentWaveIndex );
-	if ( startIndex == INDEX_NONE )
+	BuildWavePresetCache();
+
+	const int32 StartIndex = ClampWaveIndex( CurrentWaveIndex );
+	if ( StartIndex == INDEX_NONE )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
 	}
 
 	bHasRequestedFirstWave_ = true;
-
-	StartWaveAtIndex( startIndex );
+	StartWaveAtIndex( StartIndex );
 }
 
 void AWaveManager::StartWaveAtIndex( int32 waveIndex )
@@ -101,14 +102,7 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
 	if ( !WaveData )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d is null. Skipping." ), CurrentWaveIndex );
-		MoveToNextWaveAndStart();
-		return;
-	}
-
-	if ( WaveData->EnemySpawnMap.Num() == 0 )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no enemies. Skipping." ), CurrentWaveIndex );
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no valid preset. Skipping." ), CurrentWaveIndex );
 		MoveToNextWaveAndStart();
 		return;
 	}
@@ -118,7 +112,10 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 
 	if ( bLogSpawning )
 	{
-		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Starting wave %d" ), CurrentWaveIndex );
+		UE_LOG(
+		    LogTemp, Log, TEXT( "WaveManager: Starting wave %d (preset=%s)" ), CurrentWaveIndex,
+		    *GetNameSafe( WaveData )
+		);
 	}
 
 	ScheduleWaveSpawns( WaveData, CurrentWaveIndex );
@@ -218,7 +215,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 		return;
 	}
 
-	const UWaveData* WaveData = WaveConfig_->Waves[waveIndex];
+	const UWaveData* WaveData = GetWaveData( waveIndex );
 	if ( !WaveData )
 	{
 		return;
@@ -610,7 +607,7 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 		return result;
 	}
 
-	const UWaveData* WaveData = WaveConfig_->Waves[targetWaveIndex];
+	const UWaveData* WaveData = GetWaveData( targetWaveIndex );
 	if ( !WaveData )
 	{
 		return result;
@@ -709,12 +706,16 @@ void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& propertyChange
 #endif
 const UWaveData* AWaveManager::GetWaveData( int32 Index ) const
 {
+	if ( const TObjectPtr<UWaveData>* Found = SelectedWavePresets_.Find( Index ) )
+	{
+		return Found->Get();
+	}
+
 	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( Index ) )
 	{
 		return nullptr;
 	}
-
-	return WaveConfig_->Waves[Index];
+	return PickWeightedWavePreset( WaveConfig_->Waves[Index] );
 }
 
 int32 AWaveManager::GetWavesCount() const
@@ -732,4 +733,82 @@ const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> Enemy
 
 	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
 	return SpawnSettings ? &SpawnSettings->Buff : nullptr;
+}
+
+void AWaveManager::ClearWavePresetCache()
+{
+	SelectedWavePresets_.Empty();
+}
+
+const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Slot ) const
+{
+	float TotalWeight = 0.0f;
+
+	for ( const FWeightedWavePreset& Entry : Slot.Presets )
+	{
+		if ( Entry.Preset && Entry.Weight > 0.0f )
+		{
+			TotalWeight += Entry.Weight;
+		}
+	}
+
+	// fallback to first valid preset if all weights are zero or negative (or if there are no presets)
+	if ( TotalWeight <= 0.0f )
+	{
+		for ( const FWeightedWavePreset& Entry : Slot.Presets )
+		{
+			if ( Entry.Preset )
+			{
+				return Entry.Preset.Get();
+			}
+		}
+		return nullptr;
+	}
+
+	const float Roll = FMath::FRandRange( 0.0f, TotalWeight );
+	float Accumulated = 0.0f;
+
+	for ( const FWeightedWavePreset& Entry : Slot.Presets )
+	{
+		if ( !Entry.Preset || Entry.Weight <= 0.0f )
+		{
+			continue;
+		}
+
+		Accumulated += Entry.Weight;
+		if ( Roll <= Accumulated )
+		{
+			return Entry.Preset.Get();
+		}
+	}
+
+	for ( const FWeightedWavePreset& Entry : Slot.Presets )
+	{
+		if ( Entry.Preset )
+		{
+			return Entry.Preset.Get();
+		}
+	}
+
+	return nullptr;
+}
+
+void AWaveManager::BuildWavePresetCache()
+{
+	ClearWavePresetCache();
+
+	if ( !WaveConfig_ )
+	{
+		return;
+	}
+
+	for ( int32 WaveIndex = 0; WaveIndex < WaveConfig_->Waves.Num(); ++WaveIndex )
+	{
+		const FWavePresetSlot& Slot = WaveConfig_->Waves[WaveIndex];
+		const UWaveData* Chosen = PickWeightedWavePreset( Slot );
+		if ( Chosen )
+		{
+			SelectedWavePresets_.Add( WaveIndex, const_cast<UWaveData*>( Chosen ) );
+		}
+	}
 }

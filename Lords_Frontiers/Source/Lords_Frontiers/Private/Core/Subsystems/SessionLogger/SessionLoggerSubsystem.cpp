@@ -913,7 +913,7 @@ void USessionLoggerSubsystem::CaptureEnemySpawnData( int32 waveIndex )
 		return;
 	}
 
-	const UWaveData* wave = WaveManager_->WaveConfig_->Waves[waveIndex];
+	const UWaveData* wave = WaveManager_->GetWaveData( waveIndex );
 	if ( !wave )
 	{
 		return;

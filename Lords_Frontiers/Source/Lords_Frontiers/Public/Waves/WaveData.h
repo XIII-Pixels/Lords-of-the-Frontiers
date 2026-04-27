@@ -37,6 +37,28 @@ struct FEnemySpawnSettings
 	FEnemyBuff Buff;
 };
 
+USTRUCT( BlueprintType )
+struct FWeightedWavePreset
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere )
+	TObjectPtr<UWaveData> Preset;
+
+	UPROPERTY( EditAnywhere )
+	float Weight = 1.f;
+};
+
+USTRUCT( BlueprintType )
+struct FWavePresetSlot
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere )
+	TArray<FWeightedWavePreset> Presets;
+};
+
+
 
 UCLASS( BlueprintType )
 class LORDS_FRONTIERS_API UWaveData : public UDataAsset
