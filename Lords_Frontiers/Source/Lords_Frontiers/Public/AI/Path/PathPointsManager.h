@@ -11,6 +11,25 @@ class AGridManager;
 class UPath;
 class APathTargetPoint;
 
+USTRUCT()
+struct FPointsOnCell
+{
+	GENERATED_BODY()
+
+	const TMap<TSubclassOf<AUnit>, TObjectPtr<APathTargetPoint>>& Points() const
+	{
+		return Points_;
+	}
+
+	TMap<TSubclassOf<AUnit>, TObjectPtr<APathTargetPoint>>& Points()
+	{
+		return Points_;
+	}
+
+private:
+	TMap<TSubclassOf<AUnit>, TObjectPtr<APathTargetPoint>> Points_;
+};
+
 /** (Gregory-hub)
  * Class for storing and retrieving path points that exist in the world and can be followed */
 UCLASS()
@@ -21,13 +40,16 @@ class LORDS_FRONTIERS_API UPathPointsManager : public UObject
 public:
 	void GetAccessToGrid();
 
-	void RegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass );
-	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
+	void CreateAndRegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass );
+	void RegisterPoint( const FIntPoint& point, APathTargetPoint* pathPoint, TSubclassOf<AUnit> unitClass );
+
+	TWeakObjectPtr<APathTargetPoint>
+	GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass, bool notIndependent = false ) const;
 
 	// Remove point by value
-	void ReleasePathPoint( const FIntPoint& point );
+	void ReleasePathPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass );
 	// Remove points in the path
-	void ReleasePath( const UPath* path );
+	void ReleasePath( const UPath* path, TSubclassOf<AUnit> unitClass );
 	// Remove all points
 	void Empty();
 
@@ -57,17 +79,15 @@ public:
 		PointReachRadius_ = pointReachRadius;
 	}
 
-	void SetPathPoints( const TMap<FIntPoint, TObjectPtr<APathTargetPoint>>& pathPoints )
-	{
-		PathPoints_ = pathPoints;
-	}
-
 	float PointReachRadius() const
 	{
 		return PointReachRadius_;
 	}
 
 private:
+	TWeakObjectPtr<APathTargetPoint>
+	SpawnPoint( const FIntPoint& point, TSubclassOf<APathTargetPoint> pathPointClass ) const;
+
 	UPROPERTY( EditAnywhere )
 	TWeakObjectPtr<AGridManager> Grid_;
 
@@ -78,7 +98,7 @@ private:
 	float PointReachRadius_ = 100.0f;
 
 	UPROPERTY()
-	TMap<FIntPoint, TObjectPtr<APathTargetPoint>> PathPoints_;
+	TMap<FIntPoint, FPointsOnCell> PathPoints_;
 
 	bool bPointsVisible_ = false;
 };

@@ -17,7 +17,7 @@ void UPathPointsManager::GetAccessToGrid()
 	}
 }
 
-void UPathPointsManager::RegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass )
+void UPathPointsManager::CreateAndRegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass )
 {
 	if ( !Grid_.IsValid() )
 	{
@@ -49,73 +49,94 @@ void UPathPointsManager::RegisterPathPoints( const UPath& path, TSubclassOf<AUni
 
 	for ( const FIntPoint& point : path.GetPoints() )
 	{
-		if ( PathPoints_.Contains( point ) )
+		TWeakObjectPtr<APathTargetPoint> targetPoint = GetTargetPoint( point, unitClass );
+		if ( targetPoint.IsValid() )
 		{
-			PathPoints_[point]->IncreaseRefCount();
+			targetPoint->IncreaseRefCount();
 		}
 		else
 		{
-			FVector location;
-			if ( !Grid_->GetCellWorldCenter( point, location ) )
+			TWeakObjectPtr<APathTargetPoint> pathPoint = SpawnPoint( point, pathPointClass );
+			if ( pathPoint.IsValid() )
 			{
-				UE_LOG(
-				    LogTemp, Warning, TEXT( "PathPointsManager: failed to get world center for cell=[%d, %d]" ),
-				    point.Y, point.X
-				);
-				continue;
-			}
-			FRotator rotation( 0.0f, 0.0f, 0.0f );
-			FTransform transform( rotation, location );
-
-			FActorSpawnParameters spawnInfo;
-			spawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			APathTargetPoint* pathPoint = nullptr;
-			if ( UWorld* world = GetWorld() )
-			{
-				pathPoint = world->SpawnActor<APathTargetPoint>( pathPointClass, transform, spawnInfo );
-			}
-
-			if ( pathPoint )
-			{
-				bPointsVisible_ ? ShowPoint( pathPoint ) : HidePoint( pathPoint );
-				PathPoints_.Add( point, pathPoint );
-				pathPoint->IncreaseRefCount();
+				RegisterPoint( point, pathPoint.Get(), unitClass );
+				bPointsVisible_ ? ShowPoint( pathPoint.Get() ) : HidePoint( pathPoint.Get() );
 			}
 		}
 	}
 }
 
-TWeakObjectPtr<APathTargetPoint> UPathPointsManager::GetTargetPoint( const FIntPoint& point ) const
+void UPathPointsManager::RegisterPoint(
+    const FIntPoint& point, APathTargetPoint* pathPoint, TSubclassOf<AUnit> unitClass
+)
 {
-	if ( const TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
+	if ( pathPoint )
 	{
-		return found->Get();
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
-void UPathPointsManager::ReleasePathPoint( const FIntPoint& point )
-{
-	if ( const TObjectPtr<APathTargetPoint>* found = PathPoints_.Find( point ) )
-	{
-		const TObjectPtr<APathTargetPoint> pathPoint = *found;
-		if ( IsValid( pathPoint ) )
+		FPointsOnCell& pointsOnCell = PathPoints_.FindOrAdd( point );
+		if ( pathPoint->CreateIndependently() )
 		{
-			pathPoint->DecreaseRefCount();
-			if ( pathPoint->RefCount() <= 0 )
+			// Only use unitClass if point->CreateIndependently()
+			pointsOnCell.Points().Add( unitClass, pathPoint );
+		}
+		else
+		{
+			pointsOnCell.Points().Add( AUnit::StaticClass(), pathPoint );
+		}
+
+		PathPoints_.Add( point, pointsOnCell );
+		pathPoint->IncreaseRefCount();
+	}
+}
+
+TWeakObjectPtr<APathTargetPoint>
+UPathPointsManager::GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass, bool notIndependent ) const
+{
+	if ( const FPointsOnCell* found = PathPoints_.Find( point ) )
+	{
+		if ( unitClass && found->Points().Contains( unitClass ) && found->Points()[unitClass]->CreateIndependently() &&
+		     !notIndependent )
+		{
+			// Only use unitClass if point->CreateIndependently()
+			return found->Points()[unitClass];
+		}
+		if ( found->Points().Contains( AUnit::StaticClass() ) )
+		{
+			return found->Points()[AUnit::StaticClass()];
+		}
+	}
+	return nullptr;
+}
+
+void UPathPointsManager::ReleasePathPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass )
+{
+	const TWeakObjectPtr<APathTargetPoint> pathPoint = GetTargetPoint( point, unitClass );
+	if ( pathPoint.IsValid() )
+	{
+		pathPoint->DecreaseRefCount();
+		if ( pathPoint->RefCount() <= 0 )
+		{
+			pathPoint->Destroy();
+			if ( FPointsOnCell* cell = PathPoints_.Find( point ) )
 			{
-				pathPoint->Destroy();
-				PathPoints_.Remove( point );
+				if ( unitClass && cell->Points().Contains( unitClass ) )
+				{
+					cell->Points().Remove( unitClass );
+				}
+				else
+				{
+					cell->Points().Remove( AUnit::StaticClass() );
+				}
+
+				if ( cell->Points().Num() == 0 )
+				{
+					PathPoints_.Remove( point );
+				}
 			}
 		}
 	}
 }
 
-void UPathPointsManager::ReleasePath( const UPath* path )
+void UPathPointsManager::ReleasePath( const UPath* path, TSubclassOf<AUnit> unitClass )
 {
 	if ( !path )
 	{
@@ -124,17 +145,20 @@ void UPathPointsManager::ReleasePath( const UPath* path )
 
 	for ( const FIntPoint& point : path->GetPoints() )
 	{
-		ReleasePathPoint( point );
+		ReleasePathPoint( point, unitClass );
 	}
 }
 
 void UPathPointsManager::Empty()
 {
-	for ( auto [_, pathPoint] : PathPoints_ )
+	for ( auto [point, pointsOnCell] : PathPoints_ )
 	{
-		if ( IsValid( pathPoint ) )
+		for ( auto [unitClass, pathPoint] : pointsOnCell.Points() )
 		{
-			pathPoint->Destroy();
+			if ( IsValid( pathPoint ) )
+			{
+				pathPoint->Destroy();
+			}
 		}
 	}
 	PathPoints_.Empty();
@@ -143,11 +167,14 @@ void UPathPointsManager::Empty()
 
 void UPathPointsManager::ShowAll()
 {
-	for ( auto [_, pathPoint] : PathPoints_ )
+	for ( auto [point, pointsOnCell] : PathPoints_ )
 	{
-		if ( IsValid( pathPoint ) )
+		for ( auto [unitClass, pathPoint] : pointsOnCell.Points() )
 		{
-			ShowPoint( pathPoint );
+			if ( IsValid( pathPoint ) )
+			{
+				ShowPoint( pathPoint );
+			}
 		}
 	}
 
@@ -156,11 +183,14 @@ void UPathPointsManager::ShowAll()
 
 void UPathPointsManager::HideAll()
 {
-	for ( auto [_, pathPoint] : PathPoints_ )
+	for ( auto [point, pointsOnCell] : PathPoints_ )
 	{
-		if ( IsValid( pathPoint ) )
+		for ( auto [unitClass, pathPoint] : pointsOnCell.Points() )
 		{
-			HidePoint( pathPoint );
+			if ( IsValid( pathPoint ) )
+			{
+				HidePoint( pathPoint );
+			}
 		}
 	}
 
@@ -223,4 +253,29 @@ bool UPathPointsManager::ActorIsOnPath( const AActor* actor, const UPath* path )
 		}
 	}
 	return false;
+}
+
+TWeakObjectPtr<APathTargetPoint>
+UPathPointsManager::SpawnPoint( const FIntPoint& point, TSubclassOf<APathTargetPoint> pathPointClass ) const
+{
+	FVector location;
+	if ( !Grid_->GetCellWorldCenter( point, location ) )
+	{
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "PathPointsManager: failed to get world center for cell=[%d, %d]" ), point.Y,
+		    point.X
+		);
+		return nullptr;
+	}
+	FRotator rotation( 0.0f, 0.0f, 0.0f );
+	FTransform transform( rotation, location );
+
+	FActorSpawnParameters spawnInfo;
+	spawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	if ( UWorld* world = GetWorld() )
+	{
+		return world->SpawnActor<APathTargetPoint>( pathPointClass, transform, spawnInfo );
+	}
+	return nullptr;
 }

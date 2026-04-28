@@ -61,7 +61,9 @@ void UEnemyAggressionComponent::FollowNextPathTarget()
 {
 	if ( UnitAIManager_.IsValid() && Path_ && UnitAIManager_->MustDestroyReachedPoints() )
 	{
-		UnitAIManager_->PathPointsManager()->ReleasePathPoint( Path_->GetPoints()[PathPointIndex_] );
+		UnitAIManager_->PathPointsManager()->ReleasePathPoint(
+		    Path_->GetPoints()[PathPointIndex_], GetOwner()->GetClass()
+		);
 		Path_->RemovePoint( PathPointIndex_ );
 	}
 	else
@@ -112,9 +114,9 @@ void UEnemyAggressionComponent::FollowPath() const
 	{
 		if ( IsValid( UnitAIManager_->PathPointsManager() ) )
 		{
-			unit->SetFollowedTarget(
-			    Cast<AActor>( UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ) )
-			);
+			unit->SetFollowedTarget( Cast<AActor>(
+			    UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_], unit->GetClass() )
+			) );
 		}
 	}
 }
@@ -171,7 +173,7 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 
 	if ( unit->TargetBuilding().IsValid() && grid )
 	{
-		UnitAIManager_->PathPointsManager()->ReleasePath( Path_ );
+		UnitAIManager_->PathPointsManager()->ReleasePath( Path_, GetOwner()->GetClass() );
 		SetPath( nullptr );
 
 		UPath* path = NewObject<UPath>( unit );
@@ -180,7 +182,7 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 		    *unit, unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), emptyCellTravelTime
 		) );
 		path->CalculateOrUpdate();
-		UnitAIManager_->PathPointsManager()->RegisterPathPoints( *path, GetOwner()->GetClass() );
+		UnitAIManager_->PathPointsManager()->CreateAndRegisterPathPoints( *path, GetOwner()->GetClass() );
 
 		SetPath( path );
 		FollowPath();
