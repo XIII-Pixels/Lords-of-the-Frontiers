@@ -43,8 +43,7 @@ public:
 	void CreateAndRegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass );
 	void RegisterPoint( const FIntPoint& point, APathTargetPoint* pathPoint, TSubclassOf<AUnit> unitClass );
 
-	TWeakObjectPtr<APathTargetPoint>
-	GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass, bool notIndependent = false ) const;
+	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass ) const;
 
 	// Remove point by value
 	void ReleasePathPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass );

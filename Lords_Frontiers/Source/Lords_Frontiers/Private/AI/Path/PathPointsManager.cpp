@@ -53,15 +53,14 @@ void UPathPointsManager::CreateAndRegisterPathPoints( const UPath& path, TSubcla
 		if ( targetPoint.IsValid() )
 		{
 			targetPoint->IncreaseRefCount();
+			continue;
 		}
-		else
+
+		TWeakObjectPtr<APathTargetPoint> pathPoint = SpawnPoint( point, pathPointClass );
+		if ( pathPoint.IsValid() )
 		{
-			TWeakObjectPtr<APathTargetPoint> pathPoint = SpawnPoint( point, pathPointClass );
-			if ( pathPoint.IsValid() )
-			{
-				RegisterPoint( point, pathPoint.Get(), unitClass );
-				bPointsVisible_ ? ShowPoint( pathPoint.Get() ) : HidePoint( pathPoint.Get() );
-			}
+			RegisterPoint( point, pathPoint.Get(), unitClass );
+			bPointsVisible_ ? ShowPoint( pathPoint.Get() ) : HidePoint( pathPoint.Get() );
 		}
 	}
 }
@@ -89,17 +88,28 @@ void UPathPointsManager::RegisterPoint(
 }
 
 TWeakObjectPtr<APathTargetPoint>
-UPathPointsManager::GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass, bool notIndependent ) const
+UPathPointsManager::GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass ) const
 {
+	TSubclassOf<APathTargetPoint> pathPointClass = nullptr;
+	if ( const UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( const AUnitAIManager* unitAIManager = cm->GetUnitAIManager() )
+		{
+			pathPointClass = unitAIManager->GetPathPointClass( unitClass );
+		}
+	}
+
 	if ( const FPointsOnCell* found = PathPoints_.Find( point ) )
 	{
-		if ( unitClass && found->Points().Contains( unitClass ) && found->Points()[unitClass]->CreateIndependently() &&
-		     !notIndependent )
+		if ( pathPointClass && pathPointClass->GetDefaultObject<APathTargetPoint>()->CreateIndependently() )
 		{
-			// Only use unitClass if point->CreateIndependently()
-			return found->Points()[unitClass];
+			if ( unitClass && found->Points().Contains( unitClass ) )
+			{
+				// Only use unitClass if point->CreateIndependently()
+				return found->Points()[unitClass];
+			}
 		}
-		if ( found->Points().Contains( AUnit::StaticClass() ) )
+		else if ( found->Points().Contains( AUnit::StaticClass() ) )
 		{
 			return found->Points()[AUnit::StaticClass()];
 		}
