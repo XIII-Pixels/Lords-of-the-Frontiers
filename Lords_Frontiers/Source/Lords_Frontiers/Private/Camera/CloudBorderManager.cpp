@@ -14,20 +14,20 @@ void ACloudBorderManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if ( CloudPlaneMesh && CloudMaterials.Num() > 0 )
+	if ( CloudPlaneMesh && ( CloudMaterials.Num() > 0 ) )
 	{
-		for ( UMaterialInterface* Mat : CloudMaterials )
+		for ( UMaterialInterface* mat : CloudMaterials )
 		{
-			UInstancedStaticMeshComponent* ISMC = NewObject<UInstancedStaticMeshComponent>( this );
-			ISMC->SetupAttachment( RootComponent );
-			ISMC->SetStaticMesh( CloudPlaneMesh );
-			ISMC->SetMaterial( 0, Mat );
+			UInstancedStaticMeshComponent* ismc = NewObject<UInstancedStaticMeshComponent>( this );
+			ismc->SetupAttachment( RootComponent );
+			ismc->SetStaticMesh( CloudPlaneMesh );
+			ismc->SetMaterial( 0, mat );
 
-			ISMC->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-			ISMC->SetCastShadow( false );
+			ismc->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+			ismc->SetCastShadow( false );
 
-			ISMC->RegisterComponent();
-			CloudISMCs.Add( ISMC );
+			ismc->RegisterComponent();
+			CloudISMCs.Add( ismc );
 		}
 
 		GenerateClouds();
@@ -40,112 +40,127 @@ void ACloudBorderManager::BeginPlay()
 
 void ACloudBorderManager::GenerateClouds()
 {
-	if ( CloudISMCs.Num() == 0 || CloudSpacing <= 0.0f )
-		return;
-
-	FVector Center = FVector::ZeroVector;
-
-	FRandomStream RNG( 12345 );
-
-	auto SpawnCloud = [&]( FVector Position, FVector OutwardDir )
+	if ( ( CloudISMCs.Num() == 0 ) || ( CloudSpacing <= 0.0f ) )
 	{
-		Position.X += RNG.FRandRange( -RandomOffsetRange, RandomOffsetRange );
-		Position.Y += RNG.FRandRange( -RandomOffsetRange, RandomOffsetRange );
+		return;
+	}
 
-		float Scale = BaseCloudScale * RNG.FRandRange( 0.8f, 1.5f );
-		FRotator RandRot = CloudFacingRotation;
-		RandRot.Roll += RNG.FRandRange( -15.0f, 15.0f );
+	FVector center = FVector::ZeroVector;
 
-		FTransform Transform( RandRot, Position, FVector( Scale ) );
+	FRandomStream rng( 12345 );
 
-		int32 MatIndex = RNG.RandRange( 0, CloudISMCs.Num() - 1 );
-		int32 InstIndex = CloudISMCs[MatIndex]->AddInstance( Transform );
+	auto spawnCloud = [&]( FVector position, FVector outwardDir )
+	{
+		position.X += rng.FRandRange( -RandomOffsetRange, RandomOffsetRange );
+		position.Y += rng.FRandRange( -RandomOffsetRange, RandomOffsetRange );
 
-		FCloudInstanceData Data;
-		Data.ComponentIndex = MatIndex;
-		Data.InstanceIndex = InstIndex;
-		Data.BaseTransform = Transform;
-		Data.OutwardDirection = OutwardDir;
-		CloudsData.Add( Data );
+		float scale = BaseCloudScale * rng.FRandRange( 0.8f, 1.5f );
+		FRotator randRot = CloudFacingRotation;
+		randRot.Roll += rng.FRandRange( -15.0f, 15.0f );
+
+		FTransform transform( randRot, position, FVector( scale ) );
+
+		int32 matIndex = rng.RandRange( 0, CloudISMCs.Num() - 1 );
+		int32 instIndex = CloudISMCs[matIndex]->AddInstance( transform );
+
+		FCloudInstanceData data;
+		data.ComponentIndex = matIndex;
+		data.InstanceIndex = instIndex;
+		data.BaseTransform = transform;
+		data.OutwardDirection = outwardDir;
+
+		CloudsData.Add( data );
 	};
 
-	int32 NumLayers = 4;
+	int32 numLayers = 4;
 
-	for ( int32 Layer = 0; Layer < NumLayers; ++Layer )
+	for ( int32 layer = 0; layer < numLayers; ++layer )
 	{
-		float CurrentRx = MapExtents.X + ( Layer * CloudSpacing * 0.8f );
-		float CurrentRy = MapExtents.Y + ( Layer * CloudSpacing * 0.8f );
+		float currentRx = MapExtents.X + ( layer * CloudSpacing * 0.8f );
+		float currentRy = MapExtents.Y + ( layer * CloudSpacing * 0.8f );
 
-		float Perimeter = 2.0f * PI * FMath::Sqrt( ( CurrentRx * CurrentRx + CurrentRy * CurrentRy ) / 2.0f );
-		int32 CloudsInThisLayer = FMath::CeilToInt( Perimeter / CloudSpacing );
+		float perimeter = 2.0f * PI * FMath::Sqrt( ( currentRx * currentRx + currentRy * currentRy ) / 2.0f );
+		int32 cloudsInThisLayer = FMath::CeilToInt( perimeter / CloudSpacing );
 
-		for ( int32 i = 0; i < CloudsInThisLayer; ++i )
+		for ( int32 i = 0; i < cloudsInThisLayer; ++i )
 		{
-			float Angle = ( (float) i / (float) CloudsInThisLayer ) * 2.0f * PI;
+			float angle = ( (float) i / (float) cloudsInThisLayer ) * 2.0f * PI;
 
-			float X = CurrentRx * FMath::Cos( Angle );
-			float Y = CurrentRy * FMath::Sin( Angle );
+			float x = currentRx * FMath::Cos( angle );
+			float y = currentRy * FMath::Sin( angle );
 
-			FVector SpawnPos = Center + FVector( X, Y, 0.0f );
-			FVector OutwardDir = FVector( X, Y, 0.0f ).GetSafeNormal();
+			FVector spawnPos = center + FVector( x, y, 0.0f );
+			FVector outwardDir = FVector( x, y, 0.0f ).GetSafeNormal();
 
-			SpawnCloud( SpawnPos, OutwardDir );
+			spawnCloud( spawnPos, outwardDir );
 		}
 	}
 }
 
-void ACloudBorderManager::Tick( float DeltaTime )
+void ACloudBorderManager::Tick( float deltaTime )
 {
-	Super::Tick( DeltaTime );
+	Super::Tick( deltaTime );
 
-	APlayerController* PC = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
-	if ( !PC || !PC->PlayerCameraManager )
-		return;
+	APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 );
 
-	UCameraComponent* ActiveCamera = PC->PlayerCameraManager->GetViewTarget()->FindComponentByClass<UCameraComponent>();
-	if ( !ActiveCamera )
-		return;
-
-	float CurrentZoom = ActiveCamera->GetComponentLocation().Z;
-
-	if ( ActiveCamera->ProjectionMode == ECameraProjectionMode::Orthographic )
+	if ( !IsValid( pc ) || !IsValid( pc->PlayerCameraManager ) )
 	{
-		CurrentZoom = ActiveCamera->OrthoWidth;
+		return;
 	}
 
-	float TargetAlpha = FMath::Clamp(
-	    ( CurrentZoom - MinZoomThreshold ) / FMath::Max( MaxZoomThreshold - MinZoomThreshold, 1.0f ), 0.0f, 1.0f
+	UCameraComponent* activeCamera = pc->PlayerCameraManager->GetViewTarget()->FindComponentByClass<UCameraComponent>();
+
+	if ( !IsValid( activeCamera ) )
+	{
+		return;
+	}
+
+	float currentZoom = activeCamera->GetComponentLocation().Z;
+
+	if ( activeCamera->ProjectionMode == ECameraProjectionMode::Orthographic )
+	{
+		currentZoom = activeCamera->OrthoWidth;
+	}
+
+	float targetAlpha = FMath::Clamp(
+	    ( currentZoom - MinZoomThreshold ) / FMath::Max( MaxZoomThreshold - MinZoomThreshold, 1.0f ), 0.0f, 1.0f
 	);
 
-	CurrentZoomAlpha = FMath::FInterpTo( CurrentZoomAlpha, TargetAlpha, DeltaTime, TransitionSpeed );
+	CurrentZoomAlpha = FMath::FInterpTo( CurrentZoomAlpha, targetAlpha, deltaTime, TransitionSpeed );
 
-	FRotator CamRot = ActiveCamera->GetComponentRotation();
-	FRotator FaceCameraRot = CamRot;
-	FaceCameraRot.Pitch += 90.0f;
-	FQuat LocalRot = GetActorTransform().InverseTransformRotation( FaceCameraRot.Quaternion() );
+	FRotator camRot = activeCamera->GetComponentRotation();
+	FRotator faceCameraRot = camRot;
+	faceCameraRot.Pitch += 90.0f;
+	FQuat localRot = GetActorTransform().InverseTransformRotation( faceCameraRot.Quaternion() );
 
-	for ( const FCloudInstanceData& Data : CloudsData )
+	for ( const FCloudInstanceData& data : CloudsData )
 	{
-		float HideFactor = 1.0f - CurrentZoomAlpha;
+		float hideFactor = 1.0f - CurrentZoomAlpha;
 
-		FVector NewLocation = Data.BaseTransform.GetLocation();
-		NewLocation.Z -= HideOffsetDown * HideFactor;
-		NewLocation += Data.OutwardDirection * HideOffsetOutward * HideFactor;
+		FVector newLocation = data.BaseTransform.GetLocation();
+		newLocation.Z -= HideOffsetDown * hideFactor;
+		newLocation += data.OutwardDirection * HideOffsetOutward * hideFactor;
 
-		FTransform NewTransform = Data.BaseTransform;
-		NewTransform.SetLocation( NewLocation );
+		FTransform newTransform = data.BaseTransform;
+		newTransform.SetLocation( newLocation );
 
-		FRotator FinalRot = LocalRot.Rotator();
-		FinalRot.Roll += Data.BaseTransform.Rotator().Roll;
-		NewTransform.SetRotation( FinalRot.Quaternion() );
+		FRotator finalRot = localRot.Rotator();
+		finalRot.Roll += data.BaseTransform.Rotator().Roll;
+		newTransform.SetRotation( finalRot.Quaternion() );
 
-		NewTransform.SetScale3D( Data.BaseTransform.GetScale3D() * FMath::Max( 0.1f, CurrentZoomAlpha ) );
+		newTransform.SetScale3D( data.BaseTransform.GetScale3D() * FMath::Max( 0.1f, CurrentZoomAlpha ) );
 
-		CloudISMCs[Data.ComponentIndex]->UpdateInstanceTransform( Data.InstanceIndex, NewTransform, false, false );
+		if ( IsValid( CloudISMCs[data.ComponentIndex] ) )
+		{
+			CloudISMCs[data.ComponentIndex]->UpdateInstanceTransform( data.InstanceIndex, newTransform, false, false );
+		}
 	}
 
-	for ( UInstancedStaticMeshComponent* ISMC : CloudISMCs )
+	for ( UInstancedStaticMeshComponent* ismc : CloudISMCs )
 	{
-		ISMC->MarkRenderStateDirty();
+		if ( IsValid( ismc ) )
+		{
+			ismc->MarkRenderStateDirty();
+		}
 	}
 }
