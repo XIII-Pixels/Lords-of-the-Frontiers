@@ -47,11 +47,20 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection" )
 	bool bUnlockedByDefault = true;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Unlock" )
+	TArray<TObjectPtr<UCardDataAsset>> UnlockedBy;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
 	TMap<TObjectPtr<UCardDataAsset>, float> WeightMultipliers_Up;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
 	TMap<TObjectPtr<UCardDataAsset>, float> WeightMultipliers_Down;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
+	TMap<ECardCategory, float> CategoryWeightMultipliers_Up;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
+	TMap<ECardCategory, float> CategoryWeightMultipliers_Down;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
 	TSet<TObjectPtr<UCardDataAsset>> ExcludedCards;
