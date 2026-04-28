@@ -74,9 +74,9 @@ void AStrategyCamera::BeginPlay()
 	{
 		Camera->OrthoWidth = InitialOrthoWidth_;
 		TargetZoom_ = InitialOrthoWidth_;
-		SpringArm->TargetArmLength = 3000.0f; //fix
+		SpringArm->TargetArmLength = 3000.0f; // fix
 	}
-	else //Perspective
+	else // Perspective
 	{
 		Camera->SetFieldOfView( FieldOfView_ );
 		SpringArm->TargetArmLength = InitialTargetArmLength_;
@@ -134,6 +134,9 @@ void AStrategyCamera::BeginPlay()
 		}
 	}
 
+	MapCenter_ = ( MinMapBounds_ + MaxMapBounds_ ) * 0.5f;
+	MaxMoveAreaExtents_ = ( MaxMapBounds_ - MinMapBounds_ ) * 0.5f;
+
 	FTimerHandle timerHandle;
 	GetWorldTimerManager().SetTimer(
 	    timerHandle,
@@ -184,13 +187,30 @@ void AStrategyCamera::Tick( float deltaTime )
 		HandleEdgeScrolling();
 	}
 
+	float currentZoom =
+	    ( ProjectionMode_ == ECameraProjectionMode::Orthographic ) ? Camera->OrthoWidth : SpringArm->TargetArmLength;
+
+	float zoomRange = FMath::Max( MaxZoom_ - MinZoom_, 1.0f );
+	float zoomAlpha = FMath::Clamp( ( currentZoom - MinZoom_ ) / zoomRange, 0.0f, 1.0f );
+
+	float curvedAlpha = FMath::Pow( zoomAlpha, BoundsCurveExponent_ );
+
+	FVector2D currentExtents;
+	currentExtents.X = FMath::Lerp( MaxMoveAreaExtents_.X, MinMoveAreaExtents_.X, curvedAlpha );
+	currentExtents.Y = FMath::Lerp( MaxMoveAreaExtents_.Y, MinMoveAreaExtents_.Y, curvedAlpha );
+
+	FVector2D dynamicMinBounds = MapCenter_ - currentExtents;
+	FVector2D dynamicMaxBounds = MapCenter_ + currentExtents;
+
 	FVector currentLoc = GetActorLocation();
 	FVector clampedLoc = currentLoc;
-	clampedLoc.X = FMath::Clamp( clampedLoc.X, MinMapBounds_.X, MaxMapBounds_.X );
-	clampedLoc.Y = FMath::Clamp( clampedLoc.Y, MinMapBounds_.Y, MaxMapBounds_.Y );
+	clampedLoc.X = FMath::Clamp( clampedLoc.X, dynamicMinBounds.X, dynamicMaxBounds.X );
+	clampedLoc.Y = FMath::Clamp( clampedLoc.Y, dynamicMinBounds.Y, dynamicMaxBounds.Y );
 
 	if ( !currentLoc.Equals( clampedLoc, 0.1f ) )
+	{
 		SetActorLocation( clampedLoc );
+	}
 }
 
 // Called to bind functionality to input
