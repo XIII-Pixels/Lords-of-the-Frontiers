@@ -7,6 +7,7 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
+#include "UI/HealthBar/HealthBarWidget.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
@@ -474,24 +475,23 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		return;
 	}
 
-	float orthoWidth = 2048.0f;
+	float scale = BaseBonusIconScale;
 	if ( pc->PlayerCameraManager )
 	{
-		AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget();
-		if ( viewTarget )
+		if ( AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget() )
 		{
-			UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>();
-			if ( cam )
+			if ( UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>() )
 			{
-				orthoWidth = cam->OrthoWidth;
+				if ( cam->ProjectionMode == ECameraProjectionMode::Orthographic && cam->OrthoWidth > KINDA_SMALL_NUMBER )
+				{
+					constexpr float baseOrthoWidth = 2048.0f;
+					scale = ( baseOrthoWidth / cam->OrthoWidth ) * BaseBonusIconScale;
+				}
 			}
 		}
 	}
+	scale = FMath::Clamp( scale, MinBonusIconScale, MaxBonusIconScale );
 
-	const float baseOrthoWigth = 2048.0f;
-	const float baseScale = 0.5f;
-	const float scale =
-	    FMath::Clamp( ( baseOrthoWigth / orthoWidth ) * BaseBonusIconScale, MinBonusIconScale, MaxBonusIconScale );
 	const float buildingHeight = 80.0f;
 
 	const float worldPadding = -15.0f;
@@ -507,7 +507,7 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 			continue;
 		}
 
-		if ( scale <= MinBonusIconScale + 0.01f )
+		if ( scale <= MinBonusIconScale + KINDA_SMALL_NUMBER )
 		{
 			ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::Collapsed );
 			continue;
@@ -1442,6 +1442,33 @@ void UGameHUDWidget::InitializeTooltipWidget(
 			OutTooltip->ForceHide();
 		}
 	}
+}
+
+bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
+{
+	if ( !bar )
+	{
+		return false;
+	}
+	if ( !BossBarsContainer )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" )
+		);
+		return false;
+	}
+	BossBarsContainer->AddChildToVerticalBox( bar );
+	return true;
+}
+
+void UGameHUDWidget::RemoveBossBar( UHealthBarWidget* bar )
+{
+	if ( !bar || !BossBarsContainer )
+	{
+		return;
+	}
+	BossBarsContainer->RemoveChild( bar );
 }
 
 void UGameHUDWidget::HandleSelectionChanged()

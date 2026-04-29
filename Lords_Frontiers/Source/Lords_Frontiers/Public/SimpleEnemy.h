@@ -62,6 +62,5 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	/** Implement IAttackable::TakeDamage - called when this unit is attacked */
-	virtual void TakeDamage( int DamageAmount ) override;
+	virtual void TakeDamage( int DamageAmount, AActor* instigator = nullptr ) override;
 };

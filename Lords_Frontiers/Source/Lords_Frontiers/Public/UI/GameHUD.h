@@ -27,6 +27,8 @@
 class ABuilding;
 class UStageProgressWidget;
 class UGameStateOverlayWidget;
+class UHealthBarWidget;
+class UVerticalBox;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -268,6 +270,13 @@ public:
 	UFUNCTION( BlueprintCallable )
 	void TogglePauseMenu();
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UVerticalBox> BossBarsContainer;
+
+	bool AddBossBar( UHealthBarWidget* bar );
+
+	void RemoveBossBar( UHealthBarWidget* bar );
+
 	UFUNCTION()
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
@@ -473,6 +482,7 @@ protected:
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
 
+	UFUNCTION()
 	void HandleGameEnded( EGameResult Result );
 
 	void UpdateExtraButtonsVisibility();

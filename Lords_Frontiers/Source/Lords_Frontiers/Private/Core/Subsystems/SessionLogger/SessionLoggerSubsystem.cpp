@@ -980,13 +980,11 @@ void USessionLoggerSubsystem::CaptureEnemySpawnData( int32 waveIndex )
 
 		const FEnemyBuff& buff = spawnSettings.Buff;
 
-		eStats.MaxHealth =
-		    static_cast<int32>( eStats.MaxHealth * FMath::Pow( buff.HealthMultiplier, buff.SpawnCount ) );
-		eStats.AttackDamage =
-		    static_cast<int32>( eStats.AttackDamage * FMath::Pow( buff.AttackDamageMultiplier, buff.SpawnCount ) );
-		eStats.AttackRange *= FMath::Pow( buff.AttackRangeMultiplier, buff.SpawnCount );
-		eStats.AttackCooldown *= FMath::Pow( buff.AttackCooldownMultiplier, buff.SpawnCount );
-		eStats.MaxSpeed *= FMath::Pow( buff.MaxSpeedMultiplier, buff.SpawnCount );
+		eStats.MaxHealth = static_cast<int32>( eStats.MaxHealth * buff.HealthMultiplier );
+		eStats.AttackDamage = static_cast<int32>( eStats.AttackDamage * buff.AttackDamageMultiplier );
+		eStats.AttackRange *= buff.AttackRangeMultiplier;
+		eStats.AttackCooldown *= buff.AttackCooldownMultiplier;
+		eStats.MaxSpeed *= buff.MaxSpeedMultiplier;
 
 		waveData->EnemyTypeStats.Add( eStats );
 	}

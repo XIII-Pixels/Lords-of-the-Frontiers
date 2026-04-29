@@ -10,6 +10,8 @@
 #include "Editor.h"
 #endif
 
+#include "Units/UnitBuilder.h"
+
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -285,36 +287,24 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 		}
 	}
 
-	FTransform FinalTransform = FindNonOverlappingSpawnTransform(
-	    spawnTransform, capsuleRadius, capsuleHalfHeight, 400.f, 24, /*bProjectToNavMesh=*/false
+	auto* unitBuilder = NewObject<UUnitBuilder>( this );
+
+	FTransform finalTransform = unitBuilder->FindNonOverlappingSpawnTransform(
+	    spawnTransform, capsuleRadius, capsuleHalfHeight, 400.f, 24,
+	    /*bProjectToNavMesh=*/false
 	);
 
-	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>( EnemyClass, FinalTransform, this, GetInstigator() );
+	unitBuilder->CreateNewUnit( EnemyClass, finalTransform, this, GetInstigator() );
+	unitBuilder->ApplyBuff( &SpawnSettings->Buff );
+	TWeakObjectPtr<AUnit> spawned = unitBuilder->SpawnUnitAndFinish();
 
-	if ( !spawned )
+	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
 	{
 		if ( bLogSpawning )
 		{
 			UE_LOG(
 			    LogTemp, Warning,
 			    TEXT( "WaveManager: Failed to spawn actor for Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
-			    waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
-			);
-		}
-		return;
-	}
-
-	spawned->ChangeStats( &SpawnSettings->Buff );
-
-	UGameplayStatics::FinishSpawningActor( spawned, FinalTransform );
-
-	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
-	{
-		if ( bLogSpawning )
-		{
-			UE_LOG(
-			    LogTemp, Warning,
-			    TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
 			    waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
 			);
 		}
@@ -382,8 +372,6 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed." ) );
 		}
 	}
-
-	UpdateSpawnCounts( waveIndex );
 }
 
 void AWaveManager::AdvanceToNextWave()
@@ -471,92 +459,6 @@ void AWaveManager::ClearActiveTimers()
 	}
 }
 
-//(Artyom)
-// find location around enemy group spawnpoint if there is a unit
-FTransform AWaveManager::FindNonOverlappingSpawnTransform(
-    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius,
-    int32 maxAttempts, bool bProjectToNavMesh
-) const
-{
-	UWorld* world = GetWorld();
-	if ( !world )
-	{
-		return desiredTransform;
-	}
-
-	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>( world );
-
-	const FVector origin = desiredTransform.GetLocation();
-	const FQuat rotation = desiredTransform.GetRotation();
-
-	// collision query params
-	FCollisionQueryParams queryParams( SCENE_QUERY_STAT( SpawnOverlap ), false );
-	queryParams.bFindInitialOverlaps = true;
-	queryParams.AddIgnoredActor( this );
-
-	const ECollisionChannel channelToTest = ECC_Pawn; // check collisions with pawn
-
-	// try origin first
-	{
-		FCollisionShape shape = FCollisionShape::MakeCapsule( capsuleRadius, capsuleHalfHeight );
-		if ( !world->OverlapAnyTestByChannel( origin, FQuat::Identity, channelToTest, shape, queryParams ) )
-		{
-#if WITH_EDITOR
-			DrawDebugSphere( world, origin, capsuleRadius + 10.f, 8, FColor::Green, false, 3.0f );
-#endif
-			FTransform Result = desiredTransform;
-			Result.SetLocation( origin );
-			return Result;
-		}
-	}
-
-	// spiral sampling
-	const float angleStep = FMath::DegreesToRadians( 30.0f );
-	const int32 samplesPerRing = FMath::Max( 6, FMath::RoundToInt( 2.f * PI / angleStep ) );
-	const float radiusStep = FMath::Max( capsuleRadius * 2.0f, 50.f );
-
-	int32 attempt = 0;
-	while ( attempt < maxAttempts )
-	{
-		const int32 ring = attempt / samplesPerRing + 1;
-		const int32 index = attempt % samplesPerRing;
-		const float radius = FMath::Min( radiusStep * ring, maxSearchRadius );
-		const float angle = angleStep * index;
-
-		const FVector localOffset = FVector( FMath::Cos( angle ) * radius, FMath::Sin( angle ) * radius, 0.f );
-		FVector candidate = origin + rotation.RotateVector( localOffset );
-
-		// project to navmesh
-		if ( bProjectToNavMesh && NavSys )
-		{
-			FNavLocation NavLoc;
-			if ( NavSys->ProjectPointToNavigation( candidate, NavLoc, FVector( 100.f, 100.f, 300.f ) ) )
-			{
-				candidate = NavLoc.Location;
-			}
-		}
-
-		FCollisionShape shape = FCollisionShape::MakeCapsule( capsuleRadius, capsuleHalfHeight );
-		bool bOverlaps =
-		    world->OverlapAnyTestByChannel( candidate, FQuat::Identity, channelToTest, shape, queryParams );
-
-		if ( !bOverlaps )
-		{
-#if WITH_EDITOR
-			DrawDebugSphere( world, candidate, capsuleRadius + 10.f, 8, FColor::Green, false, 3.0f );
-#endif
-			FTransform result = desiredTransform;
-			result.SetLocation( candidate );
-			return result;
-		}
-
-		++attempt;
-	}
-
-	// not found - return desired
-	return desiredTransform;
-}
-
 bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functionName )
 {
 	if ( !listener || functionName.IsNone() )
@@ -637,34 +539,6 @@ void AWaveManager::BroadcastAllWavesCompleted()
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed (BroadcastAllWavesCompleted)" ) );
-	}
-}
-
-void AWaveManager::UpdateSpawnCounts( int32 waveIndex )
-{
-	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( waveIndex ) )
-	{
-		return;
-	}
-
-	UWaveData* WaveData = WaveConfig_->Waves[waveIndex];
-	if ( !WaveData )
-	{
-		return;
-	}
-
-	for ( TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
-	{
-		FEnemySpawnSettings& SpawnSettings = Pair.Value;
-
-		int32 TotalCount = 0;
-
-		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings.Portals )
-		{
-			TotalCount += FMath::Max( 0, PortalEntry.Count );
-		}
-
-		SpawnSettings.Buff.SpawnCount = TotalCount;
 	}
 }
 
@@ -858,4 +732,16 @@ const UWaveData* AWaveManager::GetWaveData( int32 Index ) const
 int32 AWaveManager::GetWavesCount() const
 {
     return WaveConfig_ ? WaveConfig_->Waves.Num() : 0;
+}
+
+const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const
+{
+	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
+	if ( !WaveData || !EnemyClass )
+	{
+		return nullptr;
+	}
+
+	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
+	return SpawnSettings ? &SpawnSettings->Buff : nullptr;
 }

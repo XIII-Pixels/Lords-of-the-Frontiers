@@ -124,14 +124,14 @@ public:
 
 	int32 GetWavesCount() const;
 
+	const FEnemyBuff* FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const;
+
 protected:
 	virtual void BeginPlay() override;
 
 	// Internal helper to schedule all spawn timers for a wave
 	void ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveIndex );
 
-	UFUNCTION( BlueprintCallable )
-	void UpdateSpawnCounts( int32 waveIndex );
 	// Schedules spawn for a single enemy (called via timer)
 	UFUNCTION()
 	void SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnPointId, int32 enemyIndex );
@@ -146,12 +146,6 @@ protected:
 	// Move to next wave index and optionally start it. Returns true if there was
 	// a next wave
 	bool MoveToNextWaveAndStart();
-
-	// Find spawn point near Enemygroupspawnpoint in case unit is already in it
-	FTransform FindNonOverlappingSpawnTransform(
-	    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius = 600.f,
-	    int32 maxAttempts = 32, bool bProjectToNavMesh = false
-	) const;
 
 	// Active timer handles (for enemy spawns) so we can clear them if needed
 	UPROPERTY( Transient )

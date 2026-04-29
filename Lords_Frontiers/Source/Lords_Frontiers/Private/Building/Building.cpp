@@ -2,11 +2,16 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "VFX/EntityVFXConfig.h"
+#include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Resources/EconomyComponent.h"
+#include "UI/HealthBar/HealthBarConfigDataAsset.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "VFX/EntityVFXConfig.h"
+
 #include "Components/BoxComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 ABuilding::ABuilding()
@@ -70,6 +75,40 @@ void ABuilding::BeginPlay()
 
 	UpdateSelectionOverlay();
 	HideSelectionOverlay();
+	SubscribeHealthBar();
+}
+
+void ABuilding::SubscribeHealthBar()
+{
+	if ( !HealthBarConfig_ )
+	{
+		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+	    this,
+	    [ this ]( int, int )
+	    {
+		    if ( UWorld* world = GetWorld() )
+		    {
+			    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+			    {
+				    pool->ShowFor( this, HealthBarConfig_ );
+			    }
+		    }
+	    }
+	);
+}
+
+void ABuilding::UnsubscribeHealthBar()
+{
+	if ( HealthBarSubscription_.IsValid() )
+	{
+		Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+		HealthBarSubscription_.Reset();
+	}
 }
 
 void ABuilding::OnDeath()
@@ -77,6 +116,16 @@ void ABuilding::OnDeath()
 	if ( bIsRuined_ )
 	{
 		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+		{
+			pool->HideFor( this );
+		}
 	}
 
 	SpawnDestructionVFX();
@@ -283,7 +332,7 @@ ETeam ABuilding::Team() const
 	return Stats_.Team();
 }
 
-void ABuilding::TakeDamage( int damage )
+void ABuilding::TakeDamage( int damage, AActor* instigator )
 {
 	if ( !Stats_.IsAlive() )
 	{
@@ -291,6 +340,9 @@ void ABuilding::TakeDamage( int damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+
+	OnBuildingDamaged.Broadcast( this, damage, instigator );
+
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
@@ -380,6 +432,8 @@ void ABuilding::RestoreFromRuins()
 
 	ActivateBuildingMesh();
 
+	SubscribeHealthBar();
+
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
 	if ( CollisionComponent_ )
@@ -413,6 +467,8 @@ void ABuilding::FullRestore()
 		}
 		SetCanAffectNavigationGeneration( true );
 	}
+
+	SubscribeHealthBar();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 }
