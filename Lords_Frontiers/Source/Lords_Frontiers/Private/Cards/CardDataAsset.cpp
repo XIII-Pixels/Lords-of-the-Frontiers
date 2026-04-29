@@ -162,9 +162,30 @@ EDataValidationResult UCardDataAsset::IsDataValid( FDataValidationContext& conte
 		}
 	}
 
+	for ( const auto& pair : CategoryWeightMultipliers_Up )
+	{
+		if ( pair.Value <= 0.f )
+		{
+			context.AddWarning( FText::FromString( TEXT( "CategoryWeightMultipliers_Up has non-positive value" ) ) );
+		}
+	}
+
+	for ( const auto& pair : CategoryWeightMultipliers_Down )
+	{
+		if ( pair.Value <= 0.f )
+		{
+			context.AddWarning( FText::FromString( TEXT( "CategoryWeightMultipliers_Down has non-positive value" ) ) );
+		}
+	}
+
 	if ( ExcludedCards.Contains( const_cast<UCardDataAsset*>( this ) ) )
 	{
 		context.AddWarning( FText::FromString( TEXT( "Card excludes itself — redundant, will be filtered anyway" ) ) );
+	}
+
+	if ( UnlockedBy.Contains( const_cast<UCardDataAsset*>( this ) ) )
+	{
+		context.AddWarning( FText::FromString( TEXT( "Card lists itself in UnlockedBy — cannot be picked while still locked, entry has no effect" ) ) );
 	}
 
 	return result;

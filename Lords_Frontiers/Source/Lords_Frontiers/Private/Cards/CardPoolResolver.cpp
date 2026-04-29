@@ -45,7 +45,8 @@ namespace
 TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
 	const TArray<TObjectPtr<UCardDataAsset>>& pool,
 	const TArray<FAppliedCardRecord>& history,
-	int32 countToOffer )
+	int32 countToOffer,
+	int32 maxStacksForWeightInfluence )
 {
 	TArray<UCardDataAsset*> result;
 
@@ -114,7 +115,8 @@ TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
 			continue;
 		}
 
-		const int32 stacks = FMath::Max( 1, record.StackCount );
+		const int32 rawStacks       = FMath::Max( 1, record.StackCount );
+		const int32 effectiveStacks = FMath::Min( rawStacks, FMath::Max( 1, maxStacksForWeightInfluence ) );
 
 		auto applyMultiplierMap = [&]( const TMap<TObjectPtr<UCardDataAsset>, float>& map )
 		{
@@ -127,7 +129,7 @@ TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
 				}
 				if ( float* weight = weights.Find( target ) )
 				{
-					for ( int32 i = 0; i < stacks; ++i )
+					for ( int32 i = 0; i < effectiveStacks; ++i )
 					{
 						*weight *= pair.Value;
 					}
@@ -135,8 +137,29 @@ TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
 			}
 		};
 
+		auto applyCategoryMultiplierMap = [&]( const TMap<ECardCategory, float>& map )
+		{
+			for ( const auto& pair : map )
+			{
+				const ECardCategory category = pair.Key;
+				const float multiplier       = pair.Value;
+				for ( auto& weightPair : weights )
+				{
+					if ( weightPair.Key && weightPair.Key->Category == category )
+					{
+						for ( int32 i = 0; i < effectiveStacks; ++i )
+						{
+							weightPair.Value *= multiplier;
+						}
+					}
+				}
+			}
+		};
+
 		applyMultiplierMap( source->WeightMultipliers_Up );
 		applyMultiplierMap( source->WeightMultipliers_Down );
+		applyCategoryMultiplierMap( source->CategoryWeightMultipliers_Up );
+		applyCategoryMultiplierMap( source->CategoryWeightMultipliers_Down );
 	}
 
 	TArray<TPair<UCardDataAsset*, float>> weighted;

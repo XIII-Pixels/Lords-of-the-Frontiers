@@ -25,6 +25,10 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Selection", meta = ( ClampMin = "1", ClampMax = "5" ) )
 	int32 CardsToSelect = 2;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Selection",
+		meta = ( ClampMin = "1", ClampMax = "20" ) )
+	int32 MaxStacksForWeightInfluence = 3;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug" )
 	bool bDebugShowAllCards = false;
 

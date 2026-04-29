@@ -125,7 +125,10 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 		}
 
 		availableCards = FCardPoolResolver::Resolve(
-			unlockedPool, AppliedCardHistory_, PoolConfig_->CardsToOffer );
+			unlockedPool,
+			AppliedCardHistory_,
+			PoolConfig_->CardsToOffer,
+			PoolConfig_->MaxStacksForWeightInfluence );
 	}
 
 	if ( availableCards.Num() == 0 )
@@ -448,7 +451,27 @@ bool UCardSubsystem::IsCardUnlocked( const UCardDataAsset* card ) const
 		return true;
 	}
 
-	return card->bUnlockedByDefault;
+	if ( card->bUnlockedByDefault )
+	{
+		return true;
+	}
+
+	for ( const TObjectPtr<UCardDataAsset>& unlocker : card->UnlockedBy )
+	{
+		if ( !unlocker || unlocker == card )
+		{
+			continue;
+		}
+		for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
+		{
+			if ( record.Card == unlocker )
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void UCardSubsystem::UnlockCard( UCardDataAsset* card )

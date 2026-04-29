@@ -12,5 +12,6 @@ public:
 	static TArray<UCardDataAsset*> Resolve(
 		const TArray<TObjectPtr<UCardDataAsset>>& pool,
 		const TArray<FAppliedCardRecord>& history,
-		int32 countToOffer );
+		int32 countToOffer,
+		int32 maxStacksForWeightInfluence = MAX_int32 );
 };
