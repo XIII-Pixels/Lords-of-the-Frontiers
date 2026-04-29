@@ -1,6 +1,10 @@
 #include "AI/Path/SplinePointConnector.h"
 
+#include "AI/UnitAIManager.h"
+#include "Core/CoreManager.h"
+
 #include "Components/SplineComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ASplinePointConnector::ASplinePointConnector()
 {
@@ -96,6 +100,19 @@ void ASplinePointConnector::Clear()
 	ProcMesh_->ClearAllMeshSections();
 }
 
+void ASplinePointConnector::BeginPlay()
+{
+	Super::BeginPlay();
+	if ( UCoreManager* cm = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	{
+		if ( AUnitAIManager* aiManager = cm->GetUnitAIManager() )
+		{
+			Height_ = aiManager->GroundHeight();
+		}
+	}
+	Height_ += HeightOffset_;
+}
+
 void ASplinePointConnector::RebuildMesh()
 {
 	ProcMesh_->ClearAllMeshSections();
@@ -116,11 +133,9 @@ void ASplinePointConnector::RebuildMesh()
 	SampleLineVertices( 0.f, arrowStartDist, SampleCount_, vertices, normals, uvs, totalLength );
 	BuildTriangles( vertices.Num(), triangles );
 
-	const FVector tipCenter = spline->GetLocationAtDistanceAlongSpline( totalLength, ESplineCoordinateSpace::World ) +
-	                          FVector( 0.f, 0.f, HeightOffset_ );
+	const FVector tipCenter = spline->GetLocationAtDistanceAlongSpline( totalLength, ESplineCoordinateSpace::World );
 	const FVector baseCenter =
-	    spline->GetLocationAtDistanceAlongSpline( arrowStartDist, ESplineCoordinateSpace::World ) +
-	    FVector( 0.f, 0.f, HeightOffset_ );
+	    spline->GetLocationAtDistanceAlongSpline( arrowStartDist, ESplineCoordinateSpace::World );
 	const FVector baseTangent =
 	    spline->GetTangentAtDistanceAlongSpline( arrowStartDist, ESplineCoordinateSpace::World ).GetSafeNormal();
 	const FVector baseRight = FVector::CrossProduct( baseTangent, FVector::UpVector ).GetSafeNormal();
@@ -161,8 +176,7 @@ void ASplinePointConnector::SampleLineVertices(
 	{
 		const float distance = FMath::Lerp( clampedFrom, clampedTo, static_cast<float>( i ) / samples );
 
-		const FVector center = spline->GetLocationAtDistanceAlongSpline( distance, ESplineCoordinateSpace::World ) +
-		                       FVector( 0.f, 0.f, HeightOffset_ );
+		const FVector center = spline->GetLocationAtDistanceAlongSpline( distance, ESplineCoordinateSpace::World );
 		const FVector tangent =
 		    spline->GetTangentAtDistanceAlongSpline( distance, ESplineCoordinateSpace::World ).GetSafeNormal();
 		const FVector right = FVector::CrossProduct( tangent, FVector::UpVector ).GetSafeNormal();

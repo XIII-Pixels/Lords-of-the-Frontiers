@@ -23,6 +23,8 @@ public:
     int32 GetPointCount() const { return SplinePoints_.Num(); }
 
 private:
+	virtual void BeginPlay() override;
+
     void RebuildMesh();
     void SampleLineVertices( float fromDist, float toDist, int32 samples,
                              TArray<FVector>& vertices, TArray<FVector>& normals,
@@ -55,4 +57,7 @@ private:
 
     UPROPERTY()
     TArray<FVector> SplinePoints_;
+
+	UPROPERTY()
+	float Height_ = 0.0f;
 };
