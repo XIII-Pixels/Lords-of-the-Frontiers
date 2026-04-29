@@ -11,6 +11,7 @@
 
 class USphereComponent;
 class UNiagaraSystem;
+class UNiagaraComponent;
 
 inline const FVector PooledLocation{ 0.0f, 0.0f, -10000.0f };
 
@@ -28,12 +29,20 @@ public:
 	virtual void ActivateFromPool() override;
 	virtual void DeactivateToPool() override;
 
+	void BeginDeactivation();
+	void FinalizeDeactivation();
+
 	virtual void Tick( float deltaTime ) override;
 
 	bool Initialize(
 	    AActor* inInstigator, TWeakObjectPtr<AActor> inTarget, int inDamage, float inSpeed,
 	    const FVector& spawnOffset = FVector::ZeroVector, float inSplashRadius = 0.f, float inMaxRange = 0.f,
 	    bool bTrackTarget = true
+	);
+
+	bool InitializeDirectional(
+	    AActor* inInstigator, const FVector& startLocation, const FVector& direction, int inDamage, float inSpeed,
+	    float inMaxRange, float inSplashRadius = 0.f
 	);
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
@@ -52,9 +61,13 @@ protected:
 	float MaxRange_ = 0.0f;
 	float ArcScale_ = 1.0f;
 	float GroundZ_ = 0.0f;
+	bool bSuppressCardTriggers_ = false;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
 	float MaxLifetime = 5.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Projectile" )
+	float TrailFadeDuration_ = 2.0f;
 
 	float SplashRadius_ = 0.0f;
 
@@ -69,6 +82,8 @@ protected:
 	float FlightDuration_ = 0.0f;
 
 	FTimerHandle LifetimeTimerHandle;
+	FTimerHandle TrailFinishTimerHandle;
+	bool bIsPendingReturn_ = false;
 
 	virtual void DealDamage( AActor* hitActor ) const;
 

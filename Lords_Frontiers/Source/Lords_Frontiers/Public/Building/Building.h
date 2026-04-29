@@ -13,8 +13,10 @@
 class UEconomyComponent;
 class UBoxComponent;
 class UNiagaraSystem;
+class UHealthBarConfigDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -40,7 +42,7 @@ public:
 
 	virtual ETeam Team() const override;
 
-	virtual void TakeDamage( int damage ) override;
+	virtual void TakeDamage( int damage, AActor* instigator = nullptr ) override;
 
 	virtual void OnSelected_Implementation() override;
 
@@ -90,12 +92,39 @@ public:
 	UPROPERTY( BlueprintAssignable )
 	FOnBuildingDeath OnBuildingDied;
 
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingDamaged OnBuildingDamaged;
+
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
 	bool IsRuined() const
 	{
 		return bIsRuined_;
 	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Build" )
+	bool CanBeRelocated() const
+	{
+		return bCanBeRelocated_;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Build" )
+	bool CanBeRemoved() const
+	{
+		return bCanBeRemoved_;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	int32 GetBuildingTotalCostGold() const;
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	int32 GetRelocationGoldCost() const;
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	FResourceProduction GetRelocationCost() const;
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
+	FResourceProduction GetDemolitionRefund() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -110,6 +139,10 @@ protected:
 	virtual void OnDeath();
 
 	void FinalizeRuin();
+
+	void SubscribeHealthBar();
+
+	void UnsubscribeHealthBar();
 
 	void ActivateBuildingMesh();
 
@@ -139,6 +172,11 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Stats" )
 	FEntityStats Stats_;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|HealthBar" )
+	TObjectPtr<UHealthBarConfigDataAsset> HealthBarConfig_;
+
+	FDelegateHandle HealthBarSubscription_;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Economy" )
 	FResourceProduction BuildingCost_;
 
@@ -167,6 +205,18 @@ protected:
 	float ResolvedConstructionDelay_ = 0.0f;
 
 	void SpawnConstructionVFX();
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	bool bCanBeRelocated_ = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	bool bCanBeRemoved_ = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	FResourceProduction RelocationCost_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
+	FResourceProduction DemolitionRefund_;
 
 private:
 	FTimerHandle RuinTimerHandle_;

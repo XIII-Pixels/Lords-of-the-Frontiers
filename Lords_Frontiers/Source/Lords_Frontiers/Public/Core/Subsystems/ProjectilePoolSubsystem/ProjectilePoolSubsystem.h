@@ -47,6 +47,8 @@ public:
 
 	void ReturnProjectile( ABaseProjectile* projectile );
 
+	void FinalizeReturn( ABaseProjectile* projectile );
+
 	void PreWarmPool( TSubclassOf<ABaseProjectile> projectileClass, int32 conut );
 
 	void PreWarmPools( const TArray<FPoolWarmupConfig>& Cconfigs );

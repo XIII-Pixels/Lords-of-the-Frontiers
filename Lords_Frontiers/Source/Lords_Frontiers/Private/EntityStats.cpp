@@ -65,6 +65,16 @@ float FEntityStats::BurstDelay() const
 	return BurstDelay_;
 }
 
+int32 FEntityStats::CritChance() const
+{
+	return CritChance_;
+}
+
+int32 FEntityStats::CritDamageBonus() const
+{
+	return CritDamageBonus_;
+}
+
 EBurstTargetMode FEntityStats::BurstTargetMode() const
 {
 	return BurstTargetMode_;
@@ -85,12 +95,16 @@ void FEntityStats::SetMaxHealth( int maxHealth )
 
 	const int newHealth = FMath::Clamp( FMath::RoundToInt( ratio * static_cast<float>( MaxHealth_ ) ), 0, MaxHealth_ );
 	Health_ = newHealth;
+
+	OnHealthChanged.Broadcast( Health_, MaxHealth_ );
 }
 
 void FEntityStats::SetHealth( int health )
 {
 	Health_ = FMath::Clamp( health, 0, MaxHealth_ ); // Clamp(X, Min, Max) if X < Min, ret
 	                                                 // Min; if X > Max, ret Max;
+
+	OnHealthChanged.Broadcast( Health_, MaxHealth_ );
 }
 
 void FEntityStats::SetAttackDamage( int attackDamage )
@@ -219,6 +233,9 @@ int FEntityStats::ApplyDamage( int damage )
 
 	const int prevHealth = Health_;
 	Health_ = FMath::Clamp( Health_ - damage, 0, MaxHealth_ );
+
+	OnHealthChanged.Broadcast( Health_, MaxHealth_ );
+
 	return prevHealth - Health_;
 }
 
@@ -229,6 +246,8 @@ void FEntityStats::Heal( int amount )
 		return;
 	}
 	Health_ = FMath::Clamp( Health_ + amount, 0, MaxHealth_ );
+
+	OnHealthChanged.Broadcast( Health_, MaxHealth_ );
 }
 
 bool FEntityStats::OnCooldown( float currentGameTime ) const

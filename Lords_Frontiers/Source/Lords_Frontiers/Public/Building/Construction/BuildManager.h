@@ -97,6 +97,8 @@ public:
 
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 
+	bool RemoveExistingBuilding( ABuilding* buildingToRemove );
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -114,6 +116,8 @@ protected:
 
 	void
 	CollectBonusFromNeighbors( const FIntPoint& myCellCoords, TArray<FBonusIconData>& result, const ABuilding* cdo );
+
+
 
 private:
 	UPROPERTY()

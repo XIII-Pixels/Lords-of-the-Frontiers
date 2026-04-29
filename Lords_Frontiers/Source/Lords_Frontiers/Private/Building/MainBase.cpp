@@ -8,6 +8,10 @@ AMainBase::AMainBase()
 	// Set specific stats for the Main Base
 	Stats_.SetMaxHealth( cBaseMaxHealth );
 	Stats_.SetHealth( cBaseMaxHealth );
+
+	bCanBeRemoved_ = false;
+	bCanBeRelocated_ = false;
+
 }
 
 void AMainBase::BeginPlay()

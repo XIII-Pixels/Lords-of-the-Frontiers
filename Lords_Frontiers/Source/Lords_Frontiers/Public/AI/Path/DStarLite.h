@@ -100,6 +100,8 @@ struct FPathConfig
 	float UnitCooldown;
 	float EmptyCellTravelTime;
 
+	bool bIgnoreObstacles = false;
+
 	FPathConfig() = default;
 
 	FPathConfig( const FVector& start, const FVector& goal, const int unitDamage, const float unitCooldown,
@@ -135,6 +137,7 @@ private:
 
 	float UnitDps_ = -1.0f;
 	float EmptyCellTravelTime_ = 1.0f;
+	bool bIgnoreObstacles_ = false;
 
 	UPROPERTY()
 	TMap<FIntPoint, FDStarNode> Nodes_;

@@ -1,3 +1,4 @@
+#include "Core/GameLoop/GameLoopConfig.h"
 #include "Core/GameLoop/GameLoopManager.h"
 
 UGameLoopConfig::UGameLoopConfig()

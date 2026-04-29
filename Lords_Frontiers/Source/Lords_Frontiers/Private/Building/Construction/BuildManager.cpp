@@ -11,6 +11,7 @@
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
+#include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "UI/BonusNeighborhood/BonusIconsData.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -221,6 +222,16 @@ void ABuildManager::CancelPlacing()
 				RelocatedBuilding_->SetActorLocation( originalLocation );
 			}
 		}
+
+		if ( GridManager_ )
+		{
+			if ( FGridCell* originalCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y ) )
+			{
+				originalCell->bIsOccupied = true;
+				originalCell->Occupant = RelocatedBuilding_;
+			}
+			RecalculateBonusesAroundBuilding( RelocatedBuilding_, OriginalCellCoords_ );
+		}
 	}
 
 	// --- Общий сброс режима строительства (и для переноса, и для обычного билда)
@@ -372,20 +383,21 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
+	const FResourceProduction relocationCost = RelocatedBuilding_->GetRelocationCost();
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UResourceManager* resManager = core->GetResourceManager() )
+		{
+			resManager->SpendResources( relocationCost );
+		}
+	}
+
+	RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
 	if ( CurrentCellCoords_ != OriginalCellCoords_ )
 	{
-
-		FGridCell* oldCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y );
-
-		if ( oldCell && oldCell->Occupant.Get() == RelocatedBuilding_ )
-		{
-			oldCell->bIsOccupied = false;
-			oldCell->Occupant.Reset();
-		}
-		constexpr int32 MaxBonusRadius = 5;
-		RecalculateBonusesAroundBuilding( RelocatedBuilding_, CurrentCellCoords_ );
-		RecalculateBonusesFromNeighbors( MaxBonusRadius, OriginalCellCoords_ );
+		RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, OriginalCellCoords_ );
 	}
+
 	PlayPlacementAnimation( RelocatedBuilding_ );
 
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
@@ -437,6 +449,13 @@ void ABuildManager::ConfirmPlacing()
 
 	RelocateExistingBuilding( cellWorldLocation );
 	ResetPlacementState();
+
+	CachedBonusIcons_.Empty();
+	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
+	if ( GridVisualizer_ )
+	{
+		GridVisualizer_->HideBonusHighlight();
+	}
 }
 
 void ABuildManager::UpdateHoveredCell()
@@ -666,10 +685,28 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	RelocatedBuilding_->SetActorHiddenInGame( true );
 	RelocatedBuilding_->SetActorEnableCollision( false );
 
+	if ( FGridCell* originalCell = GridManager_->GetCell( OriginalCellCoords_.X, OriginalCellCoords_.Y ) )
+	{
+		if ( originalCell->Occupant.Get() == RelocatedBuilding_ )
+		{
+			originalCell->bIsOccupied = false;
+			originalCell->Occupant.Reset();
+		}
+	}
+
+	if ( UBuildingBonusComponent* selfBonus = RelocatedBuilding_->FindComponentByClass<UBuildingBonusComponent>() )
+	{
+		selfBonus->RemoveAppliedBonuses();
+	}
+
+	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, OriginalCellCoords_ );
+
 	CurrentBuildingClass_ = buildingToMove->GetClass();
 	bIsPlacing_ = true;
 	bHasValidCell_ = false;
 	bCanBuildHere_ = false;
+
+	ShowBonusHighlightForBuilding( CurrentBuildingClass_ );
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
@@ -765,6 +802,14 @@ void ABuildManager::RecalculateBonusesFromNeighbors( const int32 MaxBonusRadius,
 		if ( neighborBonus )
 		{
 			neighborBonus->RecalculateBonuses( GridManager_, cell->GridCoords );
+		}
+	}
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UEconomyComponent* economy = core->GetEconomyComponent() )
+		{
+			economy->RecalculateAndBroadcastNetIncome();
 		}
 	}
 }
@@ -1025,4 +1070,56 @@ void ABuildManager::DebugMessage( const FColor& color, const FString& message, f
 		GEngine->AddOnScreenDebugMessage( -1, duration, color, message );
 	}
 #endif
+}
+bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
+{
+	if ( !buildingToRemove || !GridManager_ )
+	{
+		return false;
+	}
+
+	FIntPoint foundCoords( -1, -1 );
+	bool bFound = false;
+
+	const int32 width = GridManager_->GetGridWidth();
+	const int32 height = GridManager_->GetGridHeight();
+
+	for ( int32 y = 0; y < height && !bFound; ++y )
+	{
+		for ( int32 x = 0; x < width; ++x )
+		{
+			FGridCell* cell = GridManager_->GetCell( x, y );
+			if ( !cell )
+			{
+				continue;
+			}
+
+			if ( cell->Occupant.Get() == buildingToRemove )
+			{
+				foundCoords = FIntPoint( x, y );
+				bFound = true;
+				break;
+			}
+		}
+	}
+
+	if ( !bFound )
+	{
+		DebugMessage( FColor::Red, TEXT( "RemoveExistingBuilding: building cell not found" ) );
+		return false;
+	}
+
+	FGridCell* oldCell = GridManager_->GetCell( foundCoords.X, foundCoords.Y );
+	if ( oldCell && oldCell->Occupant.Get() == buildingToRemove )
+	{
+		oldCell->bIsOccupied = false;
+		oldCell->Occupant.Reset();
+	}
+
+	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, foundCoords );
+
+	buildingToRemove->Destroy();
+
+	DebugMessage( FColor::Green, TEXT( "Building removed" ) );
+	return true;
 }

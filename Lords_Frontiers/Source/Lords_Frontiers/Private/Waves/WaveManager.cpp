@@ -1,13 +1,16 @@
-#include "Lords_Frontiers/Public/Waves/WaveManager.h"
+﻿#include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 #if WITH_EDITOR
 #include "Editor.h"
 #endif
+
+#include "Units/UnitBuilder.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
@@ -44,38 +47,42 @@ void AWaveManager::BeginPlay()
 
 int32 AWaveManager::ClampWaveIndex( int32 waveIndex ) const
 {
-	if ( Waves.Num() == 0 )
+	if ( GetWavesCount() == 0 )
 	{
 		return INDEX_NONE;
 	}
-	return FMath::Clamp( waveIndex, 0, Waves.Num() - 1 );
+
+	return FMath::Clamp( waveIndex, 0, GetWavesCount() - 1 );
 }
 
 void AWaveManager::StartWaves()
 {
-	int32 startIndex = ClampWaveIndex( CurrentWaveIndex );
+	if ( !WaveConfig_ || GetWavesCount() == 0 )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
+		return;
+	}
+
+	const int32 startIndex = ClampWaveIndex( CurrentWaveIndex );
 	if ( startIndex == INDEX_NONE )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
 	}
 
-	for ( int waveIndex = 0; waveIndex < Waves.Num(); waveIndex++ )
-	{
-		for ( FEnemyGroup& enemyGroup : Waves[waveIndex].EnemyGroups )
-		{
-			enemyGroup.Path = nullptr;
-		}
-	}
+	bHasRequestedFirstWave_ = true;
 
 	StartWaveAtIndex( startIndex );
-	bHasRequestedFirstWave_ = true;
 }
 
 void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 {
-	int32 clampedIndex = ClampWaveIndex( waveIndex );
+	if ( !WaveConfig_ )
+	{
+		return;
+	}
 
+	const int32 clampedIndex = ClampWaveIndex( waveIndex );
 	bHasRequestedFirstWave_ = true;
 
 	if ( clampedIndex == INDEX_NONE )
@@ -84,47 +91,38 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		return;
 	}
 
-	// If a wave is active, cancel it first (  safe behavior )
 	if ( bIsWaveActive_ )
 	{
 		CancelCurrentWave();
 	}
 
-	// Update current index
 	CurrentWaveIndex = clampedIndex;
-	const FWave& wave = Waves[CurrentWaveIndex];
 
-	if ( !wave.IsValid() )
+	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
+	if ( !WaveData )
 	{
-		UE_LOG(
-		    LogTemp, Warning,
-		    TEXT(
-		        "WaveManager: Wave %d is not valid (  no enemy groups ) . "
-		        "Skipping."
-		    ),
-		    CurrentWaveIndex
-		);
-
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d is null. Skipping." ), CurrentWaveIndex );
 		MoveToNextWaveAndStart();
 		return;
 	}
 
-	// Broadcast start
+	if ( WaveData->EnemySpawnMap.Num() == 0 )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no enemies. Skipping." ), CurrentWaveIndex );
+		MoveToNextWaveAndStart();
+		return;
+	}
+
 	bIsWaveActive_ = true;
 	OnWaveStarted.Broadcast( CurrentWaveIndex );
 
 	if ( bLogSpawning )
 	{
-		UE_LOG(
-		    LogTemp, Log, TEXT( "WaveManager: Starting wave %d (  StartDelay = %f ) " ), CurrentWaveIndex,
-		    wave.StartDelay
-		);
+		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Starting wave %d" ), CurrentWaveIndex );
 	}
 
-	// Schedule group of enemies spawns
-	ScheduleWaveSpawns( wave, CurrentWaveIndex );
+	ScheduleWaveSpawns( WaveData, CurrentWaveIndex );
 
-	// Schedule wave end event
 	if ( GetWorld() )
 	{
 		GetWorld()->GetTimerManager().ClearTimer( WaveEndTimerHandle_ );
@@ -144,176 +142,208 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	}
 }
 
-void AWaveManager::ScheduleWaveSpawns( const FWave& wave, int32 waveIndex )
+void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveIndex )
 {
-	if ( !GetWorld() )
+	if ( !GetWorld() || !WaveData )
 	{
 		return;
 	}
 
-	// Ensure prior timers cleared
 	ClearActiveTimers();
 
-	const int32 numGroups = wave.EnemyGroups.Num();
-	for ( int32 groupIndex = 0; groupIndex < numGroups; ++groupIndex )
+	TArray<TSubclassOf<AUnit>> EnemyClasses;
+	WaveData->EnemySpawnMap.GetKeys( EnemyClasses );
+
+	EnemyClasses.Sort( []( const TSubclassOf<AUnit>& A, const TSubclassOf<AUnit>& B )
+	                   { return GetNameSafe( A.Get() ) < GetNameSafe( B.Get() ); } );
+
+	for ( const TSubclassOf<AUnit>& EnemyClassKey : EnemyClasses )
 	{
-
-		const FEnemyGroup& enemyGroup = wave.EnemyGroups[groupIndex];
-
-		if ( !enemyGroup.IsValid() )
+		const UClass* EnemyClass = EnemyClassKey.Get();
+		if ( !EnemyClass )
 		{
 			continue;
 		}
 
-		for ( int32 enemyIndex = 0; enemyIndex < enemyGroup.Count; ++enemyIndex )
+		const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClassKey );
+		if ( !SpawnSettings )
 		{
-			const float timeFromWaveStart = wave.GetTimeToSpawnEnemy( groupIndex, enemyIndex );
+			continue;
+		}
 
-			if ( timeFromWaveStart < 0.f )
+		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings->Portals )
+		{
+			if ( PortalEntry.Count <= 0 || PortalEntry.SpawnPointId.IsNone() )
 			{
 				continue;
 			}
 
-			FTimerDelegate spawnDelegate;
-			spawnDelegate.BindUFunction( this, FName( "SpawnEnemy" ), waveIndex, groupIndex, enemyIndex );
-
-			FTimerHandle timerHandle;
-			GetWorld()->GetTimerManager().SetTimer( timerHandle, spawnDelegate, timeFromWaveStart, false );
-
-			ActiveSpawnTimers_.Add( timerHandle );
-
-			if ( bLogSpawning )
+			for ( int32 enemyIndex = 0; enemyIndex < PortalEntry.Count; ++enemyIndex )
 			{
-				UE_LOG(
-				    LogTemp, Log,
-				    TEXT(
-				        "WaveManager: Scheduled spawn Wave[%d] Group[%d] Enemy[%d] "
-				        "at +%f s"
-				    ),
-				    waveIndex, groupIndex, enemyIndex, timeFromWaveStart
+				const float timeFromWaveStart =
+				    SpawnSettings->StartDelay + ( enemyIndex * SpawnSettings->SpawnInterval ) + 0.05f;
+
+				if ( timeFromWaveStart < 0.f )
+				{
+					continue;
+				}
+
+				FTimerDelegate spawnDelegate;
+				spawnDelegate.BindUFunction(
+				    this, FName( "SpawnEnemy" ), waveIndex, const_cast<UClass*>( EnemyClass ), PortalEntry.SpawnPointId,
+				    enemyIndex
 				);
+
+				FTimerHandle timerHandle;
+				GetWorld()->GetTimerManager().SetTimer( timerHandle, spawnDelegate, timeFromWaveStart, false );
+
+				ActiveSpawnTimers_.Add( timerHandle );
+
+				if ( bLogSpawning )
+				{
+					UE_LOG(
+					    LogTemp, Log,
+					    TEXT( "WaveManager: Scheduled spawn Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d] at +%f s" ),
+					    waveIndex, *GetNameSafe( EnemyClass ), *PortalEntry.SpawnPointId.ToString(), enemyIndex,
+					    timeFromWaveStart
+					);
+				}
 			}
 		}
 	}
 }
 
-void AWaveManager::SpawnEnemy( int32 waveIndex, int32 groupIndex, int32 enemyIndex )
+void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnPointId, int32 enemyIndex )
 {
-	if ( !GetWorld() )
+	if ( !GetWorld() || !WaveConfig_ || !EnemyClass )
 	{
 		return;
 	}
 
-	if ( !Waves.IsValidIndex( waveIndex ) )
+	if ( waveIndex != CurrentWaveIndex || !bIsWaveActive_ )
 	{
 		return;
 	}
 
-	FWave& wave = Waves[waveIndex];
-
-	if ( !wave.EnemyGroups.IsValidIndex( groupIndex ) )
+	if ( !WaveConfig_->Waves.IsValidIndex( waveIndex ) )
 	{
 		return;
 	}
 
-	FEnemyGroup& enemyGroup = wave.EnemyGroups[groupIndex];
-	if ( !enemyGroup.IsValid() )
+	const UWaveData* WaveData = WaveConfig_->Waves[waveIndex];
+	if ( !WaveData )
 	{
 		return;
 	}
 
-	if ( enemyIndex < 0 || enemyIndex >= enemyGroup.Count )
+	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
+	if ( !SpawnSettings )
 	{
 		return;
 	}
 
-	FTransform spawnTransform = wave.GetSpawnTransformForGroup( this, groupIndex );
-	UE_LOG(
-	    LogTemp, Warning, TEXT( "WaveManager: RESOLVED transform for Wave[%d] Group[%d] = %s" ), waveIndex, groupIndex,
-	    *spawnTransform.GetLocation().ToString()
-	);
-
-#if WITH_EDITOR
-	DrawDebugSphere( GetWorld(), spawnTransform.GetLocation(), 50.f, 8, FColor::Blue, false, 6.f );
-#endif
-
-	if ( spawnTransform.Equals( FTransform::Identity ) )
+	const AEnemyGroupSpawnPoint* SpawnPoint = nullptr;
 	{
-		spawnTransform = GetActorTransform();
-	}
+		TArray<AActor*> FoundSpawnPoints;
+		UGameplayStatics::GetAllActorsOfClass( GetWorld(), AEnemyGroupSpawnPoint::StaticClass(), FoundSpawnPoints );
 
-	// get capsule size from class default (for Blueprint-based pawns)
-	float capsuleRadius = 34.f;
-	float capsuleHalfHeight = 88.f;
-
-	UClass* enemyClass = enemyGroup.EnemyClass.Get();
-	if ( enemyClass )
-	{
-		if ( AUnit* defaultUnit = Cast<AUnit>( enemyClass->GetDefaultObject() ) )
+		for ( AActor* Actor : FoundSpawnPoints )
 		{
-			if ( UCapsuleComponent* C = defaultUnit->FindComponentByClass<UCapsuleComponent>() )
+			if ( AEnemyGroupSpawnPoint* spawnPoint = Cast<AEnemyGroupSpawnPoint>( Actor ) )
 			{
-				capsuleRadius = C->GetUnscaledCapsuleRadius();
-				capsuleHalfHeight = C->GetUnscaledCapsuleHalfHeight();
+				if ( spawnPoint->SpawnPointId == SpawnPointId )
+				{
+					SpawnPoint = spawnPoint;
+					break;
+				}
 			}
 		}
 	}
 
-	FTransform FinalTransform = FindNonOverlappingSpawnTransform(
+	if ( !SpawnPoint )
+	{
+		if ( bLogSpawning )
+		{
+			UE_LOG(
+			    LogTemp, Warning,
+			    TEXT( "WaveManager: Spawn point '%s' not found for enemy %s (wave=%d, spawnIndex=%d)" ),
+			    *SpawnPointId.ToString(), *GetNameSafe( EnemyClass ), waveIndex, enemyIndex
+			);
+		}
+		return;
+	}
+
+	FTransform spawnTransform = SpawnPoint->GetActorTransform();
+
+	float capsuleRadius = 34.f;
+	float capsuleHalfHeight = 88.f;
+
+	if ( AUnit* defaultUnit = Cast<AUnit>( EnemyClass->GetDefaultObject() ) )
+	{
+		if ( UCapsuleComponent* comp = defaultUnit->FindComponentByClass<UCapsuleComponent>() )
+		{
+			capsuleRadius = comp->GetUnscaledCapsuleRadius();
+			capsuleHalfHeight = comp->GetUnscaledCapsuleHalfHeight();
+		}
+	}
+
+	auto* unitBuilder = NewObject<UUnitBuilder>( this );
+
+	FTransform finalTransform = unitBuilder->FindNonOverlappingSpawnTransform(
 	    spawnTransform, capsuleRadius, capsuleHalfHeight, 400.f, 24,
 	    /*bProjectToNavMesh=*/false
 	);
 
-	FActorSpawnParameters spawnParams;
-	spawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	spawnParams.Owner = this;
-	spawnParams.Instigator = GetInstigator();
+	unitBuilder->CreateNewUnit( EnemyClass, finalTransform, this, GetInstigator() );
+	unitBuilder->ApplyBuff( &SpawnSettings->Buff );
+	TWeakObjectPtr<AUnit> spawned = unitBuilder->SpawnUnitAndFinish();
 
-	AUnit* spawned = GetWorld()->SpawnActorDeferred<AUnit>( enemyClass, FinalTransform, this, GetInstigator() );
-
-	if ( FEnemyBuff* buff = EnemyBuffs.Find( enemyClass ) )
+	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
 	{
-		spawned->ChangeStats( buff );
-	}
-
-	UGameplayStatics::FinishSpawningActor( spawned, FinalTransform );
-	if ( !spawned )
-	{
-		UE_LOG(
-		    LogTemp, Warning, TEXT( "WaveManager: Failed to spawn actor for Wave[%d] Group[%d]" ), waveIndex, groupIndex
-		);
-		return;
-	}
-
-	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
-	{
-		UE_LOG(
-		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
-		    groupIndex
-		);
-		return;
-	}
-
-	if ( !IsValid( spawned ) || spawned->IsActorBeingDestroyed() )
-	{
-		UE_LOG(
-		    LogTemp, Warning, TEXT( "WaveManager: Spawn failed / actor invalid for Wave[%d] Group[%d]" ), waveIndex,
-		    groupIndex
-		);
+		if ( bLogSpawning )
+		{
+			UE_LOG(
+			    LogTemp, Warning,
+			    TEXT( "WaveManager: Failed to spawn actor for Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
+			    waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
+			);
+		}
 		return;
 	}
 
 	SpawnedUnits_.Add( spawned );
-
 	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
 
 	if ( bLogSpawning )
 	{
 		UE_LOG(
-		    LogTemp, Warning, TEXT( "WaveManager: Spawned %s at Wave[%d] Group[%d] Enemy[%d]" ), *spawned->GetName(),
-		    waveIndex, groupIndex, enemyIndex
+		    LogTemp, Warning, TEXT( "WaveManager: Spawned %s at Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
+		    *spawned->GetName(), waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
 		);
 	}
+}
+
+bool AWaveManager::MoveToNextWaveAndStart()
+{
+	if ( !WaveConfig_ || GetWavesCount() == 0 )
+	{
+		return false;
+	}
+
+	const int32 nextIndex = CurrentWaveIndex + 1;
+
+	if ( !WaveConfig_->Waves.IsValidIndex( nextIndex ) )
+	{
+		BroadcastAllWavesCompleted();
+		if ( bLogSpawning )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "WaveManager: No more waves to start." ) );
+		}
+		return false;
+	}
+
+	StartWaveAtIndex( nextIndex );
+	return true;
 }
 
 void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
@@ -333,33 +363,15 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager::OnWaveEndTimerElapsed: Wave %d ended." ), waveIndex );
 	}
 
-	if ( waveIndex >= Waves.Num() - 1 )
+	if ( GetWavesCount() > 0 && waveIndex >= GetWavesCount() - 1 )
 	{
 		BroadcastAllWavesCompleted();
+
 		if ( bLogSpawning )
 		{
 			UE_LOG( LogTemp, Log, TEXT( "WaveManager: All waves completed." ) );
 		}
 	}
-
-	UpdateSpawnCounts( waveIndex );
-}
-
-bool AWaveManager::MoveToNextWaveAndStart()
-{
-	const int32 nextIndex = CurrentWaveIndex + 1;
-	if ( !Waves.IsValidIndex( nextIndex ) )
-	{
-		BroadcastAllWavesCompleted();
-		if ( bLogSpawning )
-		{
-			UE_LOG( LogTemp, Log, TEXT( "WaveManager: No more waves to start." ) );
-		}
-		return false;
-	}
-
-	StartWaveAtIndex( nextIndex );
-	return true;
 }
 
 void AWaveManager::AdvanceToNextWave()
@@ -369,8 +381,18 @@ void AWaveManager::AdvanceToNextWave()
 		CancelCurrentWave();
 	}
 
+	if ( !WaveConfig_ || GetWavesCount() == 0 )
+	{
+		BroadcastAllWavesCompleted();
+		if ( bLogSpawning )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "WaveManager: AdvanceToNextWave called but no waves exist." ) );
+		}
+		return;
+	}
+
 	const int32 nextIndex = CurrentWaveIndex + 1;
-	if ( !Waves.IsValidIndex( nextIndex ) )
+	if ( !WaveConfig_->Waves.IsValidIndex( nextIndex ) )
 	{
 		BroadcastAllWavesCompleted();
 		if ( bLogSpawning )
@@ -435,92 +457,6 @@ void AWaveManager::ClearActiveTimers()
 		timerManager.ClearTimer( WaveEndTimerHandle_ );
 		WaveEndTimerHandle_.Invalidate();
 	}
-}
-
-//(Artyom)
-// find location around enemy group spawnpoint if there is a unit
-FTransform AWaveManager::FindNonOverlappingSpawnTransform(
-    const FTransform& desiredTransform, float capsuleRadius, float capsuleHalfHeight, float maxSearchRadius,
-    int32 maxAttempts, bool bProjectToNavMesh
-) const
-{
-	UWorld* world = GetWorld();
-	if ( !world )
-	{
-		return desiredTransform;
-	}
-
-	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>( world );
-
-	const FVector origin = desiredTransform.GetLocation();
-	const FQuat rotation = desiredTransform.GetRotation();
-
-	// collision query params
-	FCollisionQueryParams queryParams( SCENE_QUERY_STAT( SpawnOverlap ), false );
-	queryParams.bFindInitialOverlaps = true;
-	queryParams.AddIgnoredActor( this );
-
-	const ECollisionChannel channelToTest = ECC_Pawn; // check collisions with pawn
-
-	// try origin first
-	{
-		FCollisionShape shape = FCollisionShape::MakeCapsule( capsuleRadius, capsuleHalfHeight );
-		if ( !world->OverlapAnyTestByChannel( origin, FQuat::Identity, channelToTest, shape, queryParams ) )
-		{
-#if WITH_EDITOR
-			DrawDebugSphere( world, origin, capsuleRadius + 10.f, 8, FColor::Green, false, 3.0f );
-#endif
-			FTransform Result = desiredTransform;
-			Result.SetLocation( origin );
-			return Result;
-		}
-	}
-
-	// spiral sampling
-	const float angleStep = FMath::DegreesToRadians( 30.0f );
-	const int32 samplesPerRing = FMath::Max( 6, FMath::RoundToInt( 2.f * PI / angleStep ) );
-	const float radiusStep = FMath::Max( capsuleRadius * 2.0f, 50.f );
-
-	int32 attempt = 0;
-	while ( attempt < maxAttempts )
-	{
-		const int32 ring = attempt / samplesPerRing + 1;
-		const int32 index = attempt % samplesPerRing;
-		const float radius = FMath::Min( radiusStep * ring, maxSearchRadius );
-		const float angle = angleStep * index;
-
-		const FVector localOffset = FVector( FMath::Cos( angle ) * radius, FMath::Sin( angle ) * radius, 0.f );
-		FVector candidate = origin + rotation.RotateVector( localOffset );
-
-		// project to navmesh
-		if ( bProjectToNavMesh && NavSys )
-		{
-			FNavLocation NavLoc;
-			if ( NavSys->ProjectPointToNavigation( candidate, NavLoc, FVector( 100.f, 100.f, 300.f ) ) )
-			{
-				candidate = NavLoc.Location;
-			}
-		}
-
-		FCollisionShape shape = FCollisionShape::MakeCapsule( capsuleRadius, capsuleHalfHeight );
-		bool bOverlaps =
-		    world->OverlapAnyTestByChannel( candidate, FQuat::Identity, channelToTest, shape, queryParams );
-
-		if ( !bOverlaps )
-		{
-#if WITH_EDITOR
-			DrawDebugSphere( world, candidate, capsuleRadius + 10.f, 8, FColor::Green, false, 3.0f );
-#endif
-			FTransform result = desiredTransform;
-			result.SetLocation( candidate );
-			return result;
-		}
-
-		++attempt;
-	}
-
-	// not found - return desired
-	return desiredTransform;
 }
 
 bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functionName )
@@ -606,29 +542,6 @@ void AWaveManager::BroadcastAllWavesCompleted()
 	}
 }
 
-void AWaveManager::UpdateSpawnCounts( int32 waveIndex )
-{
-	const FWave& wave = Waves[waveIndex];
-
-	const int32 numGroups = wave.EnemyGroups.Num();
-	TSet<TSubclassOf<AUnit>> ExitCheck;
-
-	for ( int32 groupIndex = 0; groupIndex < numGroups; ++groupIndex )
-	{
-
-		const FEnemyGroup& enemyGroup = wave.EnemyGroups[groupIndex];
-
-		if ( !ExitCheck.Contains( enemyGroup.EnemyClass ) )
-		{
-			ExitCheck.Add( enemyGroup.EnemyClass );
-			if ( FEnemyBuff* buff = EnemyBuffs.Find( enemyGroup.EnemyClass ) )
-			{
-				buff->SpawnCount++;
-			}
-		}
-	}
-}
-
 int32 AWaveManager::DestroyAllEnemies()
 {
 	int32 destroyed = 0;
@@ -702,46 +615,55 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 
 TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targetWaveIndex ) const
 {
-	TMap<TSubclassOf<AUnit>, int32> enemyCounts;
+	TMap<TSubclassOf<AUnit>, int32> result;
 
-	if ( !Waves.IsValidIndex( targetWaveIndex ) )
+	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( targetWaveIndex ) )
 	{
-		return enemyCounts;
+		return result;
 	}
 
-	const FWave& targetWave = Waves[targetWaveIndex];
-
-	for ( const FEnemyGroup& group : targetWave.EnemyGroups )
+	const UWaveData* WaveData = WaveConfig_->Waves[targetWaveIndex];
+	if ( !WaveData )
 	{
-		if ( group.IsValid() && group.EnemyClass.Get() )
+		return result;
+	}
+
+	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
+	{
+		int32 TotalCount = 0;
+		for ( const FPortalSpawnEntry& PortalEntry : Pair.Value.Portals )
 		{
-			enemyCounts.FindOrAdd( group.EnemyClass.Get() ) += group.Count;
+			TotalCount += FMath::Max( 0, PortalEntry.Count );
+		}
+
+		if ( Pair.Key && TotalCount > 0 )
+		{
+			result.FindOrAdd( Pair.Key ) += TotalCount;
 		}
 	}
 
-	return enemyCounts;
+	return result;
 }
+
 void AWaveManager::ApplyWaveConfig()
 {
-	if ( WaveConfig_ == nullptr )
+	if ( !WaveConfig_ )
 	{
-		UE_LOG(
-		    LogTemp, Warning,
-		    TEXT( "WaveManager::ApplyWaveConfig: WaveConfig == nullptr; keeping existing Waves array." )
-		);
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager::ApplyWaveConfig: WaveConfig is null" ) );
 		return;
 	}
 
-	Waves = WaveConfig_->Waves;
-
 	RuntimeWaveEndSafetyMargin_ = WaveConfig_->WaveEndSafetyMargin;
+	bHasBroadcastedAllWavesCompleted_ = false;
 
-	UE_LOG(
-	    LogTemp, Log, TEXT( "WaveManager::ApplyWaveConfig: Applied config '%s' => Waves=%d, SafetyMargin=%.2f" ),
-	    *GetNameSafe( WaveConfig_ ), Waves.Num(), RuntimeWaveEndSafetyMargin_
-	);
+	if ( bLogSpawning )
+	{
+		UE_LOG(
+		    LogTemp, Log, TEXT( "WaveManager::ApplyWaveConfig: Applied config '%s' => Waves=%d, SafetyMargin=%.2f" ),
+		    *GetNameSafe( WaveConfig_ ), WaveConfig_->Waves.Num(), RuntimeWaveEndSafetyMargin_
+		);
+	}
 }
- 
 // Apply to HotSwap wave config (for difficulty and etc)
 void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 {
@@ -752,9 +674,12 @@ void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 	}
 
 	if ( WaveConfig_ == newConfig )
+	{
 		return;
+	}
 
 	const bool bWasWaveActive = bIsWaveActive_;
+	const int32 PrevWaveIndex = CurrentWaveIndex;
 
 	CancelCurrentWave();
 
@@ -762,13 +687,13 @@ void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 
 	ApplyWaveConfig();
 
-	if ( Waves.Num() == 0 )
+	if ( GetWavesCount() == 0 )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveConfig contains no waves" ) );
 		return;
 	}
 
-	CurrentWaveIndex = FMath::Clamp( CurrentWaveIndex, 0, Waves.Num() - 1 );
+	CurrentWaveIndex = FMath::Clamp( PrevWaveIndex, 0, GetWavesCount() - 1 );
 
 	UE_LOG( LogTemp, Log, TEXT( "WaveConfig swapped. Continuing from wave %d" ), CurrentWaveIndex );
 
@@ -794,3 +719,29 @@ void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& propertyChange
 	}
 }
 #endif
+const UWaveData* AWaveManager::GetWaveData( int32 Index ) const
+{
+	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( Index ) )
+	{
+		return nullptr;
+	}
+
+	return WaveConfig_->Waves[Index];
+}
+
+int32 AWaveManager::GetWavesCount() const
+{
+    return WaveConfig_ ? WaveConfig_->Waves.Num() : 0;
+}
+
+const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const
+{
+	const UWaveData* WaveData = GetWaveData( CurrentWaveIndex );
+	if ( !WaveData || !EnemyClass )
+	{
+		return nullptr;
+	}
+
+	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
+	return SpawnSettings ? &SpawnSettings->Buff : nullptr;
+}

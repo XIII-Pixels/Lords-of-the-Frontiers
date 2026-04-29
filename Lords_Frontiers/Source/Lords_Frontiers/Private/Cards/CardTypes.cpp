@@ -1,66 +1,10 @@
 #include "Cards/CardTypes.h"
 
+#include "Building/AdditiveBuilding.h"
 #include "Building/Building.h"
 #include "Building/DefensiveBuilding.h"
-#include "Building/ResourceBuilding.h"
-#include "Building/AdditiveBuilding.h"
 #include "Building/MainBase.h"
-
-FText FCardStatModifier::GetDisplayText() const
-{
-	if ( !IsValid() )
-	{
-		return FText::GetEmpty();
-	}
-
-	const FString resourceName = CardTypeHelpers::GetResourceName( ResourceTarget );
-	FString statName;
-
-	switch ( Stat )
-	{
-	case EBuildingStat::MaxHealth:
-		statName = TEXT( "Max Health" );
-		break;
-
-	case EBuildingStat::AttackDamage:
-		statName = TEXT( "Attack Damage" );
-		break;
-
-	case EBuildingStat::AttackRange:
-		statName = TEXT( "Attack Range" );
-		break;
-
-	case EBuildingStat::AttackCooldown:
-		statName = TEXT( "Attack Speed" );
-		break;
-
-	case EBuildingStat::MaxSpeed:
-		statName = TEXT( "Speed" );
-		break;
-
-	case EBuildingStat::MaintenanceCost:
-	{
-		statName = FString::Printf( TEXT( "%s Maintenance Cost" ), *resourceName );
-		const FString sign = FlatValue >= 0 ? TEXT( "+" ) : TEXT( "" );
-		return FText::FromString(
-			FString::Printf( TEXT( "%s%d %s" ), *sign, FlatValue, *statName )
-		);
-	}
-
-	case EBuildingStat::BuildingProduction:
-	{
-		statName = FString::Printf( TEXT( "%s Production" ), *resourceName );
-		break;
-	}
-
-	default:
-		statName = TEXT( "Unknown" );
-		break;
-	}
-
-	const FString sign = FlatValue >= 0 ? TEXT( "+" ) : TEXT( "" );
-	return FText::FromString( FString::Printf( TEXT( "%s%d %s" ), *sign, FlatValue, *statName ) );
-}
+#include "Building/ResourceBuilding.h"
 
 FText FBuildingTargetFilter::GetTargetDescription() const
 {
@@ -119,7 +63,18 @@ bool FBuildingTargetFilter::MatchesBuilding( const AActor* building ) const
 		return true;
 
 	case EBuildingType::Defensive:
-		return building->IsA<ADefensiveBuilding>();
+	{
+		const ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( building );
+		if ( !tower )
+		{
+			return false;
+		}
+		if ( DefensiveTowerTypes.Num() == 0 )
+		{
+			return true;
+		}
+		return DefensiveTowerTypes.Contains( tower->DefensiveTowerType() );
+	}
 
 	case EBuildingType::Resource:
 		return building->IsA<AResourceBuilding>();
@@ -147,55 +102,66 @@ bool FBuildingTargetFilter::MatchesBuilding( const AActor* building ) const
 	}
 }
 
-void FEconomyBonuses::ApplyModifier( const FCardStatModifier& modifier )
+bool FCardEvent::MatchesBuilding( const ABuilding* building ) const
 {
-	if ( !modifier.IsResourceModifier() )
+	if ( !building )
 	{
-		return;
+		return false;
 	}
 
-	auto applyToTargets = [&]( int32& gold, int32& food, int32& population, int32& progress, int32 value )
+	if ( !TargetFilter.MatchesBuilding( building ) )
 	{
-		const EResourceTargetType target = modifier.ResourceTarget;
+		return false;
+	}
 
-		if ( target == EResourceTargetType::All || target == EResourceTargetType::Gold )
-		{
-			gold += value;
-		}
-		if ( target == EResourceTargetType::All || target == EResourceTargetType::Food )
-		{
-			food += value;
-		}
-		if ( target == EResourceTargetType::All || target == EResourceTargetType::Population )
-		{
-			population += value;
-		}
-		if ( target == EResourceTargetType::All || target == EResourceTargetType::Progress )
-		{
-			progress += value;
-		}
-	};
+	const bool bRuined = building->IsRuined();
 
-	switch ( modifier.Stat )
+	switch ( StateFilter )
 	{
-	case EBuildingStat::BuildingProduction:
-		applyToTargets(
-			GoldProductionBonus, FoodProductionBonus,
-			PopulationProductionBonus, ProgressProductionBonus,
-			modifier.FlatValue
-		);
-		break;
+	case ETargetStateFilter::Alive: return !bRuined;
+	case ETargetStateFilter::Dead:  return bRuined;
+	case ETargetStateFilter::Any:   return true;
+	default:                        return !bRuined;
+	}
+}
 
-	case EBuildingStat::MaintenanceCost:
-		applyToTargets(
-			GoldMaintenanceReduction, FoodMaintenanceReduction,
-			PopulationMaintenanceReduction, ProgressMaintenanceReduction,
-			-modifier.FlatValue
-		);
-		break;
+void FEconomyBonuses::AddProductionBonus( EResourceTargetType target, int32 delta )
+{
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Gold )
+	{
+		GoldProductionBonus += delta;
+	}
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Food )
+	{
+		FoodProductionBonus += delta;
+	}
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Population )
+	{
+		PopulationProductionBonus += delta;
+	}
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Progress )
+	{
+		ProgressProductionBonus += delta;
+	}
+}
 
-	default:
-		break;
+void FEconomyBonuses::AddMaintenanceReduction( EResourceTargetType target, int32 delta )
+{
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Gold )
+	{
+		GoldMaintenanceReduction += delta;
+	}
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Food )
+	{
+		FoodMaintenanceReduction += delta;
+	}
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Population )
+	{
+		PopulationMaintenanceReduction += delta;
+	}
+	if ( target == EResourceTargetType::All || target == EResourceTargetType::Progress )
+	{
+		ProgressMaintenanceReduction += delta;
 	}
 }
 
