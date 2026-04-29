@@ -198,7 +198,7 @@ void AUnit::OnDeath()
 
 	if ( UnitAIManager_.IsValid() )
 	{
-		UnitAIManager_->PathPointsManager()->ReleasePath( Path(), GetClass() );
+		UnitAIManager_->PathPointsManager()->ReleasePathPoints( Path(), GetClass() );
 	}
 
 	if ( UWorld* world = GetWorld() )

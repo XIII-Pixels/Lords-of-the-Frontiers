@@ -83,7 +83,7 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	TMap<TSubclassOf<AUnit>, TSubclassOf<APathTargetPoint>> PathPointClassOverrides_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Path", meta = ( ClampMin = 0.0f ) )
 	float PathPointReachRadius_ = 100.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
@@ -92,7 +92,7 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
 	TSubclassOf<ASplinePointConnector> SplineClass_;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Ground", meta = ( ClampMin = 0.0f ) )
 	float GroundHeight_ = 10.0f;
 
 	UPROPERTY()

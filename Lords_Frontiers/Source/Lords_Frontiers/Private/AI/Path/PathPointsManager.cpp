@@ -147,7 +147,7 @@ void UPathPointsManager::ReleasePathPoint( const FIntPoint& point, TSubclassOf<A
 	}
 }
 
-void UPathPointsManager::ReleasePath( const UPath* path, TSubclassOf<AUnit> unitClass )
+void UPathPointsManager::ReleasePathPoints( const UPath* path, TSubclassOf<AUnit> unitClass )
 {
 	if ( !path )
 	{

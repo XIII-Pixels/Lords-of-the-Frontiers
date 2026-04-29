@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AI/Path/Path.h"
 #include "Building/Building.h"
 
 #include "Components/ActorComponent.h"
@@ -47,12 +48,18 @@ public:
 
 	void SetPath( UPath* path )
 	{
+		if ( Path_ )
+		{
+			Path_->ClearSpline();
+		}
 		Path_ = path;
 		PathPointIndex_ = 0;
 	}
 
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
 	bool IsCloseToTarget() const;
 

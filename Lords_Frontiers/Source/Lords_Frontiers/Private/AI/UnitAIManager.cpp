@@ -3,6 +3,7 @@
 #include "AI/UnitAIManager.h"
 
 #include "AI/Path/PathPointsManager.h"
+#include "AI/Path/PathTargetPoint.h"
 #include "AI/TargetBuildingTracker.h"
 
 #include "Kismet/GameplayStatics.h"
@@ -28,6 +29,11 @@ void AUnitAIManager::BeginPlay()
 	TargetBuildingTracker_ = NewObject<UTargetBuildingTracker>( this );
 
 	FindGoalActor();
+
+	if ( !DefaultPathPointClass_ )
+	{
+		DefaultPathPointClass_ = APathTargetPoint::StaticClass();
+	}
 
 	// PathPointsManager settings
 	PathPointsManager_->SetGoalActor( GoalActor_ );

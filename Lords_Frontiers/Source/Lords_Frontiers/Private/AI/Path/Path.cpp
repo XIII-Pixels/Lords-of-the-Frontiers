@@ -33,21 +33,16 @@ void UPath::CalculateOrUpdate()
 {
 	DStarLite_->ComputeShortestPath();
 	PathPoints_ = DStarLite_->GetPath();
-	Spline_ = GenerateSpline();
+	RebuildSpline();
 }
 
-const TArray<FIntPoint>& UPath::GetPoints() const
+void UPath::RebuildSpline()
 {
-	return PathPoints_;
-}
+	if ( Spline_ )
+	{
+		ClearSpline();
+	}
 
-void UPath::RemovePoint( int index )
-{
-	PathPoints_.RemoveAt( index );
-}
-
-TObjectPtr<ASplinePointConnector> UPath::GenerateSpline() const
-{
 	float groundHeight = 0.f;
 	const AGridManager* grid = nullptr;
 	TSubclassOf<ASplinePointConnector> splineClass;
@@ -65,10 +60,15 @@ TObjectPtr<ASplinePointConnector> UPath::GenerateSpline() const
 	if ( !splineClass )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UPath: no spline class found. Cannot build spline" ) );
-		return nullptr;
+		Spline_ = nullptr;
 	}
 
-	ASplinePointConnector* spline = GetWorld()->SpawnActor<ASplinePointConnector>( splineClass );
+	Spline_ = GetWorld()->SpawnActor<ASplinePointConnector>( splineClass );
+	if ( !IsValid( Spline_ ) )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "UPath: failed to create spline" ) );
+		return;
+	}
 
 	for ( const FIntPoint& point : PathPoints_ )
 	{
@@ -78,9 +78,26 @@ TObjectPtr<ASplinePointConnector> UPath::GenerateSpline() const
 			grid->GetCellWorldCenter( point, worldLocation );
 		}
 
-        spline->AddPoint( FVector( worldLocation.X, worldLocation.Y, groundHeight ) );
+		Spline_->AddPoint( FVector( worldLocation.X, worldLocation.Y, groundHeight ) );
 	}
 
-	spline->BuildSpline();
-	return spline;
+	Spline_->BuildSpline();
+}
+
+const TArray<FIntPoint>& UPath::GetPoints() const
+{
+	return PathPoints_;
+}
+
+void UPath::RemovePoint( int index )
+{
+	PathPoints_.RemoveAt( index );
+}
+
+void UPath::ClearSpline()
+{
+	if ( Spline_ )
+	{
+		Spline_->Clear();
+	}
 }

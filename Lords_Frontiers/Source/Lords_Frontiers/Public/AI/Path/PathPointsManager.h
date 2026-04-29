@@ -49,7 +49,7 @@ public:
 	// Remove point by value
 	void ReleasePathPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass );
 	// Remove points in the path
-	void ReleasePath( const UPath* path, TSubclassOf<AUnit> unitClass );
+	void ReleasePathPoints( const UPath* path, TSubclassOf<AUnit> unitClass );
 	// Remove all points
 	void Empty();
 

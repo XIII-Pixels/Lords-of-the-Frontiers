@@ -32,6 +32,16 @@ void UEnemyAggressionComponent::BeginPlay()
 	}
 }
 
+void UEnemyAggressionComponent::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	Super::EndPlay( endPlayReason );
+
+	if ( Path_ )
+	{
+		Path_->ClearSpline();
+	}
+}
+
 void UEnemyAggressionComponent::TickComponent(
     float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
 )
@@ -173,7 +183,7 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 
 	if ( unit->TargetBuilding().IsValid() && grid )
 	{
-		UnitAIManager_->PathPointsManager()->ReleasePath( Path_, GetOwner()->GetClass() );
+		UnitAIManager_->PathPointsManager()->ReleasePathPoints( Path_, GetOwner()->GetClass() );
 		SetPath( nullptr );
 
 		UPath* path = NewObject<UPath>( unit );

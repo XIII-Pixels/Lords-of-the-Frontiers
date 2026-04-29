@@ -33,8 +33,12 @@ public:
 	// Calculate full path or update part of path (if grid has changed)
 	void CalculateOrUpdate();
 
+	void RebuildSpline();
+	void ClearSpline();
+
 	const TArray<FIntPoint>& GetPoints() const;
 
+	// Delay time is configured in AUnitAIManager
 	void RemovePoint( int index );
 
 	ASplinePointConnector* GetSpline() const
@@ -43,8 +47,6 @@ public:
 	}
 
 private:
-	TObjectPtr<ASplinePointConnector> GenerateSpline() const;
-
 	UPROPERTY()
 	TObjectPtr<UDStarLite> DStarLite_;
 
@@ -53,4 +55,8 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<ASplinePointConnector> Spline_;
+
+	FTimerHandle RebuildSplineTimerHandle_;
+
+	int PendingRemoveIndex_ = -1;
 };
