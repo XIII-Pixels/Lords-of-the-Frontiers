@@ -146,35 +146,35 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	}
 }
 
-void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveIndex )
+void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveIndex )
 {
-	if ( !GetWorld() || !WaveData )
+	if ( !GetWorld() || !waveData )
 	{
 		return;
 	}
 
 	ClearActiveTimers();
 
-	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
+	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& pair : waveData->EnemySpawnMap )
 	{
-		const TSubclassOf<AUnit>& EnemyClass = Pair.Key;
-		const FEnemySpawnSettings& SpawnSettings = Pair.Value;
+		const TSubclassOf<AUnit>& enemyClass = pair.Key;
+		const FEnemySpawnSettings& spawnSettings = pair.Value;
 
-		if ( !EnemyClass )
+		if ( !enemyClass )
 		{
 			continue;
 		}
 
-		for ( const FPortalSpawnEntry& PortalEntry : SpawnSettings.Portals )
+		for ( const FPortalSpawnEntry& portalEntry : spawnSettings.Portals )
 		{
-			if ( PortalEntry.Count <= 0 || PortalEntry.SpawnPointId.IsNone() )
+			if ( portalEntry.Count <= 0 || portalEntry.SpawnPointId.IsNone() )
 			{
 				continue;
 			}
 
-			for ( int32 enemyIndex = 0; enemyIndex < PortalEntry.Count; ++enemyIndex )
+			for ( int32 enemyIndex = 0; enemyIndex < portalEntry.Count; ++enemyIndex )
 			{
-				const float timeFromWaveStart = PortalEntry.StartDelay + ( enemyIndex * PortalEntry.SpawnInterval ) + 0.1f; //DO NOT REMOVE THIS 0.1F. Spawn amount breaks without it
+				const float timeFromWaveStart = portalEntry.StartDelay + ( enemyIndex * portalEntry.SpawnInterval ) + 0.1f; //DO NOT REMOVE THIS 0.1F. Spawn amount breaks without it
 
 				if ( timeFromWaveStart < 0.f )
 				{
@@ -183,7 +183,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 
 				FTimerDelegate spawnDelegate;
 				spawnDelegate.BindUFunction(
-				    this, FName( "SpawnEnemy" ), waveIndex, EnemyClass, PortalEntry.SpawnPointId, enemyIndex
+				    this, FName( "SpawnEnemy" ), waveIndex, enemyClass, portalEntry.SpawnPointId, enemyIndex
 				);
 
 				FTimerHandle timerHandle;
@@ -196,7 +196,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 					UE_LOG(
 					    LogTemp, Log,
 					    TEXT( "WaveManager: Scheduled spawn Wave[%d] Enemy[%s] Portal[%s] EnemyIndex[%d] at +%f s" ),
-					    waveIndex, *GetNameSafe( EnemyClass ), *PortalEntry.SpawnPointId.ToString(), enemyIndex,
+					    waveIndex, *GetNameSafe( enemyClass ), *portalEntry.SpawnPointId.ToString(), enemyIndex,
 					    timeFromWaveStart
 					);
 				}
@@ -205,9 +205,9 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* WaveData, int32 waveInde
 	}
 }
 
-void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnPointId, int32 enemyIndex )
+void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnPointId, int32 enemyIndex )
 {
-	if ( !GetWorld() || !WaveConfig_ || !EnemyClass )
+	if ( !GetWorld() || !WaveConfig_ || !enemyClass )
 	{
 		return;
 	}
@@ -222,55 +222,55 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 		return;
 	}
 
-	const UWaveData* WaveData = GetSelectedWaveData( CurrentWaveIndex );
-	if ( !WaveData )
+	const UWaveData* waveData = GetSelectedWaveData( CurrentWaveIndex );
+	if ( !waveData )
 	{
 		return;
 	}
 
-	const FEnemySpawnSettings* SpawnSettings = WaveData->EnemySpawnMap.Find( EnemyClass );
-	if ( !SpawnSettings )
+	const FEnemySpawnSettings* spawnSettings = waveData->EnemySpawnMap.Find( enemyClass );
+	if ( !spawnSettings )
 	{
 		return;
 	}
 
-	const AEnemyGroupSpawnPoint* SpawnPoint = nullptr;
+	const AEnemyGroupSpawnPoint* spawnPointConst = nullptr;
 	{
-		TArray<AActor*> FoundSpawnPoints;
-		UGameplayStatics::GetAllActorsOfClass( GetWorld(), AEnemyGroupSpawnPoint::StaticClass(), FoundSpawnPoints );
+		TArray<AActor*> foundSpawnPoints;
+		UGameplayStatics::GetAllActorsOfClass( GetWorld(), AEnemyGroupSpawnPoint::StaticClass(), foundSpawnPoints );
 
-		for ( AActor* Actor : FoundSpawnPoints )
+		for ( AActor* actor : foundSpawnPoints )
 		{
-			if ( AEnemyGroupSpawnPoint* spawnPoint = Cast<AEnemyGroupSpawnPoint>( Actor ) )
+			if ( AEnemyGroupSpawnPoint* spawnPoint = Cast<AEnemyGroupSpawnPoint>( actor ) )
 			{
-				if ( spawnPoint->SpawnPointId == SpawnPointId )
+				if ( spawnPoint->SpawnPointId == spawnPointId )
 				{
-					SpawnPoint = spawnPoint;
+					spawnPointConst = spawnPoint;
 					break;
 				}
 			}
 		}
 	}
 
-	if ( !SpawnPoint )
+	if ( !spawnPointConst )
 	{
 		if ( bLogSpawning )
 		{
 			UE_LOG(
 			    LogTemp, Warning,
 			    TEXT( "WaveManager: Spawn point '%s' not found for enemy %s (wave=%d, spawnIndex=%d)" ),
-			    *SpawnPointId.ToString(), *GetNameSafe( EnemyClass ), waveIndex, enemyIndex
+			    *spawnPointId.ToString(), *GetNameSafe( enemyClass ), waveIndex, enemyIndex
 			);
 		}
 		return;
 	}
 
-	FTransform spawnTransform = SpawnPoint->GetActorTransform();
+	FTransform spawnTransform = spawnPointConst->GetActorTransform();
 
 	float capsuleRadius = 34.f;
 	float capsuleHalfHeight = 88.f;
 
-	if ( AUnit* defaultUnit = Cast<AUnit>( EnemyClass->GetDefaultObject() ) )
+	if ( AUnit* defaultUnit = Cast<AUnit>( enemyClass->GetDefaultObject() ) )
 	{
 		if ( UCapsuleComponent* comp = defaultUnit->FindComponentByClass<UCapsuleComponent>() )
 		{
@@ -286,8 +286,8 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 	    /*bProjectToNavMesh=*/false
 	);
 
-	unitBuilder->CreateNewUnit( EnemyClass, finalTransform, this, GetInstigator() );
-	unitBuilder->ApplyBuff( &SpawnSettings->Buff );
+	unitBuilder->CreateNewUnit( enemyClass, finalTransform, this, GetInstigator() );
+	unitBuilder->ApplyBuff( &spawnSettings->Buff );
 	TWeakObjectPtr<AUnit> spawned = unitBuilder->SpawnUnitAndFinish();
 
 	if ( !spawned.IsValid() || spawned->IsActorBeingDestroyed() )
@@ -297,7 +297,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 			UE_LOG(
 			    LogTemp, Warning,
 			    TEXT( "WaveManager: Failed to spawn actor for Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
-			    waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
+			    waveIndex, *GetNameSafe( enemyClass ), *spawnPointId.ToString(), enemyIndex
 			);
 		}
 		return;
@@ -310,7 +310,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* EnemyClass, FName SpawnP
 	{
 		UE_LOG(
 		    LogTemp, Warning, TEXT( "WaveManager: Spawned %s at Wave[%d] Enemy[%s] Portal[%s] SpawnIndex[%d]" ),
-		    *spawned->GetName(), waveIndex, *GetNameSafe( EnemyClass ), *SpawnPointId.ToString(), enemyIndex
+		    *spawned->GetName(), waveIndex, *GetNameSafe( enemyClass ), *spawnPointId.ToString(), enemyIndex
 		);
 	}
 }
@@ -475,9 +475,9 @@ bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functi
 	}
 
 	// Bind script delegate to listener's function and add to multicast
-	FScriptDelegate ScriptDel;
-	ScriptDel.BindUFunction( listener, functionName );
-	OnAllWavesCompleted.Add( ScriptDel );
+	FScriptDelegate scriptDel;
+	scriptDel.BindUFunction( listener, functionName );
+	OnAllWavesCompleted.Add( scriptDel );
 
 	AllWavesCompletedSubscribers_.Add( listener );
 
@@ -496,9 +496,9 @@ bool AWaveManager::UnsubscribeFromAllWavesCompleted( UObject* listener, FName fu
 		return false;
 	}
 
-	FScriptDelegate ScriptDel;
-	ScriptDel.BindUFunction( listener, functionName );
-	OnAllWavesCompleted.Remove( ScriptDel );
+	FScriptDelegate scriptDel;
+	scriptDel.BindUFunction( listener, functionName );
+	OnAllWavesCompleted.Remove( scriptDel );
 
 	AllWavesCompletedSubscribers_.Remove( listener );
 
@@ -615,23 +615,23 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 		return result;
 	}
 
-	const UWaveData* WaveData = GetSelectedWaveData( targetWaveIndex );
-	if ( !WaveData )
+	const UWaveData* waveData = GetSelectedWaveData( targetWaveIndex );
+	if ( !waveData )
 	{
 		return result;
 	}
 
-	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& Pair : WaveData->EnemySpawnMap )
+	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& pair : waveData->EnemySpawnMap )
 	{
-		int32 TotalCount = 0;
-		for ( const FPortalSpawnEntry& PortalEntry : Pair.Value.Portals )
+		int32 totalCount = 0;
+		for ( const FPortalSpawnEntry& portalEntry : pair.Value.Portals )
 		{
-			TotalCount += FMath::Max( 0, PortalEntry.Count );
+			totalCount += FMath::Max( 0, portalEntry.Count );
 		}
 
-		if ( Pair.Key && TotalCount > 0 )
+		if ( pair.Key && totalCount > 0 )
 		{
-			result.FindOrAdd( Pair.Key ) += TotalCount;
+			result.FindOrAdd( pair.Key ) += totalCount;
 		}
 	}
 
@@ -672,7 +672,7 @@ void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 	}
 
 	const bool bWasWaveActive = bIsWaveActive_;
-	const int32 PrevWaveIndex = CurrentWaveIndex;
+	const int32 prevWaveIndex = CurrentWaveIndex;
 
 	CancelCurrentWave();
 
@@ -686,7 +686,7 @@ void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 		return;
 	}
 
-	CurrentWaveIndex = FMath::Clamp( PrevWaveIndex, 0, GetWavesCount() - 1 );
+	CurrentWaveIndex = FMath::Clamp( prevWaveIndex, 0, GetWavesCount() - 1 );
 
 	UE_LOG( LogTemp, Log, TEXT( "WaveConfig swapped. Continuing from wave %d" ), CurrentWaveIndex );
 
@@ -712,18 +712,18 @@ void AWaveManager::PostEditChangeProperty( FPropertyChangedEvent& propertyChange
 	}
 }
 #endif
-const UWaveData* AWaveManager::GetWaveData( int32 Index ) const
+const UWaveData* AWaveManager::GetWaveData( int32 index ) const
 {
-	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( Index ) )
+	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( index ) )
 	{
 		return found->Get();
 	}
 
-	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( Index ) )
+	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( index ) )
 	{
 		return nullptr;
 	}
-	return PickWeightedWavePreset( WaveConfig_->Waves[Index] );
+	return PickWeightedWavePreset( WaveConfig_->Waves[index] );
 }
 
 int32 AWaveManager::GetWavesCount() const
@@ -731,15 +731,15 @@ int32 AWaveManager::GetWavesCount() const
     return WaveConfig_ ? WaveConfig_->Waves.Num() : 0;
 }
 
-const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const
+const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> enemyClass ) const
 {
 	const UWaveData* waveData = GetWaveData( CurrentWaveIndex );
-	if ( !waveData || !EnemyClass )
+	if ( !waveData || !enemyClass )
 	{
 		return nullptr;
 	}
 
-	const FEnemySpawnSettings* spawnSettings = waveData->EnemySpawnMap.Find( EnemyClass );
+	const FEnemySpawnSettings* spawnSettings = waveData->EnemySpawnMap.Find( enemyClass );
 	return spawnSettings ? &spawnSettings->Buff : nullptr;
 }
 
@@ -748,11 +748,11 @@ void AWaveManager::ClearWavePresetCache()
 	SelectedWavePresets_.Empty();
 }
 
-const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Slot ) const
+const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& slot ) const
 {
 	float totalWeight = 0.f;
 
-	for ( const FWeightedWavePreset& entry : Slot.Presets )
+	for ( const FWeightedWavePreset& entry : slot.Presets )
 	{
 		if ( entry.Preset && entry.Weight > 0.f )
 		{
@@ -762,7 +762,7 @@ const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Sl
 
 	if ( totalWeight <= 0.f )
 	{
-		for ( const FWeightedWavePreset& entry : Slot.Presets )
+		for ( const FWeightedWavePreset& entry : slot.Presets )
 		{
 			if ( entry.Preset )
 			{
@@ -775,7 +775,7 @@ const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Sl
 	const float roll = FMath::FRandRange( 0.f, totalWeight );
 	float accumulated = 0.f;
 
-	for ( const FWeightedWavePreset& entry : Slot.Presets )
+	for ( const FWeightedWavePreset& entry : slot.Presets )
 	{
 		if ( !entry.Preset || entry.Weight <= 0.f )
 		{
@@ -789,7 +789,7 @@ const UWaveData* AWaveManager::PickWeightedWavePreset( const FWavePresetSlot& Sl
 		}
 	}
 
-	for ( const FWeightedWavePreset& entry : Slot.Presets )
+	for ( const FWeightedWavePreset& entry : slot.Presets )
 	{
 		if ( entry.Preset )
 		{
@@ -840,9 +840,9 @@ void AWaveManager::BuildSelectedWavePresetCache()
 	}
 }
 
-const UWaveData* AWaveManager::GetSelectedWaveData( int32 WaveIndex ) const
+const UWaveData* AWaveManager::GetSelectedWaveData( int32 waveIndex ) const
 {
-	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( WaveIndex ) )
+	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( waveIndex ) )
 	{
 		return found->Get();
 	}
