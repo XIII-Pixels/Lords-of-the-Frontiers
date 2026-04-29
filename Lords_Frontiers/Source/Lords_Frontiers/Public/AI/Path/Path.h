@@ -9,9 +9,9 @@
 
 #include "Path.generated.h"
 
+class ASplinePointConnector;
 class AGridManager;
 class AUnit;
-
 
 /** (Gregory-hub)
  * Class that represents a path that is traveled by unit */
@@ -37,9 +37,20 @@ public:
 
 	void RemovePoint( int index );
 
+	ASplinePointConnector* GetSpline() const
+	{
+		return Spline_;
+	}
+
 private:
+	TObjectPtr<ASplinePointConnector> GenerateSpline() const;
+
 	UPROPERTY()
 	TObjectPtr<UDStarLite> DStarLite_;
 
+	UPROPERTY()
 	TArray<FIntPoint> PathPoints_;
+
+	UPROPERTY()
+	TObjectPtr<ASplinePointConnector> Spline_;
 };

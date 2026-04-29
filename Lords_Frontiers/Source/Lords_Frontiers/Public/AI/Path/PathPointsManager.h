@@ -6,6 +6,7 @@
 
 #include "PathPointsManager.generated.h"
 
+class ASplinePointConnector;
 class AUnit;
 class AGridManager;
 class UPath;

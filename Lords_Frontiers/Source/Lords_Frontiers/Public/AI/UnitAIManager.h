@@ -9,6 +9,7 @@
 
 #include "UnitAIManager.generated.h"
 
+class ASplinePointConnector;
 class APathTargetPoint;
 class UTargetBuildingTracker;
 class UPathPointsManager;
@@ -60,7 +61,12 @@ public:
 
 	bool MustDestroyReachedPoints() const
 	{
-		return bDestroyReachedPoints;
+		return bDestroyReachedPoints_;
+	}
+
+	TSubclassOf<ASplinePointConnector> SplineClass() const
+	{
+		return SplineClass_;
 	}
 
 protected:
@@ -81,7 +87,10 @@ protected:
 	float PathPointReachRadius_ = 100.0f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	bool bDestroyReachedPoints = false;
+	bool bDestroyReachedPoints_ = false;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	TSubclassOf<ASplinePointConnector> SplineClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
 	float GroundHeight_ = 10.0f;

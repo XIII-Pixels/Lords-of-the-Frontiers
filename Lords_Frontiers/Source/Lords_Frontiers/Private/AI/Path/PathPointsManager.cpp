@@ -3,6 +3,7 @@
 
 #include "AI/Path/Path.h"
 #include "AI/Path/PathTargetPoint.h"
+#include "AI/Path/SplinePointConnector.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Grid/GridManager.h"
@@ -161,7 +162,7 @@ void UPathPointsManager::ReleasePath( const UPath* path, TSubclassOf<AUnit> unit
 
 void UPathPointsManager::Empty()
 {
-	for ( auto [point, pointsOnCell] : PathPoints_ )
+	for ( auto& [point, pointsOnCell] : PathPoints_ )
 	{
 		for ( auto [unitClass, pathPoint] : pointsOnCell.Points() )
 		{
@@ -177,9 +178,9 @@ void UPathPointsManager::Empty()
 
 void UPathPointsManager::ShowAll()
 {
-	for ( auto [point, pointsOnCell] : PathPoints_ )
+	for ( auto& [point, pointsOnCell] : PathPoints_ )
 	{
-		for ( auto [unitClass, pathPoint] : pointsOnCell.Points() )
+		for ( auto& [unitClass, pathPoint] : pointsOnCell.Points() )
 		{
 			if ( IsValid( pathPoint ) )
 			{
@@ -193,7 +194,7 @@ void UPathPointsManager::ShowAll()
 
 void UPathPointsManager::HideAll()
 {
-	for ( auto [point, pointsOnCell] : PathPoints_ )
+	for ( auto& [point, pointsOnCell] : PathPoints_ )
 	{
 		for ( auto [unitClass, pathPoint] : pointsOnCell.Points() )
 		{
