@@ -4,6 +4,7 @@
 
 #include "AttackComponent.h"
 #include "Attacker.h"
+#include "EntityStats.h"
 
 #include "CoreMinimal.h"
 
@@ -12,6 +13,18 @@
 class IEntity;
 class USphereComponent;
 class ABaseProjectile;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnAttackFired, AActor*, Target );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBeforeAttackFire, AActor*, Target );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnAttackTargetChanged, AActor*, OldTarget, AActor*, NewTarget );
+
+UENUM( BlueprintType )
+enum class ETowerTargetPriority : uint8
+{
+	Closest		UMETA( DisplayName = "Closest (Default)" ),
+	LowestHP	UMETA( DisplayName = "Lowest HP" ),
+	HighestHP	UMETA( DisplayName = "Highest HP" ),
+};
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight */
@@ -40,6 +53,47 @@ public:
 
 	virtual bool DidSeeTargetLastTick() override;
 
+	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
+	FOnAttackFired OnAttackFired;
+
+	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
+	FOnBeforeAttackFire OnBeforeAttackFire;
+
+	UPROPERTY( BlueprintAssignable, Category = "Attack|Events" )
+	FOnAttackTargetChanged OnAttackTargetChanged;
+
+	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
+	void FireExtraProjectile( AActor* target, float damageMultiplier = 1.f );
+
+	void FireShrapnel(
+		const FVector& spawnLocation, int32 count, float damageMultiplier,
+		float spreadDegrees, float range, float speed, float splashRadius,
+		TSubclassOf<ABaseProjectile> overrideClass );
+
+	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
+	void AddPendingDamageBonus( float bonusPercent )
+	{
+		PendingDamageBonusPercent_ += bonusPercent;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Attack|Cards" )
+	float GetPendingDamageBonus() const
+	{
+		return PendingDamageBonusPercent_;
+	}
+
+	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
+	void SetTargetPriority( ETowerTargetPriority priority )
+	{
+		TargetPriority_ = priority;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Attack|Cards" )
+	ETowerTargetPriority GetTargetPriority() const
+	{
+		return TargetPriority_;
+	}
+
 protected:
 	virtual void OnRegister() override;
 
@@ -57,6 +111,11 @@ protected:
 	virtual bool ActorPositionIsAttackable( const AActor* actor ) const;
 	virtual bool EnemyIsValid( const AActor* enemyActor ) const;
 	virtual bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
+
+	virtual bool IsAttackable( TObjectPtr<AActor> enemyActor ) const
+	{
+		return true;
+	}
 
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
@@ -82,6 +141,9 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	bool bProjectileTracksTarget_ = true;
 
+	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
+	ETowerTargetPriority TargetPriority_ = ETowerTargetPriority::Closest;
+
 	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;
@@ -97,4 +159,6 @@ protected:
 	FTimerHandle BurstTimerHandle_;
 
 	bool bDidSeeTarget_ = false;
+
+	float PendingDamageBonusPercent_ = 0.f;
 };

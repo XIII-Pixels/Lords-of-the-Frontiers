@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Waves/Wave.h"
+#include "Lords_Frontiers/Public/Waves/WaveData.h"
 
 #include "Engine/DataAsset.h"
 
@@ -13,8 +14,8 @@ class LORDS_FRONTIERS_API UWaveConfigData : public UDataAsset
 
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "WaveConfig" )
-	TArray<FWave> Waves;
+	float WaveEndSafetyMargin = 1.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "WaveConfig" )
-	float WaveEndSafetyMargin = 1.0f;
+	TArray<FWavePresetSlot> Waves;
 };

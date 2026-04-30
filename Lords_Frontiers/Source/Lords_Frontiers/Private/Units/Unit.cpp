@@ -5,8 +5,10 @@
 #include "AI/EntityAIController.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
+#include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
+#include "UI/HealthBar/HealthBarConfigDataAsset.h"
 #include "Utilities/TraceChannelMappings.h"
 #include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
@@ -14,6 +16,7 @@
 #include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/FollowComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 AUnit::AUnit()
@@ -59,6 +62,31 @@ void AUnit::BeginPlay()
 	}
 
 	ResolveVFXDefaults();
+
+	if ( HealthBarConfig_ )
+	{
+		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+		    this,
+		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		    {
+			    if ( UWorld* world = GetWorld() )
+			    {
+				    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+				    {
+					    pool->ShowFor( this, HealthBarConfig_ );
+				    }
+			    }
+		    }
+		);
+
+		if ( bIsBoss_ )
+		{
+			if ( UHealthBarPoolSubsystem* pool = GetWorld()->GetSubsystem<UHealthBarPoolSubsystem>() )
+			{
+				pool->ShowFor( this, HealthBarConfig_ );
+			}
+		}
+	}
 }
 
 void AUnit::StartFollowing() const
@@ -74,6 +102,22 @@ void AUnit::StopFollowing() const
 	if ( FollowComponent_ )
 	{
 		FollowComponent_->StopFollowing();
+	}
+}
+
+void AUnit::EnableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Activate();
+	}
+}
+
+void AUnit::DisableMovement() const
+{
+	if ( FollowComponent_ )
+	{
+		FollowComponent_->Deactivate();
 	}
 }
 
@@ -121,7 +165,7 @@ void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 	}
 }
 
-void AUnit::TakeDamage( int damage )
+void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 {
 	if ( !Stats_.IsAlive() )
 	{
@@ -137,6 +181,17 @@ void AUnit::TakeDamage( int damage )
 
 void AUnit::OnDeath()
 {
+	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+	HealthBarSubscription_.Reset();
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+		{
+			pool->HideFor( this );
+		}
+	}
+
 	if ( AttackComponent_ )
 	{
 		AttackComponent_->DeactivateSight();
@@ -244,18 +299,22 @@ void AUnit::ResolveVFXDefaults()
 	}
 }
 
-void AUnit::ChangeStats( FEnemyBuff* buff )
+void AUnit::ChangeStats( const FEnemyBuff* buff )
 {
-	Stats_.SetMaxHealth(
-	    FMath::FloorToInt( Stats_.MaxHealth() * FMath::Pow( buff->HealthMultiplier, buff->SpawnCount ) )
-	);
-	Stats_.SetAttackRange( Stats_.AttackRange() * FMath::Pow( buff->AttackRangeMultiplier, buff->SpawnCount ) );
-	Stats_.SetAttackDamage(
-	    FMath::FloorToInt( Stats_.AttackDamage() * FMath::Pow( buff->AttackDamageMultiplier, buff->SpawnCount ) )
-	);
-	Stats_.SetAttackCooldown(
-	    Stats_.AttackCooldown() * FMath::Pow( buff->AttackCooldownMultiplier, buff->SpawnCount )
-	);
-	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * FMath::Pow( buff->MaxSpeedMultiplier, buff->SpawnCount ) );
+	if ( !buff )
+	{
+		return;
+	}
+
+	Stats_.SetMaxHealth( FMath::FloorToInt( Stats_.MaxHealth() * buff->HealthMultiplier ) );
+
+	Stats_.SetAttackRange( Stats_.AttackRange() * buff->AttackRangeMultiplier );
+
+	Stats_.SetAttackDamage( FMath::FloorToInt( Stats_.AttackDamage() * buff->AttackDamageMultiplier ) );
+
+	Stats_.SetAttackCooldown( Stats_.AttackCooldown() * buff->AttackCooldownMultiplier );
+
+	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * buff->MaxSpeedMultiplier );
+
 	Stats_.Heal( Stats_.MaxHealth() );
 }

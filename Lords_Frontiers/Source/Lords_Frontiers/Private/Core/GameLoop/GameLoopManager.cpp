@@ -192,7 +192,11 @@ int32 UGameLoopManager::GetTotalWaves() const
 
 	if ( AWaveManager* wm = WaveManager_.Get() )
 	{
-		return wm->Waves.Num();
+		const int32 count = wm->GetWavesCount();
+		if ( count > 0 )
+		{
+			return count;
+		}
 	}
 
 	return GameLoopDefaults::cDefaultWavesToWin;

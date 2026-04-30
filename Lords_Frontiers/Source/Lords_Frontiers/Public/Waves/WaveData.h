@@ -1,0 +1,71 @@
+#pragma once
+
+#include "Lords_Frontiers/Public/Waves/Wave.h"
+#include "Lords_Frontiers/Public/Waves/EnemyBuff.h"
+#include "CoreMinimal.h"
+#include "Engine/DataAsset.h"
+
+#include "WaveData.generated.h"
+
+USTRUCT( BlueprintType )
+struct FPortalSpawnEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
+	FName SpawnPointId = NAME_None;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn", meta = ( ClampMin = "0" ) )
+	int32 Count = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
+	float StartDelay = 0.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
+	float SpawnInterval = 1.f;
+};
+
+USTRUCT( BlueprintType )
+struct FEnemySpawnSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Spawn" )
+	TArray<FPortalSpawnEntry> Portals;
+
+	UPROPERTY( EditAnywhere, Category = "Spawn" )
+	FEnemyBuff Buff;
+};
+
+USTRUCT( BlueprintType )
+struct FWeightedWavePreset
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere )
+	TObjectPtr<UWaveData> Preset;
+
+	UPROPERTY( EditAnywhere )
+	float Weight = 1.f;
+};
+
+USTRUCT( BlueprintType )
+struct FWavePresetSlot
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere )
+	TArray<FWeightedWavePreset> Presets;
+};
+
+
+
+UCLASS( BlueprintType )
+class LORDS_FRONTIERS_API UWaveData : public UDataAsset
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave" )
+	TMap<TSubclassOf<AUnit>, FEnemySpawnSettings> EnemySpawnMap;
+};

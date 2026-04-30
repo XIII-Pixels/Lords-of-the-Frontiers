@@ -2,11 +2,16 @@
 
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
-#include "VFX/EntityVFXConfig.h"
+#include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Resources/EconomyComponent.h"
+#include "UI/HealthBar/HealthBarConfigDataAsset.h"
 #include "Utilities/TraceChannelMappings.h"
+#include "VFX/EntityVFXConfig.h"
+
 #include "Components/BoxComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 ABuilding::ABuilding()
@@ -26,6 +31,14 @@ ABuilding::ABuilding()
 	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
 	SkeletalMeshComponent_->SetupAttachment( RootComponent );
+
+	SelectionOverlayMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionOverlayMesh" ) );
+	SelectionOverlayMesh_->SetupAttachment( RootComponent );
+	SelectionOverlayMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	SelectionOverlayMesh_->SetGenerateOverlapEvents( false );
+	SelectionOverlayMesh_->SetCastShadow( false );
+	SelectionOverlayMesh_->SetHiddenInGame( true );
+	SelectionOverlayMesh_->SetVisibility( false );
 }
 
 void ABuilding::BeginPlay()
@@ -59,6 +72,43 @@ void ABuilding::BeginPlay()
 
 	ResolveVFXDefaults();
 	SpawnConstructionVFX();
+
+	UpdateSelectionOverlay();
+	HideSelectionOverlay();
+	SubscribeHealthBar();
+}
+
+void ABuilding::SubscribeHealthBar()
+{
+	if ( !HealthBarConfig_ )
+	{
+		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
+	    this,
+	    [ this ]( int, int )
+	    {
+		    if ( UWorld* world = GetWorld() )
+		    {
+			    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+			    {
+				    pool->ShowFor( this, HealthBarConfig_ );
+			    }
+		    }
+	    }
+	);
+}
+
+void ABuilding::UnsubscribeHealthBar()
+{
+	if ( HealthBarSubscription_.IsValid() )
+	{
+		Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
+		HealthBarSubscription_.Reset();
+	}
 }
 
 void ABuilding::OnDeath()
@@ -66,6 +116,16 @@ void ABuilding::OnDeath()
 	if ( bIsRuined_ )
 	{
 		return;
+	}
+
+	UnsubscribeHealthBar();
+
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
+		{
+			pool->HideFor( this );
+		}
 	}
 
 	SpawnDestructionVFX();
@@ -221,6 +281,7 @@ void ABuilding::FinalizeRuin()
 		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::ActivateBuildingMesh()
@@ -236,6 +297,7 @@ void ABuilding::ActivateBuildingMesh()
 		SkeletalMeshComponent_->SetVisibility( false );
 		StaticMeshComponent_->SetVisibility( true );
 	}
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::ActivateRuinsMesh()
@@ -247,6 +309,7 @@ void ABuilding::ActivateRuinsMesh()
 		SkeletalMeshComponent_->SetVisibility( false );
 		StaticMeshComponent_->SetVisibility( true );
 	}
+	UpdateSelectionOverlay();
 }
 
 FEntityStats& ABuilding::Stats()
@@ -269,7 +332,7 @@ ETeam ABuilding::Team() const
 	return Stats_.Team();
 }
 
-void ABuilding::TakeDamage( int damage )
+void ABuilding::TakeDamage( int damage, AActor* instigator )
 {
 	if ( !Stats_.IsAlive() )
 	{
@@ -277,6 +340,9 @@ void ABuilding::TakeDamage( int damage )
 	}
 
 	Stats_.ApplyDamage( damage );
+
+	OnBuildingDamaged.Broadcast( this, damage, instigator );
+
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
@@ -314,6 +380,9 @@ void ABuilding::OnSelected_Implementation()
 	{
 		StaticMeshComponent_->SetRenderCustomDepth( true );
 	}
+
+	UpdateSelectionOverlay();
+	ShowSelectionOverlay();
 }
 
 void ABuilding::OnDeselected_Implementation()
@@ -326,6 +395,8 @@ void ABuilding::OnDeselected_Implementation()
 	}
 
 	StaticMeshComponent_->SetRenderCustomDepth( false );
+
+	HideSelectionOverlay();
 }
 
 bool ABuilding::CanBeSelected_Implementation() const
@@ -361,6 +432,8 @@ void ABuilding::RestoreFromRuins()
 
 	ActivateBuildingMesh();
 
+	SubscribeHealthBar();
+
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
 	if ( CollisionComponent_ )
@@ -370,6 +443,8 @@ void ABuilding::RestoreFromRuins()
 	}
 
 	ActivateBuildingMesh();
+
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::FullRestore()
@@ -392,6 +467,8 @@ void ABuilding::FullRestore()
 		}
 		SetCanAffectNavigationGeneration( true );
 	}
+
+	SubscribeHealthBar();
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 }
@@ -430,4 +507,72 @@ UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> building
 		return cdo->BuildingIcon;
 	}
 	return nullptr;
+}
+int32 ABuilding::GetBuildingTotalCostGold() const
+{
+	int32 total = 0;
+	total += BuildingCost_.Gold;
+	total += BuildingCost_.Food;
+	total += BuildingCost_.Population;
+	total += BuildingCost_.Progress;
+	return total;
+}
+
+int32 ABuilding::GetRelocationGoldCost() const
+{
+	return FMath::Max( 0, RelocationCost_.Gold );
+}
+
+FResourceProduction ABuilding::GetRelocationCost() const
+{
+	return RelocationCost_;
+}
+
+FResourceProduction ABuilding::GetDemolitionRefund() const
+{
+	return DemolitionRefund_;
+}
+
+void ABuilding::UpdateSelectionOverlay()
+{
+	if ( !SelectionOverlayMesh_ )
+	{
+		return;
+	}
+
+	UStaticMesh* meshToUse = nullptr;
+
+	if ( StaticMeshComponent_ )
+	{
+		meshToUse = StaticMeshComponent_->GetStaticMesh();
+	}
+
+	if ( !meshToUse && BuildingMesh_ )
+	{
+		meshToUse = BuildingMesh_;
+	}
+
+	if ( meshToUse )
+	{
+		SelectionOverlayMesh_->SetStaticMesh( meshToUse );
+		SelectionOverlayMesh_->SetMaterial( 0, SelectionMaterial_ );
+	}
+}
+
+void ABuilding::ShowSelectionOverlay()
+{
+	if ( SelectionOverlayMesh_ )
+	{
+		SelectionOverlayMesh_->SetVisibility( true );
+		SelectionOverlayMesh_->SetHiddenInGame( false );
+	}
+}
+
+void ABuilding::HideSelectionOverlay()
+{
+	if ( SelectionOverlayMesh_ )
+	{
+		SelectionOverlayMesh_->SetVisibility( false );
+		SelectionOverlayMesh_->SetHiddenInGame( true );
+	}
 }

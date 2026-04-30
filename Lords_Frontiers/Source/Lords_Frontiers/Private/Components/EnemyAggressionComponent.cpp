@@ -134,8 +134,10 @@ bool UEnemyAggressionComponent::IsCloseToTarget() const
 		return false;
 	}
 
-	const float distanceSq =
-	    FVector::DistSquared( unit->GetActorLocation(), unit->FollowedTarget()->GetActorLocation() );
+	const float distanceSq = FVector::DistSquared(
+	    ProjectReachLocation( unit->GetActorLocation() ),
+	    ProjectReachLocation( unit->FollowedTarget()->GetActorLocation() )
+	);
 	const float radius = UnitAIManager_->PathPointsManager()->PointReachRadius();
 	const float radiusSq = radius * radius;
 	return distanceSq < radiusSq;
@@ -169,10 +171,10 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 	if ( unit->TargetBuilding().IsValid() && grid )
 	{
 		UPath* path = NewObject<UPath>( unit );
-		path->Initialize(
-		    { unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), unit->Stats().AttackDamage(),
-		      unit->Stats().AttackCooldown(), grid->GetCellSize() / unit->Stats().MaxSpeed() }
-		);
+		const float emptyCellTravelTime = grid->GetCellSize() / unit->Stats().MaxSpeed();
+		path->Initialize( BuildPathConfig(
+		    *unit, unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), emptyCellTravelTime
+		) );
 		path->CalculateOrUpdate();
 		if ( UnitAIManager_.IsValid() )
 		{
@@ -182,4 +184,11 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 		SetPath( path );
 		FollowPath();
 	}
+}
+
+FPathConfig UEnemyAggressionComponent::BuildPathConfig(
+    const AUnit& unit, const FVector& start, const FVector& goal, float emptyCellTravelTime
+) const
+{
+	return FPathConfig( start, goal, unit.Stats().AttackDamage(), unit.Stats().AttackCooldown(), emptyCellTravelTime );
 }
