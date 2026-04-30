@@ -169,7 +169,7 @@ void UAttackRangedComponent::Look()
 			continue;
 		}
 
-		if ( EnemyIsValid( actor ) && ActorPositionIsAttackable( actor ) && CanSeeEnemy( actor ) )
+		if ( !( EnemyIsValid( actor ) && ActorPositionIsAttackable( actor ) && CanSeeEnemy( actor ) ) )
 		{
 			continue;
 		}
