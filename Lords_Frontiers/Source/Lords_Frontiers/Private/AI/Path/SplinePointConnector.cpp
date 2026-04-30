@@ -123,33 +123,60 @@ void ASplinePointConnector::RebuildMesh()
 
 	USplineComponent* spline = SplineComponent_.Get();
 	const float totalLength = spline->GetSplineLength();
-	const float arrowStartDist = FMath::Max( totalLength - ArrowHeadLength_, totalLength * 0.5f );
+
+	const float arrowTip = FMath::Max( totalLength - ArrowOffset_, totalLength * 0.5f );
+	const float arrowStartDist = FMath::Max( arrowTip - ArrowHeadLength_, 0.f );
 
 	TArray<FVector> vertices;
 	TArray<int32> triangles;
 	TArray<FVector> normals;
 	TArray<FVector2D> uvs;
 
-	SampleLineVertices( 0.f, arrowStartDist, SampleCount_, vertices, normals, uvs, totalLength );
+	const float overlap = ArrowHeadLength_ * 0.3f; // tweak (0.2–0.5 works well)
+
+	SampleLineVertices(
+		0.f,
+		arrowStartDist + overlap,
+		SampleCount_,
+		vertices,
+		normals,
+		uvs,
+		totalLength
+	);
 	BuildTriangles( vertices.Num(), triangles );
 
-	const FVector tipCenter = spline->GetLocationAtDistanceAlongSpline( totalLength, ESplineCoordinateSpace::World );
-	const FVector baseCenter =
-	    spline->GetLocationAtDistanceAlongSpline( arrowStartDist, ESplineCoordinateSpace::World );
-	const FVector baseTangent =
-	    spline->GetTangentAtDistanceAlongSpline( arrowStartDist, ESplineCoordinateSpace::World ).GetSafeNormal();
-	const FVector baseRight = FVector::CrossProduct( baseTangent, FVector::UpVector ).GetSafeNormal();
+	const FVector rawTip = SplinePoints_.Last();
 
+	const FVector tipTangent =
+	    spline->GetTangentAtDistanceAlongSpline( totalLength, ESplineCoordinateSpace::World ).GetSafeNormal();
+
+	const FVector tipCenter = rawTip - tipTangent * ArrowOffset_;
+
+	const FVector baseCenter =
+	    spline->GetLocationAtDistanceAlongSpline( arrowStartDist, ESplineCoordinateSpace::World ) +
+	    FVector( 0.f, 0.f, HeightOffset_ );
+
+	// Direction for arrow
+	const FVector arrowDir = ( tipCenter - baseCenter ).GetSafeNormal();
+	const FVector baseRight = FVector::CrossProduct( arrowDir, FVector::UpVector ).GetSafeNormal();
+
+	// ========================
+	// 🔹 Arrow head
+	// ========================
 	const int32 arrowBase = vertices.Num();
+
 	vertices.Add( baseCenter - baseRight * ArrowHeadWidth_ );
 	vertices.Add( baseCenter + baseRight * ArrowHeadWidth_ );
 	vertices.Add( tipCenter );
+
 	normals.Add( FVector::UpVector );
 	normals.Add( FVector::UpVector );
 	normals.Add( FVector::UpVector );
+
 	uvs.Add( FVector2D( 0.f, 0.f ) );
 	uvs.Add( FVector2D( 1.f, 0.f ) );
 	uvs.Add( FVector2D( 0.5f, 1.f ) );
+
 	triangles.Add( arrowBase );
 	triangles.Add( arrowBase + 2 );
 	triangles.Add( arrowBase + 1 );

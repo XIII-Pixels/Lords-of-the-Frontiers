@@ -46,6 +46,9 @@ private:
     UPROPERTY( EditAnywhere, Category = "Settings", meta = ( ClampMin = 0 ) )
     float ArrowHeadWidth_ = 40.f;
 
+	UPROPERTY( EditAnywhere, Category = "Settings", meta = ( ClampMin = 0 ) )
+	float ArrowOffset_ = 0.f;
+
     UPROPERTY( EditAnywhere, Category = "Settings" )
     TObjectPtr<UMaterialInterface> LineMaterial_;
 
