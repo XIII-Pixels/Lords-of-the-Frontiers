@@ -46,6 +46,43 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Cards|Selection" )
 	void RequestCardSelection( int32 waveNumber );
 
+	/**
+	 * Generates a fresh selection of cards without going through the card-selection event.
+	 * Used by the UI reroll button to refresh visible offerings for a price.
+	 * Returns true if at least one card was produced.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Cards|Selection" )
+	bool BuildCardChoice( int32 waveNumber, FCardChoice& outChoice );
+
+	/**
+	 * Attempts to charge the configured reroll cost and produce a new card choice.
+	 * @param waveNumber Wave used both for cost increment scaling and choice metadata.
+	 * @param rerollIndex How many rerolls have already been performed for the current selection
+	 *                    (0 for the first reroll). Used to compute the price.
+	 * @param outChoice The new offering on success.
+	 * @return true if cost was paid and a choice was produced.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Cards|Selection" )
+	bool TryRerollCardChoice( int32 waveNumber, int32 rerollIndex, FCardChoice& outChoice );
+
+	UFUNCTION( BlueprintPure, Category = "Cards|Selection" )
+	bool IsRerollEnabled() const;
+
+	UFUNCTION( BlueprintPure, Category = "Cards|Selection" )
+	int32 GetRerollCost( int32 rerollIndex ) const;
+
+	UFUNCTION( BlueprintPure, Category = "Cards|Selection" )
+	bool CanAffordReroll( int32 rerollIndex ) const;
+
+	/**
+	 * Clears the set of cards already shown during the current selection. While that set is
+	 * non-empty its members get their weight multiplied by RerollSeenWeightMultiplier, making
+	 * them very unlikely (but not impossible) to reappear on a reroll. Cleared automatically
+	 * when a new selection starts or when selected cards are applied (reward taken).
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Cards|Selection" )
+	void ClearCurrentSelectionExclusions();
+
 	UFUNCTION( BlueprintCallable, Category = "Cards|Selection" )
 	void ApplySelectedCards( const TArray<UCardDataAsset*>& selectedCards );
 
@@ -172,6 +209,9 @@ private:
 
 	UPROPERTY()
 	TSet<TObjectPtr<UCardDataAsset>> RuntimeLocked_;
+
+	UPROPERTY()
+	TSet<TObjectPtr<UCardDataAsset>> CurrentSelectionExcluded_;
 
 	UPROPERTY()
 	FEconomyBonuses EconomyBonuses_;

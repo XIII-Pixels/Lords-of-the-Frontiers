@@ -6,56 +6,75 @@
 
 namespace
 {
-	TArray<UCardDataAsset*> WeightedSample(
-		TArray<TPair<UCardDataAsset*, float>>& weighted, int32 count )
+	struct FWorkingBucket
 	{
-		TArray<UCardDataAsset*> result;
+		ECardRarity Rarity       = ECardRarity::Common;
+		float       RarityWeight = 0.f;
+		TMap<UCardDataAsset*, float> Weights;
+	};
 
-		float totalWeight = 0.f;
-		for ( const auto& pair : weighted )
+	int32 PickIndexByWeight( const TArray<float>& weights, float totalWeight )
+	{
+		const float roll = FMath::FRand() * totalWeight;
+		float running    = 0.f;
+		for ( int32 i = 0; i < weights.Num(); ++i )
 		{
-			totalWeight += pair.Value;
-		}
-
-		while ( result.Num() < count && weighted.Num() > 0 && totalWeight > 0.f )
-		{
-			const float roll = FMath::FRand() * totalWeight;
-			float running = 0.f;
-			int32 pickedIndex = weighted.Num() - 1;
-
-			for ( int32 i = 0; i < weighted.Num(); ++i )
+			running += weights[i];
+			if ( roll <= running )
 			{
-				running += weighted[i].Value;
-				if ( roll <= running )
-				{
-					pickedIndex = i;
-					break;
-				}
+				return i;
 			}
+		}
+		return weights.Num() - 1;
+	}
 
-			result.Add( weighted[pickedIndex].Key );
-			totalWeight -= weighted[pickedIndex].Value;
-			weighted.RemoveAtSwap( pickedIndex );
+	UCardDataAsset* PickCardFromBucket( FWorkingBucket& bucket )
+	{
+		float totalWeight = 0.f;
+		TArray<UCardDataAsset*> keys;
+		TArray<float> values;
+		keys.Reserve( bucket.Weights.Num() );
+		values.Reserve( bucket.Weights.Num() );
+
+		for ( const auto& pair : bucket.Weights )
+		{
+			if ( pair.Key && pair.Value > 0.f )
+			{
+				keys.Add( pair.Key );
+				values.Add( pair.Value );
+				totalWeight += pair.Value;
+			}
 		}
 
-		return result;
+		if ( keys.Num() == 0 || totalWeight <= 0.f )
+		{
+			return nullptr;
+		}
+
+		const int32 picked = PickIndexByWeight( values, totalWeight );
+		UCardDataAsset* card = keys[picked];
+		bucket.Weights.Remove( card );
+		return card;
 	}
 }
 
 TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
-	const TArray<TObjectPtr<UCardDataAsset>>& pool,
+	const TArray<FCardRarityBucket>& buckets,
 	const TArray<FAppliedCardRecord>& history,
 	int32 countToOffer,
-	int32 maxStacksForWeightInfluence )
+	int32 maxCardsPerRarity,
+	int32 maxStacksForWeightInfluence,
+	const TSet<UCardDataAsset*>& weightReducedCards,
+	float weightReductionMultiplier )
 {
 	TArray<UCardDataAsset*> result;
 
-	if ( pool.Num() == 0 || countToOffer <= 0 )
+	if ( buckets.Num() == 0 || countToOffer <= 0 || maxCardsPerRarity <= 0 )
 	{
 		return result;
 	}
 
-	TSet<UCardDataAsset*> excluded;
+	TSet<UCardDataAsset*> excludedByOtherCards;
 	for ( const FAppliedCardRecord& record : history )
 	{
 		UCardDataAsset* source = record.Card;
@@ -68,44 +87,145 @@ TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
 		{
 			if ( exc )
 			{
-				excluded.Add( exc );
+				excludedByOtherCards.Add( exc );
 			}
 		}
 	}
 
-	TMap<UCardDataAsset*, float> weights;
-	weights.Reserve( pool.Num() );
-
-	for ( const TObjectPtr<UCardDataAsset>& card : pool )
+	auto IsCardAlreadyApplied = [&]( UCardDataAsset* card )
 	{
-		if ( !card )
+		for ( const FAppliedCardRecord& record : history )
 		{
-			continue;
+			if ( record.Card == card )
+			{
+				return true;
+			}
 		}
-		if ( excluded.Contains( card.Get() ) )
+		return false;
+	};
+
+	TArray<FWorkingBucket> workingBuckets;
+	workingBuckets.Reserve( buckets.Num() );
+
+	const float clampedReductionMultiplier = FMath::Max( 0.f, weightReductionMultiplier );
+	const bool bApplyReductionMultiplier   = weightReducedCards.Num() > 0 && weightReductionMultiplier < 1.f;
+
+	for ( const FCardRarityBucket& src : buckets )
+	{
+		if ( src.RarityWeight <= 0.f || src.Cards.Num() == 0 )
 		{
 			continue;
 		}
 
-		if ( !card->bCanStack )
+		FWorkingBucket wb;
+		wb.Rarity       = src.Rarity;
+		wb.RarityWeight = src.RarityWeight;
+		wb.Weights.Reserve( src.Cards.Num() );
+
+		for ( UCardDataAsset* card : src.Cards )
 		{
-			bool bAlready = false;
-			for ( const FAppliedCardRecord& record : history )
-			{
-				if ( record.Card == card )
-				{
-					bAlready = true;
-					break;
-				}
-			}
-			if ( bAlready )
+			if ( !card )
 			{
 				continue;
 			}
+			if ( excludedByOtherCards.Contains( card ) )
+			{
+				continue;
+			}
+			if ( !card->bCanStack && IsCardAlreadyApplied( card ) )
+			{
+				continue;
+			}
+
+			float weight = card->BaseWeight;
+			if ( bApplyReductionMultiplier && weightReducedCards.Contains( card ) )
+			{
+				weight *= clampedReductionMultiplier;
+			}
+
+			wb.Weights.Add( card, weight );
 		}
 
-		weights.Add( card.Get(), card->BaseWeight );
+		if ( wb.Weights.Num() > 0 )
+		{
+			workingBuckets.Add( MoveTemp( wb ) );
+		}
 	}
+
+	if ( workingBuckets.Num() == 0 )
+	{
+		return result;
+	}
+
+	auto applyMultiplierMap = [&]( const TMap<TObjectPtr<UCardDataAsset>, float>& map, int32 effectiveStacks )
+	{
+		for ( const auto& pair : map )
+		{
+			UCardDataAsset* target = pair.Key;
+			if ( !target )
+			{
+				continue;
+			}
+			for ( FWorkingBucket& wb : workingBuckets )
+			{
+				if ( float* weight = wb.Weights.Find( target ) )
+				{
+					for ( int32 i = 0; i < effectiveStacks; ++i )
+					{
+						*weight *= pair.Value;
+					}
+				}
+			}
+		}
+	};
+
+	auto applyCategoryMultiplierMap = [&]( const TMap<ECardCategory, float>& map, int32 effectiveStacks )
+	{
+		for ( const auto& pair : map )
+		{
+			const ECardCategory category = pair.Key;
+			const float multiplier       = pair.Value;
+			for ( FWorkingBucket& wb : workingBuckets )
+			{
+				for ( auto& weightPair : wb.Weights )
+				{
+					if ( weightPair.Key && weightPair.Key->Category == category )
+					{
+						for ( int32 i = 0; i < effectiveStacks; ++i )
+						{
+							weightPair.Value *= multiplier;
+						}
+					}
+				}
+			}
+		}
+	};
+
+	auto applyTagMultiplierMap = [&]( const TMap<FName, float>& map, int32 effectiveStacks )
+	{
+		for ( const auto& pair : map )
+		{
+			const FName tag        = pair.Key;
+			const float multiplier = pair.Value;
+			if ( tag.IsNone() )
+			{
+				continue;
+			}
+			for ( FWorkingBucket& wb : workingBuckets )
+			{
+				for ( auto& weightPair : wb.Weights )
+				{
+					if ( weightPair.Key && weightPair.Key->Tags.Contains( tag ) )
+					{
+						for ( int32 i = 0; i < effectiveStacks; ++i )
+						{
+							weightPair.Value *= multiplier;
+						}
+					}
+				}
+			}
+		}
+	};
 
 	for ( const FAppliedCardRecord& record : history )
 	{
@@ -118,59 +238,66 @@ TArray<UCardDataAsset*> FCardPoolResolver::Resolve(
 		const int32 rawStacks       = FMath::Max( 1, record.StackCount );
 		const int32 effectiveStacks = FMath::Min( rawStacks, FMath::Max( 1, maxStacksForWeightInfluence ) );
 
-		auto applyMultiplierMap = [&]( const TMap<TObjectPtr<UCardDataAsset>, float>& map )
-		{
-			for ( const auto& pair : map )
-			{
-				UCardDataAsset* target = pair.Key;
-				if ( !target )
-				{
-					continue;
-				}
-				if ( float* weight = weights.Find( target ) )
-				{
-					for ( int32 i = 0; i < effectiveStacks; ++i )
-					{
-						*weight *= pair.Value;
-					}
-				}
-			}
-		};
-
-		auto applyCategoryMultiplierMap = [&]( const TMap<ECardCategory, float>& map )
-		{
-			for ( const auto& pair : map )
-			{
-				const ECardCategory category = pair.Key;
-				const float multiplier       = pair.Value;
-				for ( auto& weightPair : weights )
-				{
-					if ( weightPair.Key && weightPair.Key->Category == category )
-					{
-						for ( int32 i = 0; i < effectiveStacks; ++i )
-						{
-							weightPair.Value *= multiplier;
-						}
-					}
-				}
-			}
-		};
-
-		applyMultiplierMap( source->WeightMultipliers_Up );
-		applyMultiplierMap( source->WeightMultipliers_Down );
-		applyCategoryMultiplierMap( source->CategoryWeightMultipliers_Up );
-		applyCategoryMultiplierMap( source->CategoryWeightMultipliers_Down );
+		applyMultiplierMap( source->WeightMultipliers_Up, effectiveStacks );
+		applyMultiplierMap( source->WeightMultipliers_Down, effectiveStacks );
+		applyCategoryMultiplierMap( source->CategoryWeightMultipliers_Up, effectiveStacks );
+		applyCategoryMultiplierMap( source->CategoryWeightMultipliers_Down, effectiveStacks );
+		applyTagMultiplierMap( source->TagWeightMultipliers_Up, effectiveStacks );
+		applyTagMultiplierMap( source->TagWeightMultipliers_Down, effectiveStacks );
 	}
 
-	TArray<TPair<UCardDataAsset*, float>> weighted;
-	weighted.Reserve( weights.Num() );
-	for ( const auto& pair : weights )
+	TMap<ECardRarity, int32> perRarityCount;
+
+	while ( result.Num() < countToOffer )
 	{
-		if ( pair.Value > 0.f )
+		TArray<int32> candidateBucketIndices;
+		TArray<float> candidateBucketWeights;
+		float candidateTotal = 0.f;
+
+		for ( int32 i = 0; i < workingBuckets.Num(); ++i )
 		{
-			weighted.Add( TPair<UCardDataAsset*, float>( pair.Key, pair.Value ) );
+			FWorkingBucket& wb = workingBuckets[i];
+			const int32 already = perRarityCount.FindRef( wb.Rarity );
+			if ( already >= maxCardsPerRarity )
+			{
+				continue;
+			}
+
+			float bucketAvailableWeight = 0.f;
+			for ( const auto& pair : wb.Weights )
+			{
+				if ( pair.Value > 0.f )
+				{
+					bucketAvailableWeight += pair.Value;
+				}
+			}
+			if ( bucketAvailableWeight <= 0.f )
+			{
+				continue;
+			}
+
+			candidateBucketIndices.Add( i );
+			candidateBucketWeights.Add( wb.RarityWeight );
+			candidateTotal += wb.RarityWeight;
 		}
+
+		if ( candidateBucketIndices.Num() == 0 || candidateTotal <= 0.f )
+		{
+			break;
+		}
+
+		const int32 pickedCandidate = PickIndexByWeight( candidateBucketWeights, candidateTotal );
+		const int32 bucketIdx       = candidateBucketIndices[pickedCandidate];
+
+		UCardDataAsset* picked = PickCardFromBucket( workingBuckets[bucketIdx] );
+		if ( !picked )
+		{
+			continue;
+		}
+
+		result.Add( picked );
+		perRarityCount.FindOrAdd( workingBuckets[bucketIdx].Rarity )++;
 	}
 
-	return WeightedSample( weighted, countToOffer );
+	return result;
 }

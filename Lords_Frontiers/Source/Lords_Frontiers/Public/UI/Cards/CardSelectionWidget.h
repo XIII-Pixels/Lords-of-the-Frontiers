@@ -85,6 +85,12 @@ protected:
 	TObjectPtr<UButton> ConfirmButton;
 
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> RerollButton;
+
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> RerollCostText;
+
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> TitleText;
 
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
@@ -111,6 +117,15 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
 	float CardSpacing = 20.0f;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
+	FText RerollCostFormat = FText::FromString( TEXT( "Reroll ({0} {1})" ) );
+
+	UFUNCTION( BlueprintImplementableEvent, Category = "Card Selection" )
+	void OnRerollAvailabilityChanged( bool bCanReroll, int32 cost );
+
+	UFUNCTION( BlueprintImplementableEvent, Category = "Card Selection" )
+	void OnCardsRerolled();
+
 private:
 	UPROPERTY()
 	TArray<TObjectPtr<UCardWidget>> CardWidgets_;
@@ -120,6 +135,7 @@ private:
 
 	int32 CardsToSelect_ = 2;
 	int32 CurrentWaveNumber_ = 0;
+	int32 RerollCount_ = 0;
 
 	TWeakObjectPtr<UCardSubsystem> CachedCardSubsystem_;
 
@@ -132,8 +148,12 @@ private:
 	UFUNCTION()
 	void HandleConfirmClicked();
 
+	UFUNCTION()
+	void HandleRerollClicked();
+
 	void UpdateSelectionUI();
 	void UpdateTitleText();
+	void UpdateRerollUI();
 
 	UCardSubsystem* GetCardSubsystem();
 };

@@ -1,7 +1,9 @@
 #include "UI/Cards/CardSelectionWidget.h"
 
 #include "Cards/CardDataAsset.h"
+#include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
+#include "Cards/CardTypes.h"
 #include "UI/Cards/CardWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -24,6 +26,11 @@ void UCardSelectionWidget::NativeConstruct()
 		ConfirmButton->OnClicked.AddDynamic( this, &UCardSelectionWidget::HandleConfirmClicked );
 		ConfirmButton->SetIsEnabled( false );
 	}
+
+	if ( RerollButton )
+	{
+		RerollButton->OnClicked.AddDynamic( this, &UCardSelectionWidget::HandleRerollClicked );
+	}
 }
 
 void UCardSelectionWidget::NativeDestruct()
@@ -31,6 +38,11 @@ void UCardSelectionWidget::NativeDestruct()
 	if ( ConfirmButton )
 	{
 		ConfirmButton->OnClicked.RemoveDynamic( this, &UCardSelectionWidget::HandleConfirmClicked );
+	}
+
+	if ( RerollButton )
+	{
+		RerollButton->OnClicked.RemoveDynamic( this, &UCardSelectionWidget::HandleRerollClicked );
 	}
 
 	ClearCardWidgets();
@@ -55,12 +67,14 @@ void UCardSelectionWidget::ShowWithCards( const TArray<UCardDataAsset*>& cards, 
 {
 	CardsToSelect_ = FMath::Max( 1, numToSelect );
 	SelectedCardWidgets_.Empty();
+	RerollCount_ = 0;
 
 	ClearCardWidgets();
 	CreateCardWidgets( cards );
 
 	UpdateTitleText();
 	UpdateSelectionUI();
+	UpdateRerollUI();
 
 	if ( !IsInViewport() )
 	{
@@ -212,6 +226,40 @@ void UCardSelectionWidget::HandleCardClicked( UCardWidget* cardWidget )
 	UpdateSelectionUI();
 }
 
+void UCardSelectionWidget::HandleRerollClicked()
+{
+	UCardSubsystem* cardSubsystem = GetCardSubsystem();
+	if ( !cardSubsystem )
+	{
+		return;
+	}
+
+	FCardChoice newChoice;
+	if ( !cardSubsystem->TryRerollCardChoice( CurrentWaveNumber_, RerollCount_, newChoice ) )
+	{
+		UpdateRerollUI();
+		return;
+	}
+
+	++RerollCount_;
+
+	TArray<UCardDataAsset*> cards;
+	cards.Reserve( newChoice.AvailableCards.Num() );
+	for ( UCardDataAsset* card : newChoice.AvailableCards )
+	{
+		cards.Add( card );
+	}
+
+	SelectedCardWidgets_.Empty();
+	ClearCardWidgets();
+	CreateCardWidgets( cards );
+
+	UpdateSelectionUI();
+	UpdateRerollUI();
+
+	OnCardsRerolled();
+}
+
 void UCardSelectionWidget::HandleConfirmClicked()
 {
 	if ( !CanConfirm() )
@@ -255,6 +303,42 @@ void UCardSelectionWidget::UpdateSelectionUI()
 	}
 
 	OnSelectionCountChanged( currentCount, requiredCount );
+}
+
+void UCardSelectionWidget::UpdateRerollUI()
+{
+	UCardSubsystem* cardSubsystem = GetCardSubsystem();
+	const UCardPoolConfig* poolConfig = cardSubsystem ? cardSubsystem->GetPoolConfig() : nullptr;
+
+	const bool bRerollEnabled = cardSubsystem && cardSubsystem->IsRerollEnabled();
+	const bool bMaxReached = poolConfig && poolConfig->MaxRerollsPerSelection > 0
+	                         && RerollCount_ >= poolConfig->MaxRerollsPerSelection;
+	const bool bCanAfford = bRerollEnabled && !bMaxReached
+	                        && cardSubsystem->CanAffordReroll( RerollCount_ );
+
+	const int32 cost = cardSubsystem ? cardSubsystem->GetRerollCost( RerollCount_ ) : 0;
+
+	if ( RerollButton )
+	{
+		RerollButton->SetVisibility( bRerollEnabled ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+		RerollButton->SetIsEnabled( bCanAfford );
+	}
+
+	if ( RerollCostText )
+	{
+		if ( bRerollEnabled && poolConfig )
+		{
+			const FText resourceName = FText::FromString( CardTypeHelpers::GetResourceName( poolConfig->RerollResource ) );
+			RerollCostText->SetText( FText::Format( RerollCostFormat, FText::AsNumber( cost ), resourceName ) );
+			RerollCostText->SetVisibility( ESlateVisibility::Visible );
+		}
+		else
+		{
+			RerollCostText->SetVisibility( ESlateVisibility::Collapsed );
+		}
+	}
+
+	OnRerollAvailabilityChanged( bCanAfford, cost );
 }
 
 void UCardSelectionWidget::UpdateTitleText()
