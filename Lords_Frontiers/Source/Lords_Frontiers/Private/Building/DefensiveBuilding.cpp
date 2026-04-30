@@ -45,21 +45,6 @@ TObjectPtr<UBehaviorTree> ADefensiveBuilding::BehaviorTree() const
 void ADefensiveBuilding::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// TArray<UBuildingAttackRangedComponent*> attackComponents;
-	// GetComponents( attackComponents );
-	//
-	// if ( attackComponents.Num() == 1 )
-	// {
-	// 	AttackComponent_ = attackComponents[0];
-	// }
-	// else
-	// {
-	// 	UE_LOG(
-	// 	    LogTemp, Error, TEXT( "Number of unit attack component is not equal to 1 (number: %d)" ),
-	// 	    attackComponents.Num()
-	// 	);
-	// }
 }
 
 void ADefensiveBuilding::OnDeath()

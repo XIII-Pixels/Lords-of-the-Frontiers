@@ -53,21 +53,6 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-	// TArray<UAttackComponent*> attackComponents;
-	// GetComponents( attackComponents );
-	//
-	// if ( attackComponents.Num() == 1 )
-	// {
-	// 	AttackComponent_ = attackComponents[0];
-	// }
-	// else
-	// {
-	// 	UE_LOG(
-	// 	    LogTemp, Error, TEXT( "Unit: number of unit attack components is not equal to 1 (number: %d)" ),
-	// 	    attackComponents.Num()
-	// 	);
-	// }
-
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		UnitAIManager_ = core->GetUnitAIManager();
