@@ -17,7 +17,7 @@ class LORDS_FRONTIERS_API UUIManager : public UObject
 public:
 	void OnStartPlay();
 
-	virtual void SetupWidget( TSubclassOf<UUserWidget> widgetClass ) PURE_VIRTUAL();
+	virtual void SetupWidget( TSubclassOf<UUserWidget> widgetClass );
 
 protected:
 	UPROPERTY()
