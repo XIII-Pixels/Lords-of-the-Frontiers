@@ -27,8 +27,7 @@ class LORDS_FRONTIERS_API IEntity
 	GENERATED_BODY()
 
 public:
-	// Attackers call this on attacked object to deal damage
-	virtual void TakeDamage( int damage ) = 0;
+	virtual void TakeDamage( int damage, AActor* instigator = nullptr ) = 0;
 
 	virtual FEntityStats& Stats() = 0;
 	virtual const FEntityStats& Stats() const = 0;

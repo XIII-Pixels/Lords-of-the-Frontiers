@@ -209,6 +209,55 @@ void ABaseProjectile::ActivateFromPool()
 	);
 }
 
+bool ABaseProjectile::InitializeDirectional(
+    AActor* inInstigator, const FVector& startLocation, const FVector& direction, int inDamage, float inSpeed,
+    float inMaxRange, float inSplashRadius
+)
+{
+	if ( !IsValid( inInstigator ) )
+	{
+		return false;
+	}
+
+	const FVector dirNormalized = direction.GetSafeNormal();
+	if ( dirNormalized.IsNearlyZero() )
+	{
+		return false;
+	}
+
+	Target_ = nullptr;
+	Damage_ = FMath::Max( inDamage, 0 );
+	Speed_ = FMath::Max( inSpeed, 0.0f );
+	SplashRadius_ = FMath::Max( inSplashRadius, 0.f );
+	MaxRange_ = FMath::Max( inMaxRange, 0.0f );
+	bTrackTarget_ = false;
+	bSuppressCardTriggers_ = true;
+	SetInstigator( inInstigator->GetInstigator() );
+	SetOwner( inInstigator );
+
+	GroundZ_ = startLocation.Z;
+	const FVector endLocation = startLocation + dirNormalized * MaxRange_;
+
+	StartLocation_ = startLocation;
+	TargetLocation_ = endLocation;
+
+	FlightDuration_ = FMath::Max( MaxRange_ / FMath::Max( Speed_, 1.f ), 0.1f );
+	FlightProgress_ = 0.f;
+	ArcScale_ = 1.f;
+
+	SetActorLocationAndRotation( startLocation, dirNormalized.Rotation() );
+
+	bIsActive_ = true;
+	SetActorHiddenInGame( false );
+	SetActorTickEnabled( true );
+	SetActorEnableCollision( true );
+
+	GetWorld()->GetTimerManager().SetTimer(
+	    LifetimeTimerHandle, this, &ABaseProjectile::OnLifetimeExpired, MaxLifetime, false );
+
+	return true;
+}
+
 bool ABaseProjectile::Initialize(
     AActor* inInstigator, TWeakObjectPtr<AActor> inTarget, int inDamage, float inSpeed, const FVector& spawnOffset,
     float inSplashRadius, float inMaxRange, bool bTrackTarget
@@ -225,6 +274,7 @@ bool ABaseProjectile::Initialize(
 	SplashRadius_ = FMath::Max( inSplashRadius, 0.f );
 	MaxRange_ = FMath::Max( inMaxRange, 0.0f );
 	bTrackTarget_ = bTrackTarget;
+	bSuppressCardTriggers_ = false;
 	SetInstigator( inInstigator->GetInstigator() );
 	SetOwner( inInstigator );
 
@@ -308,6 +358,11 @@ void ABaseProjectile::Tick( float deltaTime )
 			DealDamage( nullptr );
 		}
 
+		if ( !bSuppressCardTriggers_ )
+		{
+			FDamageEvents::OnProjectileLanded.Broadcast( GetOwner(), ImpactLocation );
+		}
+
 		ReturnToPool();
 		return;
 	}
@@ -368,10 +423,19 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 		{
 			if ( target->Stats().IsAlive() )
 			{
-				target->TakeDamage( Damage_ );
-				FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), hitActor, Damage_, false );
+				if ( !bSuppressCardTriggers_ )
+				{
+					FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), hitActor, Damage_, false );
+				}
+				target->TakeDamage( Damage_, GetOwner() );
 			}
 		}
+	}
+	else if ( !bSuppressCardTriggers_ )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "BaseProjectile::DealDamage MISS by %s at %s" ),
+			*GetNameSafe( GetOwner() ), *GetActorLocation().ToCompactString() );
+		FDamageEvents::OnProjectileMissed.Broadcast( GetOwner(), GetActorLocation() );
 	}
 
 	if ( SplashRadius_ <= 0.0f )
@@ -436,8 +500,11 @@ void ABaseProjectile::DealDamage( AActor* hitActor ) const
 
 		if ( enemy->Stats().IsAlive() && enemy->Team() != ownerEntity->Team() )
 		{
-			enemy->TakeDamage( Damage_ );
-			FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), overlapActor, Damage_, true );
+			if ( !bSuppressCardTriggers_ )
+			{
+				FDamageEvents::OnDamageDealt.Broadcast( GetOwner(), overlapActor, Damage_, true );
+			}
+			enemy->TakeDamage( Damage_, GetOwner() );
 			damagedActors.Add( overlapActor );
 		}
 	}
@@ -458,6 +525,15 @@ void ABaseProjectile::ReturnToPool()
 
 void ABaseProjectile::OnLifetimeExpired()
 {
+	if ( bIsActive_ )
+	{
+		if ( !bSuppressCardTriggers_ )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "BaseProjectile::OnLifetimeExpired MISS by %s at %s" ),
+				*GetNameSafe( GetOwner() ), *GetActorLocation().ToCompactString() );
+			FDamageEvents::OnProjectileMissed.Broadcast( GetOwner(), GetActorLocation() );
+		}
+	}
 	ReturnToPool();
 }
 

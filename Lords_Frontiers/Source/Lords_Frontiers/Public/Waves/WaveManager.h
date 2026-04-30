@@ -93,6 +93,9 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnAllWavesCompletedSignature OnAllWavesCompleted;
 
+	UPROPERTY( Transient )
+	TMap<int32, TObjectPtr<UWaveData>> SelectedWavePresets_;
+
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|Events" )
 	bool SubscribeToAllWavesCompleted( UObject* listener, FName functionName );
 
@@ -125,6 +128,14 @@ public:
 	int32 GetWavesCount() const;
 
 	const FEnemyBuff* FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const;
+
+	const UWaveData* GetSelectedWaveData( int32 WaveIndex ) const;
+
+	void BuildSelectedWavePresetCache();
+
+	const UWaveData* PickWeightedWavePreset( const FWavePresetSlot& Slot ) const;
+
+	void ClearWavePresetCache();
 
 protected:
 	virtual void BeginPlay() override;

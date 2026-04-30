@@ -16,6 +16,7 @@ class UNiagaraSystem;
 class UHealthBarConfigDataAsset;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator );
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
@@ -41,7 +42,7 @@ public:
 
 	virtual ETeam Team() const override;
 
-	virtual void TakeDamage( int damage ) override;
+	virtual void TakeDamage( int damage, AActor* instigator = nullptr ) override;
 
 	virtual void OnSelected_Implementation() override;
 
@@ -90,6 +91,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable )
 	FOnBuildingDeath OnBuildingDied;
+
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingDamaged OnBuildingDamaged;
 
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
@@ -144,6 +148,12 @@ protected:
 
 	void ActivateRuinsMesh();
 
+	void UpdateSelectionOverlay();
+
+	void ShowSelectionOverlay();
+
+	void HideSelectionOverlay();
+
 	UPROPERTY()
 	TObjectPtr<UBoxComponent> CollisionComponent_;
 
@@ -158,6 +168,13 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UStaticMesh> BuildingMesh_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UMaterialInterface> SelectionMaterial_;
+
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	TObjectPtr<UStaticMeshComponent> SelectionOverlayMesh_;
+
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	FVector2D AnimationRateRange_ = FVector2D( 0.8f, 1.2f );

@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "InputActionValue.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "InputActionValue.h"
 
 #include "StrategyCamera.generated.h"
 
@@ -47,7 +48,7 @@ public:
 	TObjectPtr<UInputAction> RotateAction; // Q/E (Axis1D)
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
-	TObjectPtr<UInputAction> PauseAction; //ESC
+	TObjectPtr<UInputAction> PauseAction; // ESC
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Input" )
 	void SetCameraInputDisabled( bool bDisabled )
@@ -117,10 +118,16 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
 	bool bAutoCalculateBounds_ = true;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds" )
+	FVector2D MinMoveAreaExtents_ = FVector2D( 0.0f, 0.0f );
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bounds", meta = ( ClampMin = "0.1" ) )
+	float BoundsCurveExponent_ = 1.0f;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visual" )
 	float RotationSpeed_ = 45.0f;
 
-	//Edge Scrolling
+	// Edge Scrolling
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Movement" )
 	bool bEnableEdgeScrolling_ = true;
 
@@ -137,28 +144,28 @@ protected:
 	    EditAnywhere, BlueprintReadWrite, Category = "Settings|CameraType",
 	    meta = ( EditCondition = "ProjectionMode_ == ECameraProjectionMode::Perspective" )
 	)
-	float FieldOfView_ = 15.0f; //fake orto
+	float FieldOfView_ = 15.0f; // fake orto
 
-	//orto
+	// orto
 	UPROPERTY(
 	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom",
 	    meta = ( EditCondition = "ProjectionMode_ == ECameraProjectionMode::Orthographic" )
 	)
 	float InitialOrthoWidth_ = 2048.0f;
 
-	//perspectiva
+	// perspectiva
 	UPROPERTY(
 	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom",
 	    meta = ( EditCondition = "ProjectionMode_ == ECameraProjectionMode::Perspective" )
 	)
 	float InitialTargetArmLength_ = 8000.0f;
 
-public:	
+public:
 	// Called every frame
-	virtual void Tick(float deltaTime) override;
+	virtual void Tick( float deltaTime ) override;
 
 	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
+	virtual void SetupPlayerInputComponent( class UInputComponent* playerInputComponent ) override;
 
 private:
 	void Move( const FInputActionValue& value );
@@ -172,4 +179,7 @@ private:
 	float TargetYaw_;
 	float CurrentYaw_;
 	bool bIsCameraInputDisabled_ = false;
+
+	FVector2D MapCenter_;
+	FVector2D MaxMoveAreaExtents_;
 };

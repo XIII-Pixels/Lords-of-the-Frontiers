@@ -14,8 +14,8 @@ class LORDS_FRONTIERS_API UWaveConfigData : public UDataAsset
 
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "WaveConfig" )
-	TArray<TObjectPtr<UWaveData>> Waves;
+	float WaveEndSafetyMargin = 1.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "WaveConfig" )
-	float WaveEndSafetyMargin = 1.0f;
+	TArray<FWavePresetSlot> Waves;
 };
