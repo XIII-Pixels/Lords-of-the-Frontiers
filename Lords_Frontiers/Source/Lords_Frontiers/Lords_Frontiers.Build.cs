@@ -23,7 +23,8 @@ public class Lords_Frontiers : ModuleRules
 	        "JsonUtilities",
 	        "Niagara",
 	        "AIModule",
-	        "GameplayTasks"
+	        "GameplayTasks",
+	        "GeometryCache"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });
