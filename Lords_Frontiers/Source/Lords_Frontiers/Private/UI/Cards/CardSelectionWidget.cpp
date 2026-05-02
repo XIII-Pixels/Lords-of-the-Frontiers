@@ -35,12 +35,12 @@ void UCardSelectionWidget::NativeConstruct()
 
 void UCardSelectionWidget::NativeDestruct()
 {
-	if ( ConfirmButton )
+	if ( IsValid( ConfirmButton ) )
 	{
 		ConfirmButton->OnClicked.RemoveDynamic( this, &UCardSelectionWidget::HandleConfirmClicked );
 	}
 
-	if ( RerollButton )
+	if ( IsValid( RerollButton ) )
 	{
 		RerollButton->OnClicked.RemoveDynamic( this, &UCardSelectionWidget::HandleRerollClicked );
 	}
@@ -78,7 +78,7 @@ void UCardSelectionWidget::ShowWithCards( const TArray<UCardDataAsset*>& cards, 
 
 	if ( !IsInViewport() )
 	{
-		AddToViewport( 100 );
+		AddToViewport( ViewportZOrder );
 	}
 
 	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
@@ -97,17 +97,21 @@ void UCardSelectionWidget::Hide()
 {
 	OnWidgetHiding();
 
-	if ( APlayerController* pc = UGameplayStatics::GetPlayerController( GetWorld(), 0 ) )
+	const UWorld* world = GetWorld();
+	if ( world && !world->bIsTearingDown )
 	{
-		FInputModeGameAndUI inputMode;
-		inputMode.SetLockMouseToViewportBehavior( EMouseLockMode::DoNotLock );
-		pc->SetInputMode( inputMode );
+		if ( APlayerController* pc = UGameplayStatics::GetPlayerController( world, 0 ) )
+		{
+			FInputModeGameAndUI inputMode;
+			inputMode.SetLockMouseToViewportBehavior( EMouseLockMode::DoNotLock );
+			pc->SetInputMode( inputMode );
+		}
 	}
 
-	RemoveFromParent();
-
-	ClearCardWidgets();
 	SelectedCardWidgets_.Empty();
+	ClearCardWidgets();
+
+	RemoveFromParent();
 }
 
 TArray<UCardDataAsset*> UCardSelectionWidget::GetSelectedCards() const
@@ -127,7 +131,7 @@ TArray<UCardDataAsset*> UCardSelectionWidget::GetSelectedCards() const
 
 void UCardSelectionWidget::CreateCardWidgets( const TArray<UCardDataAsset*>& cards )
 {
-	if ( !CardWidgetClass )
+	if ( !CardWidgetClass && RarityCardWidgetClasses.Num() == 0 )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "CardSelectionWidget: CardWidgetClass not set!" ) );
 		return;
@@ -154,7 +158,22 @@ void UCardSelectionWidget::CreateCardWidgets( const TArray<UCardDataAsset*>& car
 			continue;
 		}
 
-		UCardWidget* cardWidget = CreateWidget<UCardWidget>( this, CardWidgetClass );
+		TSubclassOf<UCardWidget> widgetClass = CardWidgetClass;
+		if ( const TSubclassOf<UCardWidget>* rarityClass = RarityCardWidgetClasses.Find( cardData->Rarity );
+		     rarityClass && *rarityClass )
+		{
+			widgetClass = *rarityClass;
+		}
+
+		if ( !widgetClass )
+		{
+			UE_LOG( LogTemp, Warning,
+				TEXT( "CardSelectionWidget: no widget class for rarity %d and no fallback CardWidgetClass set" ),
+				static_cast<int32>( cardData->Rarity ) );
+			continue;
+		}
+
+		UCardWidget* cardWidget = CreateWidget<UCardWidget>( this, widgetClass );
 		if ( !cardWidget )
 		{
 			continue;
@@ -190,16 +209,26 @@ void UCardSelectionWidget::CreateCardWidgets( const TArray<UCardDataAsset*>& car
 
 void UCardSelectionWidget::ClearCardWidgets()
 {
+	const UWorld* world = GetWorld();
+	const bool bIsTearingDown = !world || world->bIsTearingDown;
+
 	for ( TObjectPtr<UCardWidget>& widget : CardWidgets_ )
 	{
-		if ( widget )
+		if ( !IsValid( widget ) )
 		{
-			widget->OnCardClicked.RemoveDynamic( this, &UCardSelectionWidget::HandleCardClicked );
+			continue;
+		}
+
+		widget->OnCardClicked.RemoveDynamic( this, &UCardSelectionWidget::HandleCardClicked );
+
+		if ( !bIsTearingDown )
+		{
 			widget->RemoveFromParent();
 		}
 	}
 
 	CardWidgets_.Empty();
+	SelectedCardWidgets_.Empty();
 }
 
 void UCardSelectionWidget::HandleCardClicked( UCardWidget* cardWidget )
@@ -213,15 +242,21 @@ void UCardSelectionWidget::HandleCardClicked( UCardWidget* cardWidget )
 	{
 		cardWidget->SetSelected( false );
 		SelectedCardWidgets_.Remove( cardWidget );
+		UpdateSelectionUI();
+		return;
 	}
-	else
+
+	for ( const TObjectPtr<UCardWidget>& selected : SelectedCardWidgets_ )
 	{
-		if ( SelectedCardWidgets_.Num() < CardsToSelect_ )
+		if ( selected && selected != cardWidget )
 		{
-			cardWidget->SetSelected( true );
-			SelectedCardWidgets_.Add( cardWidget );
+			selected->SetSelected( false );
 		}
 	}
+	SelectedCardWidgets_.Empty();
+
+	cardWidget->SetSelected( true );
+	SelectedCardWidgets_.Add( cardWidget );
 
 	UpdateSelectionUI();
 }
@@ -328,8 +363,7 @@ void UCardSelectionWidget::UpdateRerollUI()
 	{
 		if ( bRerollEnabled && poolConfig )
 		{
-			const FText resourceName = FText::FromString( CardTypeHelpers::GetResourceName( poolConfig->RerollResource ) );
-			RerollCostText->SetText( FText::Format( RerollCostFormat, FText::AsNumber( cost ), resourceName ) );
+			RerollCostText->SetText( FText::Format( RerollCostFormat, FText::AsNumber( cost ) ) );
 			RerollCostText->SetVisibility( ESlateVisibility::Visible );
 		}
 		else

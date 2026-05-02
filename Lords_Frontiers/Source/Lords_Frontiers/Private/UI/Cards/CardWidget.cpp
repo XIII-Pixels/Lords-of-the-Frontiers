@@ -4,7 +4,7 @@
 
 #include "Components/Button.h"
 #include "Components/Image.h"
-#include "Components/TextBlock.h"
+#include "Components/RichTextBlock.h"
 
 void UCardWidget::NativeConstruct()
 {
@@ -17,17 +17,13 @@ void UCardWidget::NativeConstruct()
 		CardButton->OnUnhovered.AddDynamic( this, &UCardWidget::HandleButtonUnhovered );
 	}
 
-	UpdateBorderVisual();
-
-	if ( BackgroundImage && CardBackgroundTexture )
-	{
-		BackgroundImage->SetBrushFromTexture( CardBackgroundTexture );
-	}
+	SetRenderTransformPivot( FVector2D( 0.5f, 0.5f ) );
+	SetRenderScale( FVector2D( 1.0f, 1.0f ) );
 }
 
 void UCardWidget::NativeDestruct()
 {
-	if ( CardButton )
+	if ( IsValid( CardButton ) )
 	{
 		CardButton->OnClicked.RemoveDynamic( this, &UCardWidget::HandleButtonClicked );
 		CardButton->OnHovered.RemoveDynamic( this, &UCardWidget::HandleButtonHovered );
@@ -57,7 +53,9 @@ void UCardWidget::SetSelected( bool bSelected )
 	}
 
 	bIsSelected_ = bSelected;
-	UpdateBorderVisual();
+
+	const float scale = bIsSelected_ ? SelectedScale : 1.0f;
+	SetRenderScale( FVector2D( scale, scale ) );
 
 	OnSelectionChanged( bIsSelected_ );
 }
@@ -69,11 +67,6 @@ void UCardWidget::SetInteractionEnabled( bool bEnabled )
 	if ( CardButton )
 	{
 		CardButton->SetIsEnabled( bEnabled );
-	}
-
-	if ( BorderImage )
-	{
-		BorderImage->SetColorAndOpacity( bEnabled ? NormalTint : DisabledTint );
 	}
 }
 
@@ -94,39 +87,30 @@ void UCardWidget::HandleButtonHovered()
 		return;
 	}
 
-	if ( BorderImage && !bIsSelected_ )
-	{
-		BorderImage->SetColorAndOpacity( HoveredTint );
-	}
-
 	OnCardHovered();
 }
 
 void UCardWidget::HandleButtonUnhovered()
 {
-	if ( BorderImage && !bIsSelected_ )
-	{
-		BorderImage->SetColorAndOpacity( NormalTint );
-	}
-
 	OnCardUnhovered();
 }
 
-void UCardWidget::UpdateBorderVisual()
+static void ApplyIconTexture( UImage* image, UTexture2D* texture )
 {
-	if ( !BorderImage )
+	if ( !image )
 	{
 		return;
 	}
 
-	UTexture2D* textureToUse = bIsSelected_ ? SelectedBorderTexture : NormalBorderTexture;
-
-	if ( textureToUse )
+	if ( texture )
 	{
-		BorderImage->SetBrushFromTexture( textureToUse );
+		image->SetBrushFromTexture( texture );
+		image->SetVisibility( ESlateVisibility::HitTestInvisible );
 	}
-
-	BorderImage->SetColorAndOpacity( bIsInteractionEnabled_ ? NormalTint : DisabledTint );
+	else
+	{
+		image->SetVisibility( ESlateVisibility::Hidden );
+	}
 }
 
 void UCardWidget::UpdateCardVisuals()
@@ -146,18 +130,6 @@ void UCardWidget::UpdateCardVisuals()
 		DescriptionText->SetText( CardData_->BuildDescription() );
 	}
 
-	if ( TargetText )
-	{
-		TargetText->SetText( CardData_->GetTargetDescription() );
-	}
-
-	if ( IconImage && CardData_->Icon )
-	{
-		IconImage->SetBrushFromTexture( CardData_->Icon );
-		IconImage->SetVisibility( ESlateVisibility::Visible );
-	}
-	else if ( IconImage )
-	{
-		IconImage->SetVisibility( ESlateVisibility::Hidden );
-	}
+	ApplyIconTexture( BuildingIconImage, CardData_->BuildingIcon );
+	ApplyIconTexture( FeatureIconImage, CardData_->FeatureIcon );
 }

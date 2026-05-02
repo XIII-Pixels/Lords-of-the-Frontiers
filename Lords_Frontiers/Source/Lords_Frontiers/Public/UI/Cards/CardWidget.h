@@ -7,7 +7,7 @@
 
 class UCardDataAsset;
 class UImage;
-class UTextBlock;
+class URichTextBlock;
 class UButton;
 class USizeBox;
 
@@ -20,20 +20,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardClicked, UCardWidget*, CardW
 /**
  * UCardWidget
  *
- * Widget displaying a single card with:
- * - Card icon
- * - Card name
- * - Description
- * - Selection state (normal/selected border)
- *
- * Usage:
- * 1. Create Blueprint child: WBP_CardWidget
- * 2. Add UI elements and bind to exposed properties
- * 3. Call SetCardData() to populate
- * 4. Subscribe to OnCardClicked for selection handling
- *
- * The widget handles click detection and visual state changes.
- * Parent widget (CardSelectionWidget) manages selection logic.
+ * Minimal card visual:
+ * - BuildingIconImage  (Постройка) — UCardDataAsset::BuildingIcon
+ * - FeatureIconImage   (Особенность) — UCardDataAsset::FeatureIcon
+ * - CardNameText       (URichTextBlock) — UCardDataAsset::CardName
+ * - DescriptionText    (URichTextBlock) — UCardDataAsset::BuildDescription()
+ * Plus a click button. Selection visuals are handled in Blueprint via
+ * OnSelectionChanged.
  */
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UCardWidget : public UUserWidget
@@ -43,7 +36,6 @@ class LORDS_FRONTIERS_API UCardWidget : public UUserWidget
 public:
 	/**
 	 * Initializes the widget with card data.
-	 * Call this after creating the widget.
 	 *
 	 * @param cardData - Card to display. Must be valid.
 	 */
@@ -61,7 +53,8 @@ public:
 
 	/**
 	 * Sets the selection state of the card.
-	 * Changes border texture between normal and selected.
+	 * Drives the SelectedScale render transform and broadcasts
+	 * OnSelectionChanged so Blueprint can handle visuals.
 	 *
 	 * @param bSelected - True to show selected state
 	 */
@@ -128,53 +121,26 @@ protected:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> CardButton;
 
-	/** Card border image - switches between normal/selected textures */
+	/** Building icon («Постройка»), driven by UCardDataAsset::BuildingIcon. */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> BuildingIconImage;
+
+	/** Feature icon («Особенность»), driven by UCardDataAsset::FeatureIcon. */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> FeatureIconImage;
+
+	/** Card name (rich text — supports inline decorators/styles) */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
-	TObjectPtr<UImage> BorderImage;
+	TObjectPtr<URichTextBlock> CardNameText;
 
-	/** Card background image */
-	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UImage> BackgroundImage;
+	/** Card description (rich text — supports inline decorators/styles) */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
+	TObjectPtr<URichTextBlock> DescriptionText;
 
-	/** Card icon/artwork */
-	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UImage> IconImage;
-
-	/** Card name text */
-	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> CardNameText;
-
-	/** Card description text */
-	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> DescriptionText;
-
-	/** Target description (which buildings affected) */
-	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> TargetText;
-
-	/** Border texture for normal (unselected) state */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
-	TObjectPtr<UTexture2D> NormalBorderTexture;
-
-	/** Border texture for selected state */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
-	TObjectPtr<UTexture2D> SelectedBorderTexture;
-
-	/** Background texture for the card */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
-	TObjectPtr<UTexture2D> CardBackgroundTexture;
-
-	/** Color tint for normal state */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
-	FLinearColor NormalTint = FLinearColor::White;
-
-	/** Color tint for hovered state */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
-	FLinearColor HoveredTint = FLinearColor( 1.1f, 1.1f, 1.1f, 1.0f );
-
-	/** Color tint for disabled state */
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance" )
-	FLinearColor DisabledTint = FLinearColor( 0.5f, 0.5f, 0.5f, 1.0f );
+	/** Render scale applied while the card is selected. Uses render transform so siblings don't shift. */
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card|Appearance",
+		meta = ( ClampMin = "1.0", UIMin = "1.0" ) )
+	float SelectedScale = 1.15f;
 
 private:
 	/** Current card data */
@@ -197,9 +163,6 @@ private:
 
 	UFUNCTION()
 	void HandleButtonUnhovered();
-
-	/** Updates border image based on current state */
-	void UpdateBorderVisual();
 
 	/** Updates all visuals from card data */
 	void UpdateCardVisuals();
