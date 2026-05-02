@@ -22,11 +22,17 @@ public:
 	FText CardName;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
-		meta = ( MultiLine = true ) )
+		meta = ( MultiLine = true,
+			ToolTip = "Rendered as Rich Text in the card widget. Use <decorator>...</decorator> tags as configured on the WBP." ) )
 	FText Description;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
-	TObjectPtr<UTexture2D> Icon = nullptr;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "«Постройка» — building/silhouette icon shown on the card widget." ) )
+	TObjectPtr<UTexture2D> BuildingIcon = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "«Особенность» — feature/specialty icon shown on the card widget." ) )
+	TObjectPtr<UTexture2D> FeatureIcon = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
 	ECardRarity Rarity = ECardRarity::Common;

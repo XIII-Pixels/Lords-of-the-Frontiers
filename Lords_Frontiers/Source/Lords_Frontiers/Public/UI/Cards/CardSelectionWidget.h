@@ -105,6 +105,10 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
 	TSubclassOf<UCardWidget> CardWidgetClass;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config",
+		meta = ( ToolTip = "Optional per-rarity widget overrides. If a rarity is not present, CardWidgetClass is used as a fallback." ) )
+	TMap<ECardRarity, TSubclassOf<UCardWidget>> RarityCardWidgetClasses;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
 	FText TitleFormat = FText::FromString( TEXT( "Choose {0} Cards" ) );
 
@@ -118,7 +122,11 @@ protected:
 	float CardSpacing = 20.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
-	FText RerollCostFormat = FText::FromString( TEXT( "Reroll ({0} {1})" ) );
+	FText RerollCostFormat = FText::FromString( TEXT( "Reroll ({0})" ) );
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config",
+		meta = ( ToolTip = "Z-order used when adding the widget to the viewport. Keep below HUD elements (e.g. ResourcesPanel) that should remain visible." ) )
+	int32 ViewportZOrder = 10;
 
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card Selection" )
 	void OnRerollAvailabilityChanged( bool bCanReroll, int32 cost );
