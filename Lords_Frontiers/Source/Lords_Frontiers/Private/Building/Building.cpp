@@ -10,6 +10,7 @@
 #include "Utilities/TraceChannelMappings.h"
 #include "VFX/EntityVFXConfig.h"
 
+#include "GeometryCacheComponent.h"
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
@@ -22,15 +23,28 @@ ABuilding::ABuilding()
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 	SetRootComponent( CollisionComponent_ );
 
+	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
+	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	SkeletalMeshComponent_->SetupAttachment( RootComponent );
+
+	GeometryCacheComponent_ = CreateDefaultSubobject<UGeometryCacheComponent>( TEXT( "GeometryCache" ) );
+	GeometryCacheComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	GeometryCacheComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
+	GeometryCacheComponent_->SetupAttachment( RootComponent );
+
 	StaticMeshComponent_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "StaticMesh" ) );
 	StaticMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
 	StaticMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
 	StaticMeshComponent_->SetupAttachment( RootComponent );
 
-	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
-	SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
-	SkeletalMeshComponent_->SetCollisionResponseToAllChannels( ECR_Ignore );
-	SkeletalMeshComponent_->SetupAttachment( RootComponent );
+	SelectionOverlayMesh_ = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionOverlayMesh" ) );
+	SelectionOverlayMesh_->SetupAttachment( RootComponent );
+	SelectionOverlayMesh_->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	SelectionOverlayMesh_->SetGenerateOverlapEvents( false );
+	SelectionOverlayMesh_->SetCastShadow( false );
+	SelectionOverlayMesh_->SetHiddenInGame( true );
+	SelectionOverlayMesh_->SetVisibility( false );
 }
 
 void ABuilding::BeginPlay()
@@ -65,6 +79,8 @@ void ABuilding::BeginPlay()
 	ResolveVFXDefaults();
 	SpawnConstructionVFX();
 
+	UpdateSelectionOverlay();
+	HideSelectionOverlay();
 	SubscribeHealthBar();
 }
 
@@ -271,21 +287,34 @@ void ABuilding::FinalizeRuin()
 		    FString::Printf( TEXT( "Building %s: Collision disabled, enemies can pass." ), *GetName() )
 		);
 	}
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::ActivateBuildingMesh()
 {
 	if ( SkeletalMeshComponent_->GetSkeletalMeshAsset() )
 	{
-		StaticMeshComponent_->SetVisibility( false );
 		SkeletalMeshComponent_->SetVisibility( true );
+
+		GeometryCacheComponent_->SetVisibility( false );
+		StaticMeshComponent_->SetVisibility( false );
+	}
+	else if ( GeometryCacheComponent_->GetGeometryCache() )
+	{
+		GeometryCacheComponent_->SetVisibility( true );
+
+		SkeletalMeshComponent_->SetVisibility( false );
+		StaticMeshComponent_->SetVisibility( false );
 	}
 	else
 	{
 		StaticMeshComponent_->SetStaticMesh( BuildingMesh_ );
-		SkeletalMeshComponent_->SetVisibility( false );
 		StaticMeshComponent_->SetVisibility( true );
+
+		SkeletalMeshComponent_->SetVisibility( false );
+		GeometryCacheComponent_->SetVisibility( false );
 	}
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::ActivateRuinsMesh()
@@ -294,9 +323,12 @@ void ABuilding::ActivateRuinsMesh()
 	{
 		StaticMeshComponent_->SetStaticMesh( RuinedMesh_ );
 		StaticMeshComponent_->SetRenderCustomDepth( false );
-		SkeletalMeshComponent_->SetVisibility( false );
 		StaticMeshComponent_->SetVisibility( true );
+
+		SkeletalMeshComponent_->SetVisibility( false );
+		GeometryCacheComponent_->SetVisibility( false );
 	}
+	UpdateSelectionOverlay();
 }
 
 FEntityStats& ABuilding::Stats()
@@ -367,6 +399,9 @@ void ABuilding::OnSelected_Implementation()
 	{
 		StaticMeshComponent_->SetRenderCustomDepth( true );
 	}
+
+	UpdateSelectionOverlay();
+	ShowSelectionOverlay();
 }
 
 void ABuilding::OnDeselected_Implementation()
@@ -379,6 +414,8 @@ void ABuilding::OnDeselected_Implementation()
 	}
 
 	StaticMeshComponent_->SetRenderCustomDepth( false );
+
+	HideSelectionOverlay();
 }
 
 bool ABuilding::CanBeSelected_Implementation() const
@@ -403,6 +440,16 @@ void ABuilding::EndPlay( const EEndPlayReason::Type endPlayReason )
 	Super::EndPlay( endPlayReason );
 }
 
+void ABuilding::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if ( !PreviewMesh_ )
+	{
+		PreviewMesh_ = BuildingMesh_;
+	}
+}
+
 void ABuilding::RestoreFromRuins()
 {
 	if ( !bIsRuined_ )
@@ -425,6 +472,8 @@ void ABuilding::RestoreFromRuins()
 	}
 
 	ActivateBuildingMesh();
+
+	UpdateSelectionOverlay();
 }
 
 void ABuilding::FullRestore()
@@ -511,4 +560,48 @@ FResourceProduction ABuilding::GetRelocationCost() const
 FResourceProduction ABuilding::GetDemolitionRefund() const
 {
 	return DemolitionRefund_;
+}
+
+void ABuilding::UpdateSelectionOverlay()
+{
+	if ( !SelectionOverlayMesh_ )
+	{
+		return;
+	}
+
+	UStaticMesh* meshToUse = nullptr;
+
+	if ( StaticMeshComponent_ )
+	{
+		meshToUse = StaticMeshComponent_->GetStaticMesh();
+	}
+
+	if ( !meshToUse && BuildingMesh_ )
+	{
+		meshToUse = BuildingMesh_;
+	}
+
+	if ( meshToUse )
+	{
+		SelectionOverlayMesh_->SetStaticMesh( meshToUse );
+		SelectionOverlayMesh_->SetMaterial( 0, SelectionMaterial_ );
+	}
+}
+
+void ABuilding::ShowSelectionOverlay()
+{
+	if ( SelectionOverlayMesh_ )
+	{
+		SelectionOverlayMesh_->SetVisibility( true );
+		SelectionOverlayMesh_->SetHiddenInGame( false );
+	}
+}
+
+void ABuilding::HideSelectionOverlay()
+{
+	if ( SelectionOverlayMesh_ )
+	{
+		SelectionOverlayMesh_->SetVisibility( false );
+		SelectionOverlayMesh_->SetHiddenInGame( true );
+	}
 }

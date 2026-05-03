@@ -3,6 +3,7 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
+#include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
@@ -13,6 +14,7 @@
 #include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
 
+#include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/FollowComponent.h"
 #include "Engine/World.h"
@@ -25,6 +27,9 @@ AUnit::AUnit()
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
 	SetRootComponent( CollisionComponent_ );
+
+	AttackComponent_ = CreateDefaultSubobject<UUnitAttackRangedComponent>( TEXT( "Attack Ranged " ) );
+	AttackComponent_->SetupAttachment( RootComponent );
 
 	SkeletalMeshComponent_ = CreateDefaultSubobject<USkeletalMeshComponent>( TEXT( "SkeletalMesh" ) );
 	SkeletalMeshComponent_->SetupAttachment( RootComponent );
@@ -52,21 +57,6 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
-	TArray<UAttackComponent*> attackComponents;
-	GetComponents( attackComponents );
-
-	if ( attackComponents.Num() == 1 )
-	{
-		AttackComponent_ = attackComponents[0];
-	}
-	else
-	{
-		UE_LOG(
-		    LogTemp, Error, TEXT( "Unit: number of unit attack components is not equal to 1 (number: %d)" ),
-		    attackComponents.Num()
-		);
-	}
-
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		UnitAIManager_ = core->GetUnitAIManager();
@@ -78,7 +68,7 @@ void AUnit::BeginPlay()
 	{
 		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 		    this,
-		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		    [this]( int /*newHealth*/, int /*maxHealth*/ )
 		    {
 			    if ( UWorld* world = GetWorld() )
 			    {
@@ -194,6 +184,11 @@ void AUnit::OnDeath()
 {
 	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
 	HealthBarSubscription_.Reset();
+
+	if ( UnitAIManager_.IsValid() )
+	{
+		UnitAIManager_->PathPointsManager()->ReleasePathPoints( Path(), GetClass() );
+	}
 
 	if ( UWorld* world = GetWorld() )
 	{

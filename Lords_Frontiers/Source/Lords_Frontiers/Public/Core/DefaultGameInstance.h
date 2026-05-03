@@ -9,6 +9,7 @@
 
 #include "DefaultGameInstance.generated.h"
 
+class UGameSaverConfig;
 class ACardFeedbackPopup;
 class ACardIconStrip;
 
@@ -21,6 +22,9 @@ class LORDS_FRONTIERS_API UDefaultGameInstance : public UGameInstance
 public:
 	virtual void Init() override;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Saving" )
+	TObjectPtr<UGameSaverConfig> GameSaverConfig;
+  
 	TSubclassOf<ACardFeedbackPopup> GetCardFeedbackPopupClass() const
 	{
 		return CardFeedbackPopupClass_;

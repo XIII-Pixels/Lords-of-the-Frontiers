@@ -12,6 +12,7 @@
 
 #include "DefensiveBuilding.generated.h"
 
+class UBuildingAttackRangedComponent;
 class UAttackComponent;
 class AAIController;
 class UBehaviorTree;
@@ -86,13 +87,13 @@ protected:
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings" )
 	TWeakObjectPtr<AActor> AttackTarget_;
 
-	UPROPERTY()
-	TObjectPtr<UAttackComponent> AttackComponent_;
-
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UDecalComponent> RangeDecalComponent_ = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Preview" )
 	TObjectPtr<UMaterialInterface> RangeIndicatorMaterial_ = nullptr;
+
+	UPROPERTY( EditDefaultsOnly )
+	TObjectPtr<UAttackComponent> AttackComponent_;
 };
 // DefensiveBuilding.h

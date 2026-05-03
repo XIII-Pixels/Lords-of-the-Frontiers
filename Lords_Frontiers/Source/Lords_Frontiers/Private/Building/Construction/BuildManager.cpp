@@ -172,7 +172,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		const ABuilding* buildingCDO = CurrentBuildingClass_->GetDefaultObject<ABuilding>();
 		if ( buildingCDO )
 		{
-			if ( UStaticMesh* buildingMesh = buildingCDO->GetBuildingMesh() )
+			if ( UStaticMesh* buildingMesh = buildingCDO->GetPreviewMesh() )
 			{
 				PreviewActor_->SetPreviewMesh( buildingMesh );
 			}
