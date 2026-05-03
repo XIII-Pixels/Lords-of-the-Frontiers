@@ -1,11 +1,14 @@
 #pragma once
 
+#include "Cards/CardTypes.h"
+
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
 #include "CardPoolConfig.generated.h"
 
 class UCardDataAsset;
+class UCardRarityPoolConfig;
 
 UCLASS( BlueprintType )
 class LORDS_FRONTIERS_API UCardPoolConfig : public UDataAsset
@@ -13,8 +16,9 @@ class LORDS_FRONTIERS_API UCardPoolConfig : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Card Pool" )
-	TArray<TObjectPtr<UCardDataAsset>> CardPool;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Card Pool",
+		meta = ( ToolTip = "One UCardRarityPoolConfig per rarity tier. The resolver picks a tier weighted by RarityWeight, then picks a card inside it weighted by BaseWeight + synergies." ) )
+	TArray<TObjectPtr<UCardRarityPoolConfig>> RarityPools;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Starting Cards" )
 	TArray<TObjectPtr<UCardDataAsset>> StartingCards;
@@ -29,19 +33,53 @@ public:
 		meta = ( ClampMin = "1", ClampMax = "20" ) )
 	int32 MaxStacksForWeightInfluence = 3;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Selection",
+		meta = ( ClampMin = "1",
+			ToolTip = "Maximum number of cards of any single rarity that can appear in one offering." ) )
+	int32 MaxCardsPerRarityInOffering = 2;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll" )
+	bool bAllowReroll = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll",
+		meta = ( EditCondition = "bAllowReroll" ) )
+	EResourceTargetType RerollResource = EResourceTargetType::Gold;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll",
+		meta = ( ClampMin = "0", EditCondition = "bAllowReroll" ) )
+	int32 RerollBaseCost = 50;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll",
+		meta = ( ClampMin = "0", EditCondition = "bAllowReroll",
+			ToolTip = "Extra cost added per reroll already performed in the current selection." ) )
+	int32 RerollCostIncrement = 25;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll",
+		meta = ( ClampMin = "0", EditCondition = "bAllowReroll",
+			ToolTip = "Maximum number of rerolls allowed per selection. 0 means unlimited." ) )
+	int32 MaxRerollsPerSelection = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll",
+		meta = ( ClampMin = "0.0", ClampMax = "1.0", EditCondition = "bAllowReroll",
+			ToolTip = "Weight multiplier applied to cards that have already been shown during the current selection. Lower values make them very unlikely to appear again on a reroll. 1.0 disables the effect; 0.0 effectively excludes them. The list of seen cards is cleared once the player takes the reward." ) )
+	float RerollSeenWeightMultiplier = 0.05f;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug" )
 	bool bDebugShowAllCards = false;
 
 	UFUNCTION( BlueprintPure, Category = "Card Pool" )
-	int32 GetPoolSize() const
-	{
-		return CardPool.Num();
-	}
+	int32 GetPoolSize() const;
 
 	UFUNCTION( BlueprintPure, Category = "Card Pool" )
 	bool HasEnoughCards() const
 	{
-		return CardPool.Num() >= CardsToOffer;
+		return GetPoolSize() >= CardsToOffer;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Card Pool|Reroll" )
+	int32 GetRerollCost( int32 rerollIndex ) const
+	{
+		return RerollBaseCost + FMath::Max( 0, rerollIndex ) * RerollCostIncrement;
 	}
 
 #if WITH_EDITOR
