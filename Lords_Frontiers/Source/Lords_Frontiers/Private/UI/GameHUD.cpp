@@ -19,6 +19,8 @@
 #include "Components/VerticalBox.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 void UGameHUDWidget::NativeConstruct()
 {
@@ -174,6 +176,15 @@ void UGameHUDWidget::NativeConstruct()
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
 	}
 
+	// Sound
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( USoundEffectManager* sfxManager = world->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->RegisterObject( this );
+		}
+	}
+
 	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
 	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
 
@@ -196,42 +207,76 @@ void UGameHUDWidget::NativeConstruct()
 void UGameHUDWidget::NativeDestruct()
 {
 	if ( ButtonRelocateBuilding )
+	{
 		ButtonRelocateBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
+	}
 	if ( ButtonRemoveBuilding )
+	{
 		ButtonRemoveBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
+	}
 	if ( ButtonDefensiveBuildings )
+	{
 		ButtonDefensiveBuildings->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
+	}
 	if ( ButtonEconomyBuilding )
+	{
 		ButtonEconomyBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
+	}
 	if ( ButtonEndTurn )
+	{
 		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+	}
 
 	if ( ButtonBuildingWoodenHouse )
+	{
 		ButtonBuildingWoodenHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
+	}
 	if ( ButtonBuildingStrawHouse )
+	{
 		ButtonBuildingStrawHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
+	}
 	if ( ButtonBuildingFarm )
+	{
 		ButtonBuildingFarm->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
+	}
 	if ( ButtonBuildingLawnHouse )
+	{
 		ButtonBuildingLawnHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
+	}
 	if ( ButtonBuildingMagicHouse )
+	{
 		ButtonBuildingMagicHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
+	}
 
 	if ( ButtonBuildingWoodWall )
+	{
 		ButtonBuildingWoodWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
+	}
 	if ( ButtonBuildingStoneWall )
+	{
 		ButtonBuildingStoneWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
+	}
 	if ( ButtonBuildingTowerT0 )
+	{
 		ButtonBuildingTowerT0->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
+	}
 	if ( ButtonBuildingTowerT1 )
+	{
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
+	}
 	if ( ButtonBuildingTowerT2 )
+	{
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+	}
 	if ( ButtonBuildingMortira )
+	{
 		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+	}
 
 	if ( BtnToggleWaveInfo )
+	{
 		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+	}
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -263,6 +308,15 @@ void UGameHUDWidget::NativeDestruct()
 		if ( UEconomyComponent* eC = core->GetEconomyComponent() )
 		{
 			eC->OnNetIncomeChanged.RemoveDynamic( this, &UGameHUDWidget::HandleNetIncomeChanged );
+		}
+	}
+
+	// Sound
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( USoundEffectManager* sfxManager = world->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->UnregisterObject( this );
 		}
 	}
 
@@ -482,7 +536,8 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		{
 			if ( UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>() )
 			{
-				if ( cam->ProjectionMode == ECameraProjectionMode::Orthographic && cam->OrthoWidth > KINDA_SMALL_NUMBER )
+				if ( cam->ProjectionMode == ECameraProjectionMode::Orthographic &&
+				     cam->OrthoWidth > KINDA_SMALL_NUMBER )
 				{
 					constexpr float baseOrthoWidth = 2048.0f;
 					scale = ( baseOrthoWidth / cam->OrthoWidth ) * BaseBonusIconScale;
@@ -615,7 +670,9 @@ void UGameHUDWidget::UpdateResources()
 	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
 
 	if ( !rM )
+	{
 		return;
+	}
 
 	int32 gold = rM->GetResourceAmount( EResourceType::Gold );
 	int32 food = rM->GetResourceAmount( EResourceType::Food );
@@ -670,6 +727,8 @@ void UGameHUDWidget::OnEndTurnClicked()
 			gL->EndBuildTurn();
 		}
 	}
+
+	OnAudioEvent_.Broadcast({ AudioTags::SFX_UI_BUTTON_END_TURN_CLICKED } );
 }
 
 void UGameHUDWidget::OnRelocateBuildingClicked()
@@ -766,7 +825,7 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 	}
 
 	resourceManager->AddResources( refund );
-	
+
 	selectionManager->ClearSelection();
 	HandleSelectionChanged();
 	UpdateExtraButtonsVisibility();
@@ -1071,9 +1130,13 @@ void UGameHUDWidget::OnBuildingUnhovered()
 	else
 	{
 		if ( ActiveEconomyTooltip )
+		{
 			ActiveEconomyTooltip->HideTooltip();
+		}
 		if ( ActiveDefensiveTooltip )
+		{
 			ActiveDefensiveTooltip->HideTooltip();
+		}
 	}
 }
 
@@ -1311,7 +1374,9 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 	const bool bVictory = ( Result == EGameResult::Win );
 	TSubclassOf<UGameStateOverlayWidget> ClassToUse = bVictory ? WinWidgetClass : LoseWidgetClass;
 	if ( !ClassToUse )
+	{
 		return;
+	}
 
 	ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, ClassToUse );
 	if ( ActiveOverlay )
@@ -1386,7 +1451,9 @@ void UGameHUDWidget::TogglePauseMenu()
 	else
 	{
 		if ( !PauseWidgetClass )
+		{
 			return;
+		}
 
 		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, PauseWidgetClass );
 		if ( ActiveOverlay )
@@ -1408,24 +1475,36 @@ void UGameHUDWidget::TogglePauseMenu()
 void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
 {
 	if ( !buildingClass )
+	{
 		return;
+	}
 	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
 	if ( !cdo )
+	{
 		return;
+	}
 
 	if ( cdo->IsA<ADefensiveBuilding>() )
 	{
 		if ( ActiveEconomyTooltip )
+		{
 			ActiveEconomyTooltip->HideTooltip();
+		}
 		if ( ActiveDefensiveTooltip )
+		{
 			ActiveDefensiveTooltip->ShowTooltip( buildingClass );
+		}
 	}
 	else
 	{
 		if ( ActiveDefensiveTooltip )
+		{
 			ActiveDefensiveTooltip->HideTooltip();
+		}
 		if ( ActiveEconomyTooltip )
+		{
 			ActiveEconomyTooltip->ShowTooltip( buildingClass );
+		}
 	}
 }
 
@@ -1452,10 +1531,7 @@ bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
 	}
 	if ( !BossBarsContainer )
 	{
-		UE_LOG(
-		    LogTemp, Warning,
-		    TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" )
-		);
+		UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" ) );
 		return false;
 	}
 	BossBarsContainer->AddChildToVerticalBox( bar );
@@ -1473,12 +1549,7 @@ void UGameHUDWidget::RemoveBossBar( UHealthBarWidget* bar )
 
 void UGameHUDWidget::HandleSelectionChanged()
 {
-	UE_LOG(
-	    LogTemp, Warning,
-	    TEXT(
-	        "UGameHUDWidget::HandleSelectionChanged "
-	    )
-	);
+	UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::HandleSelectionChanged " ) );
 	UpdateExtraButtonsVisibility();
 
 	UCoreManager* coreManager = UCoreManager::Get( this );

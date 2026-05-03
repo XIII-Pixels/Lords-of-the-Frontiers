@@ -30,7 +30,7 @@ class UGameStateOverlayWidget;
 class UHealthBarWidget;
 class UVerticalBox;
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
+class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget, public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -371,6 +371,11 @@ protected:
 
 	void UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass );
 
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
 	FLinearColor AffordableColor = FLinearColor::White;
 
@@ -500,4 +505,6 @@ protected:
 	void HandleSpeedChanged( float NewSpeed );
 
 	void UpdateSpeedButtonVisibility( EGameLoopPhase Phase );
+
+	FOnAudioEvent OnAudioEvent_;
 };

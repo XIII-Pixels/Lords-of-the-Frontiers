@@ -56,7 +56,7 @@ void ABuilding::BeginPlay()
 
 	if ( auto* sfxManager = world->GetSubsystem<USoundEffectManager>() )
 	{
-		sfxManager->RegisterActor( this );
+		sfxManager->RegisterObject( this );
 	}
 
 	Stats_.SetHealth( Stats_.MaxHealth() );

@@ -14,6 +14,7 @@ struct FAudioEvent
 	UPROPERTY( BlueprintReadWrite )
 	FGameplayTag SoundTag;
 
+	// Zero vector is treated as 2D sound
 	UPROPERTY( BlueprintReadWrite )
 	FVector WorldLocation = FVector::ZeroVector;
 };

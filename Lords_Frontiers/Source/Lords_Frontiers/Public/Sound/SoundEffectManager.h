@@ -22,8 +22,8 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& collection) override;
 	virtual void Deinitialize() override;
 
-	void RegisterActor( AActor* actor );
-	void UnregisterActor( AActor* actor );
+	void RegisterObject( UObject* object );
+	void UnregisterObject( UObject* object );
 
 private:
 	UFUNCTION()

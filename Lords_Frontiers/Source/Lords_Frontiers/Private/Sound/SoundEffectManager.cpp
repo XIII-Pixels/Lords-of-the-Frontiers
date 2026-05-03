@@ -4,7 +4,6 @@
 #include "Core/DefaultGameInstance.h"
 
 #include "Components/AudioComponent.h"
-#include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 #include "sound/AudioEventSource.h"
 
@@ -39,53 +38,53 @@ void USoundEffectManager::Deinitialize()
 	Super::Deinitialize();
 }
 
-void USoundEffectManager::RegisterActor( AActor* actor )
+void USoundEffectManager::RegisterObject( UObject* object )
 {
-	if ( !IsValid( actor ) )
+	if ( !IsValid( object ) )
 	{
 		return;
 	}
 
-	IAudioEventSource* source = Cast<IAudioEventSource>( actor );
+	IAudioEventSource* source = Cast<IAudioEventSource>( object );
 	if ( !source )
 	{
 		UE_LOG(
-		    LogAudio, Warning, TEXT( "USoundEffectManager::RegisterActor — %s does not implement IAudioEventSource" ),
-		    *actor->GetName()
+		    LogTemp, Warning, TEXT( "USoundEffectManager: %s does not implement IAudioEventSource" ),
+		    *object->GetName()
 		);
 		return;
 	}
 
 	source->GetOnAudioEvent().AddDynamic( this, &USoundEffectManager::HandleAudioEvent );
-	UE_LOG( LogAudio, Log, TEXT( "USoundEffectManager: actor %s registered" ), *actor->GetName() );
+	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: actor %s registered" ), *object->GetName() );
 }
 
-void USoundEffectManager::UnregisterActor( AActor* actor )
+void USoundEffectManager::UnregisterObject( UObject* object )
 {
-	if ( !IsValid( actor ) )
+	if ( !IsValid( object ) )
 	{
 		return;
 	}
 
-	IAudioEventSource* source = Cast<IAudioEventSource>( actor );
+	IAudioEventSource* source = Cast<IAudioEventSource>( object );
 	if ( !source )
 	{
 		UE_LOG(
-		    LogAudio, Warning, TEXT( "USoundEffectManager::UnregisterActor — %s does not implement IAudioEventSource" ),
-		    *actor->GetName()
+		    LogTemp, Warning, TEXT( "USoundEffectManager: %s does not implement IAudioEventSource" ),
+		    *object->GetName()
 		);
 		return;
 	}
 
 	source->GetOnAudioEvent().RemoveDynamic( this, &USoundEffectManager::HandleAudioEvent );
-	UE_LOG( LogAudio, Log, TEXT( "USoundEffectManager: actor %s unregistered" ), *actor->GetName() );
+	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: actor %s unregistered" ), *object->GetName() );
 }
 
 void USoundEffectManager::HandleAudioEvent( FAudioEvent event )
 {
 	if ( !SoundData_ )
 	{
-		UE_LOG( LogAudio, Error, TEXT( "USoundEffectManager: SoundData asset is not set" ) );
+		UE_LOG( LogTemp, Error, TEXT( "USoundEffectManager: SoundData asset is not set" ) );
 		return;
 	}
 
@@ -93,7 +92,7 @@ void USoundEffectManager::HandleAudioEvent( FAudioEvent event )
 	if ( !entry )
 	{
 		UE_LOG(
-		    LogAudio, Warning, TEXT( "USoundEffectManager: No entry found for tag '%s'" ), *event.SoundTag.ToString()
+		    LogTemp, Warning, TEXT( "USoundEffectManager: No entry found for tag '%s'" ), *event.SoundTag.ToString()
 		);
 		return;
 	}
@@ -120,7 +119,7 @@ TWeakObjectPtr<UAudioComponent> USoundEffectManager::AcquireAudioComponent()
 	{
 		component = NewObject<UAudioComponent>( GetWorld() );
 		UE_LOG(
-		    LogAudio, Log, TEXT( "USoundEffectManager: new UAudioComponent created. UAudioComponents in use: %d" ),
+		    LogTemp, Log, TEXT( "USoundEffectManager: new UAudioComponent created. UAudioComponents in use: %d" ),
 		    ComponentsInUsePool_.Num()
 		);
 	}
@@ -190,6 +189,7 @@ void USoundEffectManager::Play2D( const FSoundEntry& entry )
 	);
 
 	audio->Play();
+	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: playing 2D sound: %s" ), *entry.Sound->GetName() );
 }
 
 void USoundEffectManager::Play3D( const FSoundEntry& entry, const FVector& worldLocation )
@@ -209,9 +209,13 @@ void USoundEffectManager::Play3D( const FSoundEntry& entry, const FVector& world
 	{
 		audio->AttenuationSettings = entry.Attenuation;
 	}
-	else
+	else if ( DefaultAttenuation_ )
 	{
 		audio->AttenuationSettings = DefaultAttenuation_;
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "USoundEffectManager: playing 3D sound without attenuation" ) );
 	}
 
 	TWeakObjectPtr<USoundEffectManager> weakThis = this;
@@ -226,4 +230,5 @@ void USoundEffectManager::Play3D( const FSoundEntry& entry, const FVector& world
 	);
 
 	audio->Play();
+	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: playing 3D sound: %s" ), *entry.Sound->GetName() );
 }
