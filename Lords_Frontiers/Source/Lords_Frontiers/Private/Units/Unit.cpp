@@ -3,6 +3,7 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
+#include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
@@ -67,7 +68,7 @@ void AUnit::BeginPlay()
 	{
 		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 		    this,
-		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		    [this]( int /*newHealth*/, int /*maxHealth*/ )
 		    {
 			    if ( UWorld* world = GetWorld() )
 			    {
@@ -183,6 +184,11 @@ void AUnit::OnDeath()
 {
 	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
 	HealthBarSubscription_.Reset();
+
+	if ( UnitAIManager_.IsValid() )
+	{
+		UnitAIManager_->PathPointsManager()->ReleasePathPoints( Path(), GetClass() );
+	}
 
 	if ( UWorld* world = GetWorld() )
 	{

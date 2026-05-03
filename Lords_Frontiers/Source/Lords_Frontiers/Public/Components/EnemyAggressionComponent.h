@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AI/Path/Path.h"
 #include "Building/Building.h"
 
 #include "Components/ActorComponent.h"
@@ -15,6 +16,7 @@ class AUnitAIManager;
 class UTargetBuildingTracker;
 class ABuilding;
 struct FPathConfig;
+
 /** (Gregory-hub)
  * Finds closest building that unit should attack */
 UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
@@ -46,6 +48,10 @@ public:
 
 	void SetPath( UPath* path )
 	{
+		if ( Path_ )
+		{
+			Path_->ClearSpline();
+		}
 		Path_ = path;
 		PathPointIndex_ = 0;
 	}
@@ -53,7 +59,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	void AdvancePathPointIndex();
+	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
 	bool IsCloseToTarget() const;
 
