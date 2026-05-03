@@ -58,6 +58,10 @@ void ULevelSubsystem::SetLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
 
 void ULevelSubsystem::ResetSavedLevelStatuses() const
 {
+	if ( !Levels_ )
+	{
+		return;
+	}
 	if ( const auto* gameInstance = GetGameInstance() )
 	{
 		if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
@@ -77,7 +81,7 @@ void ULevelSubsystem::ResetSavedLevelStatuses() const
 
 ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 {
-	if ( index >= 0 && index < Levels_->GameplayLevels.Num() )
+	if ( Levels_ && index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
 		if ( const auto* gameInstance = GetGameInstance() )
 		{
@@ -92,6 +96,10 @@ ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 
 void ULevelSubsystem::UnlockNextLevel() const
 {
+	if ( !Levels_ )
+	{
+		return;
+	}
 	int index = CurrentLevelIndex_ + 1;
 	if ( index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
