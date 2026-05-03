@@ -7,6 +7,8 @@
 #include "Selectable.h"
 
 #include "CoreMinimal.h"
+#include "sound/AudioEvent.h"
+#include "sound/AudioEventSource.h"
 
 #include "Building.generated.h"
 
@@ -19,7 +21,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Build
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator );
 
 UCLASS( Abstract )
-class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
+class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable, public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -96,6 +98,7 @@ public:
 	FOnBuildingDamaged OnBuildingDamaged;
 
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
+
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
 	bool IsRuined() const
 	{
@@ -112,6 +115,11 @@ public:
 	bool CanBeRemoved() const
 	{
 		return bCanBeRemoved_;
+	}
+
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
 	}
 
 	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
@@ -219,6 +227,7 @@ protected:
 
 	void SpawnConstructionVFX();
 
+protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
 	bool bCanBeRelocated_ = true;
 
@@ -235,6 +244,7 @@ private:
 	FTimerHandle RuinTimerHandle_;
 	FTimerHandle ConstructionVFXTimerHandle_;
 
+	FOnAudioEvent OnAudioEvent_;
 
 	FResourceProduction OriginalMaintenanceCost_;
 

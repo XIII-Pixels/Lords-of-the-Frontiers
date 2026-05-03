@@ -13,6 +13,8 @@
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 ABuilding::ABuilding()
 {
@@ -44,6 +46,18 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UWorld* world = GetWorld();
+	if ( !world )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "ABuilding::BeginPlay: world not found" ) );
+		return;
+	}
+
+	if ( auto* sfxManager = world->GetSubsystem<USoundEffectManager>() )
+	{
+		sfxManager->RegisterActor( this );
+	}
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
@@ -89,7 +103,7 @@ void ABuilding::SubscribeHealthBar()
 
 	HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 	    this,
-	    [ this ]( int, int )
+	    [this]( int, int )
 	    {
 		    if ( UWorld* world = GetWorld() )
 		    {
@@ -383,6 +397,8 @@ void ABuilding::OnSelected_Implementation()
 
 	UpdateSelectionOverlay();
 	ShowSelectionOverlay();
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_BUILDING_SELECTED, GetActorLocation() } );
 }
 
 void ABuilding::OnDeselected_Implementation()
