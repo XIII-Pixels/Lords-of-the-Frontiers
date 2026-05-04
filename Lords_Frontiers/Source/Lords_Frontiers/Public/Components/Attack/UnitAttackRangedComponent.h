@@ -17,4 +17,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void SetAttackMode() override;
+
+    virtual bool EnemyIsValid(const AActor *enemyActor) const override;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings" )
+	bool bOnlyAttackTargetBuilding_ = false;
 };
