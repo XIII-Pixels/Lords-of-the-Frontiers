@@ -192,6 +192,11 @@ void FEntityStats::AddStat( EStatsType statType, float value )
 void FEntityStats::AddMaxHealth( int maxHealth )
 {
 	SetMaxHealth( MaxHealth_ + maxHealth );
+
+	if ( maxHealth > 0 )
+	{
+		SetHealth( MaxHealth_ );
+	}
 }
 
 void FEntityStats::AddAttackRange( float attackRange )

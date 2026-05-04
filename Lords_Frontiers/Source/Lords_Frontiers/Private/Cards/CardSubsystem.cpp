@@ -132,6 +132,7 @@ bool UCardSubsystem::BuildCardChoice( int32 waveNumber, FCardChoice& outChoice )
 
 	if ( PoolConfig_->bDebugShowAllCards )
 	{
+		TSet<UCardDataAsset*> seen;
 		for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
 		{
 			if ( !rarityPool )
@@ -140,9 +141,11 @@ bool UCardSubsystem::BuildCardChoice( int32 waveNumber, FCardChoice& outChoice )
 			}
 			for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
 			{
-				if ( card && availableCards.Num() < PoolConfig_->CardsToOffer )
+				UCardDataAsset* raw = card.Get();
+				if ( raw && !seen.Contains( raw ) )
 				{
-					availableCards.Add( card.Get() );
+					seen.Add( raw );
+					availableCards.Add( raw );
 				}
 			}
 		}
