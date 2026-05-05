@@ -1,5 +1,6 @@
 #include "Cards/Visuals/CardVisualSubsystem.h"
 
+#include "Camera/CameraZoomUtils.h"
 #include "Cards/Feedback/CardFeedbackPopup.h"
 #include "Cards/Feedback/CardIconStrip.h"
 #include "Core/DefaultGameInstance.h"
@@ -95,6 +96,37 @@ void UCardVisualSubsystem::Deinitialize()
 	FreeIconPool_.Empty();
 
 	Super::Deinitialize();
+}
+
+TStatId UCardVisualSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT( UCardVisualSubsystem, STATGROUP_Tickables );
+}
+
+bool UCardVisualSubsystem::IsTickable() const
+{
+	return ActiveStripsList_.Num() > 0 || InUseIcons_.Num() > 0;
+}
+
+void UCardVisualSubsystem::Tick( float deltaTime )
+{
+	const float zoomAlpha = CameraZoomUtils::GetCameraZoomAlpha( this );
+
+	for ( const TObjectPtr<ACardIconStrip>& strip : ActiveStripsList_ )
+	{
+		if ( IsValid( strip ) )
+		{
+			strip->ApplyCameraScale( zoomAlpha );
+		}
+	}
+
+	for ( const TObjectPtr<ACardFeedbackPopup>& popup : InUseIcons_ )
+	{
+		if ( IsValid( popup ) )
+		{
+			popup->ApplyCameraScale( zoomAlpha );
+		}
+	}
 }
 
 void UCardVisualSubsystem::SetPopupClassOverride( TSubclassOf<ACardFeedbackPopup> popupClass )

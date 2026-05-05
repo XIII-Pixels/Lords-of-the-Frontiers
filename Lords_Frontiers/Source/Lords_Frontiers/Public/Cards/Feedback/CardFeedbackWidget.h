@@ -22,7 +22,25 @@ public:
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card|Feedback" )
 	void UpdateAlpha( float alpha );
 
+	void ApplyCameraScale( float zoomAlpha );
+
+	float MinScale() const
+	{
+		return MinScale_;
+	}
+
+	float MaxScale() const
+	{
+		return MaxScale_;
+	}
+
 protected:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UImage> IconImage;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Scale" )
+	float MinScale_ = 0.5f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Scale" )
+	float MaxScale_ = 1.5f;
 };

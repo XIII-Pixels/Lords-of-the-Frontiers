@@ -32,6 +32,8 @@ public:
 
 	void DeactivateToPool();
 
+	void ApplyCameraScale( float zoomAlpha );
+
 	bool IsActive() const
 	{
 		return bIsActive_;

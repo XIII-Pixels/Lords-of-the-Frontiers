@@ -1,5 +1,6 @@
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 
+#include "Camera/CameraZoomUtils.h"
 #include "UI/BonusNeighborhood/BonusSingleEntry.h"
 
 #include "Components/HorizontalBox.h"
@@ -52,4 +53,10 @@ void UBonusIconWidget::AddEntry( const FBonusIconData& data )
 	{
 		slot->SetPadding( FMargin( 0.0f, 1.0f ) );
 	}
+}
+
+void UBonusIconWidget::ApplyCameraScale( float zoomAlpha )
+{
+	const float scale = CameraZoomUtils::ScaleFromZoomAlpha( zoomAlpha, MinScale_, MaxScale_ );
+	SetRenderScale( FVector2D( scale, scale ) );
 }

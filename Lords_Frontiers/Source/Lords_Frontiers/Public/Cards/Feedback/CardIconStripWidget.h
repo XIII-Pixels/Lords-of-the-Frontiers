@@ -30,6 +30,18 @@ public:
 		return Slots_.Num();
 	}
 
+	void ApplyCameraScale( float zoomAlpha );
+
+	float MinScale() const
+	{
+		return MinScale_;
+	}
+
+	float MaxScale() const
+	{
+		return MaxScale_;
+	}
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Layout" )
 	FVector2D IconSize = FVector2D( 64.f, 64.f );
 
@@ -42,6 +54,12 @@ protected:
 
 	UPROPERTY()
 	TMap<int32, TObjectPtr<UImage>> Slots_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Scale" )
+	float MinScale_ = 0.5f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Scale" )
+	float MaxScale_ = 1.5f;
 
 	int32 NextSlotId_ = 1;
 };

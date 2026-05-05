@@ -133,6 +133,14 @@ int32 ACardIconStrip::GetSlotCount() const
 	return WidgetInstance_ ? WidgetInstance_->GetSlotCount() : SlotHeightOffsets_.Num();
 }
 
+void ACardIconStrip::ApplyCameraScale( float zoomAlpha )
+{
+	if ( WidgetInstance_ )
+	{
+		WidgetInstance_->ApplyCameraScale( zoomAlpha );
+	}
+}
+
 void ACardIconStrip::ApplyHeightOffset()
 {
 	float maxOffset = 0.f;
