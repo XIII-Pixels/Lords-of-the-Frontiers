@@ -9,6 +9,7 @@
 
 #include "UnitAIManager.generated.h"
 
+class ASplinePointConnector;
 class APathTargetPoint;
 class UTargetBuildingTracker;
 class UPathPointsManager;
@@ -41,10 +42,12 @@ public:
 		return GoalActor_;
 	}
 
-	TSubclassOf<const APathTargetPoint> PathPointClass() const
+	TSubclassOf<APathTargetPoint> DefaultPathPointClass() const
 	{
-		return PathPointClass_;
+		return DefaultPathPointClass_;
 	}
+
+	TSubclassOf<APathTargetPoint> GetPathPointClass( TSubclassOf<AUnit> unitClass ) const;
 
 	float PathPointReachRadius() const
 	{
@@ -56,8 +59,17 @@ public:
 		return GroundHeight_;
 	}
 
-protected:
+	bool MustDestroyReachedPoints() const
+	{
+		return bDestroyReachedPoints_;
+	}
 
+	TSubclassOf<ASplinePointConnector> SplineClass() const
+	{
+		return SplineClass_;
+	}
+
+protected:
 	virtual void BeginPlay() override;
 
 	void FindGoalActor();
@@ -66,12 +78,21 @@ protected:
 	TSubclassOf<AActor> GoalActorClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
-	TSubclassOf<APathTargetPoint> PathPointClass_;
+	TSubclassOf<APathTargetPoint> DefaultPathPointClass_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	TMap<TSubclassOf<AUnit>, TSubclassOf<APathTargetPoint>> PathPointClassOverrides_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path", meta = ( ClampMin = 0.0f ) )
 	float PathPointReachRadius_ = 100.0f;
 
-	UPROPERTY( EditAnywhere, Category = "Settings|Ground" )
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	bool bDestroyReachedPoints_ = false;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Path" )
+	TSubclassOf<ASplinePointConnector> SplineClass_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Ground", meta = ( ClampMin = 0.0f ) )
 	float GroundHeight_ = 10.0f;
 
 	UPROPERTY()

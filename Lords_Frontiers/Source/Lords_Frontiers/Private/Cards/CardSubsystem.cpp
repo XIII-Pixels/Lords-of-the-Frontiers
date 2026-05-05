@@ -7,9 +7,11 @@
 #include "Cards/CardEffectHostComponent.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardPoolResolver.h"
+#include "Cards/CardRarityPoolConfig.h"
 #include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Resources/ResourceManager.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -73,8 +75,9 @@ void UCardSubsystem::SetPoolConfig( UCardPoolConfig* config )
 	}
 
 	UE_LOG(
-	    LogCardSubsystem, Log, TEXT( "Pool config set: %d cards, offer %d, select %d" ),
-	    PoolConfig_->CardPool.Num(), PoolConfig_->CardsToOffer, PoolConfig_->CardsToSelect
+	    LogCardSubsystem, Log, TEXT( "Pool config set: %d cards across %d rarity tiers, offer %d, select %d" ),
+	    PoolConfig_->GetPoolSize(), PoolConfig_->RarityPools.Num(),
+	    PoolConfig_->CardsToOffer, PoolConfig_->CardsToSelect
 	);
 
 	for ( UCardDataAsset* card : PoolConfig_->StartingCards )
@@ -97,55 +100,15 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 		return;
 	}
 
-	CurrentWaveNumber_ = waveNumber;
+	ClearCurrentSelectionExclusions();
 
-	TArray<UCardDataAsset*> availableCards;
-
-	if ( PoolConfig_->bDebugShowAllCards )
-	{
-		availableCards.Reserve( PoolConfig_->CardPool.Num() );
-		for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
-		{
-			if ( card )
-			{
-				availableCards.Add( card.Get() );
-			}
-		}
-	}
-	else
-	{
-		TArray<TObjectPtr<UCardDataAsset>> unlockedPool;
-		unlockedPool.Reserve( PoolConfig_->CardPool.Num() );
-		for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
-		{
-			if ( card && IsCardUnlocked( card.Get() ) )
-			{
-				unlockedPool.Add( card );
-			}
-		}
-
-		availableCards = FCardPoolResolver::Resolve(
-			unlockedPool,
-			AppliedCardHistory_,
-			PoolConfig_->CardsToOffer,
-			PoolConfig_->MaxStacksForWeightInfluence );
-	}
-
-	if ( availableCards.Num() == 0 )
+	FCardChoice choice;
+	if ( !BuildCardChoice( waveNumber, choice ) )
 	{
 		UE_LOG( LogCardSubsystem, Warning, TEXT( "RequestCardSelection: No cards available for selection" ) );
 		NotifyGameLoopToProceed();
 		return;
 	}
-
-	FCardChoice choice;
-	choice.AvailableCards.Reserve( availableCards.Num() );
-	for ( UCardDataAsset* card : availableCards )
-	{
-		choice.AvailableCards.Add( card );
-	}
-	choice.CardsToSelect = PoolConfig_->CardsToSelect;
-	choice.WaveNumber = waveNumber;
 
 	UE_LOG(
 	    LogCardSubsystem, Log, TEXT( "Card selection requested: %d cards, select %d, wave %d (debug=%d)" ),
@@ -154,6 +117,216 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 	);
 
 	OnCardSelectionRequired.Broadcast( choice );
+}
+
+bool UCardSubsystem::BuildCardChoice( int32 waveNumber, FCardChoice& outChoice )
+{
+	if ( !PoolConfig_ )
+	{
+		return false;
+	}
+
+	CurrentWaveNumber_ = waveNumber;
+
+	TArray<UCardDataAsset*> availableCards;
+
+	if ( PoolConfig_->bDebugShowAllCards )
+	{
+		TSet<UCardDataAsset*> seen;
+		for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
+		{
+			if ( !rarityPool )
+			{
+				continue;
+			}
+			for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
+			{
+				UCardDataAsset* raw = card.Get();
+				if ( raw && !seen.Contains( raw ) )
+				{
+					seen.Add( raw );
+					availableCards.Add( raw );
+				}
+			}
+		}
+	}
+	else
+	{
+		TArray<FCardRarityBucket> buckets;
+		buckets.Reserve( PoolConfig_->RarityPools.Num() );
+
+		for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
+		{
+			if ( !rarityPool || rarityPool->RarityWeight <= 0.f )
+			{
+				continue;
+			}
+
+			FCardRarityBucket bucket;
+			bucket.Rarity       = rarityPool->Rarity;
+			bucket.RarityWeight = rarityPool->RarityWeight;
+			bucket.Cards.Reserve( rarityPool->Cards.Num() );
+
+			for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
+			{
+				if ( card && IsCardUnlocked( card.Get() ) )
+				{
+					bucket.Cards.Add( card.Get() );
+				}
+			}
+
+			if ( bucket.Cards.Num() > 0 )
+			{
+				buckets.Add( MoveTemp( bucket ) );
+			}
+		}
+
+		TSet<UCardDataAsset*> seenForWeightReduction;
+		seenForWeightReduction.Reserve( CurrentSelectionExcluded_.Num() );
+		for ( const TObjectPtr<UCardDataAsset>& card : CurrentSelectionExcluded_ )
+		{
+			if ( card )
+			{
+				seenForWeightReduction.Add( card.Get() );
+			}
+		}
+
+		availableCards = FCardPoolResolver::Resolve(
+			buckets,
+			AppliedCardHistory_,
+			PoolConfig_->CardsToOffer,
+			PoolConfig_->MaxCardsPerRarityInOffering,
+			PoolConfig_->MaxStacksForWeightInfluence,
+			seenForWeightReduction,
+			PoolConfig_->RerollSeenWeightMultiplier );
+	}
+
+	if ( availableCards.Num() == 0 )
+	{
+		return false;
+	}
+
+	for ( UCardDataAsset* card : availableCards )
+	{
+		if ( card )
+		{
+			CurrentSelectionExcluded_.Add( card );
+		}
+	}
+
+	outChoice.AvailableCards.Reset( availableCards.Num() );
+	for ( UCardDataAsset* card : availableCards )
+	{
+		outChoice.AvailableCards.Add( card );
+	}
+	outChoice.CardsToSelect = PoolConfig_->CardsToSelect;
+	outChoice.WaveNumber = waveNumber;
+
+	return true;
+}
+
+void UCardSubsystem::ClearCurrentSelectionExclusions()
+{
+	CurrentSelectionExcluded_.Reset();
+}
+
+bool UCardSubsystem::IsRerollEnabled() const
+{
+	return PoolConfig_ && PoolConfig_->bAllowReroll;
+}
+
+int32 UCardSubsystem::GetRerollCost( int32 rerollIndex ) const
+{
+	if ( !PoolConfig_ )
+	{
+		return 0;
+	}
+	return PoolConfig_->GetRerollCost( rerollIndex );
+}
+
+bool UCardSubsystem::CanAffordReroll( int32 rerollIndex ) const
+{
+	if ( !IsRerollEnabled() )
+	{
+		return false;
+	}
+
+	UCoreManager* coreManager = UCoreManager::Get( GetGameInstance() );
+	UResourceManager* resourceManager = coreManager ? coreManager->GetResourceManager() : nullptr;
+	if ( !resourceManager )
+	{
+		return false;
+	}
+
+	const int32 cost = GetRerollCost( rerollIndex );
+	if ( cost <= 0 )
+	{
+		return true;
+	}
+
+	return resourceManager->HasEnoughResource( CardTypeHelpers::ToResourceType( PoolConfig_->RerollResource ), cost );
+}
+
+bool UCardSubsystem::TryRerollCardChoice( int32 waveNumber, int32 rerollIndex, FCardChoice& outChoice )
+{
+	if ( !IsRerollEnabled() )
+	{
+		UE_LOG( LogCardSubsystem, Warning, TEXT( "TryRerollCardChoice: Reroll is not enabled in pool config" ) );
+		return false;
+	}
+
+	if ( PoolConfig_->MaxRerollsPerSelection > 0 && rerollIndex >= PoolConfig_->MaxRerollsPerSelection )
+	{
+		UE_LOG(
+		    LogCardSubsystem, Log,
+		    TEXT( "TryRerollCardChoice: Max rerolls (%d) reached" ), PoolConfig_->MaxRerollsPerSelection );
+		return false;
+	}
+
+	UCoreManager* coreManager = UCoreManager::Get( GetGameInstance() );
+	UResourceManager* resourceManager = coreManager ? coreManager->GetResourceManager() : nullptr;
+	if ( !resourceManager )
+	{
+		UE_LOG( LogCardSubsystem, Warning, TEXT( "TryRerollCardChoice: No ResourceManager available" ) );
+		return false;
+	}
+
+	const int32 cost = GetRerollCost( rerollIndex );
+	const EResourceType resourceType = CardTypeHelpers::ToResourceType( PoolConfig_->RerollResource );
+
+	if ( cost > 0 && !resourceManager->HasEnoughResource( resourceType, cost ) )
+	{
+		UE_LOG(
+		    LogCardSubsystem, Log,
+		    TEXT( "TryRerollCardChoice: Not enough %s for reroll (cost=%d)" ),
+		    *CardTypeHelpers::GetResourceName( PoolConfig_->RerollResource ), cost );
+		return false;
+	}
+
+	FCardChoice tentative;
+	if ( !BuildCardChoice( waveNumber, tentative ) )
+	{
+		UE_LOG( LogCardSubsystem, Warning, TEXT( "TryRerollCardChoice: Failed to build new card choice" ) );
+		return false;
+	}
+
+	if ( cost > 0 && !resourceManager->TrySpendResource( resourceType, cost ) )
+	{
+		UE_LOG(
+		    LogCardSubsystem, Warning,
+		    TEXT( "TryRerollCardChoice: TrySpendResource failed unexpectedly after pre-check" ) );
+		return false;
+	}
+
+	outChoice = tentative;
+
+	UE_LOG(
+	    LogCardSubsystem, Log,
+	    TEXT( "Cards rerolled: %d cards offered, paid %d %s (rerollIndex=%d)" ),
+	    outChoice.AvailableCards.Num(), cost,
+	    *CardTypeHelpers::GetResourceName( PoolConfig_->RerollResource ), rerollIndex );
+
+	return true;
 }
 
 void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selectedCards )
@@ -184,6 +357,8 @@ void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selected
 			appliedList.Add( card );
 		}
 	}
+
+	ClearCurrentSelectionExclusions();
 
 	OnCardsApplied.Broadcast( appliedList );
 	InvalidateBuildingTooltipPreviewCache();
@@ -515,12 +690,19 @@ void UCardSubsystem::UnlockCardByID( FName cardID )
 		return;
 	}
 
-	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
 	{
-		if ( card && card->CardID == cardID )
+		if ( !rarityPool )
 		{
-			UnlockCard( card.Get() );
-			return;
+			continue;
+		}
+		for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
+		{
+			if ( card && card->CardID == cardID )
+			{
+				UnlockCard( card.Get() );
+				return;
+			}
 		}
 	}
 
@@ -534,12 +716,19 @@ void UCardSubsystem::LockCardByID( FName cardID )
 		return;
 	}
 
-	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
 	{
-		if ( card && card->CardID == cardID )
+		if ( !rarityPool )
 		{
-			LockCard( card.Get() );
-			return;
+			continue;
+		}
+		for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
+		{
+			if ( card && card->CardID == cardID )
+			{
+				LockCard( card.Get() );
+				return;
+			}
 		}
 	}
 
@@ -561,12 +750,19 @@ TArray<UCardDataAsset*> UCardSubsystem::GetUnlockedCards() const
 		return result;
 	}
 
-	result.Reserve( PoolConfig_->CardPool.Num() );
-	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	result.Reserve( PoolConfig_->GetPoolSize() );
+	for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
 	{
-		if ( card && IsCardUnlocked( card.Get() ) )
+		if ( !rarityPool )
 		{
-			result.Add( card.Get() );
+			continue;
+		}
+		for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
+		{
+			if ( card && IsCardUnlocked( card.Get() ) )
+			{
+				result.Add( card.Get() );
+			}
 		}
 	}
 	return result;
@@ -844,13 +1040,20 @@ void UCardSubsystem::DebugApplyCardByID( FName cardID )
 		return;
 	}
 
-	for ( const TObjectPtr<UCardDataAsset>& card : PoolConfig_->CardPool )
+	for ( const TObjectPtr<UCardRarityPoolConfig>& rarityPool : PoolConfig_->RarityPools )
 	{
-		if ( card && card->CardID == cardID )
+		if ( !rarityPool )
 		{
-			ApplySingleCard( card.Get(), CurrentWaveNumber_ );
-			UE_LOG( LogCardSubsystem, Log, TEXT( "Debug: applied card '%s'" ), *cardID.ToString() );
-			return;
+			continue;
+		}
+		for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
+		{
+			if ( card && card->CardID == cardID )
+			{
+				ApplySingleCard( card.Get(), CurrentWaveNumber_ );
+				UE_LOG( LogCardSubsystem, Log, TEXT( "Debug: applied card '%s'" ), *cardID.ToString() );
+				return;
+			}
 		}
 	}
 

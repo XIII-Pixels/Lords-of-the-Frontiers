@@ -26,3 +26,13 @@ void APathTargetPoint::Hide()
 {
 	Mesh_->SetVisibility( false );
 }
+
+void APathTargetPoint::IncreaseRefCount()
+{
+	RefCount_++;
+}
+
+void APathTargetPoint::DecreaseRefCount()
+{
+	RefCount_ = FMath::Max( RefCount_ - 1, 0 );
+}

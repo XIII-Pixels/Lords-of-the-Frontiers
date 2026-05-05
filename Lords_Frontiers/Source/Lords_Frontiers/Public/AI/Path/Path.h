@@ -9,9 +9,9 @@
 
 #include "Path.generated.h"
 
+class ASplinePointConnector;
 class AGridManager;
 class AUnit;
-
 
 /** (Gregory-hub)
  * Class that represents a path that is traveled by unit */
@@ -33,11 +33,30 @@ public:
 	// Calculate full path or update part of path (if grid has changed)
 	void CalculateOrUpdate();
 
+	void RebuildSpline();
+	void ClearSpline();
+
 	const TArray<FIntPoint>& GetPoints() const;
+
+	// Delay time is configured in AUnitAIManager
+	void RemovePoint( int index );
+
+	ASplinePointConnector* GetSpline() const
+	{
+		return Spline_;
+	}
 
 private:
 	UPROPERTY()
 	TObjectPtr<UDStarLite> DStarLite_;
 
+	UPROPERTY()
 	TArray<FIntPoint> PathPoints_;
+
+	UPROPERTY()
+	TObjectPtr<ASplinePointConnector> Spline_;
+
+	FTimerHandle RebuildSplineTimerHandle_;
+
+	int PendingRemoveIndex_ = -1;
 };

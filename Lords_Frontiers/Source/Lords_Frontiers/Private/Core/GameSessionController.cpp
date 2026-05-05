@@ -35,6 +35,7 @@ void UGameSessionController::ResetState()
 {
 	bIsGameStarted_ = false;
 	bIsGamePaused_ = false;
+	LastCombatSpeed_ = 1.0f;
 	SetTimerScale( 1.0f );
 
 	if ( USessionLoggerSubsystem* logger = GetWorld()->GetSubsystem<USessionLoggerSubsystem>() )
@@ -150,7 +151,12 @@ void UGameSessionController::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameL
 {
 	if ( oldPhase == EGameLoopPhase::Combat && newPhase != EGameLoopPhase::Combat )
 	{
-		ResetSpeed();
+		SetTimerScale( 1.0f );
+		OnSpeedChanged.Broadcast( 1.0f );
+	}
+	else if ( newPhase == EGameLoopPhase::Combat && oldPhase != EGameLoopPhase::Combat )
+	{
+		SetGameSpeed( LastCombatSpeed_ );
 	}
 }
 
@@ -175,6 +181,23 @@ void UGameSessionController::CycleSpeed()
 
 	SetTimerScale( next );
 	OnSpeedChanged.Broadcast( next );
+}
+
+void UGameSessionController::SetGameSpeed( float newSpeed )
+{
+	if ( !GameLoopManager_ || GameLoopManager_->GetCurrentPhase() != EGameLoopPhase::Combat )
+	{
+		return;
+	}
+
+	const float clamped = FMath::Max( newSpeed, 0.0f );
+	SetTimerScale( clamped );
+	OnSpeedChanged.Broadcast( clamped );
+
+	if ( clamped > 0.0f )
+	{
+		LastCombatSpeed_ = clamped;
+	}
 }
 
 void UGameSessionController::ResetSpeed()
