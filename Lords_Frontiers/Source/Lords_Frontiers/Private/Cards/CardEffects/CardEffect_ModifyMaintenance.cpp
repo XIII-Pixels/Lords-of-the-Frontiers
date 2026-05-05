@@ -4,7 +4,6 @@
 
 namespace
 {
-
 	void ApplyResourceDelta( FResourceProduction& production, EResourceTargetType target, int32 signedDelta )
 	{
 		if ( signedDelta == 0 )

@@ -15,43 +15,6 @@ DEFINE_LOG_CATEGORY_STATIC( LogCardStatModifier, Log, All );
 namespace
 {
 	const FName CardModifiableMeta( TEXT( "CardModifiable" ) );
-
-	void ApplyResourceDelta( FResourceProduction& production, EResourceTargetType target, int32 signedDelta )
-	{
-		if ( signedDelta == 0 )
-		{
-			return;
-		}
-
-		auto applyOne = [&]( EResourceType type )
-		{
-			switch ( type )
-			{
-			case EResourceType::Gold:
-				production.Gold += signedDelta;
-				break;
-			case EResourceType::Food:
-				production.Food += signedDelta;
-				break;
-			case EResourceType::Population:
-				production.Population += signedDelta;
-				break;
-			default:
-				break;
-			}
-		};
-
-		if ( target == EResourceTargetType::All )
-		{
-			applyOne( EResourceType::Gold );
-			applyOne( EResourceType::Food );
-			applyOne( EResourceType::Population );
-		}
-		else
-		{
-			applyOne( CardTypeHelpers::ToResourceType( target ) );
-		}
-	}
 }
 
 void UCardEffect_StatModifier::Apply_Implementation( const FCardEffectContext& context )
@@ -75,8 +38,7 @@ void UCardEffect_StatModifier::ApplyDelta( const FCardEffectContext& context, fl
 	if ( !CardStatReflection::FindNumericProperty( StatName ) )
 	{
 		UE_LOG(
-		    LogCardStatModifier, Warning,
-		    TEXT( "StatName '%s' not found on FEntityStats — skipping" ),
+		    LogCardStatModifier, Warning, TEXT( "StatName '%s' not found on FEntityStats — skipping" ),
 		    *StatName.ToString()
 		);
 		return;
@@ -99,8 +61,7 @@ FText UCardEffect_StatModifier::GetDisplayText_Implementation() const
 	}
 
 	const TCHAR* sign = Delta >= 0.f ? TEXT( "+" ) : TEXT( "" );
-	return FText::FromString(
-		FString::Printf( TEXT( "%s%g %s" ), sign, Delta, *displayName ) );
+	return FText::FromString( FString::Printf( TEXT( "%s%g %s" ), sign, Delta, *displayName ) );
 }
 
 TArray<FString> UCardEffect_StatModifier::GetModifiableStatNames()
@@ -141,28 +102,31 @@ EDataValidationResult UCardEffect_StatModifier::IsDataValid( FDataValidationCont
 	FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( StatName );
 	if ( !prop )
 	{
-		context.AddError( FText::FromString(
-			FString::Printf( TEXT( "StatName '%s' does not exist on FEntityStats" ),
-				*StatName.ToString() )
-		) );
+		context.AddError(
+		    FText::FromString(
+		        FString::Printf( TEXT( "StatName '%s' does not exist on FEntityStats" ), *StatName.ToString() )
+		    )
+		);
 		return EDataValidationResult::Invalid;
 	}
 
 	if ( !CastField<FNumericProperty>( prop ) )
 	{
-		context.AddError( FText::FromString(
-			FString::Printf( TEXT( "StatName '%s' is not a numeric property" ),
-				*StatName.ToString() )
-		) );
+		context.AddError(
+		    FText::FromString(
+		        FString::Printf( TEXT( "StatName '%s' is not a numeric property" ), *StatName.ToString() )
+		    )
+		);
 		return EDataValidationResult::Invalid;
 	}
 
 	if ( !prop->HasMetaData( CardModifiableMeta ) )
 	{
-		context.AddWarning( FText::FromString(
-			FString::Printf( TEXT( "StatName '%s' is not tagged CardModifiable" ),
-				*StatName.ToString() )
-		) );
+		context.AddWarning(
+		    FText::FromString(
+		        FString::Printf( TEXT( "StatName '%s' is not tagged CardModifiable" ), *StatName.ToString() )
+		    )
+		);
 	}
 
 	if ( FMath::IsNearlyZero( Delta ) )
@@ -175,20 +139,19 @@ EDataValidationResult UCardEffect_StatModifier::IsDataValid( FDataValidationCont
 #endif
 
 void UCardEffect_StatModifier::PreviewBuildingTooltip_Implementation(
-	 const ABuilding* building,
-	 FEntityStats& InOutStats,
-	 FResourceProduction& InOutBuildingCost,
-	 FResourceProduction& InOutMaintenanceCost ) const
+    const ABuilding* building, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+    FResourceProduction& InOutMaintenanceCost
+) const
 {
- if ( !building || StatName.IsNone() )
- {
-	return;
- }
+	if ( !building || StatName.IsNone() )
+	{
+		return;
+	}
 
- if ( !CardStatReflection::FindNumericProperty( StatName ) )
- {
-	 return;
- }
+	if ( !CardStatReflection::FindNumericProperty( StatName ) )
+	{
+		return;
+	}
 
 	CardStatReflection::ApplyStatDeltaToStats( InOutStats, StatName, Delta );
 }

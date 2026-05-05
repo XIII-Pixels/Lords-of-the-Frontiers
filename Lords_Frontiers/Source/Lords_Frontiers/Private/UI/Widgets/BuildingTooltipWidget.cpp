@@ -323,31 +323,31 @@ void UBuildingTooltipWidget::UpdateContent()
 }
 
 void UBuildingTooltipWidget::ApplyCurrentBuildingModifiers(
-    const ABuilding* SourceBuilding, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
-    FResourceProduction& InOutMaintenanceCost
+    const ABuilding* sourceBuilding, FEntityStats& inOutStats, FResourceProduction& inOutBuildingCost,
+    FResourceProduction& inOutMaintenanceCost
 ) const
 {
-	if ( !SourceBuilding )
+	if ( !sourceBuilding )
 	{
 		return;
 	}
 
-	const UCardSubsystem* CardSubsystem = UCardSubsystem::Get( this );
-	if ( !CardSubsystem )
+	const UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this );
+	if ( !cardSubsystem )
 	{
 		return;
 	}
 
-	const TArray<FAppliedCardBonus> Bonuses = CardSubsystem->GetBuildingBonuses( SourceBuilding );
+	const TArray<FAppliedCardBonus> bonuses = cardSubsystem->GetBuildingBonuses( sourceBuilding );
 
-	for ( const FAppliedCardBonus& Bonus : Bonuses )
+	for ( const FAppliedCardBonus& bonus : bonuses )
 	{
-		if ( !Bonus.Effect )
+		if ( !bonus.Effect )
 		{
 			continue;
 		}
 
-		Bonus.Effect->PreviewBuildingTooltip( SourceBuilding, InOutStats, InOutBuildingCost, InOutMaintenanceCost );
+		bonus.Effect->PreviewBuildingTooltip( sourceBuilding, inOutStats, inOutBuildingCost, inOutMaintenanceCost );
 	}
 }
 
