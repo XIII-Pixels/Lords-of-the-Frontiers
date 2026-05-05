@@ -49,13 +49,12 @@ void USoundEffectManager::RegisterObject( UObject* object )
 	if ( !source )
 	{
 		UE_LOG(
-		    LogTemp, Warning, TEXT( "USoundEffectManager: %s does not implement IAudioEventSource" ),
-		    *object->GetName()
+		    LogTemp, Warning, TEXT( "USoundEffectManager: %s does not implement IAudioEventSource" ), *object->GetName()
 		);
 		return;
 	}
 
-	source->GetOnAudioEvent().AddDynamic( this, &USoundEffectManager::HandleAudioEvent );
+	source->GetOnAudioEvent().AddUniqueDynamic( this, &USoundEffectManager::HandleAudioEvent );
 	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: actor %s registered" ), *object->GetName() );
 }
 
@@ -70,8 +69,7 @@ void USoundEffectManager::UnregisterObject( UObject* object )
 	if ( !source )
 	{
 		UE_LOG(
-		    LogTemp, Warning, TEXT( "USoundEffectManager: %s does not implement IAudioEventSource" ),
-		    *object->GetName()
+		    LogTemp, Warning, TEXT( "USoundEffectManager: %s does not implement IAudioEventSource" ), *object->GetName()
 		);
 		return;
 	}
@@ -165,30 +163,31 @@ void USoundEffectManager::OnSoundFinished( TWeakObjectPtr<UAudioComponent> compo
 
 void USoundEffectManager::Play2D( const FSoundEntry& entry )
 {
-	UAudioComponent* audio = AcquireAudioComponent().Get();
-	if ( !audio )
+	if ( !entry.Sound )
 	{
 		return;
 	}
 
-	audio->SetSound( entry.Sound );
-	audio->SetVolumeMultiplier( FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) );
-	audio->SetPitchMultiplier( FMath::RandRange( entry.PitchRange.X, entry.PitchRange.Y ) );
-	audio->bAllowSpatialization = false;
-	audio->AttenuationSettings = nullptr; // no attenuation for 2D
+	const float volume = FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y );
+	const float pitch  = FMath::RandRange( entry.PitchRange.X, entry.PitchRange.Y );
 
-	TWeakObjectPtr<USoundEffectManager> weakThis = this;
-	audio->OnAudioFinishedNative.AddLambda(
-	    [weakThis]( UAudioComponent* component )
-	    {
-		    if ( weakThis.IsValid() && IsValid( component ) )
-		    {
-			    weakThis->OnSoundFinished( component );
-		    }
-	    }
+	UAudioComponent* audio = UGameplayStatics::SpawnSound2D(
+		this,
+		entry.Sound,
+		volume,
+		pitch,
+		0.0f,
+		nullptr,
+		true,
+		true
 	);
 
-	audio->Play();
+	if ( !audio )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "USoundEffectManager: failed to play 2D sound: %s" ), *entry.Sound->GetName() );
+		return;
+	}
+
 	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: playing 2D sound: %s" ), *entry.Sound->GetName() );
 }
 
@@ -205,6 +204,7 @@ void USoundEffectManager::Play3D( const FSoundEntry& entry, const FVector& world
 	audio->SetVolumeMultiplier( FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) );
 	audio->SetPitchMultiplier( FMath::RandRange( entry.PitchRange.X, entry.PitchRange.Y ) );
 	audio->bAllowSpatialization = true;
+
 	if ( entry.Attenuation )
 	{
 		audio->AttenuationSettings = entry.Attenuation;

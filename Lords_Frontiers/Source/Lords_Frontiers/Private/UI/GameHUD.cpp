@@ -179,9 +179,12 @@ void UGameHUDWidget::NativeConstruct()
 	// Sound
 	if ( const UWorld* world = GetWorld() )
 	{
-		if ( USoundEffectManager* sfxManager = world->GetSubsystem<USoundEffectManager>() )
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
 		{
-			sfxManager->RegisterObject( this );
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->RegisterObject( this );
+			}
 		}
 	}
 
@@ -314,9 +317,12 @@ void UGameHUDWidget::NativeDestruct()
 	// Sound
 	if ( const UWorld* world = GetWorld() )
 	{
-		if ( USoundEffectManager* sfxManager = world->GetSubsystem<USoundEffectManager>() )
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
 		{
-			sfxManager->UnregisterObject( this );
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->UnregisterObject( this );
+			}
 		}
 	}
 
@@ -728,7 +734,7 @@ void UGameHUDWidget::OnEndTurnClicked()
 		}
 	}
 
-	OnAudioEvent_.Broadcast({ AudioTags::SFX_UI_BUTTON_END_TURN_CLICKED } );
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_CLICKED } );
 }
 
 void UGameHUDWidget::OnRelocateBuildingClicked()

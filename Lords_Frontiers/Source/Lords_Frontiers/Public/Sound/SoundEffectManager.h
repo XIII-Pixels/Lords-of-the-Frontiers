@@ -14,14 +14,15 @@ class USoundAttenuation;
 
 /** (Gregory-hub) */
 UCLASS()
-class LORDS_FRONTIERS_API USoundEffectManager : public UWorldSubsystem
+class LORDS_FRONTIERS_API USoundEffectManager : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	virtual void Initialize(FSubsystemCollectionBase& collection) override;
+	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
+	// Use UnregisterObject if using RegisterObject
 	void RegisterObject( UObject* object );
 	void UnregisterObject( UObject* object );
 

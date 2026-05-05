@@ -54,9 +54,12 @@ void ABuilding::BeginPlay()
 		return;
 	}
 
-	if ( auto* sfxManager = world->GetSubsystem<USoundEffectManager>() )
+	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
 	{
-		sfxManager->RegisterObject( this );
+		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->RegisterObject( this );
+		}
 	}
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
@@ -434,6 +437,18 @@ void ABuilding::EndPlay( const EEndPlayReason::Type endPlayReason )
 	{
 		EconomyComponent_->UnregisterBuilding( this );
 	}
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->UnregisterObject( this );
+			}
+		}
+	}
+
 	Super::EndPlay( endPlayReason );
 }
 
