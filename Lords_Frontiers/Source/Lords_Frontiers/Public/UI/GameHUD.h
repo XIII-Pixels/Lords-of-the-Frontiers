@@ -10,6 +10,7 @@
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 
@@ -126,14 +127,8 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* Text_Food;
 
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* TextTimer;
-
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> ButtonSpeed;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> TextSpeed;
+	TObjectPtr<UCombatTimerWidget> CombatTimerPanel;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> Text_GoldIncome;
@@ -319,9 +314,6 @@ protected:
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
 
 	UFUNCTION()
-	void HandleCombatTimer( float TimeRemaining, float TotalTime );
-
-	UFUNCTION()
 	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
 
 	// Update methods
@@ -492,12 +484,4 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager;
-
-	UFUNCTION()
-	void OnSpeedButtonClicked();
-
-	UFUNCTION()
-	void HandleSpeedChanged( float NewSpeed );
-
-	void UpdateSpeedButtonVisibility( EGameLoopPhase Phase );
 };
