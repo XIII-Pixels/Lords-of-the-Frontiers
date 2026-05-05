@@ -141,32 +141,11 @@ void UGameHUDWidget::NativeConstruct()
 		{
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
-			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 			{
 				session->OnGameEndDelegate.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
 			}
 		}
-	}
-
-	if ( TextTimer )
-	{
-		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
-	}
-
-	if ( ButtonSpeed )
-	{
-		ButtonSpeed->OnClicked.AddDynamic( this, &UGameHUDWidget::OnSpeedButtonClicked );
-		ButtonSpeed->SetVisibility( ESlateVisibility::Collapsed );
-	}
-	if ( TextSpeed )
-	{
-		TextSpeed->SetText( FText::FromString( TEXT( "x1" ) ) );
-	}
-
-	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
-	{
-		session->OnSpeedChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleSpeedChanged );
 	}
 
 	if ( BtnToggleWaveInfo )
@@ -247,11 +226,9 @@ void UGameHUDWidget::NativeDestruct()
 		{
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
-			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 			{
 				session->OnGameEndDelegate.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
-				session->OnSpeedChanged.RemoveDynamic( this, &UGameHUDWidget::HandleSpeedChanged );
 			}
 		}
 
@@ -282,15 +259,6 @@ void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 	{
 		float progress = static_cast<float>( CurrentTurn - 1 ) / static_cast<float>( MaxTurns );
 		StageProgressBar->SetTargetProgress( FMath::Clamp( progress, 0.0f, 1.0f ) );
-	}
-}
-
-void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
-{
-	if ( TextTimer )
-	{
-		int32 seconds = FMath::CeilToInt( TimeRemaining );
-		TextTimer->SetText( FText::FromString( FString::Printf( TEXT( "%d" ), seconds ) ) );
 	}
 }
 
@@ -345,14 +313,6 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
-
-	if ( TextTimer )
-	{
-		bool bShowTimer = ( NewPhase == EGameLoopPhase::Combat );
-		TextTimer->SetVisibility( bShowTimer ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
-	}
-
-	UpdateSpeedButtonVisibility( NewPhase );
 
 	if ( NewPhase == EGameLoopPhase::Combat )
 	{
@@ -1325,36 +1285,6 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 		{
 			Cam->SetCameraInputDisabled( true );
 		}
-	}
-}
-
-void UGameHUDWidget::OnSpeedButtonClicked()
-{
-	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
-	{
-		session->CycleSpeed();
-	}
-}
-
-void UGameHUDWidget::HandleSpeedChanged( float NewSpeed )
-{
-	if ( TextSpeed )
-	{
-		TextSpeed->SetText( FText::FromString( FString::Printf( TEXT( "x%d" ), FMath::RoundToInt( NewSpeed ) ) ) );
-	}
-}
-
-void UGameHUDWidget::UpdateSpeedButtonVisibility( EGameLoopPhase Phase )
-{
-	if ( ButtonSpeed )
-	{
-		const bool bShow = ( Phase == EGameLoopPhase::Combat );
-		ButtonSpeed->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
-	}
-	if ( TextSpeed )
-	{
-		const bool bShow = ( Phase == EGameLoopPhase::Combat );
-		TextSpeed->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
 	}
 }
 

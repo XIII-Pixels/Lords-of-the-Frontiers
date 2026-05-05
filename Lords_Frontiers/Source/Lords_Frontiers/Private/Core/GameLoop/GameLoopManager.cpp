@@ -378,7 +378,10 @@ void UGameLoopManager::UpdateCombatTimer( float deltaTime )
 		return;
 	}
 
-	CombatTimeRemaining_ -= deltaTime;
+	const UWorld* world = GetWorld();
+	const float gameDelta = world ? world->GetDeltaSeconds() : deltaTime;
+
+	CombatTimeRemaining_ -= gameDelta;
 
 	if ( CombatTimeRemaining_ <= 0.0f )
 	{
@@ -388,7 +391,7 @@ void UGameLoopManager::UpdateCombatTimer( float deltaTime )
 		return;
 	}
 
-	LastTimerBroadcast_ += deltaTime;
+	LastTimerBroadcast_ += gameDelta;
 	if ( LastTimerBroadcast_ >= GameLoopDefaults::cTimerBroadcastInterval )
 	{
 		LastTimerBroadcast_ = 0.0f;
