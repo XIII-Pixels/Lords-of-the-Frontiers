@@ -123,7 +123,7 @@ protected:
 	TArray<TObjectPtr<AActor>> FindNeighborTargets( int32 count ) const;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	float LookForwardTimeInterval_ = 0.05f;
+	float LookForwardTimeInterval_ = 0.2f;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	bool bCanAttackBackward_ = true;
