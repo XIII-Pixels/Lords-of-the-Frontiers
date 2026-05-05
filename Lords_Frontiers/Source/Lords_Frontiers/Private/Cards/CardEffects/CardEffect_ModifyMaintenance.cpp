@@ -5,37 +5,6 @@
 namespace
 {
 
-	bool ApplyStatDeltaToStats( FEntityStats& stats, FName statName, float signedDelta )
-	{
-		if ( statName.IsNone() || FMath::IsNearlyZero( signedDelta ) )
-		{
-			return false;
-		}
-
-		FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( statName );
-		FNumericProperty* numericProp = CastField<FNumericProperty>( prop );
-		if ( !numericProp )
-		{
-			return false;
-		}
-
-		uint8* statsPtr = reinterpret_cast<uint8*>( &stats );
-		void* valuePtr = numericProp->ContainerPtrToValuePtr<void>( statsPtr );
-
-		if ( numericProp->IsFloatingPoint() )
-		{
-			const double currentValue = numericProp->GetFloatingPointPropertyValue( valuePtr );
-			numericProp->SetFloatingPointPropertyValue( valuePtr, currentValue + signedDelta );
-		}
-		else
-		{
-			const int64 currentValue = numericProp->GetSignedIntPropertyValue( valuePtr );
-			numericProp->SetIntPropertyValue( valuePtr, currentValue + FMath::RoundToInt( signedDelta ) );
-		}
-
-		return true;
-	}
-
 	void ApplyResourceDelta( FResourceProduction& production, EResourceTargetType target, int32 signedDelta )
 	{
 		if ( signedDelta == 0 )
