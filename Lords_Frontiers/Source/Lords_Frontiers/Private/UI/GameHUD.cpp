@@ -5,6 +5,7 @@
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Core/Debug/DebugPlayerController.h"
 #include "Resources/EconomyComponent.h"
 #include "Resources/ResourceManager.h"
 #include "UI/HealthBar/HealthBarWidget.h"
@@ -1066,15 +1067,10 @@ void UGameHUDWidget::OnBuildingUnhovered()
 {
 	if ( bIsBuildingLocked && LockedBuildingClass )
 	{
-		ShowTooltipForBuilding( LockedBuildingClass );
+		return;
 	}
-	else
-	{
-		if ( ActiveEconomyTooltip )
-			ActiveEconomyTooltip->HideTooltip();
-		if ( ActiveDefensiveTooltip )
-			ActiveDefensiveTooltip->HideTooltip();
-	}
+
+	HideTooltipForBuilding();
 }
 
 void UGameHUDWidget::ToggleWaveInfoPanel()
@@ -1408,25 +1404,92 @@ void UGameHUDWidget::TogglePauseMenu()
 void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
 {
 	if ( !buildingClass )
+	{
+		HideTooltipForBuilding();
 		return;
+	}
+
 	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
 	if ( !cdo )
+	{
+		HideTooltipForBuilding();
 		return;
+	}
+
+	TSubclassOf<UBuildingTooltipWidget> tooltipClass = nullptr;
 
 	if ( cdo->IsA<ADefensiveBuilding>() )
 	{
-		if ( ActiveEconomyTooltip )
-			ActiveEconomyTooltip->HideTooltip();
-		if ( ActiveDefensiveTooltip )
-			ActiveDefensiveTooltip->ShowTooltip( buildingClass );
+		tooltipClass = DefensiveTooltipClass;
 	}
 	else
 	{
-		if ( ActiveDefensiveTooltip )
-			ActiveDefensiveTooltip->HideTooltip();
-		if ( ActiveEconomyTooltip )
-			ActiveEconomyTooltip->ShowTooltip( buildingClass );
+		tooltipClass = EconomyTooltipClass;
 	}
+
+	if ( !tooltipClass )
+	{
+		HideTooltipForBuilding();
+		return;
+	}
+
+	if ( !CurrentTooltip || !CurrentTooltip->IsA( tooltipClass ) )
+	{
+		if ( CurrentTooltip )
+		{
+			CurrentTooltip->RemoveFromParent();
+			CurrentTooltip = nullptr;
+		}
+
+		CurrentTooltip = CreateWidget<UBuildingTooltipWidget>( GetWorld(), tooltipClass );
+		if ( !CurrentTooltip )
+		{
+			return;
+		}
+
+		CurrentTooltip->AddToViewport( 99 );
+	}
+
+	CurrentTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
+	CurrentTooltip->ShowTooltip( buildingClass );
+}
+
+void UGameHUDWidget::ShowTooltipForBuilding( const ABuilding* building )
+{
+	if ( !building )
+	{
+		HideTooltipForBuilding();
+		return;
+	}
+
+	TSubclassOf<UBuildingTooltipWidget> tooltipClass =
+	    building->IsA<ADefensiveBuilding>() ? DefensiveTooltipClass : EconomyTooltipClass;
+
+	if ( !tooltipClass )
+	{
+		HideTooltipForBuilding();
+		return;
+	}
+
+	if ( !CurrentTooltip || !CurrentTooltip->IsA( tooltipClass ) )
+	{
+		if ( CurrentTooltip )
+		{
+			CurrentTooltip->RemoveFromParent();
+		}
+
+		CurrentTooltip = CreateWidget<UBuildingTooltipWidget>( GetWorld(), tooltipClass );
+		if ( !CurrentTooltip )
+		{
+			return;
+		}
+
+		CurrentTooltip->AddToViewport( 99 );
+	}
+
+	CurrentTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
+
+	CurrentTooltip->ShowTooltipForBuildingInstance( building );
 }
 
 void UGameHUDWidget::InitializeTooltipWidget(
@@ -1473,12 +1536,8 @@ void UGameHUDWidget::RemoveBossBar( UHealthBarWidget* bar )
 
 void UGameHUDWidget::HandleSelectionChanged()
 {
-	UE_LOG(
-	    LogTemp, Warning,
-	    TEXT(
-	        "UGameHUDWidget::HandleSelectionChanged "
-	    )
-	);
+	UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::HandleSelectionChanged" ) );
+
 	UpdateExtraButtonsVisibility();
 
 	UCoreManager* coreManager = UCoreManager::Get( this );
@@ -1494,12 +1553,45 @@ void UGameHUDWidget::HandleSelectionChanged()
 	}
 
 	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+
+	ABuildManager* buildManager = nullptr;
+	if ( APlayerController* pc = GetOwningPlayer() )
+	{
+		if ( auto* debugPC = Cast<ADebugPlayerController>( pc ) )
+		{
+			buildManager = debugPC->GetBuildManager(); 
+		}
+	}
+
 	if ( !selectedBuilding )
 	{
+		HideTooltipForBuilding();
+
+		if ( buildManager )
+		{
+			buildManager->HideAllDefensiveRanges();
+		}
+
 		return;
 	}
-}
 
+	ShowTooltipForBuilding( selectedBuilding );
+
+	if ( Cast<ADefensiveBuilding>( selectedBuilding ) )
+	{
+		if ( buildManager )
+		{
+			buildManager->ShowAllDefensiveRanges();
+		}
+	}
+	else
+	{
+		if ( buildManager )
+		{
+			buildManager->HideAllDefensiveRanges();
+		}
+	}
+}
 void UGameHUDWidget::UpdateExtraButtonsVisibility()
 {
 	UCoreManager* coreManager = UCoreManager::Get( this );
@@ -1551,20 +1643,41 @@ void UGameHUDWidget::UpdateExtraButtonsVisibility()
 		ButtonRemoveBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
 	}
 }
+
 void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelectionManager )
 {
 	UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager called: %s" ), *GetNameSafe( InSelectionManager ) );
 
-	SelectionManager = InSelectionManager;
-	if ( !SelectionManager )
+	if ( SelectionManager == InSelectionManager )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "InitSelectionManager: SelectionManager is null" ) );
+		UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager: same manager, skipping rebind" ) );
 		return;
 	}
 
-	SelectionManager->OnSelectionChanged.AddDynamic( this, &UGameHUDWidget::HandleSelectionChanged );
+	if ( SelectionManager )
+	{
+		SelectionManager->OnSelectionChanged.RemoveDynamic( this, &UGameHUDWidget::HandleSelectionChanged );
+	}
+
+	SelectionManager = InSelectionManager;
+
+	if ( !SelectionManager )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "InitSelectionManager: SelectionManager is null" ) );
+		HideTooltipForBuilding();
+		return;
+	}
+
+	SelectionManager->OnSelectionChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleSelectionChanged );
 
 	UE_LOG( LogTemp, Warning, TEXT( "InitSelectionManager: subscribed to OnSelectionChanged" ) );
 
 	HandleSelectionChanged();
+}
+void UGameHUDWidget::HideTooltipForBuilding()
+{
+	if ( CurrentTooltip )
+	{
+		CurrentTooltip->HideTooltip();
+	}
 }

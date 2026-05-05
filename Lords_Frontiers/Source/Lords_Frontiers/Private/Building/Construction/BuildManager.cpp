@@ -4,8 +4,11 @@
 #include "Building/Construction/BuildPreviewActor.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
+#include "Lords_Frontiers/Public/UI/GameHUD.h"
 #include "Building/DefensiveBuilding.h"
+#include "Core/GameModes/MainGameMode.h"
 #include "Core/CoreManager.h"
+#include "Core/Debug/DebugPlayerController.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
@@ -187,6 +190,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 				CachedPreviewAttackRange_ = 0.f;
 				PreviewActor_->HideAttackRange();
 				HideAllDefensiveRanges();
+				HideBuildingTooltip();
 			}
 		}
 
@@ -268,7 +272,7 @@ void ABuildManager::CancelPlacing()
 	{
 		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Yellow, TEXT( "Building / relocating mode cancelled" ) );
 	}
-
+	HideBuildingTooltip();
 	CachedBonusIcons_.Empty();
 	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
 	GridVisualizer_->HideBonusHighlight();
@@ -399,7 +403,7 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	}
 
 	PlayPlacementAnimation( RelocatedBuilding_ );
-
+	HideBuildingTooltip();
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
 }
 
@@ -620,11 +624,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-			    -1, 2.0f, FColor::Red,
-			    TEXT(
-			        "StartRelocatingBuilding: GridManager or GridVisualizer is "
-			        "null"
-			    )
+			    -1, 2.0f, FColor::Red, TEXT( "StartRelocatingBuilding: GridManager or GridVisualizer is null" )
 			);
 		}
 		return;
@@ -639,7 +639,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	{
 		GridVisualizer_->ShowGrid();
 	}
-	// 2) Находим клетку, в которой сейчас стоит это здание.
+
 	FIntPoint foundCoords( -1, -1 );
 	bool bFound = false;
 
@@ -656,7 +656,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 				continue;
 			}
 
-			// В этой клетке стоит наш buildingToMove?
 			if ( cell->Occupant.Get() == buildingToMove )
 			{
 				foundCoords = FIntPoint( x, y );
@@ -677,7 +676,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		return;
 	}
 
-	// 3) Сохраняем состояние переноса.
 	RelocatedBuilding_ = buildingToMove;
 	OriginalCellCoords_ = foundCoords;
 	bIsRelocating_ = true;
@@ -710,7 +708,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
-	// 5) Спавним/показываем превью как при обычном строительстве.
 	if ( !PreviewActor_ )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -1123,3 +1120,17 @@ bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	DebugMessage( FColor::Green, TEXT( "Building removed" ) );
 	return true;
 }
+void ABuildManager::HideBuildingTooltip()
+{
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( AMainGameMode* gm = world->GetAuthGameMode<AMainGameMode>() )
+		{
+			if ( UGameHUDWidget* hud = gm->GetGameHUDWidget() )
+			{
+				hud->HideTooltipForBuilding();
+			}
+		}
+	}
+}
+	

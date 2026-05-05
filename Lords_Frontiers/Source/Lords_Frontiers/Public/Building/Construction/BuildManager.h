@@ -98,6 +98,12 @@ public:
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	bool RemoveExistingBuilding( ABuilding* buildingToRemove );
+
+	void HideBuildingTooltip();
+	
+	void ShowAllDefensiveRanges();
+
+	void HideAllDefensiveRanges();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -179,10 +185,6 @@ private:
 	void UpdateHoveredCell();
 
 	void UpdatePreviewVisual( const FVector& worldLocation, bool bCanBuild );
-
-	void ShowAllDefensiveRanges();
-
-	void HideAllDefensiveRanges();
 
 	void PlayPlacementAnimation( AActor* building );
 

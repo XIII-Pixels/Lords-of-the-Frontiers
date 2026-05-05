@@ -2,7 +2,10 @@
 
 #include "Building/Bonus/BuildingBonusComponent.h"
 #include "Building/Building.h"
+#include "Cards/CardTypes.h"
+#include "Cards/CardEffect.h"
 #include "Building/DefensiveBuilding.h"
+#include "Cards/CardSubsystem.h"
 #include "Building/ResourceBuilding.h"
 #include "Core/CoreManager.h"
 #include "Resources/ResourceManager.h"
@@ -178,44 +181,66 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 
 void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 {
-	if ( !IsValid( buildingClass ) )
+	if ( !buildingClass )
 	{
+		ForceHide();
 		return;
 	}
 
+	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
+	if ( !cdo )
+	{
+		ForceHide();
+		return;
+	}
+
+	CurrentBuildingClass = buildingClass;
+	PendingBuildingClass = nullptr;
+	bUsePreviewCache_ = true;
+
+	ClearContainers();
+
+	UpdateHeader( cdo );
+	UpdateEconomy( cdo );
+	UpdateStats( cdo );
+	UpdateBonuses();
+
+	// restart show animation every time
+	CurrentState = ETooltipState::DelayShow;
+	StateTimer = ShowDelay;
+	SetRenderOpacity( 0.0f );
+	bIsLocked = false;
 	bIsAutoHiding = false;
-	PendingBuildingClass = buildingClass;
 
 	SetVisibility( ESlateVisibility::HitTestInvisible );
+}
 
-	if ( ( CurrentState == ETooltipState::Hidden ) || ( CurrentState == ETooltipState::AnimatingOut ) ||
-	     ( CurrentState == ETooltipState::DelayHide ) )
+void UBuildingTooltipWidget::ShowTooltipForBuildingInstance( const ABuilding* building )
+{
+	if ( !building )
 	{
-		CurrentState = ETooltipState::DelayShow;
-		StateTimer = ShowDelay;
-		AnimProgress = 0.0f;
-		SetRenderOpacity( 0.0f );
-
-		// Фикс бага: всегда обновляем контент при показе
-		CurrentBuildingClass = PendingBuildingClass;
-		UpdateContent();
+		ForceHide();
+		return;
 	}
-	else if ( ( CurrentState == ETooltipState::Visible ) || ( CurrentState == ETooltipState::FadeFlash ) ||
-	          ( CurrentState == ETooltipState::HoldFlash ) )
-	{
-		if ( IsValid( WhiteFlash ) )
-		{
-			WhiteFlash->SetRenderOpacity( 1.0f );
-		}
 
-		// Фикс бага: всегда обновляем контент при переключении
-		CurrentBuildingClass = PendingBuildingClass;
-		UpdateContent();
+	CurrentBuildingClass = building->GetClass();
+	PendingBuildingClass = nullptr;
+	bUsePreviewCache_ = false;
 
-		CurrentState = ETooltipState::HoldFlash;
-		StateTimer = SwitchDelay;
-		AnimProgress = 1.0f;
-	}
+	ClearContainers();
+
+	UpdateHeader( building );
+	UpdateEconomy( building );
+	UpdateStats( building );
+	UpdateBonuses();
+
+	CurrentState = ETooltipState::DelayShow;
+	StateTimer = ShowDelay;
+	SetRenderOpacity( 0.0f );
+	bIsLocked = false;
+	bIsAutoHiding = false;
+
+	SetVisibility( ESlateVisibility::HitTestInvisible );
 }
 
 void UBuildingTooltipWidget::HideTooltip()
@@ -230,9 +255,15 @@ void UBuildingTooltipWidget::HideTooltip()
 
 void UBuildingTooltipWidget::ForceHide()
 {
-	CurrentState = ETooltipState::Hidden;
-	AnimProgress = 0.0f;
 	SetRenderOpacity( 0.0f );
+	CurrentState = ETooltipState::Hidden;
+	StateTimer = 0.0f;
+	AnimProgress = 0.0f;
+	FlashProgress = 0.0f;
+	bIsLocked = false;
+	bIsAutoHiding = false;
+	bUsePreviewCache_ = false;
+
 	SetVisibility( ESlateVisibility::Hidden );
 }
 
@@ -291,6 +322,35 @@ void UBuildingTooltipWidget::UpdateContent()
 	UpdateBonuses();
 }
 
+void UBuildingTooltipWidget::ApplyCurrentBuildingModifiers(
+    const ABuilding* SourceBuilding, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+    FResourceProduction& InOutMaintenanceCost
+) const
+{
+	if ( !SourceBuilding )
+	{
+		return;
+	}
+
+	const UCardSubsystem* CardSubsystem = UCardSubsystem::Get( this );
+	if ( !CardSubsystem )
+	{
+		return;
+	}
+
+	const TArray<FAppliedCardBonus> Bonuses = CardSubsystem->GetBuildingBonuses( SourceBuilding );
+
+	for ( const FAppliedCardBonus& Bonus : Bonuses )
+	{
+		if ( !Bonus.Effect )
+		{
+			continue;
+		}
+
+		Bonus.Effect->PreviewBuildingTooltip( SourceBuilding, InOutStats, InOutBuildingCost, InOutMaintenanceCost );
+	}
+}
+
 void UBuildingTooltipWidget::ClearContainers()
 {
 	if ( IsValid( Box_Cost ) )
@@ -339,10 +399,10 @@ void UBuildingTooltipWidget::UpdateHeader( const ABuilding* cdo )
 	}
 }
 
-void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cdo )
+void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* building )
 {
 	APlayerController* pc = GetOwningPlayer();
-	if ( !IsValid( pc ) )
+	if ( !IsValid( pc ) || !IsValid( building ) )
 	{
 		return;
 	}
@@ -358,20 +418,47 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cdo )
 		}
 	}
 
-	int32 costG = cdo->GetBuildingCost().Gold;
-	int32 costF = cdo->GetBuildingCost().Food;
-	int32 costP = cdo->GetBuildingCost().Population;
+	FResourceProduction buildingCost = building->GetBuildingCost();
+	FResourceProduction maintenanceCost = building->GetMaintenanceCost();
 
-	int32 maintG = cdo->GetMaintenanceCost().Gold;
-	int32 maintF = cdo->GetMaintenanceCost().Food;
-	int32 maintP = cdo->GetMaintenanceCost().Population;
+	if ( bUsePreviewCache_ && CurrentBuildingClass )
+	{
+		if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+		{
+			FBuildingTooltipPreview preview;
+			if ( cards->GetBuildingTooltipPreview( CurrentBuildingClass, preview ) )
+			{
+				buildingCost = preview.BuildingCost;
+				maintenanceCost = preview.MaintenanceCost;
+			}
+		}
+	}
+
+	int32 costG = buildingCost.Gold;
+	int32 costF = buildingCost.Food;
+	int32 costP = buildingCost.Population;
+
+	int32 maintG = maintenanceCost.Gold;
+	int32 maintF = maintenanceCost.Food;
+	int32 maintP = maintenanceCost.Population;
 
 	int32 prodG = 0, prodF = 0, prodP = 0;
-	if ( const AResourceBuilding* resB = Cast<AResourceBuilding>( cdo ) )
+	if ( const AResourceBuilding* resB = Cast<AResourceBuilding>( building ) )
 	{
 		prodG = resB->GetProductionConfig().Gold;
 		prodF = resB->GetProductionConfig().Food;
 		prodP = resB->GetProductionConfig().Population;
+	}
+
+	if ( const UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		prodG += cards->GetProductionBonus( EResourceTargetType::Gold );
+		prodF += cards->GetProductionBonus( EResourceTargetType::Food );
+		prodP += cards->GetProductionBonus( EResourceTargetType::Population );
+
+		maintG = FMath::Max( 0, maintG - cards->GetMaintenanceCostReduction( EResourceTargetType::Gold ) );
+		maintF = FMath::Max( 0, maintF - cards->GetMaintenanceCostReduction( EResourceTargetType::Food ) );
+		maintP = FMath::Max( 0, maintP - cards->GetMaintenanceCostReduction( EResourceTargetType::Population ) );
 	}
 
 	if ( costP < 0 )
@@ -391,8 +478,11 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cdo )
 		if ( ( amount != 0 ) && IsValid( ResourceRowClass ) && IsValid( box ) )
 		{
 			UBuildingTooltipResourceRow* row = CreateWidget<UBuildingTooltipResourceRow>( pc, ResourceRowClass );
-			row->Setup( amount, GetResourceIcon( resType ), color, bSuffix, bShowPlus );
-			box->AddChild( row );
+			if ( row )
+			{
+				row->Setup( amount, GetResourceIcon( resType ), color, bSuffix, bShowPlus );
+				box->AddChild( row );
+			}
 		}
 	};
 
@@ -413,32 +503,50 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* cdo )
 	addResRow( Box_Production, prodP, EResourceType::Population, IncomeColor, false );
 }
 
-void UBuildingTooltipWidget::UpdateStats( const ABuilding* cdo )
+void UBuildingTooltipWidget::UpdateStats( const ABuilding* building )
 {
 	APlayerController* pc = GetOwningPlayer();
-	if ( !IsValid( pc ) )
+	if ( !IsValid( pc ) || !IsValid( building ) )
 	{
 		return;
 	}
 
-	FEntityStats stats = const_cast<ABuilding*>( cdo )->Stats();
+	FEntityStats stats = building->Stats();
+
+	if ( bUsePreviewCache_ && CurrentBuildingClass )
+	{
+		if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+		{
+			FBuildingTooltipPreview preview;
+			if ( cards->GetBuildingTooltipPreview( CurrentBuildingClass, preview ) )
+			{
+				stats = preview.Stats;
+			}
+		}
+	}
 
 	if ( IsValid( HealthRowClass ) && IsValid( Box_Health ) )
 	{
 		UBuildingTooltipHealthRow* healthRow = CreateWidget<UBuildingTooltipHealthRow>( pc, HealthRowClass );
-		healthRow->Setup( GetStatIcon( EStatsType::MaxHealth ), FString::FromInt( stats.MaxHealth() ) );
-		Box_Health->AddChild( healthRow );
+		if ( healthRow )
+		{
+			healthRow->Setup( GetStatIcon( EStatsType::MaxHealth ), FString::FromInt( stats.MaxHealth() ) );
+			Box_Health->AddChild( healthRow );
+		}
 	}
 
-	if ( cdo->IsA<ADefensiveBuilding>() )
+	if ( building->IsA<ADefensiveBuilding>() )
 	{
 		auto addStatRow = [&]( EStatsType type, const FString& name, const FString& value )
 		{
 			if ( IsValid( StatRowClass ) && IsValid( Box_Stats ) )
 			{
 				UBuildingTooltipStatRow* row = CreateWidget<UBuildingTooltipStatRow>( pc, StatRowClass );
-				row->Setup( GetStatIcon( type ), name, value );
-				Box_Stats->AddChild( row );
+				if ( row )
+				{
+					row->Setup( GetStatIcon( type ), name, value );
+					Box_Stats->AddChild( row );
+				}
 			}
 		};
 

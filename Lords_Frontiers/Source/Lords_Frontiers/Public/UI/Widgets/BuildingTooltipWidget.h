@@ -2,7 +2,7 @@
 
 #include "EntityStats.h"
 #include "Resources/GameResource.h"
-
+#include "Cards/CardTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
 
@@ -96,6 +96,8 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void ShowTooltip( TSubclassOf<ABuilding> buildingClass );
 
+	void ShowTooltipForBuildingInstance( const ABuilding* BuildingInstance );
+
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void HideTooltip();
 
@@ -115,6 +117,11 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void StartAutoHideTimer();
+
+	void ApplyCurrentBuildingModifiers(
+	    const ABuilding* SourceBuilding, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+	    FResourceProduction& InOutMaintenanceCost
+	) const;
 
 protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.2f;
@@ -168,6 +175,8 @@ protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Production;
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Bonus;
 
+	bool bUsePreviewCache_ = false;
+
 private:
 	ETooltipState CurrentState = ETooltipState::Hidden;
 	float StateTimer = 0.0f;
@@ -181,8 +190,8 @@ private:
 	
 	void ClearContainers();
 	void UpdateHeader( const ABuilding* cDO );
-	void UpdateEconomy( const ABuilding* cDO );
-	void UpdateStats( const ABuilding* cDO );
+	void UpdateEconomy( const ABuilding* building );
+	void UpdateStats( const ABuilding* building );
 	void UpdateBonuses();
 
 	bool bIsLocked = false;

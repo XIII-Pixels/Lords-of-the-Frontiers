@@ -280,6 +280,15 @@ public:
 	UFUNCTION()
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
+	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
+	void ShowTooltipForBuilding( const ABuilding* BuildingInstance );
+
+	UFUNCTION( BlueprintCallable )
+	void HideTooltipForBuilding();
+
+	UPROPERTY()
+	TObjectPtr<UBuildingTooltipWidget> CurrentTooltip;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -393,8 +402,6 @@ protected:
 
 	bool bIsBuildingLocked = false;
 	UPROPERTY() TSubclassOf<ABuilding> LockedBuildingClass;
-
-	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	void InitializeTooltipWidget(
 	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip

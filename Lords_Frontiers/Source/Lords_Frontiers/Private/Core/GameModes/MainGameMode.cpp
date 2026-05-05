@@ -181,3 +181,7 @@ void AMainGameMode::SetupCamera()
 		PC->SetViewTarget( Camera );
 	}
 }
+UGameHUDWidget* AMainGameMode::GetGameHUDWidget() const
+{
+	return Cast<UGameHUDWidget>( HUDWidget );
+}
