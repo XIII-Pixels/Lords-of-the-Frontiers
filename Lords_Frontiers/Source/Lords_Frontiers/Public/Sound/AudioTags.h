@@ -52,6 +52,22 @@ namespace AudioTags
     inline const FGameplayTag SFX_UI_BUTTON_NEXTWAVEINFO_CLICKED =
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.NextWaveInfo.Clicked" );
 
+    inline const FGameplayTag SFX_UI_BUTTON_TIME_HOVERED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Hovered" );
+    inline const FGameplayTag SFX_UI_BUTTON_TIME_CLICKED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Clicked" );
+
+    inline const FGameplayTag SFX_UI_BUTTON_TIME_PAUSE_HOVERED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Pause.Hovered" );
+    inline const FGameplayTag SFX_UI_BUTTON_TIME_PAUSE_CLICKED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Pause.Clicked" );
+
+    // ── Pause game ────────────────────────────────────────────────────────────
+    inline const FGameplayTag SFX_PAUSEGAME =
+        FGameplayTag::RequestGameplayTag( "SFX.PauseGame" );
+    inline const FGameplayTag SFX_RESUMEGAME =
+        FGameplayTag::RequestGameplayTag( "SFX.ResumeGame" );
+
     // ── Resources ─────────────────────────────────────────────────────────────
     inline const FGameplayTag SFX_RESOURCES_DEFAULT_AWARDED =
         FGameplayTag::RequestGameplayTag( "SFX.Resources.Default.Awarded" );

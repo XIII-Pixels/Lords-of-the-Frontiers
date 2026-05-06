@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 #include "Lords_Frontiers/Public/UI/Widgets/ResourceItemWidget.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
@@ -8,7 +9,6 @@
 #include "Resources/GameResource.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
-#include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
@@ -21,6 +21,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
+#include "Sound/AudioTags.h"
 
 #include "GameHUD.generated.h"
 
@@ -407,47 +408,100 @@ protected:
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( WoodenHouseClass );
 	}
 	UFUNCTION() void OnHoverStrawHouse()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( StrawHouseClass );
 	}
 	UFUNCTION() void OnHoverFarm()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( FarmClass );
 	}
 	UFUNCTION() void OnHoverLawnHouse()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( LawnHouseClass );
 	}
 	UFUNCTION() void OnHoverMagicHouse()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( MagicHouseClass );
 	}
 	UFUNCTION() void OnHoverWoodWall()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( WoodWallClass );
 	}
 	UFUNCTION() void OnHoverStoneWall()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( StoneWallClass );
 	}
 	UFUNCTION() void OnHoverTowerT0()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerT0Class );
 	}
 	UFUNCTION() void OnHoverTowerT1()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerT1Class );
 	}
 	UFUNCTION() void OnHoverTowerT2()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerT2Class );
 	}
 	UFUNCTION() void OnHoverTowerMortira()
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerMortiraClass );
+	}
+
+	UFUNCTION()
+	void OnHoverEndTurn()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_HOVERED } );
+	}
+
+	UFUNCTION()
+	void OnHoverRelocateBuilding()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_MOVEBUILDING_HOVERED } );
+	}
+
+	UFUNCTION()
+	void OnHoverRemoveBuilding()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_DEMOLISHBUILDING_HOVERED } );
+	}
+
+	UFUNCTION()
+	void OnHoverEconomyBuilding()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED } );
+	}
+
+	UFUNCTION()
+	void OnHoverDefensiveBuildings()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED } );
+	}
+
+	UFUNCTION()
+	void OnHoverWaveInfoButton()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED } );
+	}
+
+	UFUNCTION()
+	void OnHoverSpeedButton()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_HOVERED } );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
