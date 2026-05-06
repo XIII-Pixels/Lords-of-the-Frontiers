@@ -29,7 +29,6 @@ class ABuilding;
 class UStageProgressWidget;
 class UGameStateOverlayWidget;
 class UHealthBarWidget;
-class UVerticalBox;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -254,7 +253,7 @@ public:
 	void TogglePauseMenu();
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UVerticalBox> BossBarsContainer;
+	TObjectPtr<UHorizontalBox> BossBarsContainer;
 
 	bool AddBossBar( UHealthBarWidget* bar );
 
