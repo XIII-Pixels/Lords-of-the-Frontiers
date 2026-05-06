@@ -8,12 +8,12 @@
 #include "Animation/WidgetAnimation.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
-#include "Components/PanelWidget.h"
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
-#include "Components/UniformGridPanel.h"
-#include "Components/UniformGridSlot.h"
+#include "Framework/Application/SlateApplication.h"
 
 void UCardCollectionWidget::NativeConstruct()
 {
@@ -139,6 +139,7 @@ void UCardCollectionWidget::CloseBook()
 	}
 
 	bIsOpen_ = false;
+	ClearZoomedCard();
 
 	if ( BookCloseAnim )
 	{
@@ -226,24 +227,36 @@ void UCardCollectionWidget::RebuildCells( const TArray<UCardDataAsset*>& display
 		}
 
 		const bool bRightPage = cellIdx >= cellsPerPage;
-		UPanelWidget* page = bRightPage ? RightPageGrid.Get() : LeftPageGrid.Get();
+		UCanvasPanel* page = bRightPage ? RightPageGrid.Get() : LeftPageGrid.Get();
 		const int32 indexOnPage = bRightPage ? cellIdx - cellsPerPage : cellIdx;
+		const int32 row = indexOnPage / perRow;
+		const int32 column = indexOnPage % perRow;
 
-		AddCellToPage( page, sizeBox, indexOnPage );
+		AddCellToPage( page, sizeBox, row, column );
 
 		CellSizeBoxes_.Add( sizeBox );
 		SpawnedCells_.Add( sizeBox );
+		CellGridPositions_.Add( FIntPoint( column, row ) );
+
+		// Track card -> wrapper so the click handler can grow the right cell.
+		if ( UCardWidget* asCard = Cast<UCardWidget>( cell ) )
+		{
+			CardToSizeBox_.Add( asCard, sizeBox );
+		}
 	}
 
-	// Fresh cells need an immediate auto-size pass so first paint isn't tiny.
+	// Fresh cells need an immediate layout pass so first paint isn't tiny.
 	LastAppliedCellSize_ = FVector2D::ZeroVector;
-	UpdateAutoCellSize();
+	LastAppliedPageSize_ = FVector2D::ZeroVector;
+	UpdateCellLayout();
 
 	OnCollectionRebuilt( displayOrder.Num(), totalCells );
 }
 
 void UCardCollectionWidget::ClearCells()
 {
+	ClearZoomedCard();
+
 	if ( LeftPageGrid )
 	{
 		LeftPageGrid->ClearChildren();
@@ -262,7 +275,10 @@ void UCardCollectionWidget::ClearCells()
 	}
 	SpawnedCells_.Empty();
 	CellSizeBoxes_.Empty();
+	CellGridPositions_.Empty();
+	CardToSizeBox_.Empty();
 	LastAppliedCellSize_ = FVector2D::ZeroVector;
+	LastAppliedPageSize_ = FVector2D::ZeroVector;
 }
 
 UWidget* UCardCollectionWidget::CreateCardCellWidget( UCardDataAsset* cardData )
@@ -294,8 +310,16 @@ UWidget* UCardCollectionWidget::CreateCardCellWidget( UCardDataAsset* cardData )
 	}
 
 	cardWidget->SetCardData( cardData );
-	// Cards in the book are read-only — selection is a reward-screen concept.
-	cardWidget->SetInteractionEnabled( false );
+
+	if ( bAllowCardClickZoom )
+	{
+		cardWidget->SetInteractionEnabled( true );
+		cardWidget->OnCardClicked.AddDynamic( this, &UCardCollectionWidget::HandleBookCardClicked );
+	}
+	else
+	{
+		cardWidget->SetInteractionEnabled( false );
+	}
 
 	return cardWidget;
 }
@@ -349,63 +373,62 @@ USizeBox* UCardCollectionWidget::WrapCellForSizing( UWidget* cell )
 	return sizeBox;
 }
 
-void UCardCollectionWidget::AddCellToPage( UPanelWidget* page, UWidget* cell, int32 cellIndexOnPage )
+void UCardCollectionWidget::AddCellToPage( UCanvasPanel* page, UWidget* cell, int32 row, int32 column )
 {
 	if ( !page || !cell )
 	{
 		return;
 	}
 
-	if ( UUniformGridPanel* uniformGrid = Cast<UUniformGridPanel>( page ) )
+	UCanvasPanelSlot* slot = page->AddChildToCanvas( cell );
+	if ( !slot )
 	{
-		const int32 perRow = GetCardsPerRow();
-		const int32 row = cellIndexOnPage / perRow;
-		const int32 col = cellIndexOnPage % perRow;
-
-		if ( UUniformGridSlot* slot = uniformGrid->AddChildToUniformGrid( cell, row, col ) )
-		{
-			// Sizing is driven by the SizeBox wrapper, so the slot just centers it.
-			slot->SetHorizontalAlignment( HAlign_Center );
-			slot->SetVerticalAlignment( VAlign_Center );
-		}
 		return;
 	}
 
-	page->AddChild( cell );
+	// Anchor at the page's top-left and use a centered alignment so the slot's Position
+	// represents the *centre* of the cell. Position and Size are filled in by UpdateCellLayout
+	// once the page geometry is available.
+	slot->SetAnchors( FAnchors( 0.0f, 0.0f, 0.0f, 0.0f ) );
+	slot->SetAlignment( FVector2D( 0.5f, 0.5f ) );
+	slot->SetAutoSize( false );
+	slot->SetZOrder( row * GetCardsPerRow() + column );
 }
 
 void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 {
-	const ESlateVisibility shownVisibility = ESlateVisibility::SelfHitTestInvisible;
 	const ESlateVisibility hiddenVisibility = ESlateVisibility::Collapsed;
-	const ESlateVisibility target = bVisible ? shownVisibility : hiddenVisibility;
 
+	// BookRoot is decorative — let children handle hit-testing on their own.
 	if ( BookRoot )
 	{
-		BookRoot->SetVisibility( target );
+		BookRoot->SetVisibility(
+			bVisible ? ESlateVisibility::SelfHitTestInvisible : hiddenVisibility );
 	}
 
-	// Hide every visual component independently so the cover, sheets and the
-	// card/question grids all stay invisible until OpenBook is called, regardless
-	// of whether the BP nests them inside BookRoot.
+	// Book art and the page canvases must catch clicks themselves so the BackdropButton
+	// behind them never fires for clicks landing on the book. Bubbled-up clicks reach
+	// NativeOnMouseButtonDown, where they are used to dismiss any active card zoom.
+	const ESlateVisibility hitVisibility = bVisible ? ESlateVisibility::Visible : hiddenVisibility;
+
 	if ( BookImage )
 	{
-		BookImage->SetVisibility( target );
+		BookImage->SetVisibility( hitVisibility );
 	}
 
 	if ( PagesImage )
 	{
-		PagesImage->SetVisibility( target );
+		PagesImage->SetVisibility( hitVisibility );
 	}
 
 	if ( LeftPageGrid )
 	{
-		LeftPageGrid->SetVisibility( target );
+		LeftPageGrid->SetVisibility( hitVisibility );
 	}
 
 	if ( RightPageGrid )
 	{
-		RightPageGrid->SetVisibility( target );
+		RightPageGrid->SetVisibility( hitVisibility );
 	}
 
 	// Backdrop only intercepts clicks while the book is open.
@@ -415,22 +438,38 @@ void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 	}
 }
 
+FReply UCardCollectionWidget::NativeOnMouseButtonDown(
+	const FGeometry& myGeometry, const FPointerEvent& mouseEvent )
+{
+	// Children (card buttons, the close button, the backdrop button) get the click first
+	// and consume it via FReply::Handled. This override fires only when the click landed
+	// on a non-button area inside the widget — book art, page canvases, empty cells, etc.
+	// In that case, dismiss any active zoom but otherwise let layout continue normally.
+	if ( ZoomedCard_.IsValid() )
+	{
+		ClearZoomedCard();
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDown( myGeometry, mouseEvent );
+}
+
 void UCardCollectionWidget::NativeTick( const FGeometry& myGeometry, float deltaTime )
 {
 	Super::NativeTick( myGeometry, deltaTime );
 
-	// Auto sizing reacts to the actual rendered size of the page grids.
-	// Only run while the book is on screen and using auto sizing — otherwise the
-	// SizeBoxes already hold their final manual size.
-	if ( !bIsOpen_ || bUseManualCardSize )
+	if ( !bIsOpen_ )
 	{
 		return;
 	}
 
-	UpdateAutoCellSize();
+	// Layout reacts to the actual rendered size of the page Canvas Panels every frame.
+	// Both manual and auto modes need this — manual mode still has to position cells based
+	// on the runtime page size (cards stay evenly distributed when the page resizes).
+	UpdateCellLayout();
 }
 
-void UCardCollectionWidget::UpdateAutoCellSize()
+void UCardCollectionWidget::UpdateCellLayout()
 {
 	if ( CellSizeBoxes_.Num() == 0 )
 	{
@@ -454,23 +493,51 @@ void UCardCollectionWidget::UpdateAutoCellSize()
 		return;
 	}
 
-	const FVector2D cellSize = ComputeAutoCellSize( pageSize );
-	if ( cellSize.Equals( LastAppliedCellSize_, 0.5f ) )
+	const FVector2D cardSize = bUseManualCardSize ? ManualCardSize : ComputeAutoCellSize( pageSize );
+
+	const bool bSameCardSize = cardSize.Equals( LastAppliedCellSize_, 0.5f );
+	const bool bSamePageSize = pageSize.Equals( LastAppliedPageSize_, 0.5f );
+	if ( bSameCardSize && bSamePageSize )
 	{
 		return;
 	}
 
-	LastAppliedCellSize_ = cellSize;
+	LastAppliedCellSize_ = cardSize;
+	LastAppliedPageSize_ = pageSize;
 
-	for ( const TObjectPtr<USizeBox>& sizeBox : CellSizeBoxes_ )
+	const float perRowF = static_cast<float>( GetCardsPerRow() );
+	const float rowsPerPageF = static_cast<float>( GetRowsPerPage() );
+	const float cellW = pageSize.X / perRowF;
+	const float cellH = pageSize.Y / rowsPerPageF;
+
+	const USizeBox* zoomedBox = ZoomedSizeBox_.Get();
+	const float zoomScale = FMath::Max( 1.0f, CardClickScale );
+
+	for ( int32 i = 0; i < CellSizeBoxes_.Num(); ++i )
 	{
+		USizeBox* sizeBox = CellSizeBoxes_[ i ];
 		if ( !IsValid( sizeBox ) )
 		{
 			continue;
 		}
 
-		sizeBox->SetWidthOverride( cellSize.X );
-		sizeBox->SetHeightOverride( cellSize.Y );
+		const float scale = ( sizeBox == zoomedBox ) ? zoomScale : 1.0f;
+		const FVector2D appliedSize = cardSize * scale;
+
+		sizeBox->SetWidthOverride( appliedSize.X );
+		sizeBox->SetHeightOverride( appliedSize.Y );
+
+		if ( UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>( sizeBox->Slot ) )
+		{
+			const FIntPoint colRow = CellGridPositions_.IsValidIndex( i )
+				? CellGridPositions_[ i ]
+				: FIntPoint::ZeroValue;
+			const FVector2D centre(
+				( static_cast<float>( colRow.X ) + 0.5f ) * cellW,
+				( static_cast<float>( colRow.Y ) + 0.5f ) * cellH );
+			slot->SetPosition( centre );
+			slot->SetSize( appliedSize );
+		}
 	}
 }
 
@@ -511,6 +578,42 @@ void UCardCollectionWidget::HandleCloseButtonClicked()
 
 void UCardCollectionWidget::HandleBackdropClicked()
 {
+	// The backdrop button covers the whole viewport, so clicks on the book art also reach it
+	// whenever the art's hit-test is disabled (e.g. SelfHitTestInvisible in the widget BP).
+	// Decide what to do based on the actual click position rather than relying on hit-test
+	// alone — that way book art always keeps the book open, and outside clicks always close.
+	const FVector2D screenPos = FSlateApplication::Get().GetCursorPos();
+
+	auto isCursorOver = [&]( UWidget* widget )
+	{
+		if ( !widget )
+		{
+			return false;
+		}
+		const ESlateVisibility visibility = widget->GetVisibility();
+		if ( visibility == ESlateVisibility::Hidden || visibility == ESlateVisibility::Collapsed )
+		{
+			return false;
+		}
+		return widget->GetCachedGeometry().IsUnderLocation( screenPos );
+	};
+
+	const bool bClickInsideBook =
+		isCursorOver( BookImage ) || isCursorOver( PagesImage )
+		|| isCursorOver( LeftPageGrid ) || isCursorOver( RightPageGrid );
+
+	if ( bClickInsideBook )
+	{
+		// Click landed on the book itself — keep the book open, just dismiss the zoom.
+		if ( ZoomedCard_.IsValid() )
+		{
+			ClearZoomedCard();
+		}
+		return;
+	}
+
+	// True backdrop click — close the book immediately, even if a card is zoomed.
+	// CloseBook resets ZoomedCard_ via ClearZoomedCard during its setup.
 	CloseBook();
 }
 
@@ -531,6 +634,94 @@ void UCardCollectionWidget::HandleCardsApplied( const TArray<UCardDataAsset*>& a
 	if ( bIsOpen_ )
 	{
 		RefreshFromSubsystem();
+	}
+}
+
+void UCardCollectionWidget::HandleBookCardClicked( UCardWidget* cardWidget )
+{
+	if ( !cardWidget )
+	{
+		return;
+	}
+
+	USizeBox* targetBox = CardToSizeBox_.FindRef( cardWidget );
+	if ( !targetBox )
+	{
+		return;
+	}
+
+	UCardWidget* currentlyZoomed = ZoomedCard_.Get();
+
+	// Same card clicked again — un-zoom.
+	if ( currentlyZoomed == cardWidget )
+	{
+		ApplyCellZoom( targetBox, false );
+		ZoomedCard_.Reset();
+		ZoomedSizeBox_.Reset();
+		return;
+	}
+
+	// Different card — restore the previous one, then zoom the new one.
+	if ( USizeBox* prevBox = ZoomedSizeBox_.Get() )
+	{
+		ApplyCellZoom( prevBox, false );
+	}
+
+	ZoomedCard_ = cardWidget;
+	ZoomedSizeBox_ = targetBox;
+	ApplyCellZoom( targetBox, true );
+}
+
+void UCardCollectionWidget::ClearZoomedCard()
+{
+	if ( USizeBox* zoomedBox = ZoomedSizeBox_.Get() )
+	{
+		ApplyCellZoom( zoomedBox, false );
+	}
+	ZoomedCard_.Reset();
+	ZoomedSizeBox_.Reset();
+}
+
+void UCardCollectionWidget::ApplyCellZoom( USizeBox* sizeBox, bool bZoomed ) const
+{
+	if ( !sizeBox )
+	{
+		return;
+	}
+
+	const float scale = bZoomed ? FMath::Max( 1.0f, CardClickScale ) : 1.0f;
+	const FVector2D base = bUseManualCardSize ? ManualCardSize : LastAppliedCellSize_;
+	if ( base.IsNearlyZero() )
+	{
+		return;
+	}
+
+	// Resize the SizeBox itself rather than render-scaling it: the underlying widget
+	// re-rasterizes at the new dimensions, so text and icons stay sharp at any zoom.
+	const FVector2D appliedSize = base * scale;
+	sizeBox->SetWidthOverride( appliedSize.X );
+	sizeBox->SetHeightOverride( appliedSize.Y );
+
+	if ( UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>( sizeBox->Slot ) )
+	{
+		// Slot alignment is (0.5, 0.5), so resizing it grows the cell evenly around the cell
+		// centre — neighbours don't shift, the card just visibly overlaps them.
+		slot->SetSize( appliedSize );
+
+		if ( bZoomed )
+		{
+			slot->SetZOrder( ZoomedCardZOrder );
+		}
+		else
+		{
+			// Restore the original Z-order — index of cell on its page.
+			const int32 idx = CellSizeBoxes_.IndexOfByKey( sizeBox );
+			if ( idx != INDEX_NONE && CellGridPositions_.IsValidIndex( idx ) )
+			{
+				const FIntPoint colRow = CellGridPositions_[ idx ];
+				slot->SetZOrder( colRow.Y * GetCardsPerRow() + colRow.X );
+			}
+		}
 	}
 }
 

@@ -8,11 +8,11 @@
 #include "CardCollectionWidget.generated.h"
 
 class UButton;
+class UCanvasPanel;
 class UCardDataAsset;
 class UCardSubsystem;
 class UCardWidget;
 class UImage;
-class UPanelWidget;
 class UWidget;
 class UWidgetAnimation;
 
@@ -23,7 +23,8 @@ class UWidgetAnimation;
  *
  * Layout:
  *   - Cards are split across two pages (left + right) like the screenshot.
- *   - Each page is a grid of CardsPerRow * RowsPerPage cells.
+ *   - Each page is a Canvas Panel; cells are positioned absolutely on a
+ *     CardsPerRow x RowsPerPage grid computed from the panel's runtime size.
  *   - Both grid dimensions are exposed in DefaultsOnly so designers can tune
  *     the layout without touching code or BP graphs.
  *
@@ -111,6 +112,7 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick( const FGeometry& myGeometry, float deltaTime ) override;
+	virtual FReply NativeOnMouseButtonDown( const FGeometry& myGeometry, const FPointerEvent& mouseEvent ) override;
 
 	/** BP hook fired after cells have been (re)built. */
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card Collection" )
@@ -124,13 +126,13 @@ protected:
 	UFUNCTION( BlueprintImplementableEvent, Category = "Card Collection" )
 	void OnBookClosed();
 
-	/** Left page grid (UUniformGridPanel or any UPanelWidget). */
+	/** Canvas Panel covering the left page. Cells are placed at absolute coordinates inside it. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
-	TObjectPtr<UPanelWidget> LeftPageGrid;
+	TObjectPtr<UCanvasPanel> LeftPageGrid;
 
-	/** Right page grid (UUniformGridPanel or any UPanelWidget). */
+	/** Canvas Panel covering the right page. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
-	TObjectPtr<UPanelWidget> RightPageGrid;
+	TObjectPtr<UCanvasPanel> RightPageGrid;
 
 	/** Optional button rendered next to the HUD that opens the book. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
@@ -244,6 +246,25 @@ protected:
 	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Behavior" )
 	bool bPlayButtonAnimOnConstruct = true;
 
+	/** Allow the player to click a card in the book to zoom it in. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Interaction" )
+	bool bAllowCardClickZoom = true;
+
+	/**
+	 * Multiplier applied to the card's SizeBox while it is zoomed in.
+	 * The SizeBox dimensions are physically larger, so the widget re-rasterizes at the
+	 * new size — text and icons stay sharp. Center alignment in the canvas slot keeps
+	 * the card pinned to its original cell centre while it grows.
+	 */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Interaction",
+		meta = ( EditCondition = "bAllowCardClickZoom", ClampMin = "1.0", UIMin = "1.0" ) )
+	float CardClickScale = 1.3f;
+
+	/** Z-order applied to the zoomed card so it always paints on top of its neighbours. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Interaction",
+		meta = ( EditCondition = "bAllowCardClickZoom" ) )
+	int32 ZoomedCardZOrder = 10000;
+
 private:
 	UPROPERTY()
 	TArray<TObjectPtr<class USizeBox>> CellSizeBoxes_;
@@ -251,8 +272,13 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<UWidget>> SpawnedCells_;
 
+	/** (column, row) on the page for each entry in CellSizeBoxes_, used to recompute canvas-slot positions. */
+	UPROPERTY()
+	TArray<FIntPoint> CellGridPositions_;
+
 	bool bIsOpen_ = false;
 	FVector2D LastAppliedCellSize_ = FVector2D::ZeroVector;
+	FVector2D LastAppliedPageSize_ = FVector2D::ZeroVector;
 
 	TWeakObjectPtr<UCardSubsystem> CachedCardSubsystem_;
 
@@ -270,13 +296,13 @@ private:
 	/** Wraps the cell in a SizeBox so we can drive its size from manual config or auto-fit. */
 	class USizeBox* WrapCellForSizing( UWidget* cell );
 
-	void AddCellToPage( UPanelWidget* page, UWidget* cell, int32 cellIndexOnPage );
+	void AddCellToPage( UCanvasPanel* page, UWidget* cell, int32 row, int32 column );
 	void SetBookVisualsVisible( bool bVisible );
 
-	/** Reads grid geometry and pushes the resulting cell size into every SizeBox. */
-	void UpdateAutoCellSize();
+	/** Reads page geometry and updates every cell's SizeBox dimensions and canvas slot position. */
+	void UpdateCellLayout();
 
-	/** Computes the largest (w, h) that fits in the page while honoring CardsPerRow x RowsPerPage. */
+	/** Computes the cell budget on a page and the card size that fits the configured aspect/factor. */
 	FVector2D ComputeAutoCellSize( const FVector2D& pageSize ) const;
 
 	UFUNCTION()
@@ -293,6 +319,18 @@ private:
 
 	UFUNCTION()
 	void HandleCardsApplied( const TArray<UCardDataAsset*>& appliedCards );
+
+	UFUNCTION()
+	void HandleBookCardClicked( UCardWidget* cardWidget );
+
+	void ClearZoomedCard();
+	void ApplyCellZoom( class USizeBox* sizeBox, bool bZoomed ) const;
+
+	UPROPERTY()
+	TMap<TObjectPtr<UCardWidget>, TObjectPtr<class USizeBox>> CardToSizeBox_;
+
+	TWeakObjectPtr<UCardWidget> ZoomedCard_;
+	TWeakObjectPtr<class USizeBox> ZoomedSizeBox_;
 
 	FWidgetAnimationDynamicEvent CloseAnimDelegate_;
 };
