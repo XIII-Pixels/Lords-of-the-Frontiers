@@ -5,9 +5,11 @@
 #include "Cards/Feedback/CardIconStrip.h"
 #include "Core/DefaultGameInstance.h"
 
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
@@ -54,6 +56,13 @@ void UCardVisualSubsystem::Deinitialize()
 		if ( UNiagaraComponent* niagara = record.NiagaraComponent.Get() )
 		{
 			niagara->ReleaseToPool();
+		}
+		if ( record.bOverlayApplied )
+		{
+			if ( USkeletalMeshComponent* mesh = record.OverlayMesh.Get() )
+			{
+				mesh->SetOverlayMaterial( record.OverlayPrevMaterial.Get() );
+			}
 		}
 	}
 	Stickies_.Empty();
@@ -176,6 +185,7 @@ void UCardVisualSubsystem::PlayOneShot( const FCardVisualConfig& config, AActor*
 	{
 		PlayNiagara( config.Niagara, owner, target, false, INDEX_NONE );
 	}
+	// Overlay material has no implicit lifetime — only sticky usage is meaningful.
 }
 
 FCardVisualHandle UCardVisualSubsystem::BeginSticky(
@@ -206,6 +216,8 @@ FCardVisualHandle UCardVisualSubsystem::BeginSticky(
 	{
 		PlayNiagara( config.Niagara, owner, target, false, INDEX_NONE );
 	}
+
+	PlayOverlay( config.Overlay, owner, target, id );
 
 	handle.Id = id;
 	return handle;
@@ -247,6 +259,14 @@ void UCardVisualSubsystem::EndSticky( FCardVisualHandle handle )
 	{
 		niagara->Deactivate();
 		niagara->ReleaseToPool();
+	}
+	if ( record.bOverlayApplied )
+	{
+		if ( USkeletalMeshComponent* mesh = record.OverlayMesh.Get() )
+		{
+			mesh->SetOverlayMaterial( record.OverlayPrevMaterial.Get() );
+		}
+		record.bOverlayApplied = false;
 	}
 
 	Stickies_.RemoveAt( foundIndex );
@@ -604,11 +624,24 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 		: ENCPoolMethod::AutoRelease;
 
 	UNiagaraComponent* component = nullptr;
-	if ( spec.bAttachToHost && host->GetRootComponent() )
+	USceneComponent* attachTo = nullptr;
+	if ( spec.bAttachToHost )
+	{
+		if ( spec.bAttachToSkeletalMesh )
+		{
+			attachTo = FindSkeletalMeshOn( host );
+		}
+		if ( !attachTo )
+		{
+			attachTo = host->GetRootComponent();
+		}
+	}
+
+	if ( attachTo )
 	{
 		component = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			system,
-			host->GetRootComponent(),
+			attachTo,
 			NAME_None,
 			spec.LocationOffset,
 			FRotator::ZeroRotator,
@@ -644,6 +677,94 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 			record->NiagaraComponent = component;
 		}
 	}
+}
+
+USkeletalMeshComponent* UCardVisualSubsystem::FindSkeletalMeshOn( AActor* host )
+{
+	if ( !host )
+	{
+		return nullptr;
+	}
+	return host->FindComponentByClass<USkeletalMeshComponent>();
+}
+
+void UCardVisualSubsystem::PlayOverlay(
+	const FCardOverlayMaterialSpec& spec, AActor* owner, AActor* target, int32 stickyId )
+{
+	if ( spec.Material.IsNull() || spec.ApplyOn == ECardVisualTarget::None || stickyId == INDEX_NONE )
+	{
+		return;
+	}
+
+	TArray<AActor*> hosts;
+	ResolveTargetHosts( spec.ApplyOn, owner, target, hosts );
+	if ( hosts.Num() == 0 )
+	{
+		return;
+	}
+
+	// Overlay record is tracked on the sticky id, so we can only apply to the
+	// first resolved host. ApplyOn = Both with overlays is not meaningful for a
+	// single sticky.
+	AActor* host = hosts[0];
+
+	if ( spec.DelaySeconds <= 0.f )
+	{
+		ApplyOverlayNow( spec, host, stickyId );
+		return;
+	}
+
+	UWorld* world = GetWorld();
+	if ( !world )
+	{
+		return;
+	}
+
+	TWeakObjectPtr<UCardVisualSubsystem> weakSelf( this );
+	TWeakObjectPtr<AActor> weakHost( host );
+	FCardOverlayMaterialSpec specCopy = spec;
+	const int32 stickyIdCopy = stickyId;
+
+	FTimerHandle handle;
+	world->GetTimerManager().SetTimer( handle, FTimerDelegate::CreateLambda(
+		[weakSelf, weakHost, specCopy, stickyIdCopy]()
+		{
+			UCardVisualSubsystem* self = weakSelf.Get();
+			AActor* liveHost = weakHost.Get();
+			if ( !self || !liveHost )
+			{
+				return;
+			}
+			self->ApplyOverlayNow( specCopy, liveHost, stickyIdCopy );
+		} ), spec.DelaySeconds, false );
+	PendingTimers_.Add( handle );
+}
+
+void UCardVisualSubsystem::ApplyOverlayNow(
+	const FCardOverlayMaterialSpec& spec, AActor* host, int32 stickyId )
+{
+	FCardStickyRecord* record = FindSticky( stickyId );
+	if ( !record )
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* mesh = FindSkeletalMeshOn( host );
+	if ( !mesh )
+	{
+		return;
+	}
+
+	UMaterialInterface* material = spec.Material.LoadSynchronous();
+	if ( !material )
+	{
+		return;
+	}
+
+	record->OverlayMesh = mesh;
+	record->OverlayPrevMaterial = mesh->GetOverlayMaterial();
+	record->bOverlayApplied = true;
+	mesh->SetOverlayMaterial( material );
 }
 
 int32 UCardVisualSubsystem::AllocateStickyId()
