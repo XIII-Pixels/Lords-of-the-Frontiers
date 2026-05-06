@@ -26,4 +26,7 @@ class LORDS_FRONTIERS_API UGameSaveData : public USaveGame
 public:
 	UPROPERTY()
 	TMap<FString, ELevelStatus> StatusLevels;
+
+	UPROPERTY()
+	bool bHasLaunchedBefore = false;
 };
