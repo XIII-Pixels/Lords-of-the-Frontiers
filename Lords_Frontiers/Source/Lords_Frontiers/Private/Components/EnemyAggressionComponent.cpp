@@ -58,7 +58,27 @@ void UEnemyAggressionComponent::TickComponent(
 	const TWeakObjectPtr<const AActor> target = unit->FollowedTarget();
 	if ( target.IsValid() && target->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
 	{
-		FollowNextPathTarget();
+		if ( unit->OnlyAttackTargetBuilding() )
+		{
+			FollowNextPathTarget();
+		}
+		else
+		{
+			AGridManager* grid = nullptr;
+			if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+			{
+				grid = core->GetGridManager();
+			}
+			if ( grid )
+			{
+				const FIntPoint cellCoords = grid->GetCellCoords( target->GetActorLocation() );
+				const TWeakObjectPtr<ABuilding> buildingOnCell = grid->GetCell( cellCoords.X, cellCoords.Y )->Occupant;
+				if ( !buildingOnCell.IsValid() || buildingOnCell->IsDestroyed() )
+				{
+					FollowNextPathTarget();
+				}
+			}
+		}
 	}
 
 	if ( !unit->TargetBuilding().IsValid() || unit->TargetBuilding()->IsDestroyed() )
