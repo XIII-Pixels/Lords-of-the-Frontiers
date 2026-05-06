@@ -17,7 +17,7 @@
 #include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -1368,7 +1368,7 @@ bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
 		);
 		return false;
 	}
-	BossBarsContainer->AddChildToVerticalBox( bar );
+	BossBarsContainer->AddChildToHorizontalBox( bar );
 	return true;
 }
 
