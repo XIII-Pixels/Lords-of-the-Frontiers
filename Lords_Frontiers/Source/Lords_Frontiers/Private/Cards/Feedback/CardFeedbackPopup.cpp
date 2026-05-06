@@ -113,6 +113,14 @@ void ACardFeedbackPopup::DeactivateToPool()
 	SetDormant( true );
 }
 
+void ACardFeedbackPopup::ApplyCameraScale( float zoomAlpha )
+{
+	if ( WidgetInstance_ )
+	{
+		WidgetInstance_->ApplyCameraScale( zoomAlpha );
+	}
+}
+
 void ACardFeedbackPopup::ApplyIcon( UTexture2D* icon )
 {
 	if ( !WidgetInstance_ || !icon )

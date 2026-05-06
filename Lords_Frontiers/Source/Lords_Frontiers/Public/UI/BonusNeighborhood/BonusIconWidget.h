@@ -26,6 +26,18 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Bonus" )
 	void AddEntry( const FBonusIconData& data );
 
+	void ApplyCameraScale( float zoomAlpha );
+
+	float MinScale() const
+	{
+		return MinScale_;
+	}
+
+	float MaxScale() const
+	{
+		return MaxScale_;
+	}
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TObjectPtr<UBonusIconsData> IconsData;
 
@@ -38,4 +50,10 @@ protected:
 
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UImage> BuildingIcon_;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bonus|Scale" )
+	float MinScale_ = 0.5f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Bonus|Scale" )
+	float MaxScale_ = 1.5f;
 };

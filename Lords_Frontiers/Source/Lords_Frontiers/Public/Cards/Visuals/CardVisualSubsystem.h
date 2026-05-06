@@ -58,7 +58,7 @@ struct FCardVisualDeferred
 };
 
 UCLASS()
-class LORDS_FRONTIERS_API UCardVisualSubsystem : public UWorldSubsystem
+class LORDS_FRONTIERS_API UCardVisualSubsystem : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -67,6 +67,14 @@ public:
 
 	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
+
+	virtual void Tick( float deltaTime ) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickableInEditor() const override
+	{
+		return false;
+	}
+	virtual bool IsTickable() const override;
 
 	void PlayOneShot( const FCardVisualConfig& config, AActor* owner, AActor* target );
 
