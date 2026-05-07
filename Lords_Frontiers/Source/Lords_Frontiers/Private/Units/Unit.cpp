@@ -18,6 +18,8 @@
 #include "Components/FollowComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 AUnit::AUnit()
 {
@@ -63,13 +65,19 @@ void AUnit::BeginPlay()
 
 	ResolveVFXDefaults();
 
+	const UWorld* world = GetWorld();
+	if ( !world )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "AUnit::BeginPlay: world not found" ) );
+	}
+
 	if ( HealthBarConfig_ )
 	{
 		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 		    this,
-		    [ this ]( int /*newHealth*/, int /*maxHealth*/ )
+		    [this, world]( int /*newHealth*/, int /*maxHealth*/ )
 		    {
-			    if ( UWorld* world = GetWorld() )
+			    if ( world )
 			    {
 				    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
 				    {
@@ -87,6 +95,36 @@ void AUnit::BeginPlay()
 			}
 		}
 	}
+
+	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+	{
+		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->RegisterObject( this );
+		}
+	}
+
+	OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+}
+
+void AUnit::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	Super::EndPlay( endPlayReason );
+
+	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( GetWorld() ) )
+	{
+		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->UnregisterObject( this );
+		}
+	}
+}
+
+void AUnit::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	ResolveAudioTags();
 }
 
 void AUnit::StartFollowing() const
@@ -134,7 +172,10 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 		}
 		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )
 		{
-			AttackComponent_->Attack( hitActor );
+			if ( bool success = AttackComponent_->Attack( hitActor ) )
+			{
+				OnAudioEvent_.Broadcast( { AudioTags_.Attack, GetActorLocation() } );
+			}
 		}
 	}
 }
@@ -165,6 +206,39 @@ void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 	}
 }
 
+void AUnit::ResolveAudioTags()
+{
+	if ( !AudioTags_.Selected.IsValid() )
+	{
+		AudioTags_.Selected = AudioTags::SFX_UNIT_DEFAULT_SELECTED;
+	}
+
+	if ( !AudioTags_.Spawn.IsValid() )
+	{
+		AudioTags_.Spawn = AudioTags::SFX_UNIT_DEFAULT_SPAWN;
+	}
+
+	if ( !AudioTags_.Death.IsValid() )
+	{
+		AudioTags_.Death = AudioTags::SFX_UNIT_DEFAULT_DEATH;
+	}
+
+	if ( !AudioTags_.Attack.IsValid() )
+	{
+		AudioTags_.Attack = AudioTags::SFX_UNIT_DEFAULT_ATTACK;
+	}
+
+	if ( !AudioTags_.TakeDamage.IsValid() )
+	{
+		AudioTags_.TakeDamage = AudioTags::SFX_UNIT_DEFAULT_TAKEDAMAGE;
+	}
+
+	if ( !AudioTags_.SpawnAbility.IsValid() )
+	{
+		AudioTags_.SpawnAbility = AudioTags::SFX_UNIT_DEFAULT_SPAWNABILITY;
+	}
+}
+
 void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 {
 	if ( !Stats_.IsAlive() )
@@ -176,6 +250,10 @@ void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
+	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags_.TakeDamage, GetActorLocation() } );
 	}
 }
 
@@ -211,6 +289,8 @@ void AUnit::OnDeath()
 	{
 		SkeletalMeshComponent_->SetVisibility( false, true );
 	}
+
+	OnAudioEvent_.Broadcast( { AudioTags_.Death, GetActorLocation() } );
 
 	if ( ResolvedDeathVFXDelay_ > 0.0f )
 	{

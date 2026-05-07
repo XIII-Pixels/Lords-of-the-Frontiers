@@ -128,6 +128,6 @@ namespace AudioTags
         FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.Attack" );
     inline const FGameplayTag SFX_UNIT_DEFAULT_TAKEDAMAGE =
         FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.TakeDamage" );
-    inline const FGameplayTag SFX_UNIT_DEFAULT_SPAWNUNIT =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.SpawnUnit" );
+    inline const FGameplayTag SFX_UNIT_DEFAULT_SPAWNABILITY =
+        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.SpawnAbility" );
 }; // namespace AudioTags
