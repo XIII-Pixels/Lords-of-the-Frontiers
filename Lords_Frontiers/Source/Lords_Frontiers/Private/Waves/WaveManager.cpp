@@ -114,6 +114,8 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		return;
 	}
 
+	RemainingEnemiesPerClass_ = GetNextWaveComposition( CurrentWaveIndex );
+
 	bIsWaveActive_ = true;
 	OnWaveStarted.Broadcast( CurrentWaveIndex );
 
@@ -554,6 +556,28 @@ int32 AWaveManager::DestroyAllEnemies()
 
 void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 {
+	if ( IsValid( destroyedActor ) )
+	{
+		TSubclassOf<AUnit> unitClass = destroyedActor->GetClass();
+
+		if ( RemainingEnemiesPerClass_.Contains( unitClass ) )
+		{
+			RemainingEnemiesPerClass_[unitClass] = FMath::Max( 0, RemainingEnemiesPerClass_[unitClass] - 1 );
+		}
+		else
+		{
+			for ( TPair<TSubclassOf<AUnit>, int32>& pair : RemainingEnemiesPerClass_ )
+			{
+				if ( destroyedActor->IsA( pair.Key ) )
+				{
+					pair.Value = FMath::Max( 0, pair.Value - 1 );
+					break;
+				}
+			}
+		}
+	}
+
+
 	// Remove from SpawnedUnits
 	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
