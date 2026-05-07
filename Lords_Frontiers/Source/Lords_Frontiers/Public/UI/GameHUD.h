@@ -477,12 +477,6 @@ protected:
 		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED } );
 	}
 
-	UFUNCTION()
-	void OnHoverSpeedButton()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_HOVERED } );
-	}
-
 	UFUNCTION() void OnBuildingUnhovered();
 
 	struct FIncomeAnimState
@@ -530,14 +524,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager;
-
-	UFUNCTION()
-	void OnSpeedButtonClicked();
-
-	UFUNCTION()
-	void HandleSpeedChanged( float NewSpeed );
-
-	void UpdateSpeedButtonVisibility( EGameLoopPhase Phase );
 
 	FOnAudioEvent OnAudioEvent_;
 };

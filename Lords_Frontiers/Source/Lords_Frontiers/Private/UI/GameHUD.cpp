@@ -156,27 +156,6 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
-	if ( TextTimer )
-	{
-		TextTimer->SetVisibility( ESlateVisibility::Collapsed );
-	}
-
-	if ( ButtonSpeed )
-	{
-		ButtonSpeed->OnClicked.AddDynamic( this, &UGameHUDWidget::OnSpeedButtonClicked );
-		ButtonSpeed->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverSpeedButton );
-		ButtonSpeed->SetVisibility( ESlateVisibility::Collapsed );
-	}
-	if ( TextSpeed )
-	{
-		TextSpeed->SetText( FText::FromString( TEXT( "x1" ) ) );
-	}
-
-	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
-	{
-		session->OnSpeedChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleSpeedChanged );
-	}
-
 	if ( BtnToggleWaveInfo )
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
@@ -309,12 +288,6 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
 		ButtonBuildingMortira->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
 		ButtonBuildingMortira->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-
-	if ( ButtonSpeed )
-	{
-		ButtonSpeed->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnSpeedButtonClicked );
-		ButtonSpeed->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverSpeedButton );
 	}
 
 	if ( BtnToggleWaveInfo )
@@ -1429,38 +1402,6 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 		{
 			Cam->SetCameraInputDisabled( true );
 		}
-	}
-}
-
-void UGameHUDWidget::OnSpeedButtonClicked()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_CLICKED } );
-
-	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
-	{
-		session->CycleSpeed();
-	}
-}
-
-void UGameHUDWidget::HandleSpeedChanged( float NewSpeed )
-{
-	if ( TextSpeed )
-	{
-		TextSpeed->SetText( FText::FromString( FString::Printf( TEXT( "x%d" ), FMath::RoundToInt( NewSpeed ) ) ) );
-	}
-}
-
-void UGameHUDWidget::UpdateSpeedButtonVisibility( EGameLoopPhase Phase )
-{
-	if ( ButtonSpeed )
-	{
-		const bool bShow = ( Phase == EGameLoopPhase::Combat );
-		ButtonSpeed->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
-	}
-	if ( TextSpeed )
-	{
-		const bool bShow = ( Phase == EGameLoopPhase::Combat );
-		TextSpeed->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
 	}
 }
 
