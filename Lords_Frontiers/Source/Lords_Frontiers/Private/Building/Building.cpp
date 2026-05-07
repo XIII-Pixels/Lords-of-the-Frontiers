@@ -135,6 +135,8 @@ void ABuilding::OnDeath()
 		return;
 	}
 
+	OnAudioEvent_.Broadcast( { AudioTags_.Death, GetActorLocation() } );
+
 	UnsubscribeHealthBar();
 
 	if ( UWorld* world = GetWorld() )
@@ -356,6 +358,8 @@ void ABuilding::TakeDamage( int damage, AActor* instigator )
 		return;
 	}
 
+	OnAudioEvent_.Broadcast( { AudioTags_.TakeDamage, GetActorLocation() } );
+
 	Stats_.ApplyDamage( damage );
 
 	OnBuildingDamaged.Broadcast( this, damage, instigator );
@@ -401,7 +405,7 @@ void ABuilding::OnSelected_Implementation()
 	UpdateSelectionOverlay();
 	ShowSelectionOverlay();
 
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_BUILDING_SELECTED, GetActorLocation() } );
+	OnAudioEvent_.Broadcast( { AudioTags_.Selected, GetActorLocation() } );
 }
 
 void ABuilding::OnDeselected_Implementation()
@@ -452,6 +456,13 @@ void ABuilding::EndPlay( const EEndPlayReason::Type endPlayReason )
 	Super::EndPlay( endPlayReason );
 }
 
+void ABuilding::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	ResolveAudioTags();
+}
+
 void ABuilding::RestoreFromRuins()
 {
 	if ( !bIsRuined_ )
@@ -472,6 +483,8 @@ void ABuilding::RestoreFromRuins()
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
 		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
 	}
+
+	OnAudioEvent_.Broadcast( { AudioTags_.Resurrected, GetActorLocation() } );
 
 	ActivateBuildingMesh();
 
@@ -605,5 +618,48 @@ void ABuilding::HideSelectionOverlay()
 	{
 		SelectionOverlayMesh_->SetVisibility( false );
 		SelectionOverlayMesh_->SetHiddenInGame( true );
+	}
+}
+
+void ABuilding::ResolveAudioTags()
+{
+	if ( !AudioTags_.Selected.IsValid() )
+	{
+		AudioTags_.Selected = AudioTags::SFX_BUILDING_DEFAULT_SELECTED;
+	}
+
+	if ( !AudioTags_.PlacedSuccess.IsValid() )
+	{
+		AudioTags_.PlacedSuccess = AudioTags::SFX_BUILDING_DEFAULT_PLACED_SUCCESS;
+	}
+
+	if ( !AudioTags_.PlacedRestricted.IsValid() )
+	{
+		AudioTags_.PlacedRestricted = AudioTags::SFX_BUILDING_DEFAULT_PLACED_RESTRICTED;
+	}
+
+	if ( !AudioTags_.Demolished.IsValid() )
+	{
+		AudioTags_.Demolished = AudioTags::SFX_BUILDING_DEFAULT_DEMOLISHED;
+	}
+
+	if ( !AudioTags_.Death.IsValid() )
+	{
+		AudioTags_.Death = AudioTags::SFX_BUILDING_DEFAULT_DEATH;
+	}
+
+	if ( !AudioTags_.Resurrected.IsValid() )
+	{
+		AudioTags_.Resurrected = AudioTags::SFX_BUILDING_DEFAULT_RESURRECTED;
+	}
+
+	if ( !AudioTags_.Attack.IsValid() )
+	{
+		AudioTags_.Attack = AudioTags::SFX_BUILDING_DEFAULT_ATTACK;
+	}
+
+	if ( !AudioTags_.TakeDamage.IsValid() )
+	{
+		AudioTags_.TakeDamage = AudioTags::SFX_BUILDING_DEFAULT_TAKEDAMAGE;
 	}
 }

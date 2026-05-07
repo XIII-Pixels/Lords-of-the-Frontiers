@@ -99,19 +99,23 @@ namespace AudioTags
     inline const FGameplayTag SFX_GAMEPHASE_REWARD_END =
         FGameplayTag::RequestGameplayTag( "SFX.GamePhase.Reward.End" );
 
-    // ── Building ──────────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_BUILDING_SELECTED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Selected" );
-    inline const FGameplayTag SFX_BUILDING_PLACED_SUCCESS =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Placed.Success" );
-    inline const FGameplayTag SFX_BUILDING_PLACED_RESTRICTED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Placed.Restricted" );
-    inline const FGameplayTag SFX_BUILDING_DEMOLISHED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Demolished" );
-    inline const FGameplayTag SFX_BUILDING_DEATH =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Death" );
-    inline const FGameplayTag SFX_BUILDING_RESURRECTION =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Resurrection" );
+    // ── Building - Default ────────────────────────────────────────────────────
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_SELECTED =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Selected" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_PLACED_SUCCESS =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Placed.Success" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_PLACED_RESTRICTED =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Placed.Restricted" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_DEMOLISHED =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Demolished" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_DEATH =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Death" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_RESURRECTED =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Resurrected" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_ATTACK =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Attack" );
+    inline const FGameplayTag SFX_BUILDING_DEFAULT_TAKEDAMAGE =
+        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.TakeDamage" );
 
     // ── Unit ── Default ───────────────────────────────────────────────────────
     inline const FGameplayTag SFX_UNIT_DEFAULT_SELECTED =

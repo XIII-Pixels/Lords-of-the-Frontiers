@@ -19,9 +19,10 @@ void USoundEffectManager::Initialize( FSubsystemCollectionBase& collection )
 
 void USoundEffectManager::Deinitialize()
 {
-	for ( TObjectPtr<UAudioComponent>& audio : ComponentsInUsePool_ )
+	for ( TObjectPtr<UAudioComponent> audio : ComponentsInUsePool_ )
 	{
-		ReleaseAudioComponent( audio );
+		audio->OnAudioFinishedNative.Clear();
+		audio->OnAudioFinished.Clear();
 	}
 	ComponentsInUsePool_.Empty();
 
