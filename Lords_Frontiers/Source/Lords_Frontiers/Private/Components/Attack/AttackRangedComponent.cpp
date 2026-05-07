@@ -171,7 +171,7 @@ void UAttackRangedComponent::Look()
 			continue;
 		}
 
-		if ( !( EnemyIsValid( actor ) && ActorPositionIsAttackable( actor ) && CanSeeEnemy( actor ) ) )
+		if ( !CanBeAttacked( actor ) )
 		{
 			continue;
 		}
@@ -269,6 +269,11 @@ bool UAttackRangedComponent::CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const
 		return true;
 	}
 	return false;
+}
+
+bool UAttackRangedComponent::CanBeAttacked( TObjectPtr<AActor> actor ) const
+{
+	return EnemyIsValid( actor ) && ActorPositionIsAttackable( actor ) && CanSeeEnemy( actor );
 }
 
 void UAttackRangedComponent::FireExtraProjectile( AActor* target, float damageMultiplier )
@@ -496,7 +501,7 @@ TArray<TObjectPtr<AActor>> UAttackRangedComponent::FindNeighborTargets( int32 co
 		{
 			continue;
 		}
-		if ( CanSeeEnemy( actor ) && IsAttackable( actor ) )
+		if ( CanBeAttacked( actor ) )
 		{
 			float distance = FVector::DistSquared( ownerLocation, actor->GetActorLocation() );
 			candidates.Add( { actor, distance } );

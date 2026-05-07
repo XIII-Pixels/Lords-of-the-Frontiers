@@ -13,10 +13,11 @@
 #include "UI/Widgets/StageProgressWidget.h"
 
 #include "Camera/CameraComponent.h"
+#include "Camera/CameraZoomUtils.h"
 #include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/AudioTags.h"
@@ -148,7 +149,6 @@ void UGameHUDWidget::NativeConstruct()
 		{
 			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
-			gL->OnCombatTimerUpdated.AddDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 			{
 				session->OnGameEndDelegate.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );
@@ -337,11 +337,9 @@ void UGameHUDWidget::NativeDestruct()
 		{
 			gL->OnPhaseChanged.RemoveDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
 			gL->OnBuildTurnChanged.RemoveDynamic( this, &UGameHUDWidget::HandleTurnChanged );
-			gL->OnCombatTimerUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleCombatTimer );
 			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 			{
 				session->OnGameEndDelegate.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
-				session->OnSpeedChanged.RemoveDynamic( this, &UGameHUDWidget::HandleSpeedChanged );
 			}
 		}
 
@@ -384,15 +382,6 @@ void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 	{
 		float progress = static_cast<float>( CurrentTurn - 1 ) / static_cast<float>( MaxTurns );
 		StageProgressBar->SetTargetProgress( FMath::Clamp( progress, 0.0f, 1.0f ) );
-	}
-}
-
-void UGameHUDWidget::HandleCombatTimer( float TimeRemaining, float TotalTime )
-{
-	if ( TextTimer )
-	{
-		int32 seconds = FMath::CeilToInt( TimeRemaining );
-		TextTimer->SetText( FText::FromString( FString::Printf( TEXT( "%d" ), seconds ) ) );
 	}
 }
 
@@ -447,14 +436,6 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	UpdateStatusText();
 	UpdateButtonVisibility();
 	UpdateBuildingUIVisibility();
-
-	if ( TextTimer )
-	{
-		bool bShowTimer = ( NewPhase == EGameLoopPhase::Combat );
-		TextTimer->SetVisibility( bShowTimer ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
-	}
-
-	UpdateSpeedButtonVisibility( NewPhase );
 
 	if ( NewPhase == EGameLoopPhase::Combat )
 	{
@@ -577,23 +558,7 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		return;
 	}
 
-	float scale = BaseBonusIconScale;
-	if ( pc->PlayerCameraManager )
-	{
-		if ( AActor* viewTarget = pc->PlayerCameraManager->GetViewTarget() )
-		{
-			if ( UCameraComponent* cam = viewTarget->FindComponentByClass<UCameraComponent>() )
-			{
-				if ( cam->ProjectionMode == ECameraProjectionMode::Orthographic &&
-				     cam->OrthoWidth > KINDA_SMALL_NUMBER )
-				{
-					constexpr float baseOrthoWidth = 2048.0f;
-					scale = ( baseOrthoWidth / cam->OrthoWidth ) * BaseBonusIconScale;
-				}
-			}
-		}
-	}
-	scale = FMath::Clamp( scale, MinBonusIconScale, MaxBonusIconScale );
+	const float zoomAlpha = CameraZoomUtils::GetCameraZoomAlpha( this );
 
 	const float buildingHeight = 80.0f;
 
@@ -607,12 +572,6 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		}
 		if ( !ActiveBonusWorldPositions_.IsValidIndex( i ) )
 		{
-			continue;
-		}
-
-		if ( scale <= MinBonusIconScale + KINDA_SMALL_NUMBER )
-		{
-			ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::Collapsed );
 			continue;
 		}
 
@@ -638,7 +597,7 @@ void UGameHUDWidget::UpdateBonusIconPositions()
 		slot->SetAlignment( FVector2D( 0.5f, 1.0f ) );
 		slot->SetPosition( screenPos );
 
-		ActiveBonusIcons_[i]->SetRenderScale( FVector2D( scale, scale ) );
+		ActiveBonusIcons_[i]->ApplyCameraScale( zoomAlpha );
 		ActiveBonusIcons_[i]->SetVisibility( ESlateVisibility::HitTestInvisible );
 	}
 }
@@ -1620,7 +1579,7 @@ bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
 		UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" ) );
 		return false;
 	}
-	BossBarsContainer->AddChildToVerticalBox( bar );
+	BossBarsContainer->AddChildToHorizontalBox( bar );
 	return true;
 }
 

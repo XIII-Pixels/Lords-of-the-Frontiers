@@ -16,9 +16,12 @@ class UEconomyComponent;
 class UBoxComponent;
 class UNiagaraSystem;
 class UHealthBarConfigDataAsset;
+class UGeometryCacheComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+    FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator
+);
 
 USTRUCT( BlueprintType )
 struct FBuildingAudioTags
@@ -87,6 +90,15 @@ public:
 	TObjectPtr<UStaticMesh> GetBuildingMesh() const
 	{
 		return BuildingMesh_;
+	}
+
+	TObjectPtr<UStaticMesh> GetPreviewMesh() const
+	{
+		if ( !PreviewMesh_ )
+		{
+			return BuildingMesh_;
+		}
+		return PreviewMesh_;
 	}
 
 	const FResourceProduction& GetMaintenanceCost() const
@@ -210,11 +222,19 @@ protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly )
 	UStaticMeshComponent* StaticMeshComponent_;
 
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly )
+	UGeometryCacheComponent* GeometryCacheComponent_;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UStaticMesh> RuinedMesh_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UStaticMesh> BuildingMesh_;
+
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals", meta = ( ToolTip = "Defaults to Building Mesh" )
+	)
+	TObjectPtr<UStaticMesh> PreviewMesh_;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UMaterialInterface> SelectionMaterial_;

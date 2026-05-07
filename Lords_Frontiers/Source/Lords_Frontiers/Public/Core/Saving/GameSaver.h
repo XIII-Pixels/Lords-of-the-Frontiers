@@ -24,6 +24,9 @@ public:
 
 	void Clear() const;
 
+	bool HasLaunchedBefore() const;
+	void MarkHasLaunched() const;
+
 private:
 	FString SaveSlotName_ = "One Save Slot To Rule Them All";
 };

@@ -6,9 +6,30 @@
 
 #include "PathPointsManager.generated.h"
 
+class ASplinePointConnector;
+class AUnit;
 class AGridManager;
 class UPath;
 class APathTargetPoint;
+
+USTRUCT()
+struct FPointsOnCell
+{
+	GENERATED_BODY()
+
+	const TMap<TSubclassOf<AUnit>, TObjectPtr<APathTargetPoint>>& Points() const
+	{
+		return Points_;
+	}
+
+	TMap<TSubclassOf<AUnit>, TObjectPtr<APathTargetPoint>>& Points()
+	{
+		return Points_;
+	}
+
+private:
+	TMap<TSubclassOf<AUnit>, TObjectPtr<APathTargetPoint>> Points_;
+};
 
 /** (Gregory-hub)
  * Class for storing and retrieving path points that exist in the world and can be followed */
@@ -18,15 +39,17 @@ class LORDS_FRONTIERS_API UPathPointsManager : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void PostInitProperties() override;
+	void GetAccessToGrid();
 
-	void InitializeGrid();
+	void CreateAndRegisterPathPoints( const UPath& path, TSubclassOf<AUnit> unitClass );
+	void RegisterPoint( const FIntPoint& point, APathTargetPoint* pathPoint, TSubclassOf<AUnit> unitClass );
 
-	void AddPathPoints( const UPath& path );
-	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point ) const;
+	TWeakObjectPtr<APathTargetPoint> GetTargetPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass ) const;
 
 	// Remove point by value
-	void Remove( const FIntPoint& point );
+	void ReleasePathPoint( const FIntPoint& point, TSubclassOf<AUnit> unitClass );
+	// Remove points in the path
+	void ReleasePathPoints( const UPath* path, TSubclassOf<AUnit> unitClass );
 	// Remove all points
 	void Empty();
 
@@ -51,19 +74,9 @@ public:
 		GoalActor_ = goalActor;
 	}
 
-	void SetPathTargetPointClass( const TSubclassOf<APathTargetPoint>& pathTargetPointClass )
-	{
-		PathTargetPointClass_ = pathTargetPointClass;
-	}
-
 	void SetPointReachRadius( float pointReachRadius )
 	{
 		PointReachRadius_ = pointReachRadius;
-	}
-
-	void SetPathPoints( const TMap<FIntPoint, TObjectPtr<APathTargetPoint>>& pathPoints )
-	{
-		PathPoints_ = pathPoints;
 	}
 
 	float PointReachRadius() const
@@ -72,6 +85,9 @@ public:
 	}
 
 private:
+	TWeakObjectPtr<APathTargetPoint>
+	SpawnPoint( const FIntPoint& point, TSubclassOf<APathTargetPoint> pathPointClass ) const;
+
 	UPROPERTY( EditAnywhere )
 	TWeakObjectPtr<AGridManager> Grid_;
 
@@ -79,13 +95,10 @@ private:
 	TWeakObjectPtr<AActor> GoalActor_;
 
 	UPROPERTY( EditAnywhere )
-	TSubclassOf<APathTargetPoint> PathTargetPointClass_;
-
-	UPROPERTY( EditAnywhere )
 	float PointReachRadius_ = 100.0f;
 
 	UPROPERTY()
-	TMap<FIntPoint, TObjectPtr<APathTargetPoint>> PathPoints_;
+	TMap<FIntPoint, FPointsOnCell> PathPoints_;
 
 	bool bPointsVisible_ = false;
 };

@@ -27,6 +27,8 @@ public:
 
 	int32 GetSlotCount() const;
 
+	void ApplyCameraScale( float zoomAlpha );
+
 	bool IsActive() const
 	{
 		return bIsActive_;

@@ -32,6 +32,16 @@ void UEnemyAggressionComponent::BeginPlay()
 	}
 }
 
+void UEnemyAggressionComponent::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	Super::EndPlay( endPlayReason );
+
+	if ( Path_ )
+	{
+		Path_->ClearSpline();
+	}
+}
+
 void UEnemyAggressionComponent::TickComponent(
     float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction
 )
@@ -48,7 +58,27 @@ void UEnemyAggressionComponent::TickComponent(
 	const TWeakObjectPtr<const AActor> target = unit->FollowedTarget();
 	if ( target.IsValid() && target->IsA( APathTargetPoint::StaticClass() ) && IsCloseToTarget() )
 	{
-		FollowNextPathTarget();
+		if ( unit->OnlyAttackTargetBuilding() )
+		{
+			FollowNextPathTarget();
+		}
+		else
+		{
+			AGridManager* grid = nullptr;
+			if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+			{
+				grid = core->GetGridManager();
+			}
+			if ( grid )
+			{
+				const FIntPoint cellCoords = grid->GetCellCoords( target->GetActorLocation() );
+				const TWeakObjectPtr<ABuilding> buildingOnCell = grid->GetCell( cellCoords.X, cellCoords.Y )->Occupant;
+				if ( !buildingOnCell.IsValid() || buildingOnCell->IsDestroyed() )
+				{
+					FollowNextPathTarget();
+				}
+			}
+		}
 	}
 
 	if ( !unit->TargetBuilding().IsValid() || unit->TargetBuilding()->IsDestroyed() )
@@ -59,13 +89,18 @@ void UEnemyAggressionComponent::TickComponent(
 
 void UEnemyAggressionComponent::FollowNextPathTarget()
 {
-	AdvancePathPointIndex();
+	if ( UnitAIManager_.IsValid() && Path_ && UnitAIManager_->MustDestroyReachedPoints() )
+	{
+		UnitAIManager_->PathPointsManager()->ReleasePathPoint(
+		    Path_->GetPoints()[PathPointIndex_], GetOwner()->GetClass()
+		);
+		Path_->RemovePoint( PathPointIndex_ );
+	}
+	else
+	{
+		++PathPointIndex_;
+	}
 	FollowPath();
-}
-
-void UEnemyAggressionComponent::AdvancePathPointIndex()
-{
-	++PathPointIndex_;
 }
 
 void UEnemyAggressionComponent::FollowPath() const
@@ -99,10 +134,8 @@ void UEnemyAggressionComponent::FollowPath() const
 		{
 			UE_LOG(
 			    LogTemp, Error,
-			    TEXT(
-			        "UEnemyAggressionComponent::FollowPath: PathPointIndex_ is out of range; failed to get "
-			        "UnitAIManager_::GoalActor"
-			    )
+			    TEXT( "UEnemyAggressionComponent::FollowPath: PathPointIndex_ is out of range; failed to get "
+			          "UnitAIManager_::GoalActor" )
 			);
 			unit->SetFollowedTarget( nullptr );
 		}
@@ -111,9 +144,9 @@ void UEnemyAggressionComponent::FollowPath() const
 	{
 		if ( IsValid( UnitAIManager_->PathPointsManager() ) )
 		{
-			unit->SetFollowedTarget(
-			    Cast<AActor>( UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_] ) )
-			);
+			unit->SetFollowedTarget( Cast<AActor>(
+			    UnitAIManager_->PathPointsManager()->GetTargetPoint( pathPoints[PathPointIndex_], unit->GetClass() )
+			) );
 		}
 	}
 }
@@ -170,16 +203,16 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 
 	if ( unit->TargetBuilding().IsValid() && grid )
 	{
+		UnitAIManager_->PathPointsManager()->ReleasePathPoints( Path_, GetOwner()->GetClass() );
+		SetPath( nullptr );
+
 		UPath* path = NewObject<UPath>( unit );
 		const float emptyCellTravelTime = grid->GetCellSize() / unit->Stats().MaxSpeed();
 		path->Initialize( BuildPathConfig(
 		    *unit, unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), emptyCellTravelTime
 		) );
 		path->CalculateOrUpdate();
-		if ( UnitAIManager_.IsValid() )
-		{
-			UnitAIManager_->PathPointsManager()->AddPathPoints( *path );
-		}
+		UnitAIManager_->PathPointsManager()->CreateAndRegisterPathPoints( *path, GetOwner()->GetClass() );
 
 		SetPath( path );
 		FollowPath();

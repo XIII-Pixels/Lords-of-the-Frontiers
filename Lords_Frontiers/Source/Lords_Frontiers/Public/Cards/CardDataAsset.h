@@ -22,17 +22,27 @@ public:
 	FText CardName;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
-		meta = ( MultiLine = true ) )
+		meta = ( MultiLine = true,
+			ToolTip = "Rendered as Rich Text in the card widget. Use <decorator>...</decorator> tags as configured on the WBP." ) )
 	FText Description;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
-	TObjectPtr<UTexture2D> Icon = nullptr;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "«Постройка» — building/silhouette icon shown on the card widget." ) )
+	TObjectPtr<UTexture2D> BuildingIcon = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "«Особенность» — feature/specialty icon shown on the card widget." ) )
+	TObjectPtr<UTexture2D> FeatureIcon = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
 	ECardRarity Rarity = ECardRarity::Common;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
 	ECardCategory Category = ECardCategory::None;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "Free-form tags. Other cards can boost or dampen the weight of every card sharing one of these tags via TagWeightMultipliers_Up/Down." ) )
+	TArray<FName> Tags;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Events" )
 	TArray<FCardEvent> Events;
@@ -61,6 +71,13 @@ public:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
 	TMap<ECardCategory, float> CategoryWeightMultipliers_Down;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence",
+		meta = ( ToolTip = "While this card is in history, every card whose Tags array contains the listed tag has its pick weight multiplied by the value (>1 = boost). Stacks per applied copy up to MaxStacksForWeightInfluence. Multiple entries compose multiplicatively." ) )
+	TMap<FName, float> TagWeightMultipliers_Up;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
+	TMap<FName, float> TagWeightMultipliers_Down;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Selection|Influence" )
 	TSet<TObjectPtr<UCardDataAsset>> ExcludedCards;

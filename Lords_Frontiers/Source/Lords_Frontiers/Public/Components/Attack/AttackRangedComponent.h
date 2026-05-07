@@ -27,8 +27,9 @@ enum class ETowerTargetPriority : uint8
 };
 
 /** (Gregory-hub)
- * Makes actor attack enemy actors in sight */
-UCLASS()
+ * Makes actor attack enemy actors in sight
+ * Treat this class as abstract (crashes if marked abstract) */
+UCLASS( /* Abstract */)
 class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponent
 {
 	GENERATED_BODY()
@@ -107,15 +108,13 @@ protected:
 
 	virtual void SetAttackMode() PURE_VIRTUAL( UAttackRangedComponent::SetAttackMode, );
 
-	// Methods used by Look() to filter enemies that owner can see. Can be overriden in subclasses
+	// Template method pattern
+	bool CanBeAttacked( TObjectPtr<AActor> actor ) const;
+
+	// Methods used by CanBeAttacked() to filter enemies that owner can see. Can be overriden in subclasses
 	virtual bool ActorPositionIsAttackable( const AActor* actor ) const;
 	virtual bool EnemyIsValid( const AActor* enemyActor ) const;
 	virtual bool CanSeeEnemy( TObjectPtr<AActor> enemyActor ) const;
-
-	virtual bool IsAttackable( TObjectPtr<AActor> enemyActor ) const
-	{
-		return true;
-	}
 
 	void FireSingleProjectile( TWeakObjectPtr<AActor> target ) const;
 
@@ -144,6 +143,7 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Attack" )
 	ETowerTargetPriority TargetPriority_ = ETowerTargetPriority::Closest;
 
+	UPROPERTY()
 	TObjectPtr<USphereComponent> SightSphere_;
 
 	FTimerHandle SightTimerHandle_;

@@ -3,6 +3,7 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 
 #include "AI/EntityAIController.h"
+#include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
@@ -167,7 +168,7 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 		     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
 		{
 			GetWorldTimerManager().SetTimer(
-			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
+			    AttackTimerHandle_, [this, hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
 			);
 		}
 		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )
@@ -261,6 +262,11 @@ void AUnit::OnDeath()
 {
 	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
 	HealthBarSubscription_.Reset();
+
+	if ( UnitAIManager_.IsValid() )
+	{
+		UnitAIManager_->PathPointsManager()->ReleasePathPoints( Path(), GetClass() );
+	}
 
 	if ( UWorld* world = GetWorld() )
 	{

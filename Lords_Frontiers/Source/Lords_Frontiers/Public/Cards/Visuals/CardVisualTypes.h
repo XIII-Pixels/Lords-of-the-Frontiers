@@ -4,6 +4,7 @@
 
 #include "CardVisualTypes.generated.h"
 
+class UMaterialInterface;
 class UNiagaraSystem;
 class UTexture2D;
 
@@ -46,6 +47,13 @@ struct LORDS_FRONTIERS_API FCardNiagaraSpec
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Niagara" )
 	bool bAttachToHost = true;
+
+	// Attach Niagara to the host's USkeletalMeshComponent so emitters with
+	// "Sample Skeletal Mesh" data interfaces auto-bind (particles spawn on bones).
+	// Falls back to the root component if no skeletal mesh is found.
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Niagara",
+		meta = ( EditCondition = "bAttachToHost" ) )
+	bool bAttachToSkeletalMesh = false;
 };
 
 USTRUCT( BlueprintType )
@@ -79,6 +87,22 @@ struct LORDS_FRONTIERS_API FCardIconSpec
 };
 
 USTRUCT( BlueprintType )
+struct LORDS_FRONTIERS_API FCardOverlayMaterialSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Overlay" )
+	TSoftObjectPtr<UMaterialInterface> Material;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Overlay" )
+	ECardVisualTarget ApplyOn = ECardVisualTarget::None;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Overlay",
+		meta = ( ClampMin = "0.0" ) )
+	float DelaySeconds = 0.f;
+};
+
+USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FCardVisualConfig
 {
 	GENERATED_BODY()
@@ -88,6 +112,9 @@ struct LORDS_FRONTIERS_API FCardVisualConfig
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	FCardIconSpec Icon;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	FCardOverlayMaterialSpec Overlay;
 };
 
 USTRUCT( BlueprintType )
