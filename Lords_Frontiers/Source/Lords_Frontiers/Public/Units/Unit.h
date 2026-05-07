@@ -26,12 +26,40 @@ class UNiagaraSystem;
 class UHealthBarConfigDataAsset;
 struct FEnemyBuff;
 
+USTRUCT(BlueprintType)
+struct FUnitAudioTags
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Selected;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Spawn;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Death;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Attack;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag TakeDamage;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag SpawnAbility;
+};
+
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity, public IAttacker, public IControlledByTree
+class LORDS_FRONTIERS_API AUnit : public APawn,
+                                  public IEntity,
+                                  public IAttacker,
+                                  public IControlledByTree,
+                                  public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -41,6 +69,9 @@ public:
 	virtual void OnConstruction( const FTransform& transform ) override;
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
+
+	virtual void PostInitProperties() override;
 
 	void StartFollowing() const;
 	void StopFollowing() const;
@@ -139,6 +170,16 @@ public:
 		return bIsBoss_;
 	}
 
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
+	const FUnitAudioTags& AudioTags() const
+	{
+		return AudioTags_;
+	}
+
 protected:
 	virtual void Tick( float deltaSeconds ) override;
 
@@ -151,6 +192,8 @@ protected:
 	void Animate( float deltaTime ) const;
 
 	void PlayAnimation( const FAnimationConfig& animation ) const;
+
+	void ResolveAudioTags();
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -195,6 +238,9 @@ protected:
 	)
 	float AttackPreHitDelay_ = 0.0f;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Audio" )
+	FUnitAudioTags AudioTags_;
+
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
@@ -222,4 +268,6 @@ protected:
 	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
 
 	float ResolvedDeathVFXDelay_ = 0.0f;
+
+	FOnAudioEvent OnAudioEvent_;
 };

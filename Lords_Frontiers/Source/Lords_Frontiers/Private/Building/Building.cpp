@@ -358,8 +358,6 @@ void ABuilding::TakeDamage( int damage, AActor* instigator )
 		return;
 	}
 
-	OnAudioEvent_.Broadcast( { AudioTags_.TakeDamage, GetActorLocation() } );
-
 	Stats_.ApplyDamage( damage );
 
 	OnBuildingDamaged.Broadcast( this, damage, instigator );
@@ -367,6 +365,10 @@ void ABuilding::TakeDamage( int damage, AActor* instigator )
 	if ( !Stats_.IsAlive() )
 	{
 		OnDeath();
+	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags_.TakeDamage, GetActorLocation() } );
 	}
 }
 
