@@ -24,7 +24,8 @@ public class Lords_Frontiers : ModuleRules
 	        "Niagara",
 	        "AIModule",
 	        "GameplayTasks",
-	        "GeometryCache"
+	        "GeometryCache",
+            "ProceduralMeshComponent"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });

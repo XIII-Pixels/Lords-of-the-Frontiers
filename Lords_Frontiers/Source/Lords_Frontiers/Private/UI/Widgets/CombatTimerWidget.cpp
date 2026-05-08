@@ -138,7 +138,7 @@ void UCombatTimerWidget::ApplySpeed( float Speed )
 	{
 		if ( UGameSessionController* session = gi->GetSubsystem<UGameSessionController>() )
 		{
-			session->SetGameSpeed( Speed );
+			session->SetTimerScale( Speed );
 		}
 	}
 }
