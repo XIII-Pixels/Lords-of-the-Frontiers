@@ -1,5 +1,7 @@
 #include "Cards/Feedback/CardIconStripWidget.h"
 
+#include "Camera/CameraZoomUtils.h"
+
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -57,4 +59,13 @@ void UCardIconStripWidget::ClearAll()
 		}
 	}
 	Slots_.Empty();
+}
+
+void UCardIconStripWidget::ApplyCameraScale( float zoomAlpha )
+{
+	const float scale = CameraZoomUtils::ScaleFromZoomAlpha( zoomAlpha, MinScale_, MaxScale_ );
+
+	FWidgetTransform transform = GetRenderTransform();
+	transform.Scale = FVector2D( scale, scale );
+	SetRenderTransform( transform );
 }

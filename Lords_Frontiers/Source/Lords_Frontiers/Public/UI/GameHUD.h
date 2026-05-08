@@ -10,6 +10,7 @@
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
+#include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 
@@ -28,7 +29,6 @@ class ABuilding;
 class UStageProgressWidget;
 class UGameStateOverlayWidget;
 class UHealthBarWidget;
-class UVerticalBox;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -126,14 +126,8 @@ public:
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* Text_Food;
 
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* TextTimer;
-
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> ButtonSpeed;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> TextSpeed;
+	TObjectPtr<UCombatTimerWidget> CombatTimerPanel;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> Text_GoldIncome;
@@ -201,18 +195,6 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
-	UPROPERTY(
-	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons",
-	    meta = ( ClampMin = "0.1", ClampMax = "3.0" )
-	)
-	float BaseBonusIconScale = 0.5f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|BonusIcons" )
-	float MinBonusIconScale = 0.1f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|BonusIcons" )
-	float MaxBonusIconScale = 2.0f;
-
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UCanvasPanel> BonusIconCanvas;
 
@@ -262,7 +244,7 @@ public:
 	void TogglePauseMenu();
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UVerticalBox> BossBarsContainer;
+	TObjectPtr<UHorizontalBox> BossBarsContainer;
 
 	bool AddBossBar( UHealthBarWidget* bar );
 
@@ -308,9 +290,6 @@ protected:
 
 	UFUNCTION()
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
-
-	UFUNCTION()
-	void HandleCombatTimer( float TimeRemaining, float TotalTime );
 
 	UFUNCTION()
 	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
@@ -481,12 +460,4 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager;
-
-	UFUNCTION()
-	void OnSpeedButtonClicked();
-
-	UFUNCTION()
-	void HandleSpeedChanged( float NewSpeed );
-
-	void UpdateSpeedButtonVisibility( EGameLoopPhase Phase );
 };

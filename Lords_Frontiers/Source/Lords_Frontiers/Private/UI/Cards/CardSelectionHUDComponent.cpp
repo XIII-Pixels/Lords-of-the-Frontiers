@@ -26,11 +26,18 @@ void UCardSelectionHUDComponent::EndPlay( const EEndPlayReason::Type endPlayReas
 {
 	UnsubscribeFromCardSubsystem();
 
-	if ( CardSelectionWidget_ )
+	if ( IsValid( CardSelectionWidget_ ) )
 	{
-		CardSelectionWidget_->RemoveFromParent();
-		CardSelectionWidget_ = nullptr;
+		const UWorld* world = GetWorld();
+		const bool bIsTearingDown = !world || world->bIsTearingDown;
+
+		if ( !bIsTearingDown )
+		{
+			CardSelectionWidget_->RemoveFromParent();
+		}
 	}
+
+	CardSelectionWidget_ = nullptr;
 
 	Super::EndPlay( endPlayReason );
 }

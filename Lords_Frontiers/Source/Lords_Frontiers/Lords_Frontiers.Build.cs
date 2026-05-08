@@ -28,9 +28,11 @@ public class Lords_Frontiers : ModuleRules
             "ProceduralMeshComponent"
         });
 
-        PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange( new string[] { "ProceduralMeshComponent" } );
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
+
+        OptimizeCode = CodeOptimization.InShippingBuildsOnly;
 
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 

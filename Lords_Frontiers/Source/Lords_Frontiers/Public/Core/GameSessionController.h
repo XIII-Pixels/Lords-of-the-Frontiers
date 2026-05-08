@@ -66,6 +66,9 @@ public:
 	void CycleSpeed();
 
 	UFUNCTION( BlueprintCallable, Category = "GameSession|Speed" )
+	void SetGameSpeed( float newSpeed );
+
+	UFUNCTION( BlueprintCallable, Category = "GameSession|Speed" )
 	void ResetSpeed();
 
 	UFUNCTION( BlueprintPure, Category = "Session" )
@@ -104,4 +107,5 @@ private:
 
 	bool bIsGameStarted_ = false;
 	bool bIsGamePaused_ = false;
+	float LastCombatSpeed_ = 1.0f;
 };

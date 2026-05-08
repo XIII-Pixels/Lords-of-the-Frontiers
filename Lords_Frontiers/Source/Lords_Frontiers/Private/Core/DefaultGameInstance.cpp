@@ -15,9 +15,16 @@ void UDefaultGameInstance::Init()
 	bool mustClearSaveData = GameSaverConfig && GameSaverConfig->bClearAllSaveDataOnGameStart;
 
 #if !UE_BUILD_SHIPPING
-	if ( gameSaver && mustClearSaveData )
+	if ( mustClearSaveData )
 	{
-		gameSaver->Clear();
+		if ( gameSaver )
+		{
+			gameSaver->Clear();
+		}
+		if ( levelSubsystem )
+		{
+			levelSubsystem->ResetSavedLevelStatuses();
+		}
 	}
 #endif
 
@@ -26,10 +33,12 @@ void UDefaultGameInstance::Init()
 		levelSubsystem->SetLevels( Levels_ );
 	}
 
-#if !UE_BUILD_SHIPPING
-	if ( mustClearSaveData && levelSubsystem )
+	if ( gameSaver && !gameSaver->HasLaunchedBefore() )
 	{
-		levelSubsystem->ResetSavedLevelStatuses();
+		if ( levelSubsystem )
+		{
+			levelSubsystem->ResetSavedLevelStatuses();
+		}
+		gameSaver->MarkHasLaunched();
 	}
-#endif
 }
