@@ -17,6 +17,7 @@
 #include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/FollowComponent.h"
+#include "Components/SpawnAbilityComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -57,6 +58,8 @@ void AUnit::BeginPlay()
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
+	SpawnAbilityComponent_ = FindComponentByClass<USpawnAbilityComponent>();
+
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
 		UnitAIManager_ = core->GetUnitAIManager();
@@ -87,6 +90,23 @@ void AUnit::BeginPlay()
 				pool->ShowFor( this, HealthBarConfig_ );
 			}
 		}
+	}
+
+	PlayAnimationIdle();
+}
+
+void AUnit::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if ( IsValid( IdleAnimation_.Animation ) )
+	{
+		bIdleIsAnimated_ = true;
+	}
+	else
+	{
+		bIdleIsAnimated_ = false;
+		IdleAnimation_ = AttackAnimation_;
 	}
 }
 
@@ -122,8 +142,27 @@ void AUnit::DisableMovement() const
 	}
 }
 
+void AUnit::EnableAttack()
+{
+	if ( const auto* world = GetWorld() )
+	{
+		Stats_.StartCooldown( world->GetTimeSeconds() );
+	}
+	bCanAttack = true;
+}
+
+void AUnit::DisableAttack()
+{
+	bCanAttack = false;
+}
+
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
+	if ( !bCanAttack )
+	{
+		return;
+	}
+
 	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
 	{
 		if ( AttackPreHitDelay_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
@@ -140,22 +179,35 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 	}
 }
 
-void AUnit::Animate( float deltaTime ) const
+void AUnit::Animate()
 {
-	// Only animate attack if unit can attack
-	if ( !AttackComponent_ )
+	if ( bPlayingIdleAnimation )
 	{
-		return;
+		bool startedAnimation = false;
+		if ( SpawnAbilityComponent_.IsValid() &&
+			 SpawnAbilityComponent_->TimeUntilGroupSpawnStart() <= PreSpawnAbilityDelay_ )
+		{
+			startedAnimation = PlayAnimation( SpawnAbilityAnimation_ );
+		}
+		else if ( IsValid( AttackComponent_ ) && AttackTarget_.IsValid() && Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
+		{
+			startedAnimation = PlayAnimation( AttackAnimation_ );
+		}
+
+		if ( startedAnimation )
+		{
+			bPlayingIdleAnimation = false;
+		}
 	}
 
-	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() &&
-	     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
+	if ( !SkeletalMeshComponent_->IsPlaying() )
 	{
-		PlayAnimation( AttackAnimation_ );
+		// Play idle by default
+		PlayAnimationIdle();
 	}
 }
 
-void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
+bool AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 {
 	if ( SkeletalMeshComponent_ && animation.Animation )
 	{
@@ -163,7 +215,18 @@ void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 		SkeletalMeshComponent_->SetAnimation( animation.Animation );
 		SkeletalMeshComponent_->SetPlayRate( animation.PlayRate );
 		SkeletalMeshComponent_->Play( false );
+
+		if ( animation.bStopWhileAnimating )
+		{
+			DisableMovement();
+		}
+		else
+		{
+			EnableMovement();
+		}
+		return true;
 	}
+	return false;
 }
 
 void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
@@ -254,10 +317,54 @@ UNiagaraSystem* AUnit::GetHitVFX() const
 	return ResolvedHitVFX_;
 }
 
+bool AUnit::PlayAnimationIdle()
+{
+	if ( !IsValid( IdleAnimation_.Animation ) )
+	{
+		return false;
+	}
+
+	SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
+	SkeletalMeshComponent_->SetAnimation( IdleAnimation_.Animation );
+
+	if ( bIdleIsAnimated_ )
+	{
+		SkeletalMeshComponent_->SetPlayRate( IdleAnimation_.PlayRate );
+		SkeletalMeshComponent_->Play( true );
+	}
+	else
+	{
+		SkeletalMeshComponent_->SetPosition( 0 );
+	}
+	bPlayingIdleAnimation = true;
+
+	if ( IdleAnimation_.bStopWhileAnimating )
+	{
+		DisableMovement();
+	}
+	else
+	{
+		EnableMovement();
+	}
+	return true;
+}
+
+bool AUnit::PlayAnimationAttack()
+{
+	bPlayingIdleAnimation = false;
+	return PlayAnimation( AttackAnimation_ );
+}
+
+bool AUnit::PlayAnimationSpawnAbility()
+{
+	bPlayingIdleAnimation = false;
+	return PlayAnimation( SpawnAbilityAnimation_ );
+}
+
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
-	Animate( deltaSeconds );
+	Animate();
 }
 
 void AUnit::ResolveVFXDefaults()

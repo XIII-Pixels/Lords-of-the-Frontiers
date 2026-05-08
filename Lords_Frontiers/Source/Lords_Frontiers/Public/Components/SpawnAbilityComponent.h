@@ -15,6 +15,9 @@ class LORDS_FRONTIERS_API USpawnAbilityComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+public:
+	float TimeUntilGroupSpawnStart() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -25,8 +28,8 @@ protected:
 
 	void SpawnUnit() const;
 
-	void StopUnitMovement() const;
-	void ResumeUnitMovement() const;
+	void StopUnitMovementAndAttack() const;
+	void ResumeUnitMovementAndAttack() const;
 
 	FTransform FindValidTransform() const;
 

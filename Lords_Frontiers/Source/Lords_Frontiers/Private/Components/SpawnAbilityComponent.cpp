@@ -10,6 +10,16 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+float USpawnAbilityComponent::TimeUntilGroupSpawnStart() const
+{
+	if ( GetWorld()->GetTimerManager().IsTimerActive( GroupSpawnTimer_ ) )
+	{
+		return GetWorld()->GetTimerManager().GetTimerRemaining( GroupSpawnTimer_ );
+	}
+
+	return -1.0f;
+}
+
 void USpawnAbilityComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -42,9 +52,9 @@ void USpawnAbilityComponent::GroupSpawnTick()
 	if ( StopWhileSpawning_ && stopTime > 0 )
 	{
 		// Stop owner temporarily
-		StopUnitMovement();
+		StopUnitMovementAndAttack();
 		GetWorld()->GetTimerManager().SetTimer(
-		    MovementTimer_, this, &USpawnAbilityComponent::ResumeUnitMovement,
+		    MovementTimer_, this, &USpawnAbilityComponent::ResumeUnitMovementAndAttack,
 		    StopTimeBeforeSpawn_ + UnitSpawnInterval_ * SpawnedCount_, false
 		);
 	}
@@ -132,21 +142,23 @@ void USpawnAbilityComponent::SpawnUnit() const
 	UnitBuilder_->SpawnUnitAndFinish();
 }
 
-void USpawnAbilityComponent::StopUnitMovement() const
+void USpawnAbilityComponent::StopUnitMovementAndAttack() const
 {
-	const AUnit* unit = GetOwner<AUnit>();
+	AUnit* unit = GetOwner<AUnit>();
 	if ( IsValid( unit ) )
 	{
 		unit->DisableMovement();
+		unit->DisableAttack();
 	}
 }
 
-void USpawnAbilityComponent::ResumeUnitMovement() const
+void USpawnAbilityComponent::ResumeUnitMovementAndAttack() const
 {
-	const AUnit* unit = GetOwner<AUnit>();
+	AUnit* unit = GetOwner<AUnit>();
 	if ( IsValid( unit ) )
 	{
 		unit->EnableMovement();
+		unit->EnableAttack();
 	}
 }
 
