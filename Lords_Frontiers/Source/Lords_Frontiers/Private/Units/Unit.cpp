@@ -130,7 +130,7 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 		     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
 		{
 			GetWorldTimerManager().SetTimer(
-			    AttackTimerHandle_, [this, &hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
+			    AttackTimerHandle_, [this, hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
 			);
 		}
 		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )

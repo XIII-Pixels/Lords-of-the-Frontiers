@@ -59,3 +59,25 @@ void UGameSaver::Clear() const
 	UGameplayStatics::DeleteGameInSlot( SaveSlotName_, 0 );
 	UE_LOG( LogTemp, Warning, TEXT( "UGameSaver: all save data was cleared for slot %s" ), *SaveSlotName_ );
 }
+
+bool UGameSaver::HasLaunchedBefore() const
+{
+	UGameSaveData* saveData = Cast<UGameSaveData>( UGameplayStatics::LoadGameFromSlot( SaveSlotName_, 0 ) );
+	return saveData && saveData->bHasLaunchedBefore;
+}
+
+void UGameSaver::MarkHasLaunched() const
+{
+	UGameSaveData* saveData = Cast<UGameSaveData>( UGameplayStatics::LoadGameFromSlot( SaveSlotName_, 0 ) );
+	if ( !saveData )
+	{
+		saveData = Cast<UGameSaveData>( UGameplayStatics::CreateSaveGameObject( UGameSaveData::StaticClass() ) );
+	}
+	if ( !saveData )
+	{
+		return;
+	}
+
+	saveData->bHasLaunchedBefore = true;
+	UGameplayStatics::SaveGameToSlot( saveData, SaveSlotName_, 0 );
+}

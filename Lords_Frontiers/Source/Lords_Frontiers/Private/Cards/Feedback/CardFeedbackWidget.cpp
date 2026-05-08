@@ -1,5 +1,7 @@
 #include "Cards/Feedback/CardFeedbackWidget.h"
 
+#include "Camera/CameraZoomUtils.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
 
@@ -40,4 +42,13 @@ void UCardFeedbackWidget::SetIcon( UTexture2D* icon )
 	}
 
 	OnShow();
+}
+
+void UCardFeedbackWidget::ApplyCameraScale( float zoomAlpha )
+{
+	const float scale = CameraZoomUtils::ScaleFromZoomAlpha( zoomAlpha, MinScale_, MaxScale_ );
+
+	FWidgetTransform transform = GetRenderTransform();
+	transform.Scale = FVector2D( scale, scale );
+	SetRenderTransform( transform );
 }

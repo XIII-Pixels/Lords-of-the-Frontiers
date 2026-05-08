@@ -9,8 +9,10 @@
 
 class ACardFeedbackPopup;
 class ACardIconStrip;
+class UMaterialInterface;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class USkeletalMeshComponent;
 class UTexture2D;
 
 USTRUCT()
@@ -29,6 +31,15 @@ struct FCardStickyRecord
 
 	UPROPERTY()
 	TWeakObjectPtr<UNiagaraComponent> NiagaraComponent;
+
+	UPROPERTY()
+	TWeakObjectPtr<USkeletalMeshComponent> OverlayMesh;
+
+	UPROPERTY()
+	TWeakObjectPtr<UMaterialInterface> OverlayPrevMaterial;
+
+	UPROPERTY()
+	bool bOverlayApplied = false;
 
 	UPROPERTY()
 	int32 Id = INDEX_NONE;
@@ -58,7 +69,7 @@ struct FCardVisualDeferred
 };
 
 UCLASS()
-class LORDS_FRONTIERS_API UCardVisualSubsystem : public UWorldSubsystem
+class LORDS_FRONTIERS_API UCardVisualSubsystem : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -67,6 +78,14 @@ public:
 
 	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
+
+	virtual void Tick( float deltaTime ) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickableInEditor() const override
+	{
+		return false;
+	}
+	virtual bool IsTickable() const override;
 
 	void PlayOneShot( const FCardVisualConfig& config, AActor* owner, AActor* target );
 
@@ -91,9 +110,13 @@ private:
 
 	void PlayIcon( const FCardIconSpec& spec, AActor* owner, AActor* target, bool bSticky, int32 stickyId );
 	void PlayNiagara( const FCardNiagaraSpec& spec, AActor* owner, AActor* target, bool bSticky, int32 stickyId );
+	void PlayOverlay( const FCardOverlayMaterialSpec& spec, AActor* owner, AActor* target, int32 stickyId );
 
 	void SpawnIconNow( const FCardIconSpec& spec, AActor* host, bool bSticky, int32 stickyId );
 	void SpawnNiagaraNow( const FCardNiagaraSpec& spec, AActor* host, bool bSticky, int32 stickyId );
+	void ApplyOverlayNow( const FCardOverlayMaterialSpec& spec, AActor* host, int32 stickyId );
+
+	static USkeletalMeshComponent* FindSkeletalMeshOn( AActor* host );
 
 	void ResolveTargetHosts(
 		ECardVisualTarget target, AActor* owner, AActor* hitTarget, TArray<AActor*>& outHosts ) const;

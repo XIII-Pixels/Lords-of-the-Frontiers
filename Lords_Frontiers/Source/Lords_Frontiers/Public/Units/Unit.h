@@ -10,6 +10,7 @@
 
 #include "Animation/AnimationConfig.h"
 #include "Components/Attack/AttackComponent.h"
+#include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/EnemyAggressionComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
@@ -137,6 +138,15 @@ public:
 	bool IsBoss() const
 	{
 		return bIsBoss_;
+	}
+
+	bool OnlyAttackTargetBuilding() const
+	{
+		if ( const auto* attackComponent = Cast<UUnitAttackRangedComponent>( AttackComponent_ ) )
+		{
+			return attackComponent->OnlyAttackTargetBuilding();
+		}
+		return false;
 	}
 
 protected:

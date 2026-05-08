@@ -1,5 +1,7 @@
 #include "UI/HealthBar/HealthBarWidget.h"
 
+#include "Camera/CameraZoomUtils.h"
+
 #include "Components/ProgressBar.h"
 
 void UHealthBarWidget::SetHealth( int newHealth, int maxHealth )
@@ -77,8 +79,7 @@ void UHealthBarWidget::TickAnim( float deltaTime )
 
 void UHealthBarWidget::ApplyCameraScale( float zoomAlpha )
 {
-	const float clamped = FMath::Clamp( zoomAlpha, 0.0f, 1.0f );
-	const float scale = FMath::Lerp( MaxScale_, MinScale_, clamped );
+	const float scale = CameraZoomUtils::ScaleFromZoomAlpha( zoomAlpha, MinScale_, MaxScale_ );
 
 	FWidgetTransform transform = GetRenderTransform();
 	transform.Scale = FVector2D( scale, scale );

@@ -29,7 +29,6 @@ class ABuilding;
 class UStageProgressWidget;
 class UGameStateOverlayWidget;
 class UHealthBarWidget;
-class UVerticalBox;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
@@ -196,18 +195,6 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
 	float ActiveButtonLiftOffset = -10.0f;
 
-	UPROPERTY(
-	    EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|BonusIcons",
-	    meta = ( ClampMin = "0.1", ClampMax = "3.0" )
-	)
-	float BaseBonusIconScale = 0.5f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|BonusIcons" )
-	float MinBonusIconScale = 0.1f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|BonusIcons" )
-	float MaxBonusIconScale = 2.0f;
-
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UCanvasPanel> BonusIconCanvas;
 
@@ -266,7 +253,7 @@ public:
 	void TogglePauseMenu();
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UVerticalBox> BossBarsContainer;
+	TObjectPtr<UHorizontalBox> BossBarsContainer;
 
 	bool AddBossBar( UHealthBarWidget* bar );
 

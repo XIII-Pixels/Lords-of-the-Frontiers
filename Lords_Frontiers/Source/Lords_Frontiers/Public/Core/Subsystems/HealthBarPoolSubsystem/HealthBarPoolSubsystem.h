@@ -94,8 +94,6 @@ private:
 
 	void DetachBar( FActiveHealthBar& bar );
 
-	float GetCameraZoomAlpha() const;
-
 	UGameHUDWidget* ResolveHUD() const;
 
 	UPROPERTY()
