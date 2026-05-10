@@ -68,8 +68,7 @@ void UResourceManager::AddResource( EResourceType type, int32 quantity, bool noS
 		case EResourceType::Population:
 			OnAudioEvent_.Broadcast( { AudioTags::SFX_RESOURCES_POPULATION_AWARDED } );
 			break;
-		default:
-			OnAudioEvent_.Broadcast( { AudioTags::SFX_RESOURCES_DEFAULT_AWARDED } );
+		default:;
 		}
 	}
 }

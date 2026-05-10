@@ -79,8 +79,6 @@ namespace AudioTags
         FGameplayTag::RequestGameplayTag( "SFX.ResumeGame" );
 
     // ── Resources ─────────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_RESOURCES_DEFAULT_AWARDED =
-        FGameplayTag::RequestGameplayTag( "SFX.Resources.Default.Awarded" );
     inline const FGameplayTag SFX_RESOURCES_GOLD_AWARDED =
         FGameplayTag::RequestGameplayTag( "SFX.Resources.Gold.Awarded" );
     inline const FGameplayTag SFX_RESOURCES_FOOD_AWARDED =
