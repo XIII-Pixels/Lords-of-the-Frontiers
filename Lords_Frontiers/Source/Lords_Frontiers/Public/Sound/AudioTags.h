@@ -72,6 +72,9 @@ namespace AudioTags
     inline const FGameplayTag SFX_UI_BUTTON_TIME_PAUSE_CLICKED =
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Pause.Clicked" );
 
+    inline const FGameplayTag SFX_UI_GRID_CELL_HOVERED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Grid.Cell.Hovered" );
+
     // ── Pause game ────────────────────────────────────────────────────────────
     inline const FGameplayTag SFX_PAUSEGAME =
         FGameplayTag::RequestGameplayTag( "SFX.PauseGame" );

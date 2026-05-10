@@ -580,6 +580,11 @@ void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const boo
 		return;
 	}
 
+	if ( PreviewActor_->GetActorLocation() != worldLocation )
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_GRID_CELL_HOVERED, worldLocation } );
+	}
+
 	PreviewActor_->SetActorHiddenInGame( false );
 	PreviewActor_->SetActorLocation( worldLocation );
 	PreviewActor_->SetCanBuild( bCanBuild );
