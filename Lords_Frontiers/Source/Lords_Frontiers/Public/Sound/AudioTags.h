@@ -32,6 +32,11 @@ namespace AudioTags
     inline const FGameplayTag SFX_UI_BUTTON_BUILDING_CLICKED =
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Clicked" );
 
+    inline const FGameplayTag SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_HOVERED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Unaffordable.Hovered" );
+    inline const FGameplayTag SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_CLICKED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Unaffordable.Clicked" );
+
     inline const FGameplayTag SFX_UI_BUTTON_MOVEBUILDING_HOVERED =
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.MoveBuilding.Hovered" );
     inline const FGameplayTag SFX_UI_BUTTON_MOVEBUILDING_CLICKED =
@@ -51,6 +56,11 @@ namespace AudioTags
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.NextWaveInfo.Hovered" );
     inline const FGameplayTag SFX_UI_BUTTON_NEXTWAVEINFO_CLICKED =
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.NextWaveInfo.Clicked" );
+
+    inline const FGameplayTag SFX_UI_BUTTON_TOGGLECARDBOOK_HOVERED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.ToggleCardBook.Hovered" );
+    inline const FGameplayTag SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED =
+        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.ToggleCardBook.Clicked" );
 
     inline const FGameplayTag SFX_UI_BUTTON_TIME_HOVERED =
         FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Hovered" );

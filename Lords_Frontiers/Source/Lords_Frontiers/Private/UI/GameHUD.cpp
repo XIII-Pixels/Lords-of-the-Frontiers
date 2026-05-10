@@ -897,77 +897,77 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingWoodenHouse );
 
 	StartBuilding( WoodenHouseClass );
 }
 
 void UGameHUDWidget::OnBuildStrawHouseClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingStrawHouse );
 
 	StartBuilding( StrawHouseClass );
 }
 
 void UGameHUDWidget::OnBuildFarmClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingFarm );
 
 	StartBuilding( FarmClass );
 }
 
 void UGameHUDWidget::OnBuildLawnHouseClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingLawnHouse );
 
 	StartBuilding( LawnHouseClass );
 }
 
 void UGameHUDWidget::OnBuildMagicHouseClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingMagicHouse );
 
 	StartBuilding( MagicHouseClass );
 }
 
 void UGameHUDWidget::OnBuildWoodWallClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingWoodWall );
 
 	StartBuilding( WoodWallClass );
 }
 
 void UGameHUDWidget::OnBuildStoneWallClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingStoneWall );
 
 	StartBuilding( StoneWallClass );
 }
 
 void UGameHUDWidget::OnBuildTowerT0Clicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT0 );
 
 	StartBuilding( TowerT0Class );
 }
 
 void UGameHUDWidget::OnBuildTowerT1Clicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT1 );
 
 	StartBuilding( TowerT1Class );
 }
 
 void UGameHUDWidget::OnBuildTowerT2Clicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT2 );
 
 	StartBuilding( TowerT2Class );
 }
 
 void UGameHUDWidget::OnBuildTowerMortiraClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	PlayOnBuildingButtonClickedSound( ButtonBuildingMortira );
 
 	StartBuilding( TowerMortiraClass );
 }
@@ -1147,6 +1147,31 @@ void UGameHUDWidget::OnBuildingUnhovered()
 		{
 			ActiveDefensiveTooltip->HideTooltip();
 		}
+	}
+}
+
+void UGameHUDWidget::PlayOnBuildingButtonClickedSound( const UButton* button ) const
+{
+	if ( button && button->GetBackgroundColor() == AffordableColor )
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_CLICKED } );
+	}
+}
+
+void UGameHUDWidget::PlayOnBuildingButtonHoveredSound( const UButton* button )
+    const
+{
+	if ( button && button->GetBackgroundColor() == AffordableColor )
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
+	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_HOVERED } );
 	}
 }
 

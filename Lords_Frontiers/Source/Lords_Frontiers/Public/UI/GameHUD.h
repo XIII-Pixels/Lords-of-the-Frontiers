@@ -387,58 +387,68 @@ protected:
 
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( WoodenHouseClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingWoodenHouse );
 	}
+
 	UFUNCTION() void OnHoverStrawHouse()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( StrawHouseClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingStrawHouse );
 	}
+
 	UFUNCTION() void OnHoverFarm()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( FarmClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingFarm );
 	}
+
 	UFUNCTION() void OnHoverLawnHouse()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( LawnHouseClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingLawnHouse );
 	}
+
 	UFUNCTION() void OnHoverMagicHouse()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( MagicHouseClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingMagicHouse );
 	}
+
 	UFUNCTION() void OnHoverWoodWall()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( WoodWallClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingWoodWall );
 	}
+
 	UFUNCTION() void OnHoverStoneWall()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( StoneWallClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingStoneWall );
 	}
+
 	UFUNCTION() void OnHoverTowerT0()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerT0Class );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT0 );
 	}
+
 	UFUNCTION() void OnHoverTowerT1()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerT1Class );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT1 );
 	}
+
 	UFUNCTION() void OnHoverTowerT2()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerT2Class );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT2 );
 	}
+
 	UFUNCTION() void OnHoverTowerMortira()
 	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
 		ShowTooltipForBuilding( TowerMortiraClass );
+		PlayOnBuildingButtonHoveredSound( ButtonBuildingMortira );
 	}
 
 	UFUNCTION()
@@ -478,6 +488,9 @@ protected:
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
+
+	void PlayOnBuildingButtonClickedSound( const UButton* button ) const;
+	void PlayOnBuildingButtonHoveredSound( const UButton* button ) const;
 
 	struct FIncomeAnimState
 	{

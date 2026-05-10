@@ -21,14 +21,17 @@ void USoundEffectManager::Deinitialize()
 {
 	for ( TObjectPtr<UAudioComponent> audio : ComponentsInUsePool_ )
 	{
-		audio->OnAudioFinishedNative.Clear();
-		audio->OnAudioFinished.Clear();
+		if ( IsValid( audio ) )
+		{
+			audio->OnAudioFinishedNative.Clear();
+			audio->OnAudioFinished.Clear();
+		}
 	}
 	ComponentsInUsePool_.Empty();
 
 	for ( TObjectPtr<UAudioComponent>& audio : FreeComponentsPool_ )
 	{
-		if ( audio )
+		if ( IsValid( audio ) )
 		{
 			audio->Stop();
 			audio->UnregisterComponent();
