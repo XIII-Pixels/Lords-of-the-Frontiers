@@ -7,6 +7,7 @@
 
 #include "SpawnAbilityComponent.generated.h"
 
+class UNiagaraSystem;
 class AUnit;
 class UUnitBuilder;
 
@@ -32,6 +33,8 @@ protected:
 	void ResumeUnitMovementAndAttack() const;
 
 	FTransform FindValidTransform() const;
+
+	void ResolveVFXDefaults();
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	TSubclassOf<AUnit> SpawnedClass_;
@@ -60,4 +63,7 @@ protected:
 	FTimerHandle GroupSpawnTimer_;
 	FTimerHandle UnitSpawnTimer_;
 	FTimerHandle MovementTimer_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedSpawnAbilityVFX_;
 };

@@ -3,8 +3,10 @@
 #include "Components/SpawnAbilityComponent.h"
 
 #include "Core/CoreManager.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Units/Unit.h"
 #include "Units/UnitBuilder.h"
+#include "VFX/EntityVFXConfig.h"
 #include "Waves/WaveManager.h"
 
 #include "Components/CapsuleComponent.h"
@@ -41,8 +43,10 @@ void USpawnAbilityComponent::BeginPlay()
 		return;
 	}
 
+	ResolveVFXDefaults();
+
 	GetWorld()->GetTimerManager().SetTimer(
-	    GroupSpawnTimer_, this, &USpawnAbilityComponent::GroupSpawnTick, GroupSpawnInterval_, true, 0
+	    GroupSpawnTimer_, this, &USpawnAbilityComponent::GroupSpawnTick, GroupSpawnInterval_, true
 	);
 }
 
@@ -56,6 +60,13 @@ void USpawnAbilityComponent::GroupSpawnTick()
 		GetWorld()->GetTimerManager().SetTimer(
 		    MovementTimer_, this, &USpawnAbilityComponent::ResumeUnitMovementAndAttack,
 		    StopTimeBeforeSpawn_ + UnitSpawnInterval_ * SpawnedCount_, false
+		);
+	}
+
+	if ( const AActor* owner = GetOwner() )
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		    GetWorld(), ResolvedSpawnAbilityVFX_, owner->GetActorLocation(), owner->GetActorRotation()
 		);
 	}
 
@@ -199,4 +210,26 @@ FTransform USpawnAbilityComponent::FindValidTransform() const
 	return UnitBuilder_->FindNonOverlappingSpawnTransform(
 	    transform, spawnedCapsuleRadius, spawnedCapsuleHalfHeight, 200.f, 24, false
 	);
+}
+
+void USpawnAbilityComponent::ResolveVFXDefaults()
+{
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
+		{
+			if ( const FUnitVFXOverride* override = config->UnitOverrides.Find( GetClass() ) )
+			{
+				if ( !ResolvedSpawnAbilityVFX_ && override->SpawnAbilityVFX )
+				{
+					ResolvedSpawnAbilityVFX_ = override->SpawnAbilityVFX;
+				}
+			}
+
+			if ( !ResolvedSpawnAbilityVFX_ )
+			{
+				ResolvedSpawnAbilityVFX_ = config->DefaultUnitSpawnAbilityVFX;
+			}
+		}
+	}
 }
