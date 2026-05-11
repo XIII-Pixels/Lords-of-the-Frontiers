@@ -18,4 +18,7 @@ struct FAnimationConfig
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation", meta = ( ClampMin = 0.0f ) )
 	float PlayRate = 1.0f;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation" )
+	bool bStopWhileAnimating = false;
 };

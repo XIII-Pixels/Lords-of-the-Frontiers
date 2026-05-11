@@ -17,6 +17,7 @@
 #include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/FollowComponent.h"
+#include "Components/SpawnAbilityComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/AudioTags.h"
@@ -58,6 +59,8 @@ void AUnit::BeginPlay()
 		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
+
+	SpawnAbilityComponent_ = FindComponentByClass<USpawnAbilityComponent>();
 
 	if ( const UCoreManager* core = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
 	{
@@ -105,7 +108,11 @@ void AUnit::BeginPlay()
 		}
 	}
 
-	OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+  OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+  
+  PlayAnimationIdle();
+
+	SpawnSpawnVFX();
 }
 
 void AUnit::EndPlay( const EEndPlayReason::Type endPlayReason )
@@ -126,6 +133,16 @@ void AUnit::PostInitProperties()
 	Super::PostInitProperties();
 
 	ResolveAudioTags();
+  
+	if ( IsValid( IdleAnimation_.Animation ) )
+	{
+		bIdleIsAnimated_ = true;
+	}
+	else
+	{
+		bIdleIsAnimated_ = false;
+		IdleAnimation_ = AttackAnimation_;
+	}
 }
 
 void AUnit::StartFollowing() const
@@ -160,8 +177,27 @@ void AUnit::DisableMovement() const
 	}
 }
 
+void AUnit::EnableAttack()
+{
+	if ( const auto* world = GetWorld() )
+	{
+		Stats_.StartCooldown( world->GetTimeSeconds() );
+	}
+	bCanAttack = true;
+}
+
+void AUnit::DisableAttack()
+{
+	bCanAttack = false;
+}
+
 void AUnit::Attack( TObjectPtr<AActor> hitActor )
 {
+	if ( !bCanAttack )
+	{
+		return;
+	}
+
 	if ( AttackComponent_ && AttackTarget_.IsValid() && !GetWorldTimerManager().IsTimerActive( AttackTimerHandle_ ) )
 	{
 		if ( AttackPreHitDelay_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
@@ -181,22 +217,35 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 	}
 }
 
-void AUnit::Animate( float deltaTime ) const
+void AUnit::Animate()
 {
-	// Only animate attack if unit can attack
-	if ( !AttackComponent_ )
+	if ( bPlayingIdleAnimation )
 	{
-		return;
+		bool startedAnimation = false;
+		if ( SpawnAbilityComponent_.IsValid() &&
+			 SpawnAbilityComponent_->TimeUntilGroupSpawnStart() <= PreSpawnAbilityDelay_ )
+		{
+			startedAnimation = PlayAnimation( SpawnAbilityAnimation_ );
+		}
+		else if ( IsValid( AttackComponent_ ) && AttackTarget_.IsValid() && Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
+		{
+			startedAnimation = PlayAnimation( AttackAnimation_ );
+		}
+
+		if ( startedAnimation )
+		{
+			bPlayingIdleAnimation = false;
+		}
 	}
 
-	if ( !SkeletalMeshComponent_->IsPlaying() && AttackTarget_.IsValid() &&
-	     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
+	if ( !SkeletalMeshComponent_->IsPlaying() )
 	{
-		PlayAnimation( AttackAnimation_ );
+		// Play idle by default
+		PlayAnimationIdle();
 	}
 }
 
-void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
+bool AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 {
 	if ( SkeletalMeshComponent_ && animation.Animation )
 	{
@@ -204,7 +253,18 @@ void AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 		SkeletalMeshComponent_->SetAnimation( animation.Animation );
 		SkeletalMeshComponent_->SetPlayRate( animation.PlayRate );
 		SkeletalMeshComponent_->Play( false );
+
+		if ( animation.bStopWhileAnimating )
+		{
+			DisableMovement();
+		}
+		else
+		{
+			EnableMovement();
+		}
+		return true;
 	}
+	return false;
 }
 
 void AUnit::ResolveAudioTags()
@@ -317,6 +377,18 @@ void AUnit::OnDeath()
 	}
 }
 
+void AUnit::SpawnSpawnVFX()
+{
+	if ( !ResolvedSpawnVFX_ )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	    GetWorld(), ResolvedSpawnVFX_, GetActorLocation(), GetActorRotation()
+	);
+}
+
 void AUnit::SpawnDeathVFX()
 {
 	if ( !ResolvedDeathVFX_ )
@@ -334,29 +406,75 @@ UNiagaraSystem* AUnit::GetHitVFX() const
 	return ResolvedHitVFX_;
 }
 
+bool AUnit::PlayAnimationIdle()
+{
+	if ( !IsValid( IdleAnimation_.Animation ) )
+	{
+		return false;
+	}
+
+	SkeletalMeshComponent_->SetAnimationMode( EAnimationMode::AnimationSingleNode );
+	SkeletalMeshComponent_->SetAnimation( IdleAnimation_.Animation );
+
+	if ( bIdleIsAnimated_ )
+	{
+		SkeletalMeshComponent_->SetPlayRate( IdleAnimation_.PlayRate );
+		SkeletalMeshComponent_->Play( true );
+	}
+	else
+	{
+		SkeletalMeshComponent_->SetPosition( 0 );
+	}
+	bPlayingIdleAnimation = true;
+
+	if ( IdleAnimation_.bStopWhileAnimating )
+	{
+		DisableMovement();
+	}
+	else
+	{
+		EnableMovement();
+	}
+	return true;
+}
+
+bool AUnit::PlayAnimationAttack()
+{
+	bPlayingIdleAnimation = false;
+	return PlayAnimation( AttackAnimation_ );
+}
+
+bool AUnit::PlayAnimationSpawnAbility()
+{
+	bPlayingIdleAnimation = false;
+	return PlayAnimation( SpawnAbilityAnimation_ );
+}
+
 void AUnit::Tick( float deltaSeconds )
 {
 	Super::Tick( deltaSeconds );
-	Animate( deltaSeconds );
+	Animate();
 }
 
 void AUnit::ResolveVFXDefaults()
 {
-	ResolvedDeathVFX_ = DeathVFX_;
-	ResolvedHitVFX_ = HitVFX_;
-
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
 		{
 			if ( const FUnitVFXOverride* override = config->UnitOverrides.Find( GetClass() ) )
 			{
-				if ( !ResolvedDeathVFX_ && override->DeathVFX )
+				if ( override->SpawnVFX )
+				{
+					ResolvedSpawnVFX_ = override->SpawnVFX;
+				}
+
+				if ( override->DeathVFX )
 				{
 					ResolvedDeathVFX_ = override->DeathVFX;
 				}
 
-				if ( !ResolvedHitVFX_ && override->HitVFX )
+				if ( override->HitVFX )
 				{
 					ResolvedHitVFX_ = override->HitVFX;
 				}
@@ -365,6 +483,11 @@ void AUnit::ResolveVFXDefaults()
 				{
 					ResolvedDeathVFXDelay_ = override->DeathDestroyDelay;
 				}
+			}
+
+			if ( !ResolvedSpawnVFX_ )
+			{
+				ResolvedSpawnVFX_ = config->DefaultUnitSpawnVFX;
 			}
 
 			if ( !ResolvedDeathVFX_ )
