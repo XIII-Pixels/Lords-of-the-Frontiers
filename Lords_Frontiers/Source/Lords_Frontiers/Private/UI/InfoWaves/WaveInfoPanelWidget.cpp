@@ -4,7 +4,18 @@
 #include "UI/InfoWaves/EnemyRowWidget.h"
 #include "Units/Unit.h"
 
+#include "Components/Button.h"
 #include "Components/PanelWidget.h"
+
+void UWaveInfoPanelWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if ( IsValid( BtnHandle ) )
+	{
+		BtnHandle->OnClicked.AddDynamic( this, &UWaveInfoPanelWidget::OnHandleClicked );
+	}
+}
 
 void UWaveInfoPanelWidget::NativeTick( const FGeometry& myGeometry, float inDeltaTime )
 {
@@ -16,14 +27,7 @@ void UWaveInfoPanelWidget::NativeTick( const FGeometry& myGeometry, float inDelt
 	{
 		float speed = ( AnimDuration_ > 0.0f ) ? ( 1.0f / AnimDuration_ ) : 10.0f;
 
-		if ( bIsOpen_ )
-		{
-			AnimProgress_ = FMath::Clamp( AnimProgress_ + ( inDeltaTime * speed ), 0.0f, 1.0f );
-		}
-		else
-		{
-			AnimProgress_ = FMath::Clamp( AnimProgress_ - ( inDeltaTime * speed ), 0.0f, 1.0f );
-		}
+		AnimProgress_ = FMath::FInterpConstantTo( AnimProgress_, targetProgress, inDeltaTime, speed );
 
 		float curveValue = AnimProgress_;
 		if ( IsValid( SlideCurve_ ) )
@@ -31,10 +35,17 @@ void UWaveInfoPanelWidget::NativeTick( const FGeometry& myGeometry, float inDelt
 			curveValue = SlideCurve_->GetFloatValue( AnimProgress_ );
 		}
 
-		FVector2D currentOffset = FMath::Lerp( ClosedOffset_, OpenOffset_, curveValue );
-
-		if ( IsValid( SlideContainer ) )
+		if ( IsValid( SlideContainer ) && IsValid( PaperVisual ) )
 		{
+			SlideContainer->ForceLayoutPrepass();
+
+			float paperHeight = PaperVisual->GetDesiredSize().Y;
+
+			float targetY = -paperHeight + ClosedOffset_.Y;
+
+			FVector2D dynamicClosedPos = FVector2D( 0.0f, targetY );
+			FVector2D currentOffset = FMath::Lerp( dynamicClosedPos, OpenOffset_, curveValue );
+
 			SlideContainer->SetRenderTranslation( currentOffset );
 		}
 	}
@@ -67,7 +78,13 @@ void UWaveInfoPanelWidget::PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>&
 
 	if ( bNeedsRebuild )
 	{
-		EnemyListContainer->ClearChildren();
+		for ( const auto& kvp : ActiveRowsMap_ )
+		{
+			if ( IsValid( kvp.Value ) )
+			{
+				EnemyListContainer->RemoveChild( kvp.Value );
+			}
+		}
 		ActiveRowsMap_.Empty();
 
 		for ( const TPair<TSubclassOf<AUnit>, int32>& pair : waveData )
@@ -98,6 +115,11 @@ void UWaveInfoPanelWidget::PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>&
 			}
 		}
 	}
+}
+
+void UWaveInfoPanelWidget::OnHandleClicked()
+{
+	TogglePanel();
 }
 
 void UWaveInfoPanelWidget::OpenPanel()

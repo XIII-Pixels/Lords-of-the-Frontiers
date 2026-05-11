@@ -3,8 +3,8 @@
 #include "AI/Path/Path.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
-#include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "DrawDebugHelpers.h"
+#include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "TimerManager.h"
 #if WITH_EDITOR
 #include "Editor.h"
@@ -38,6 +38,7 @@ void AWaveManager::BeginPlay()
 	if ( WaveConfig_ )
 	{
 		ApplyWaveConfig();
+		BuildSelectedWavePresetCache();
 	}
 	if ( bAutoStartOnBeginPlay )
 	{
@@ -176,7 +177,8 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveInde
 
 			for ( int32 enemyIndex = 0; enemyIndex < portalEntry.Count; ++enemyIndex )
 			{
-				const float timeFromWaveStart = portalEntry.StartDelay + ( enemyIndex * portalEntry.SpawnInterval ) + 0.1f; //DO NOT REMOVE THIS 0.1F. Spawn amount breaks without it
+				const float timeFromWaveStart = portalEntry.StartDelay + ( enemyIndex * portalEntry.SpawnInterval ) +
+				                                0.1f;
 
 				if ( timeFromWaveStart < 0.f )
 				{
@@ -350,6 +352,8 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 	bIsWaveActive_ = false;
 	ClearActiveTimers();
 
+	RemainingEnemiesPerClass_.Empty();
+
 	OnWaveEnded.Broadcast( waveIndex );
 
 	if ( bLogSpawning )
@@ -411,13 +415,14 @@ void AWaveManager::CancelCurrentWave()
 
 	bIsWaveActive_ = false;
 
+	RemainingEnemiesPerClass_.Empty();
+
 	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Current wave cancelled." ) );
 	}
-
 }
 
 void AWaveManager::RestartWaves()
@@ -462,21 +467,17 @@ bool AWaveManager::SubscribeToAllWavesCompleted( UObject* listener, FName functi
 		return false;
 	}
 
-	// Avoid duplicate subscription from same object
 	if ( AllWavesCompletedSubscribers_.Contains( listener ) )
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
-		    TEXT(
-		        "WaveManager: SubscribeToAllWavesCompleted - already "
-		        "subscribed: %s"
-		    ),
+		    TEXT( "WaveManager: SubscribeToAllWavesCompleted - already "
+		          "subscribed: %s" ),
 		    *GetNameSafe( listener )
 		);
 		return false;
 	}
 
-	// Bind script delegate to listener's function and add to multicast
 	FScriptDelegate scriptDel;
 	scriptDel.BindUFunction( listener, functionName );
 	OnAllWavesCompleted.Add( scriptDel );
@@ -513,22 +514,17 @@ bool AWaveManager::UnsubscribeFromAllWavesCompleted( UObject* listener, FName fu
 
 void AWaveManager::BroadcastAllWavesCompleted()
 {
-	// Make sure we only broadcast once per run (until RestartWaves is called)
 	if ( bHasBroadcastedAllWavesCompleted_ )
 	{
 		UE_LOG(
 		    LogTemp, Verbose,
-		    TEXT(
-		        "WaveManager: BroadcastAllWavesCompleted - already "
-		        "broadcasted, skipping."
-		    )
+		    TEXT( "WaveManager: BroadcastAllWavesCompleted - already "
+		          "broadcasted, skipping." )
 		);
 		return;
 	}
 
 	bHasBroadcastedAllWavesCompleted_ = true;
-
-	// Actual broadcast
 	OnAllWavesCompleted.Broadcast();
 
 	if ( bLogSpawning )
@@ -577,11 +573,9 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 		}
 	}
 
-
-	// Remove from SpawnedUnits
 	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
-		if ( SpawnedUnits_[i].Get() == destroyedActor /* || !SpawnedUnits[i].IsValid*/ )
+		if ( SpawnedUnits_[i].Get() == destroyedActor )
 		{
 			SpawnedUnits_.RemoveAtSwap( i );
 			break;
@@ -611,7 +605,6 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 
 		if ( !bHasPendingSpawns )
 		{
-
 			if ( bIsWaveActive_ )
 			{
 				bIsWaveActive_ = false;
@@ -681,7 +674,7 @@ void AWaveManager::ApplyWaveConfig()
 		);
 	}
 }
-// Apply to HotSwap wave config (for difficulty and etc)
+
 void AWaveManager::SetWaveConfig( UWaveConfigData* newConfig )
 {
 	if ( !newConfig )
@@ -752,7 +745,7 @@ const UWaveData* AWaveManager::GetWaveData( int32 index ) const
 
 int32 AWaveManager::GetWavesCount() const
 {
-    return WaveConfig_ ? WaveConfig_->Waves.Num() : 0;
+	return WaveConfig_ ? WaveConfig_->Waves.Num() : 0;
 }
 
 const FEnemyBuff* AWaveManager::FindBuffForCurrentWave( TSubclassOf<AUnit> enemyClass ) const

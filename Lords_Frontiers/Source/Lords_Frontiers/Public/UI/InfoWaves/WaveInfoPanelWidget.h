@@ -10,6 +10,7 @@ class UPanelWidget;
 class UEnemyInfoDataAsset;
 class UEnemyRowWidget;
 class UCurveFloat;
+class UButton;
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UWaveInfoPanelWidget : public UUserWidget
@@ -17,6 +18,7 @@ class LORDS_FRONTIERS_API UWaveInfoPanelWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	virtual void NativeConstruct() override;
 	virtual void NativeTick( const FGeometry& myGeometry, float inDeltaTime ) override;
 
 	void PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>& waveData );
@@ -43,6 +45,9 @@ protected:
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UPanelWidget> EnemyListContainer;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> BtnHandle;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|Data" )
 	TObjectPtr<UEnemyInfoDataAsset> EnemyDataAsset;
 
@@ -61,7 +66,13 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" )
 	FVector2D OpenOffset_ = FVector2D( 0.0f, 0.0f );
 
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UWidget> PaperVisual;
+
 private:
+	UFUNCTION()
+	void OnHandleClicked();
+
 	bool bIsOpen_ = true;
 	float AnimProgress_ = 1.0f;
 

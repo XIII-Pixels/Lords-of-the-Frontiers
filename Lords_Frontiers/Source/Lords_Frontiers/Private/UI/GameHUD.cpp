@@ -1057,12 +1057,18 @@ void UGameHUDWidget::UpdateWaveInfo()
 
 	if ( IsValid( gameLoop ) && IsValid( waveManager ) )
 	{
-		int32 waveIndex = gameLoop->GetCurrentWave() - 1;
+		int32 waveIndex = FMath::Max( 0, gameLoop->GetCurrentWave() - 1 );
 
 		TMap<TSubclassOf<AUnit>, int32> waveData;
+
 		if ( gameLoop->GetCurrentPhase() == EGameLoopPhase::Combat )
 		{
 			waveData = waveManager->GetCurrentWaveRemainingEnemies();
+
+			if ( waveData.Num() == 0 )
+			{
+				waveData = waveManager->GetNextWaveComposition( waveIndex );
+			}
 		}
 		else
 		{
