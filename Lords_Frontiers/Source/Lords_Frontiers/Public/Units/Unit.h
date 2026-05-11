@@ -75,8 +75,6 @@ public:
 
 	virtual void PostInitProperties() override;
 
-	virtual void PostInitProperties() override;
-
 	void StartFollowing() const;
 	void StopFollowing() const;
 
