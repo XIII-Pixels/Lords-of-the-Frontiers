@@ -65,9 +65,12 @@ void USpawnAbilityComponent::GroupSpawnTick()
 
 	if ( const AActor* owner = GetOwner() )
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		    GetWorld(), ResolvedSpawnAbilityVFX_, owner->GetActorLocation(), owner->GetActorRotation()
-		);
+		if ( ResolvedSpawnAbilityVFX_ )
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			    GetWorld(), ResolvedSpawnAbilityVFX_, owner->GetActorLocation(), owner->GetActorRotation()
+			);
+		}
 	}
 
 	if ( UnitSpawnInterval_ > 0 )

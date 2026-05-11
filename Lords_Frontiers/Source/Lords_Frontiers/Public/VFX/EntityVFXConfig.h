@@ -17,6 +17,9 @@ struct FUnitVFXOverride
 	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly )
+	TObjectPtr<UNiagaraSystem> SpawnVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly )
 	TObjectPtr<UNiagaraSystem> DeathVFX = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly )
@@ -71,6 +74,9 @@ class LORDS_FRONTIERS_API UEntityVFXConfig : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults" )
+	TObjectPtr<UNiagaraSystem> DefaultUnitSpawnVFX = nullptr;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults" )
 	TObjectPtr<UNiagaraSystem> DefaultUnitDeathVFX = nullptr;
 

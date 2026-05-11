@@ -164,6 +164,8 @@ protected:
 
 	void OnDeath();
 
+	void SpawnSpawnVFX();
+
 	void SpawnDeathVFX();
 
 	void ResolveVFXDefaults();
@@ -177,12 +179,6 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
-
-	UPROPERTY()
-	TObjectPtr<UNiagaraSystem> DeathVFX_;
-
-	UPROPERTY()
-	TObjectPtr<UNiagaraSystem> HitVFX_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
@@ -251,6 +247,9 @@ protected:
 	FTimerHandle AnimationTickTimerHandle_;
 	FTimerHandle DeathTimerHandle_;
 	FTimerHandle DeathVFXTimerHandle_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> ResolvedSpawnVFX_;
 
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedDeathVFX_;

@@ -93,6 +93,8 @@ void AUnit::BeginPlay()
 	}
 
 	PlayAnimationIdle();
+
+	SpawnSpawnVFX();
 }
 
 void AUnit::PostInitProperties()
@@ -300,6 +302,18 @@ void AUnit::OnDeath()
 	}
 }
 
+void AUnit::SpawnSpawnVFX()
+{
+	if ( !ResolvedSpawnVFX_ )
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	    GetWorld(), ResolvedSpawnVFX_, GetActorLocation(), GetActorRotation()
+	);
+}
+
 void AUnit::SpawnDeathVFX()
 {
 	if ( !ResolvedDeathVFX_ )
@@ -369,21 +383,23 @@ void AUnit::Tick( float deltaSeconds )
 
 void AUnit::ResolveVFXDefaults()
 {
-	ResolvedDeathVFX_ = DeathVFX_;
-	ResolvedHitVFX_ = HitVFX_;
-
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
 		{
 			if ( const FUnitVFXOverride* override = config->UnitOverrides.Find( GetClass() ) )
 			{
-				if ( !ResolvedDeathVFX_ && override->DeathVFX )
+				if ( override->SpawnVFX )
+				{
+					ResolvedSpawnVFX_ = override->SpawnVFX;
+				}
+
+				if ( override->DeathVFX )
 				{
 					ResolvedDeathVFX_ = override->DeathVFX;
 				}
 
-				if ( !ResolvedHitVFX_ && override->HitVFX )
+				if ( override->HitVFX )
 				{
 					ResolvedHitVFX_ = override->HitVFX;
 				}
@@ -392,6 +408,11 @@ void AUnit::ResolveVFXDefaults()
 				{
 					ResolvedDeathVFXDelay_ = override->DeathDestroyDelay;
 				}
+			}
+
+			if ( !ResolvedSpawnVFX_ )
+			{
+				ResolvedSpawnVFX_ = config->DefaultUnitSpawnVFX;
 			}
 
 			if ( !ResolvedDeathVFX_ )
