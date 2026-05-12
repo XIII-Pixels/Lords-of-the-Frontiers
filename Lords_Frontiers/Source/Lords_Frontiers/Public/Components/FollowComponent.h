@@ -48,6 +48,9 @@ protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
 	float RotationSpeed_ = 5.0f;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Movement" )
+	float SnapToGroundDistance_ = 500.0f;
+
 	UPROPERTY()
 	TWeakObjectPtr<UCapsuleComponent> CapsuleComponent_;
 

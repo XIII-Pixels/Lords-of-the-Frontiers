@@ -7,7 +7,6 @@
 
 #include "SpawnAbilityComponent.generated.h"
 
-class UNiagaraSystem;
 class AUnit;
 class UUnitBuilder;
 
@@ -15,9 +14,6 @@ UCLASS( ClassGroup = ( Unit ), meta = ( BlueprintSpawnableComponent ) )
 class LORDS_FRONTIERS_API USpawnAbilityComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
-public:
-	float TimeUntilGroupSpawnStart() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -29,12 +25,10 @@ protected:
 
 	void SpawnUnit() const;
 
-	void StopUnitMovementAndAttack() const;
-	void ResumeUnitMovementAndAttack() const;
+	void StopUnitMovement() const;
+	void ResumeUnitMovement() const;
 
 	FTransform FindValidTransform() const;
-
-	void ResolveVFXDefaults();
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	TSubclassOf<AUnit> SpawnedClass_;
@@ -63,7 +57,4 @@ protected:
 	FTimerHandle GroupSpawnTimer_;
 	FTimerHandle UnitSpawnTimer_;
 	FTimerHandle MovementTimer_;
-
-	UPROPERTY()
-	TObjectPtr<UNiagaraSystem> ResolvedSpawnAbilityVFX_;
 };

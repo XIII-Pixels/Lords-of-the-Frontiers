@@ -3,24 +3,12 @@
 #include "Components/SpawnAbilityComponent.h"
 
 #include "Core/CoreManager.h"
-#include "NiagaraFunctionLibrary.h"
 #include "Units/Unit.h"
 #include "Units/UnitBuilder.h"
-#include "VFX/EntityVFXConfig.h"
 #include "Waves/WaveManager.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
-
-float USpawnAbilityComponent::TimeUntilGroupSpawnStart() const
-{
-	if ( GetWorld()->GetTimerManager().IsTimerActive( GroupSpawnTimer_ ) )
-	{
-		return GetWorld()->GetTimerManager().GetTimerRemaining( GroupSpawnTimer_ );
-	}
-
-	return -1.0f;
-}
 
 void USpawnAbilityComponent::BeginPlay()
 {
@@ -43,10 +31,8 @@ void USpawnAbilityComponent::BeginPlay()
 		return;
 	}
 
-	ResolveVFXDefaults();
-
 	GetWorld()->GetTimerManager().SetTimer(
-	    GroupSpawnTimer_, this, &USpawnAbilityComponent::GroupSpawnTick, GroupSpawnInterval_, true
+	    GroupSpawnTimer_, this, &USpawnAbilityComponent::GroupSpawnTick, GroupSpawnInterval_, true, 0
 	);
 }
 
@@ -56,21 +42,11 @@ void USpawnAbilityComponent::GroupSpawnTick()
 	if ( StopWhileSpawning_ && stopTime > 0 )
 	{
 		// Stop owner temporarily
-		StopUnitMovementAndAttack();
+		StopUnitMovement();
 		GetWorld()->GetTimerManager().SetTimer(
-		    MovementTimer_, this, &USpawnAbilityComponent::ResumeUnitMovementAndAttack,
+		    MovementTimer_, this, &USpawnAbilityComponent::ResumeUnitMovement,
 		    StopTimeBeforeSpawn_ + UnitSpawnInterval_ * SpawnedCount_, false
 		);
-	}
-
-	if ( const AActor* owner = GetOwner() )
-	{
-		if ( ResolvedSpawnAbilityVFX_ )
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			    GetWorld(), ResolvedSpawnAbilityVFX_, owner->GetActorLocation(), owner->GetActorRotation()
-			);
-		}
 	}
 
 	if ( UnitSpawnInterval_ > 0 )
@@ -156,23 +132,21 @@ void USpawnAbilityComponent::SpawnUnit() const
 	UnitBuilder_->SpawnUnitAndFinish();
 }
 
-void USpawnAbilityComponent::StopUnitMovementAndAttack() const
+void USpawnAbilityComponent::StopUnitMovement() const
 {
-	AUnit* unit = GetOwner<AUnit>();
+	const AUnit* unit = GetOwner<AUnit>();
 	if ( IsValid( unit ) )
 	{
 		unit->DisableMovement();
-		unit->DisableAttack();
 	}
 }
 
-void USpawnAbilityComponent::ResumeUnitMovementAndAttack() const
+void USpawnAbilityComponent::ResumeUnitMovement() const
 {
-	AUnit* unit = GetOwner<AUnit>();
+	const AUnit* unit = GetOwner<AUnit>();
 	if ( IsValid( unit ) )
 	{
 		unit->EnableMovement();
-		unit->EnableAttack();
 	}
 }
 
@@ -213,26 +187,4 @@ FTransform USpawnAbilityComponent::FindValidTransform() const
 	return UnitBuilder_->FindNonOverlappingSpawnTransform(
 	    transform, spawnedCapsuleRadius, spawnedCapsuleHalfHeight, 200.f, 24, false
 	);
-}
-
-void USpawnAbilityComponent::ResolveVFXDefaults()
-{
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-	{
-		if ( const UEntityVFXConfig* config = core->GetEntityVFXConfig() )
-		{
-			if ( const FUnitVFXOverride* override = config->UnitOverrides.Find( GetClass() ) )
-			{
-				if ( !ResolvedSpawnAbilityVFX_ && override->SpawnAbilityVFX )
-				{
-					ResolvedSpawnAbilityVFX_ = override->SpawnAbilityVFX;
-				}
-			}
-
-			if ( !ResolvedSpawnAbilityVFX_ )
-			{
-				ResolvedSpawnAbilityVFX_ = config->DefaultUnitSpawnAbilityVFX;
-			}
-		}
-	}
 }
