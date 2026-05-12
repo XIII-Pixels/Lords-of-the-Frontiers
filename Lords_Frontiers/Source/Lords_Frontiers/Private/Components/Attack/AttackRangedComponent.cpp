@@ -59,26 +59,26 @@ void UAttackRangedComponent::LookTick()
 	}
 }
 
-bool UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
+void UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 {
 	IEntity* ownerEntity = GetOwner<IEntity>();
 	IAttacker* ownerAttacker = GetOwner<IAttacker>();
 	if ( !ownerEntity || !ownerAttacker )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "UAttackRangedComponent::Attack: owner must be IEntity and IAttacker" ) );
-		return false;
+		return;
 	}
 
 	const float gameTime = GetWorld()->GetTimeSeconds();
 
 	if ( ownerEntity->Stats().OnCooldown( gameTime ) || bBurstInProgress_ )
 	{
-		return false;
+		return;
 	}
 
 	if ( !ownerAttacker->AttackTarget().IsValid() || !ProjectileClass_ )
 	{
-		return false;
+		return;
 	}
 
 	const int32 burstCount = ownerEntity->Stats().BurstCount();
@@ -90,7 +90,7 @@ bool UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 		PendingDamageBonusPercent_ = 0.f;
 		ownerEntity->Stats().StartCooldown( gameTime );
 		OnAttackFired.Broadcast( target );
-		return true;
+		return;
 	}
 
 	BurstTargets_.Empty();
@@ -107,7 +107,7 @@ bool UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 		TArray<TObjectPtr<AActor>> uniqueTargets = FindNeighborTargets( burstCount );
 		if ( uniqueTargets.Num() == 0 )
 		{
-			return false;
+			return;
 		}
 
 		for ( int32 i = 0; i < burstCount; ++i )
@@ -119,8 +119,6 @@ bool UAttackRangedComponent::Attack( TObjectPtr<AActor> hitActor )
 	bBurstInProgress_ = true;
 	CurrentBurstIndex_ = 0;
 	FireNextBurstShot();
-
-	return true;
 }
 
 void UAttackRangedComponent::ActivateSight()

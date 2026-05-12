@@ -24,7 +24,7 @@ class LORDS_FRONTIERS_API UAttackComponent : public USceneComponent
 	GENERATED_BODY()
 
 public:
-	virtual bool Attack( TObjectPtr<AActor> hitActor ) PURE_VIRTUAL( UAttackComponent::Attack, { return false; } );
+	virtual void Attack( TObjectPtr<AActor> hitActor ) PURE_VIRTUAL();
 
 	virtual TObjectPtr<const AActor> AttackTarget() const
 	    PURE_VIRTUAL( UAttackComponent::AttackTarget, { return nullptr; } );

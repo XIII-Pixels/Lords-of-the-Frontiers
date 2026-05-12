@@ -6,24 +6,15 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "CoreMinimal.h"
-#include "sound/AudioEvent.h"
-#include "sound/AudioEventSource.h"
 
 #include "CombatTimerWidget.generated.h"
 
-class FOnAudioEvent;
-
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API UCombatTimerWidget : public UUserWidget, public IAudioEventSource
+class LORDS_FRONTIERS_API UCombatTimerWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	virtual FOnAudioEvent& GetOnAudioEvent() override
-	{
-		return OnAudioEvent_;
-	}
-
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> TextTimer;
 
@@ -82,18 +73,6 @@ protected:
 	void OnSpeedTurboClicked();
 
 	UFUNCTION()
-	void OnPauseHovered();
-
-	UFUNCTION()
-	void OnPlayHovered();
-
-	UFUNCTION()
-	void OnSpeedFastHovered();
-
-	UFUNCTION()
-	void OnSpeedTurboHovered();
-
-	UFUNCTION()
 	void HandleCombatTimer( float TimeRemaining, float TotalTime );
 
 	UFUNCTION()
@@ -107,6 +86,4 @@ private:
 	void UpdateActiveButtonVisuals( float Speed );
 	void SetCombatVisible( bool bVisible );
 	void UpdateTimerText( float TimeRemaining );
-
-	FOnAudioEvent OnAudioEvent_;
 };

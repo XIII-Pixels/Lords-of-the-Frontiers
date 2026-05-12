@@ -4,8 +4,6 @@
 
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
-#include "sound/AudioEvent.h"
-#include "sound/AudioEventSource.h"
 
 #include "CardCollectionWidget.generated.h"
 
@@ -61,7 +59,7 @@ class UWidgetAnimation;
  *   These are bound by name from the widget BP via meta = ( BindWidgetAnim ).
  */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API UCardCollectionWidget : public UUserWidget, public IAudioEventSource
+class LORDS_FRONTIERS_API UCardCollectionWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
@@ -108,11 +106,6 @@ public:
 	int32 GetTotalCells() const
 	{
 		return GetCardsPerRow() * GetRowsPerPage() * 2;
-	}
-
-	virtual FOnAudioEvent& GetOnAudioEvent() override
-	{
-		return OnAudioEvent_;
 	}
 
 protected:
@@ -319,12 +312,6 @@ private:
 	void HandleCloseButtonClicked();
 
 	UFUNCTION()
-	void HandleOpenButtonHovered();
-
-	UFUNCTION()
-	void HandleCloseButtonHovered();
-
-	UFUNCTION()
 	void HandleBackdropClicked();
 
 	UFUNCTION()
@@ -346,6 +333,4 @@ private:
 	TWeakObjectPtr<class USizeBox> ZoomedSizeBox_;
 
 	FWidgetAnimationDynamicEvent CloseAnimDelegate_;
-
-	FOnAudioEvent OnAudioEvent_;
 };

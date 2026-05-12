@@ -33,11 +33,7 @@ void ADefensiveBuilding::Attack( TObjectPtr<AActor> hitActor )
 {
 	if ( AttackComponent_ && !IsDestroyed() )
 	{
-        bool success = AttackComponent_->Attack( hitActor );
-		if ( success )
-		{
-			OnAudioEvent_.Broadcast( { AudioTags_.Attack, GetActorLocation() } );
-		}
+		AttackComponent_->Attack( hitActor );
 	}
 }
 

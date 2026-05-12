@@ -14,8 +14,6 @@
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/AudioTags.h"
-#include "sound/SoundEffectManager.h"
 
 ABuilding::ABuilding()
 {
@@ -52,21 +50,6 @@ ABuilding::ABuilding()
 void ABuilding::BeginPlay()
 {
 	Super::BeginPlay();
-
-	UWorld* world = GetWorld();
-	if ( !world )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "ABuilding::BeginPlay: world not found" ) );
-		return;
-	}
-
-	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
-	{
-		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
-		{
-			sfxManager->RegisterObject( this );
-		}
-	}
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
@@ -112,7 +95,7 @@ void ABuilding::SubscribeHealthBar()
 
 	HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 	    this,
-	    [this]( int, int )
+	    [ this ]( int, int )
 	    {
 		    if ( UWorld* world = GetWorld() )
 		    {
@@ -140,8 +123,6 @@ void ABuilding::OnDeath()
 	{
 		return;
 	}
-
-	OnAudioEvent_.Broadcast( { AudioTags_.Death, GetActorLocation() } );
 
 	UnsubscribeHealthBar();
 
@@ -385,10 +366,6 @@ void ABuilding::TakeDamage( int damage, AActor* instigator )
 	{
 		OnDeath();
 	}
-	else
-	{
-		OnAudioEvent_.Broadcast( { AudioTags_.TakeDamage, GetActorLocation() } );
-	}
 }
 
 bool ABuilding::IsDestroyed() const
@@ -425,8 +402,6 @@ void ABuilding::OnSelected_Implementation()
 
 	UpdateSelectionOverlay();
 	ShowSelectionOverlay();
-
-	OnAudioEvent_.Broadcast( { AudioTags_.Selected, GetActorLocation() } );
 }
 
 void ABuilding::OnDeselected_Implementation()
@@ -462,18 +437,6 @@ void ABuilding::EndPlay( const EEndPlayReason::Type endPlayReason )
 	{
 		EconomyComponent_->UnregisterBuilding( this );
 	}
-
-	if ( const UWorld* world = GetWorld() )
-	{
-		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
-		{
-			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
-			{
-				sfxManager->UnregisterObject( this );
-			}
-		}
-	}
-
 	Super::EndPlay( endPlayReason );
 }
 
@@ -485,8 +448,6 @@ void ABuilding::PostInitProperties()
 	{
 		PreviewMesh_ = BuildingMesh_;
 	}
-
-	ResolveAudioTags();
 }
 
 void ABuilding::RestoreFromRuins()
@@ -509,8 +470,6 @@ void ABuilding::RestoreFromRuins()
 		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
 		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
 	}
-
-	OnAudioEvent_.Broadcast( { AudioTags_.Resurrected, GetActorLocation() } );
 
 	ActivateBuildingMesh();
 
@@ -644,48 +603,5 @@ void ABuilding::HideSelectionOverlay()
 	{
 		SelectionOverlayMesh_->SetVisibility( false );
 		SelectionOverlayMesh_->SetHiddenInGame( true );
-	}
-}
-
-void ABuilding::ResolveAudioTags()
-{
-	if ( !AudioTags_.Selected.IsValid() )
-	{
-		AudioTags_.Selected = AudioTags::SFX_BUILDING_DEFAULT_SELECTED;
-	}
-
-	if ( !AudioTags_.PlacedSuccess.IsValid() )
-	{
-		AudioTags_.PlacedSuccess = AudioTags::SFX_BUILDING_DEFAULT_PLACED_SUCCESS;
-	}
-
-	if ( !AudioTags_.PlacedRestricted.IsValid() )
-	{
-		AudioTags_.PlacedRestricted = AudioTags::SFX_BUILDING_DEFAULT_PLACED_RESTRICTED;
-	}
-
-	if ( !AudioTags_.Demolished.IsValid() )
-	{
-		AudioTags_.Demolished = AudioTags::SFX_BUILDING_DEFAULT_DEMOLISHED;
-	}
-
-	if ( !AudioTags_.Death.IsValid() )
-	{
-		AudioTags_.Death = AudioTags::SFX_BUILDING_DEFAULT_DEATH;
-	}
-
-	if ( !AudioTags_.Resurrected.IsValid() )
-	{
-		AudioTags_.Resurrected = AudioTags::SFX_BUILDING_DEFAULT_RESURRECTED;
-	}
-
-	if ( !AudioTags_.Attack.IsValid() )
-	{
-		AudioTags_.Attack = AudioTags::SFX_BUILDING_DEFAULT_ATTACK;
-	}
-
-	if ( !AudioTags_.TakeDamage.IsValid() )
-	{
-		AudioTags_.TakeDamage = AudioTags::SFX_BUILDING_DEFAULT_TAKEDAMAGE;
 	}
 }

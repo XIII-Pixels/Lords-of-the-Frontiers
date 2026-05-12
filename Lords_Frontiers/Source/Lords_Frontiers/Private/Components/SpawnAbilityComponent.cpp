@@ -38,11 +38,6 @@ void USpawnAbilityComponent::BeginPlay()
 
 void USpawnAbilityComponent::GroupSpawnTick()
 {
-	if ( auto* unit = GetOwner<AUnit>() )
-	{
-		unit->GetOnAudioEvent().Broadcast( { unit->AudioTags().SpawnAbility, unit->GetActorLocation() } );
-	}
-
 	const float stopTime = StopTimeBeforeSpawn_ + UnitSpawnInterval_ * SpawnedCount_;
 	if ( StopWhileSpawning_ && stopTime > 0 )
 	{

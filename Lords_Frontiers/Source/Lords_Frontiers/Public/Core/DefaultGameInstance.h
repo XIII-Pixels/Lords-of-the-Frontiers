@@ -9,7 +9,6 @@
 
 #include "DefaultGameInstance.generated.h"
 
-class USoundDataAsset;
 class UGameSaverConfig;
 class ACardFeedbackPopup;
 class ACardIconStrip;
@@ -26,12 +25,6 @@ public:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Saving" )
 	TObjectPtr<UGameSaverConfig> GameSaverConfig;
   
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Sound" )
-	TObjectPtr<USoundDataAsset> SoundData;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Sound" )
-	TObjectPtr<USoundAttenuation> DefaultAttenuation;
-
 	TSubclassOf<ACardFeedbackPopup> GetCardFeedbackPopupClass() const
 	{
 		return CardFeedbackPopupClass_;

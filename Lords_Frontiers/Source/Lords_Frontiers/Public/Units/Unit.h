@@ -17,7 +17,6 @@
 
 #include "Unit.generated.h"
 
-class USpawnAbilityComponent;
 class ABuilding;
 class AUnitAIManager;
 class UPath;
@@ -28,40 +27,12 @@ class UNiagaraSystem;
 class UHealthBarConfigDataAsset;
 struct FEnemyBuff;
 
-USTRUCT(BlueprintType)
-struct FUnitAudioTags
-{
-	GENERATED_BODY()
-
-	UPROPERTY( EditDefaultsOnly )
-	FGameplayTag Selected;
-
-	UPROPERTY( EditDefaultsOnly )
-	FGameplayTag Spawn;
-
-	UPROPERTY( EditDefaultsOnly )
-	FGameplayTag Death;
-
-	UPROPERTY( EditDefaultsOnly )
-	FGameplayTag Attack;
-
-	UPROPERTY( EditDefaultsOnly )
-	FGameplayTag TakeDamage;
-
-	UPROPERTY( EditDefaultsOnly )
-	FGameplayTag SpawnAbility;
-};
-
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API AUnit : public APawn,
-                                  public IEntity,
-                                  public IAttacker,
-                                  public IControlledByTree,
-                                  public IAudioEventSource
+class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity, public IAttacker, public IControlledByTree
 {
 	GENERATED_BODY()
 
@@ -71,18 +42,12 @@ public:
 	virtual void OnConstruction( const FTransform& transform ) override;
 
 	virtual void BeginPlay() override;
-	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
-
-	virtual void PostInitProperties() override;
 
 	void StartFollowing() const;
 	void StopFollowing() const;
 
 	void EnableMovement() const;
 	void DisableMovement() const;
-
-	void EnableAttack();
-	void DisableAttack();
 
 	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
 
@@ -175,16 +140,6 @@ public:
 		return bIsBoss_;
 	}
 
-	virtual FOnAudioEvent& GetOnAudioEvent() override
-	{
-		return OnAudioEvent_;
-	}
-
-	const FUnitAudioTags& AudioTags() const
-	{
-		return AudioTags_;
-	}
-
 	bool OnlyAttackTargetBuilding() const
 	{
 		if ( const auto* attackComponent = Cast<UUnitAttackRangedComponent>( AttackComponent_ ) )
@@ -194,32 +149,30 @@ public:
 		return false;
 	}
 
-	bool PlayAnimationIdle();
-	bool PlayAnimationAttack();
-	bool PlayAnimationSpawnAbility();
-
 protected:
 	virtual void Tick( float deltaSeconds ) override;
 
 	void OnDeath();
 
-	void SpawnSpawnVFX();
-
 	void SpawnDeathVFX();
 
 	void ResolveVFXDefaults();
 
-	void Animate();
+	void Animate( float deltaTime ) const;
 
-	bool PlayAnimation( const FAnimationConfig& animation ) const;
-
-	void ResolveAudioTags();
+	void PlayAnimation( const FAnimationConfig& animation ) const;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TObjectPtr<UBehaviorTree> UnitBehaviorTree_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> DeathVFX_;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraSystem> HitVFX_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FEntityStats Stats_;
@@ -242,13 +195,7 @@ protected:
 	TWeakObjectPtr<const ABuilding> TargetBuilding_;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation" )
-	FAnimationConfig IdleAnimation_;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation" )
 	FAnimationConfig AttackAnimation_;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Animation" )
-	FAnimationConfig SpawnAbilityAnimation_;
 
 	UPROPERTY(
 	    EditDefaultsOnly, Category = "Settings",
@@ -258,17 +205,6 @@ protected:
 	)
 	float AttackPreHitDelay_ = 0.0f;
 
-	UPROPERTY(
-	    EditDefaultsOnly, Category = "Settings",
-	    meta =
-	        ( ClampMin = 0.0f, Units = "s",
-	          ToolTip = "Adjust this so spawn start moment aligns with animation spawn moment" )
-	)
-	float PreSpawnAbilityDelay_ = 0.0f;
-
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Audio" )
-	FUnitAudioTags AudioTags_;
-  
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
@@ -277,9 +213,6 @@ protected:
 
 	UPROPERTY( EditDefaultsOnly )
 	TObjectPtr<UAttackComponent> AttackComponent_;
-
-	UPROPERTY()
-	TWeakObjectPtr<USpawnAbilityComponent> SpawnAbilityComponent_;
 
 	UPROPERTY( EditDefaultsOnly )
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent_;
@@ -293,22 +226,10 @@ protected:
 	FTimerHandle DeathVFXTimerHandle_;
 
 	UPROPERTY()
-	TObjectPtr<UNiagaraSystem> ResolvedSpawnVFX_;
-
-	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedDeathVFX_;
 
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedHitVFX_;
 
 	float ResolvedDeathVFXDelay_ = 0.0f;
-
-	FOnAudioEvent OnAudioEvent_;
-  
-	UPROPERTY( VisibleAnywhere, Category = "Settings")
-	bool bCanAttack = true;
-
-	bool bIdleIsAnimated_ = false;
-
-	bool bPlayingIdleAnimation = false;
 };

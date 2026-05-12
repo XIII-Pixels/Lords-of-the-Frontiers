@@ -4,10 +4,6 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
 
-#include "Kismet/GameplayStatics.h"
-#include "Sound/AudioTags.h"
-#include "sound/SoundEffectManager.h"
-
 void UCombatTimerWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -15,22 +11,18 @@ void UCombatTimerWidget::NativeConstruct()
 	if ( ButtonPause )
 	{
 		ButtonPause->OnClicked.AddDynamic( this, &UCombatTimerWidget::OnPauseClicked );
-		ButtonPause->OnHovered.AddDynamic( this, &UCombatTimerWidget::OnPauseHovered );
 	}
 	if ( ButtonPlay )
 	{
 		ButtonPlay->OnClicked.AddDynamic( this, &UCombatTimerWidget::OnPlayClicked );
-		ButtonPlay->OnHovered.AddDynamic( this, &UCombatTimerWidget::OnPlayHovered );
 	}
 	if ( ButtonSpeedFast )
 	{
 		ButtonSpeedFast->OnClicked.AddDynamic( this, &UCombatTimerWidget::OnSpeedFastClicked );
-		ButtonSpeedFast->OnHovered.AddDynamic( this, &UCombatTimerWidget::OnSpeedFastHovered );
 	}
 	if ( ButtonSpeedTurbo )
 	{
 		ButtonSpeedTurbo->OnClicked.AddDynamic( this, &UCombatTimerWidget::OnSpeedTurboClicked );
-		ButtonSpeedTurbo->OnHovered.AddDynamic( this, &UCombatTimerWidget::OnSpeedTurboHovered );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -79,18 +71,6 @@ void UCombatTimerWidget::NativeConstruct()
 	UpdateActiveButtonVisuals( currentSpeed );
 
 	SetCombatVisible( bIsCombat );
-
-	// Sound
-	if ( const UWorld* world = GetWorld() )
-	{
-		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
-		{
-			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
-			{
-				sfxManager->RegisterObject( this );
-			}
-		}
-	}
 }
 
 void UCombatTimerWidget::NativeDestruct()
@@ -98,22 +78,18 @@ void UCombatTimerWidget::NativeDestruct()
 	if ( ButtonPause )
 	{
 		ButtonPause->OnClicked.RemoveDynamic( this, &UCombatTimerWidget::OnPauseClicked );
-		ButtonPause->OnHovered.RemoveDynamic( this, &UCombatTimerWidget::OnPauseHovered );
 	}
 	if ( ButtonPlay )
 	{
 		ButtonPlay->OnClicked.RemoveDynamic( this, &UCombatTimerWidget::OnPlayClicked );
-		ButtonPlay->OnHovered.RemoveDynamic( this, &UCombatTimerWidget::OnPlayHovered );
 	}
 	if ( ButtonSpeedFast )
 	{
 		ButtonSpeedFast->OnClicked.RemoveDynamic( this, &UCombatTimerWidget::OnSpeedFastClicked );
-		ButtonSpeedFast->OnHovered.RemoveDynamic( this, &UCombatTimerWidget::OnSpeedFastHovered );
 	}
 	if ( ButtonSpeedTurbo )
 	{
 		ButtonSpeedTurbo->OnClicked.RemoveDynamic( this, &UCombatTimerWidget::OnSpeedTurboClicked );
-		ButtonSpeedTurbo->OnHovered.RemoveDynamic( this, &UCombatTimerWidget::OnSpeedTurboHovered );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -133,63 +109,27 @@ void UCombatTimerWidget::NativeDestruct()
 		}
 	}
 
-	// Sound
-	if ( const UWorld* world = GetWorld() )
-	{
-		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
-		{
-			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
-			{
-				sfxManager->UnregisterObject( this );
-			}
-		}
-	}
-
 	Super::NativeDestruct();
 }
 
 void UCombatTimerWidget::OnPauseClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_PAUSE_CLICKED } );
 	ApplySpeed( PauseSpeed );
 }
 
 void UCombatTimerWidget::OnPlayClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_CLICKED } );
 	ApplySpeed( PlaySpeed );
 }
 
 void UCombatTimerWidget::OnSpeedFastClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_CLICKED } );
 	ApplySpeed( FastSpeed );
 }
 
 void UCombatTimerWidget::OnSpeedTurboClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_CLICKED } );
 	ApplySpeed( TurboSpeed );
-}
-
-void UCombatTimerWidget::OnPauseHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_PAUSE_HOVERED } );
-}
-
-void UCombatTimerWidget::OnPlayHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_HOVERED } );
-}
-
-void UCombatTimerWidget::OnSpeedFastHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_HOVERED } );
-}
-
-void UCombatTimerWidget::OnSpeedTurboHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TIME_HOVERED } );
 }
 
 void UCombatTimerWidget::ApplySpeed( float Speed )

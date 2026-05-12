@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
-#include "Core/Selection/SelectionManagerComponent.h"
 #include "Lords_Frontiers/Public/UI/Widgets/ResourceItemWidget.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
@@ -9,6 +8,7 @@
 #include "Resources/GameResource.h"
 #include "UI/BonusNeighborhood/BonusIconWidget.h"
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
@@ -22,7 +22,6 @@
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "CoreMinimal.h"
-#include "Sound/AudioTags.h"
 
 #include "GameHUD.generated.h"
 
@@ -31,7 +30,7 @@ class UStageProgressWidget;
 class UGameStateOverlayWidget;
 class UHealthBarWidget;
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget, public IAudioEventSource
+class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
@@ -342,11 +341,6 @@ protected:
 
 	void UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass );
 
-	virtual FOnAudioEvent& GetOnAudioEvent() override
-	{
-		return OnAudioEvent_;
-	}
-
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
 	FLinearColor AffordableColor = FLinearColor::White;
 
@@ -379,109 +373,49 @@ protected:
 	UFUNCTION() void OnHoverWoodenHouse()
 	{
 		ShowTooltipForBuilding( WoodenHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingWoodenHouse );
 	}
-
 	UFUNCTION() void OnHoverStrawHouse()
 	{
 		ShowTooltipForBuilding( StrawHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingStrawHouse );
 	}
-
 	UFUNCTION() void OnHoverFarm()
 	{
 		ShowTooltipForBuilding( FarmClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingFarm );
 	}
-
 	UFUNCTION() void OnHoverLawnHouse()
 	{
 		ShowTooltipForBuilding( LawnHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingLawnHouse );
 	}
-
 	UFUNCTION() void OnHoverMagicHouse()
 	{
 		ShowTooltipForBuilding( MagicHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingMagicHouse );
 	}
-
 	UFUNCTION() void OnHoverWoodWall()
 	{
 		ShowTooltipForBuilding( WoodWallClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingWoodWall );
 	}
-
 	UFUNCTION() void OnHoverStoneWall()
 	{
 		ShowTooltipForBuilding( StoneWallClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingStoneWall );
 	}
-
 	UFUNCTION() void OnHoverTowerT0()
 	{
 		ShowTooltipForBuilding( TowerT0Class );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT0 );
 	}
-
 	UFUNCTION() void OnHoverTowerT1()
 	{
 		ShowTooltipForBuilding( TowerT1Class );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT1 );
 	}
-
 	UFUNCTION() void OnHoverTowerT2()
 	{
 		ShowTooltipForBuilding( TowerT2Class );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT2 );
 	}
-
 	UFUNCTION() void OnHoverTowerMortira()
 	{
 		ShowTooltipForBuilding( TowerMortiraClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingMortira );
-	}
-
-	UFUNCTION()
-	void OnHoverEndTurn()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverRelocateBuilding()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_MOVEBUILDING_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverRemoveBuilding()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_DEMOLISHBUILDING_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverEconomyBuilding()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverDefensiveBuildings()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverWaveInfoButton()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED } );
 	}
 
 	UFUNCTION() void OnBuildingUnhovered();
-
-	void PlayOnBuildingButtonClickedSound( const UButton* button ) const;
-	void PlayOnBuildingButtonHoveredSound( const UButton* button ) const;
 
 	struct FIncomeAnimState
 	{
@@ -526,6 +460,4 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<USelectionManagerComponent> SelectionManager;
-
-	FOnAudioEvent OnAudioEvent_;
 };

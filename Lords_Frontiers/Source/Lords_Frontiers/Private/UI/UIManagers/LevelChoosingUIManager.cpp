@@ -11,8 +11,6 @@
 #include "Components/Button.h"
 #include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/AudioTags.h"
-#include "sound/SoundEffectManager.h"
 
 void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 {
@@ -43,7 +41,6 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 			if ( levelButton->Butt != menuWidget->BackButton )
 			{
 				levelButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonClicked );
-				levelButton->Butt->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonHovered );
 
 				if ( levelSubsystem )
 				{
@@ -65,44 +62,10 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 	}
 
 	menuWidget->BackButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonClicked );
-	menuWidget->BackButton->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonHovered );
-}
-
-void ULevelChoosingUIManager::PostInitProperties()
-{
-	if ( const UWorld* world = GetWorld() )
-	{
-		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
-		{
-			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
-			{
-				sfxManager->RegisterObject( this );
-			}
-		}
-	}
-
-	Super::PostInitProperties();
-}
-
-void ULevelChoosingUIManager::BeginDestroy()
-{
-	if ( const UWorld* world = GetWorld() )
-	{
-		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
-		{
-			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
-			{
-				sfxManager->UnregisterObject( this );
-			}
-		}
-	}
-
-	Super::BeginDestroy();
 }
 
 void ULevelChoosingUIManager::OnLevelButtonClicked( int levelIndex )
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_LEVELCHOOSINGMENU_BUTTONS_CLICKED } );
 	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( GetWorld() ) )
 	{
 		if ( ULevelSubsystem* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>() )
@@ -112,14 +75,8 @@ void ULevelChoosingUIManager::OnLevelButtonClicked( int levelIndex )
 	}
 }
 
-void ULevelChoosingUIManager::OnLevelButtonHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_LEVELCHOOSINGMENU_BUTTONS_HOVERED } );
-}
-
 void ULevelChoosingUIManager::OnBackButtonClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_LEVELCHOOSINGMENU_BUTTONS_CLICKED } );
 	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( GetWorld() ) )
 	{
 		if ( ULevelSubsystem* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>() )
@@ -127,9 +84,4 @@ void ULevelChoosingUIManager::OnBackButtonClicked()
 			levelSubsystem->LoadMainMenu();
 		}
 	}
-}
-
-void ULevelChoosingUIManager::OnBackButtonHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_LEVELCHOOSINGMENU_BUTTONS_HOVERED } );
 }

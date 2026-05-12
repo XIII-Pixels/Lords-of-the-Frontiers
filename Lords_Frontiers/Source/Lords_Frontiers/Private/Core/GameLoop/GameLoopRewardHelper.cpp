@@ -21,7 +21,7 @@ void UGameLoopRewardHelper::GrantStartingResources()
 	}
 
 	FResourceReward& reward = Config_->StartingResources;
-	ApplyReward( reward, true );
+	ApplyReward( reward );
 }
 
 void UGameLoopRewardHelper::GrantCombatReward( int32 wave, bool bPerfectWave )
@@ -35,21 +35,19 @@ void UGameLoopRewardHelper::GrantCombatReward( int32 wave, bool bPerfectWave )
 	ApplyReward( reward );
 }
 
-void UGameLoopRewardHelper::ApplyReward( FResourceReward& reward, bool starting )
+void UGameLoopRewardHelper::ApplyReward( FResourceReward& reward )
 {
-	bool noSound = starting;
-
 	if ( reward.Gold > 0 )
 	{
-		ResourceManager_->AddResource( EResourceType::Gold, reward.Gold, noSound );
+		ResourceManager_->AddResource( EResourceType::Gold, reward.Gold );
 	}
 	if ( reward.Food > 0 )
 	{
-		ResourceManager_->AddResource( EResourceType::Food, reward.Food, noSound );
+		ResourceManager_->AddResource( EResourceType::Food, reward.Food );
 	}
 	if ( reward.Population > 0 )
 	{
-		ResourceManager_->AddResource( EResourceType::Population, reward.Population, noSound );
+		ResourceManager_->AddResource( EResourceType::Population, reward.Population );
 	}
 }
 
@@ -85,3 +83,5 @@ void UGameLoopRewardHelper::RestoreBuildings()
 		ec->RestoreAllBuildings();
 	}
 }
+
+
