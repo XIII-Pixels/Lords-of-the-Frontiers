@@ -25,7 +25,7 @@ public class Lords_Frontiers : ModuleRules
 	        "AIModule",
 	        "GameplayTasks",
 	        "GeometryCache",
-            "ProceduralMeshComponent"
+	        "GameplayTags"
         });
 
 		PrivateDependencyModuleNames.AddRange( new string[] { "ProceduralMeshComponent" } );

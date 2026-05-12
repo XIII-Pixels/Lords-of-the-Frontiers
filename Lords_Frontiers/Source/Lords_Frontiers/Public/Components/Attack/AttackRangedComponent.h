@@ -38,7 +38,7 @@ public:
 	UAttackRangedComponent();
 
 	// Launch projectile
-	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
+	virtual bool Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual TObjectPtr<const AActor> AttackTarget() const override
 	{
