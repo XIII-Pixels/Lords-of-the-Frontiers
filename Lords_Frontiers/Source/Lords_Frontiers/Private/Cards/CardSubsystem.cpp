@@ -12,6 +12,7 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Resources/ResourceManager.h"
+#include "Tutorial/TutorialSubsystem.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -363,6 +364,11 @@ void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selected
 	OnCardsApplied.Broadcast( appliedList );
 
 	UE_LOG( LogCardSubsystem, Log, TEXT( "Applied %d selected cards" ), appliedList.Num() );
+
+	if ( UTutorialSubsystem* tutorial = UTutorialSubsystem::Get( this ) )
+	{
+		tutorial->NotifyUpgradePicked();
+	}
 
 	NotifyGameLoopToProceed();
 }
