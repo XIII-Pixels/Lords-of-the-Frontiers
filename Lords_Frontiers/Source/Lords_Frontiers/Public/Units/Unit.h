@@ -28,12 +28,40 @@ class UNiagaraSystem;
 class UHealthBarConfigDataAsset;
 struct FEnemyBuff;
 
+USTRUCT(BlueprintType)
+struct FUnitAudioTags
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Selected;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Spawn;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Death;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Attack;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag TakeDamage;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag SpawnAbility;
+};
+
 /** (Gregory-hub)
  * Base class for all units in a game (implement units in blueprints)
  * Can move, attack and be attacked
  * Should be controlled by AI controller */
 UCLASS( Abstract, Blueprintable )
-class LORDS_FRONTIERS_API AUnit : public APawn, public IEntity, public IAttacker, public IControlledByTree
+class LORDS_FRONTIERS_API AUnit : public APawn,
+                                  public IEntity,
+                                  public IAttacker,
+                                  public IControlledByTree,
+                                  public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -43,6 +71,7 @@ public:
 	virtual void OnConstruction( const FTransform& transform ) override;
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
 	virtual void PostInitProperties() override;
 
@@ -146,6 +175,16 @@ public:
 		return bIsBoss_;
 	}
 
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
+	const FUnitAudioTags& AudioTags() const
+	{
+		return AudioTags_;
+	}
+
 	bool OnlyAttackTargetBuilding() const
 	{
 		if ( const auto* attackComponent = Cast<UUnitAttackRangedComponent>( AttackComponent_ ) )
@@ -173,6 +212,8 @@ protected:
 	void Animate();
 
 	bool PlayAnimation( const FAnimationConfig& animation ) const;
+
+	void ResolveAudioTags();
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|AI" )
 	TSubclassOf<AAIController> UnitAIControllerClass_;
@@ -225,6 +266,9 @@ protected:
 	)
 	float PreSpawnAbilityDelay_ = 0.0f;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Audio" )
+	FUnitAudioTags AudioTags_;
+  
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> CollisionComponent_;
 
@@ -259,6 +303,8 @@ protected:
 
 	float ResolvedDeathVFXDelay_ = 0.0f;
 
+	FOnAudioEvent OnAudioEvent_;
+  
 	UPROPERTY( VisibleAnywhere, Category = "Settings")
 	bool bCanAttack = true;
 
