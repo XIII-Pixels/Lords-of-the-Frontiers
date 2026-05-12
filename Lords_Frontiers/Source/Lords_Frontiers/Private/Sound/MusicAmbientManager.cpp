@@ -1,60 +1,160 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Sound/MusicAmbientManager.h"
+#include "Lords_Frontiers/Public/Sound/MusicAmbientManager.h"
+
+#include "Core/DefaultGameInstance.h"
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/MusicDataAsset.h"
 
-void UMusicAmbientManager::Play( const FMusicConfig& config )
+void UMusicAmbientManager::PlayMusic( USoundBase* sound )
 {
-	if ( !config.Sound )
+	if ( Music_ && Music_->IsPlaying() )
+	{
+		if ( Music_->GetSound() == sound )
+		{
+			return;
+		}
+		Music_->Stop();
+		Music_->DestroyComponent();
+	}
+
+	if ( sound )
+	{
+		Music_ = PlayLoopingSound( sound );
+	}
+}
+
+void UMusicAmbientManager::PlayAmbient( USoundBase* sound )
+{
+	if ( !sound )
 	{
 		return;
 	}
 
-	if ( !config.bIndependent )
+	if ( UAudioComponent* audio = PlayLoopingSound( sound ) )
 	{
-		if ( Music_ && Music_->IsPlaying() )
-		{
-			Music_->Stop();
-		}
+		AmbientSounds_.Add( audio );
+	}
+}
 
-		Music_ = UGameplayStatics::SpawnSound2D( GetWorld(), config.Sound, 1, 1, 0, nullptr, true, false );
-	}
-	else
+UAudioComponent* UMusicAmbientManager::PlayLoopingSound( USoundBase* sound ) const
+{
+	if ( !sound )
 	{
-		UAudioComponent* audio =
-		    UGameplayStatics::SpawnSound2D( GetWorld(), config.Sound, 1, 1, 0, nullptr, true, false );
-		if ( audio )
-		{
-			AmbientSounds_.Add( audio );
-		}
+		return nullptr;
 	}
+
+	if ( UAudioComponent* audio = UGameplayStatics::SpawnSound2D( GetWorld(), sound, 1, 1, 0, nullptr, true, false ) )
+	{
+		audio->OnAudioFinishedNative.AddWeakLambda(
+		    this,
+		    [this, audio = TWeakObjectPtr<UAudioComponent>( audio )]( UAudioComponent* )
+		    {
+			    if ( audio.IsValid() )
+			    {
+				    audio->Play();
+			    }
+		    }
+		);
+		audio->FadeIn( 0.5f, 1.0f );
+
+		UE_LOG( LogTemp, Log, TEXT( "UMusicAmbientManager: Playing looping sound: %s" ), *sound->GetName() );
+
+		return audio;
+	}
+	return nullptr;
 }
 
 void UMusicAmbientManager::PlayMainMenuMusic()
 {
+	USoundBase* sound = nullptr;
+	if ( MusicDataAsset_.IsValid() )
+	{
+		sound = MusicDataAsset_->MainMenuMusic();
+	}
+	PlayMusic( sound );
 }
 
-void UMusicAmbientManager::PlayBuildingMusic()
+void UMusicAmbientManager::PlayWinBattleMusic()
 {
-}
-
-void UMusicAmbientManager::PlayCombatMusic()
-{
+	USoundBase* sound = nullptr;
+	if ( MusicDataAsset_.IsValid() )
+	{
+		sound = MusicDataAsset_->WinBattleMusic();
+	}
+	PlayMusic( sound );
 }
 
 void UMusicAmbientManager::PlayWinGameMusic()
 {
+	USoundBase* sound = nullptr;
+	if ( MusicDataAsset_.IsValid() )
+	{
+		sound = MusicDataAsset_->WinGameMusic();
+	}
+	PlayMusic( sound );
 }
 
 void UMusicAmbientManager::PlayLoseGameMusic()
+{
+	USoundBase* sound = nullptr;
+	if ( MusicDataAsset_.IsValid() )
+	{
+		sound = MusicDataAsset_->LoseMusic();
+	}
+	PlayMusic( sound );
+}
+
+void UMusicAmbientManager::PlayCurrentLevelBuildingMusic()
+{
+	if ( MusicDataAsset_.IsValid() )
+	{
+		if ( const FMusicForLevel* musicForLevel =
+		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
+		{
+			if ( USoundBase* sound = musicForLevel->Building )
+			{
+				PlayMusic( sound );
+				return;
+			}
+		}
+	}
+	StopMusic();
+}
+
+void UMusicAmbientManager::PlayCurrentLevelCombatMusic()
+{
+	if ( MusicDataAsset_.IsValid() )
+	{
+		if ( const FMusicForLevel* musicForLevel =
+		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
+		{
+			if ( USoundBase* sound = musicForLevel->Battle )
+			{
+				PlayMusic( sound );
+				return;
+			}
+		}
+	}
+	StopMusic();
+}
+
+void UMusicAmbientManager::PlayCurrentLevelAmbient()
 {
 }
 
 void UMusicAmbientManager::StopMusic()
 {
-	StopAudio( Music_ );
+	if ( Music_ )
+	{
+		UE_LOG( LogTemp, Log, TEXT( "UMusicAmbientManager: Music is stopped: %s" ), *Music_->GetName() );
+
+		Music_->Stop();
+		Music_->DestroyComponent();
+		Music_ = nullptr;
+	}
 }
 
 void UMusicAmbientManager::StopAllAmbient()
@@ -67,21 +167,19 @@ void UMusicAmbientManager::StopAllAmbient()
 		}
 	}
 	AmbientSounds_.Empty();
+
+	UE_LOG( LogTemp, Log, TEXT( "UMusicAmbientManager: All ambient is stopped" ) );
 }
 
-void UMusicAmbientManager::StopAudio( UAudioComponent* audio )
+void UMusicAmbientManager::Initialize( FSubsystemCollectionBase& collection )
 {
-	if ( audio )
+	Super::Initialize( collection );
+
+	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
 	{
-		if ( audio == Music_ )
-		{
-			Music_ = nullptr;
-		}
-		else
-		{
-			AmbientSounds_.Remove( audio );
-		}
-		audio->DestroyComponent();
+		MusicDataAsset_ = gameInstance->Music;
+		AmbientDataAsset_ = gameInstance->Ambient;
+		LevelsDataAsset_ = gameInstance->Levels;
 	}
 }
 
@@ -89,6 +187,7 @@ void UMusicAmbientManager::Deinitialize()
 {
 	if ( Music_ )
 	{
+		Music_->Stop();
 		Music_->DestroyComponent();
 		Music_ = nullptr;
 	}
@@ -97,6 +196,7 @@ void UMusicAmbientManager::Deinitialize()
 	{
 		if ( audio )
 		{
+			audio->Stop();
 			audio->DestroyComponent();
 		}
 	}

@@ -9,21 +9,9 @@
 
 #include "MusicAmbientManager.generated.h"
 
-USTRUCT( BlueprintType )
-struct FMusicConfig
-{
-	GENERATED_BODY()
-
-	/** The sound asset to play */
-	UPROPERTY( EditAnywhere )
-	USoundBase* Sound = nullptr;
-
-	/** If true, this sound plays independently:
-	 * - Will NOT stop other sounds already playing
-	 * - Will NOT be stopped when other sounds begin playing */
-	UPROPERTY( EditAnywhere )
-	bool bIndependent = false;
-};
+class ULevelsDataAsset;
+class UAmbientDataAsset;
+class UMusicDataAsset;
 
 /** (Gregory-hub)
  * Manager for music and ambient */
@@ -34,14 +22,16 @@ class LORDS_FRONTIERS_API UMusicAmbientManager : public UGameInstanceSubsystem
 
 public:
 	void PlayMainMenuMusic();
-	void PlayBuildingMusic();
-	void PlayCombatMusic();
+	void PlayWinBattleMusic();
 	void PlayWinGameMusic();
 	void PlayLoseGameMusic();
+	void PlayCurrentLevelBuildingMusic();
+	void PlayCurrentLevelCombatMusic();
+
+	void PlayCurrentLevelAmbient();
 
 	void StopMusic();
 	void StopAllAmbient();
-	void StopAudio( UAudioComponent* audio );
 
 	UAudioComponent* GetMusicPlaying() const
 	{
@@ -54,14 +44,29 @@ public:
 	}
 
 protected:
-	void Play( const FMusicConfig& config );
-
+	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
+	void PlayMusic( USoundBase* sound );
+
+	void PlayAmbient( USoundBase* sound );
+
+	UAudioComponent* PlayLoopingSound( USoundBase* sound ) const;
+
 private:
+	// Only one track can play at a time
 	UPROPERTY()
 	TObjectPtr<UAudioComponent> Music_ = nullptr;
 
 	UPROPERTY()
 	TSet<TObjectPtr<UAudioComponent>> AmbientSounds_;
+
+	UPROPERTY()
+	TWeakObjectPtr<UMusicDataAsset> MusicDataAsset_;
+
+	UPROPERTY()
+	TWeakObjectPtr<UAmbientDataAsset> AmbientDataAsset_;
+
+	UPROPERTY()
+	TWeakObjectPtr<ULevelsDataAsset> LevelsDataAsset_;
 };

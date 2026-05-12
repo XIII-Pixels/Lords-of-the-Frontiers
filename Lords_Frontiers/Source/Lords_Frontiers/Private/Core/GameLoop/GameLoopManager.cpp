@@ -1,13 +1,16 @@
 #include "Core/GameLoop/GameLoopManager.h"
-#include "AI/Path/PathPointsManager.h"
 
+#include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
+#include "Core/DefaultGameInstance.h"
 #include "Core/GameLoop/GameLoopRewardHelper.h"
 #include "TimerManager.h"
 #include "Waves/WaveManager.h"
+
+#include "Sound/MusicAmbientManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -79,6 +82,15 @@ void UGameLoopManager::StartLoop()
 
 	OnWaveChanged.Broadcast( CurrentWave_, GetTotalWaves() );
 	EnterBuildingPhase();
+
+	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopMusic();
+			musicManager->StopAllAmbient();
+		}
+	}
 }
 
 void UGameLoopManager::Reset()
@@ -292,9 +304,18 @@ void UGameLoopManager::EnterBuildingPhase()
 
 	OnBuildTurnChanged.Broadcast( CurrentBuildTurn_, GetMaxBuildTurns() );
 
-	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
-
 	RewardHelper_->RecalculateIncome();
+
+	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->PlayCurrentLevelBuildingMusic();
+			musicManager->PlayCurrentLevelAmbient();
+		}
+	}
+
+	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
 }
 
 void UGameLoopManager::EnterCombatPhase()
@@ -321,6 +342,15 @@ void UGameLoopManager::EnterCombatPhase()
 	else
 	{
 		StartWave();
+	}
+
+	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayCurrentLevelCombatMusic();
+		}
 	}
 
 	Log( FString::Printf( TEXT( ">>> COMBAT PHASE (Wave %d, Duration: %.1fs)" ), CurrentWave_, duration ) );
@@ -419,6 +449,15 @@ void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 	if ( UnitAIManager_.IsValid() )
 	{
 		UnitAIManager_->PathPointsManager()->Empty();
+	}
+
+	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->PlayCurrentLevelBuildingMusic();
+			musicManager->PlayCurrentLevelAmbient();
+		}
 	}
 
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
