@@ -79,8 +79,6 @@ void ABuildManager::BeginPlay()
 
 void ABuildManager::BeginDestroy()
 {
-	Super::BeginDestroy();
-
 	if ( const UWorld* world = GetWorld() )
 	{
 		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
@@ -91,6 +89,8 @@ void ABuildManager::BeginDestroy()
 			}
 		}
 	}
+
+	Super::BeginDestroy();
 }
 
 void ABuildManager::OnCoreSystemsReady()

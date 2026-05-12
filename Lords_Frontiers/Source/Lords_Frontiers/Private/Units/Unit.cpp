@@ -108,9 +108,9 @@ void AUnit::BeginPlay()
 		}
 	}
 
-  OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
-  
-  PlayAnimationIdle();
+    OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+
+    PlayAnimationIdle();
 
 	SpawnSpawnVFX();
 }
