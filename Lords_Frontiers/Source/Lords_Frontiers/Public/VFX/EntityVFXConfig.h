@@ -17,10 +17,16 @@ struct FUnitVFXOverride
 	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly )
+	TObjectPtr<UNiagaraSystem> SpawnVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly )
 	TObjectPtr<UNiagaraSystem> DeathVFX = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly )
 	TObjectPtr<UNiagaraSystem> HitVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly )
+	TObjectPtr<UNiagaraSystem> SpawnAbilityVFX = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( ClampMin = "0.0", Units = "s" ) )
 	float DeathDestroyDelay = -1.0f;
@@ -69,10 +75,16 @@ class LORDS_FRONTIERS_API UEntityVFXConfig : public UDataAsset
 
 public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults" )
+	TObjectPtr<UNiagaraSystem> DefaultUnitSpawnVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults" )
 	TObjectPtr<UNiagaraSystem> DefaultUnitDeathVFX = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults" )
 	TObjectPtr<UNiagaraSystem> DefaultUnitHitVFX = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults" )
+	TObjectPtr<UNiagaraSystem> DefaultUnitSpawnAbilityVFX = nullptr;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Unit|Defaults", meta = ( ClampMin = "0.0", Units = "s" ) )
 	float DefaultDeathDestroyDelay = 1.0f;

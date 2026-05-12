@@ -114,12 +114,6 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
 	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
 
-	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
-	TMap<TSubclassOf<AUnit>, int32> GetCurrentWaveRemainingEnemies() const
-	{
-		return RemainingEnemiesPerClass_;
-	}
-
 	UPROPERTY( EditAnywhere, Category = "Settings|WaveConfig" )
 	TObjectPtr<UWaveConfigData> WaveConfig_ = nullptr;
 
@@ -204,6 +198,4 @@ protected:
 
 private:
 	float RuntimeWaveEndSafetyMargin_ = 1.0f;
-	UPROPERTY( Transient )
-	TMap<TSubclassOf<AUnit>, int32> RemainingEnemiesPerClass_;
 };
