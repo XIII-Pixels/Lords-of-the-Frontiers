@@ -712,15 +712,25 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 		return;
 	}
 
+	if ( !spec.ScaleUserParameter.IsNone() )
+	{
+		const FString paramName = spec.ScaleUserParameter.ToString();
+		const FName fullName( *( paramName.StartsWith( TEXT( "User." ) )
+			? paramName
+			: FString::Printf( TEXT( "User.%s" ), *paramName ) ) );
+		component->SetVariableFloat( fullName, clampedScale.X );
+	}
+
 	UE_LOG( LogCardVisuals, Verbose,
-		TEXT( "SpawnNiagaraNow: %s on host=%s attach=%d sticky=%d loc=%s scale=%s" ),
+		TEXT( "SpawnNiagaraNow: %s on host=%s attach=%d sticky=%d loc=%s scale=%s scaleParam=%s" ),
 		*system->GetName(),
 		*GetNameSafe( host ),
 		attachTo ? 1 : 0,
 		bRetainNiagara ? 1 : 0,
 		*( attachTo ? host->GetActorLocation().ToCompactString()
 			: ( host->GetActorLocation() + spec.LocationOffset ).ToCompactString() ),
-		*clampedScale.ToCompactString() );
+		*clampedScale.ToCompactString(),
+		*spec.ScaleUserParameter.ToString() );
 
 	if ( bRetainNiagara )
 	{

@@ -492,9 +492,6 @@ void UCardSubsystem::ApplyCardEvent(
 			{
 				continue;
 			}
-			// Class-only gate: runtime effects must register regardless of current
-			// state so a Destroyed-Only card lands its registration even while the
-			// building is alive — the dispatch path re-checks state per trigger.
 			if ( !event.MatchesBuildingClass( building ) )
 			{
 				continue;
@@ -534,7 +531,7 @@ void UCardSubsystem::ApplyCardEvent(
 					effect->Apply( ctx );
 					if ( visuals && !effect->HandlesOwnVisuals() )
 					{
-						visuals->PlayOneShot( effect->VisualConfig, building, nullptr );
+						visuals->PlayOneShot( effect->GetVisualConfig(), building, nullptr );
 					}
 				}
 			}
@@ -856,9 +853,6 @@ void UCardSubsystem::RevertAppliedRecord( const FAppliedCardRecord& record )
 			{
 				for ( ABuilding* building : buildings )
 				{
-					// Revert covers anything we applied — apply gate is class-only
-					// (state may change between apply and revert), so use the same
-					// gate here to undo cleanly.
 					if ( !IsValid( building ) || !event.MatchesBuildingClass( building ) )
 					{
 						continue;

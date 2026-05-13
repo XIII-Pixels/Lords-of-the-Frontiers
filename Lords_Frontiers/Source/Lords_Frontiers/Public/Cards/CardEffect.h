@@ -8,6 +8,8 @@
 
 #include "CardEffect.generated.h"
 
+class UCardVFXAsset;
+
 UCLASS( Abstract, Blueprintable, BlueprintType,
 	meta = ( DisplayName = "Card Effect" ) )
 class LORDS_FRONTIERS_API UCardEffect : public UDataAsset
@@ -15,8 +17,17 @@ class LORDS_FRONTIERS_API UCardEffect : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals",
+		meta = ( DisplayName = "VFX (DA)",
+			ToolTip = "DA с пресетом визуала (один DA = один VFX). Если задан — используется он. Если пуст — fallback на встроенный VisualConfig ниже." ) )
+	TObjectPtr<UCardVFXAsset> VFX;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals",
+		meta = ( DisplayName = "Встроенный VisualConfig (legacy)",
+			ToolTip = "Используется только если поле VFX выше не задано. Для новых эффектов предпочтительно VFX-DA." ) )
 	FCardVisualConfig VisualConfig;
+
+	const FCardVisualConfig& GetVisualConfig() const;
 
 	UFUNCTION( BlueprintNativeEvent, Category = "Card|Effect" )
 	void Apply( const FCardEffectContext& context );
@@ -64,14 +75,6 @@ public:
 		return false;
 	}
 
-	/**
-	 * If true, the effect itself is responsible for playing VisualConfig (likely per
-	 * target / per spawned actor / etc.). The dispatcher in UCardSubsystem and
-	 * UCardEffectHostComponent will skip the default PlayOneShot for this effect.
-	 *
-	 * Use this for effects like AoE explosions that need to play the configured
-	 * visual on every affected enemy, not just on the kill victim.
-	 */
 	UFUNCTION( BlueprintNativeEvent, BlueprintPure, Category = "Card|Effect" )
 	bool HandlesOwnVisuals() const;
 	virtual bool HandlesOwnVisuals_Implementation() const

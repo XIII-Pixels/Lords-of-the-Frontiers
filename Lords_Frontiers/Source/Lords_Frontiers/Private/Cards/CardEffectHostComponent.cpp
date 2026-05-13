@@ -23,7 +23,7 @@ namespace
 			return false;
 		}
 
-		const FCardVisualConfig& cfg = effect->VisualConfig;
+		const FCardVisualConfig& cfg = effect->GetVisualConfig();
 
 		for ( const FCardNiagaraSpec& n : cfg.Niagaras )
 		{
@@ -85,7 +85,6 @@ void UCardEffectHostComponent::RegisterEffect( UCardDataAsset* card, int32 event
 	BindDamageEvents();
 	StartAuraTimer();
 
-	// Sticky visual is gated by StateFilter — only start now if state matches.
 	SyncStickyForRecord( Active_.Last() );
 }
 
@@ -308,7 +307,7 @@ void UCardEffectHostComponent::SyncStickyForRecord( FRegisteredCardEffect& recor
 
 	if ( bStateMatches && !record.StickyHandle.IsValid() )
 	{
-		record.StickyHandle = visuals->BeginSticky( effect->VisualConfig, GetOwner(), nullptr );
+		record.StickyHandle = visuals->BeginSticky( effect->GetVisualConfig(), GetOwner(), nullptr );
 	}
 	else if ( !bStateMatches && record.StickyHandle.IsValid() )
 	{
@@ -487,11 +486,6 @@ void UCardEffectHostComponent::DispatchInternal( ECardTriggerReason reason, AAct
 			continue;
 		}
 
-		// StateFilter gate: cards register on class-match alone, but each
-		// trigger only fires when the building's current Alive/Destroyed state
-		// matches the event's StateFilter. Allows a card with
-		// StateFilter = Destroyed Only to land its registration up-front and
-		// activate the moment the building dies.
 		if ( building && rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )
 		{
 			const FCardEvent& event = rec.SourceCard->Events[rec.EventIndex];
@@ -555,7 +549,7 @@ void UCardEffectHostComponent::DispatchInternal( ECardTriggerReason reason, AAct
 
 		if ( !bBypassConditions && visuals && building && !rec.Effect->HandlesOwnVisuals() )
 		{
-			visuals->PlayOneShot( rec.Effect->VisualConfig, building, instigator );
+			visuals->PlayOneShot( rec.Effect->GetVisualConfig(), building, instigator );
 		}
 	}
 }

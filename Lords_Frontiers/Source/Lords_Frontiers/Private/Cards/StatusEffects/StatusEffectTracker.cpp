@@ -36,9 +36,6 @@ void UStatusEffectTracker::TickComponent(
 		return;
 	}
 
-	// Safety net: if the owning entity died but nobody called NotifyOwnerDied
-	// (e.g. unit class without a death hook), tear everything down now so we
-	// don't keep ticking DOTs / looping fire on a corpse.
 	if ( const IEntity* entity = Cast<IEntity>( owner ) )
 	{
 		if ( !entity->Stats().IsAlive() )
@@ -133,7 +130,7 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def, AActor* instigato
 
 	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
 	{
-		state.VisualHandle = visuals->BeginSticky( def->VisualConfig, GetOwner(), nullptr );
+		state.VisualHandle = visuals->BeginSticky( def->GetVisualConfig(), GetOwner(), nullptr );
 	}
 
 	Active_.Add( def->StatusTag, state );

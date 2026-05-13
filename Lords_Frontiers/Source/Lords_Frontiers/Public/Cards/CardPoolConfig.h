@@ -10,16 +10,6 @@
 class UCardDataAsset;
 class UCardRarityPoolConfig;
 
-/**
- * FCardRarityWaveWeightOverride
- *
- * One-shot override of rarity tier weights for a specific wave. The multipliers
- * apply ONLY to the listed wave; the next wave returns to the base RarityWeight
- * defined on each UCardRarityPoolConfig. Rarities not present in RarityMultipliers
- * keep their base weight (multiplier = 1.0).
- *
- * Typical use: spike the chance of a Legendary card on a milestone wave.
- */
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FCardRarityWaveWeightOverride
 {
@@ -111,11 +101,6 @@ public:
 		return RerollBaseCost + FMath::Max( 0, rerollIndex ) * RerollCostIncrement;
 	}
 
-	/**
-	 * Returns the combined multiplier to apply to a rarity tier's RarityWeight on the given wave.
-	 * If multiple overrides target the same wave, their multipliers are combined multiplicatively.
-	 * Rarities not mentioned by any matching override get 1.0.
-	 */
 	UFUNCTION( BlueprintPure, Category = "Card Pool|Wave Overrides" )
 	float GetRarityWeightMultiplierForWave( int32 waveNumber, ECardRarity rarity ) const;
 

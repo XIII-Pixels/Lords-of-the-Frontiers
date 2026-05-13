@@ -91,14 +91,7 @@ protected:
 	UFUNCTION()
 	void HandleOwnerRestored( class ABuilding* building );
 
-	/**
-	 * Starts or stops the sticky visual of a single registered effect so it
-	 * follows the building's current Alive/Destroyed state vs the event's
-	 * StateFilter. Idempotent.
-	 */
 	void SyncStickyForRecord( struct FRegisteredCardEffect& record );
-
-	/** Calls SyncStickyForRecord on every registered effect. */
 	void SyncStickyForAllRecords();
 
 	void HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash );

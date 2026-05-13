@@ -8,20 +8,6 @@ class UMaterialInterface;
 class UNiagaraSystem;
 class UTexture2D;
 
-/**
- * На каком актёре спавнить визуальный спек.
- *
- * Семантика «носитель» и «цель» зависит от того, кто запускает эффект:
- *  - Карта на башне с триггером HitLanded/KillLanded:
- *      носитель = башня (источник выстрела),
- *      цель    = задетый враг (попадание).
- *  - Статус на враге (Burn, Slow и т.п.):
- *      носитель = враг, на которого повешен статус,
- *      цель    = пусто (для большинства статусов).
- *  - AoE-взрыв (UCardEffect_AoEExplosion):
- *      носитель = башня,
- *      цель    = каждый враг в радиусе (визуал играется на каждом).
- */
 UENUM( BlueprintType )
 enum class ECardVisualTarget : uint8
 {
@@ -70,8 +56,13 @@ struct LORDS_FRONTIERS_API FCardNiagaraSpec
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Niagara",
 		meta = ( DisplayName = "Масштаб",
-			ToolTip = "Масштаб (по осям), применяемый к Niagara-компоненту при спавне." ) )
+			ToolTip = "Масштаб (по осям), применяемый к Niagara-компоненту при спавне. Также пробрасывается в User-параметр Niagara, см. поле ниже." ) )
 	FVector Scale = FVector::OneVector;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Niagara",
+		meta = ( DisplayName = "Имя User-параметра для масштаба",
+			ToolTip = "Имя float User-параметра внутри Niagara System, в который нужно записать Scale.X при спавне. Пусто — не пробрасывать. Префикс \"User.\" добавляется автоматически. Дефолт — Scale_FX." ) )
+	FName ScaleUserParameter = FName( "Scale_FX" );
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Niagara",
 		meta = ( DisplayName = "Прикреплять к актёру",

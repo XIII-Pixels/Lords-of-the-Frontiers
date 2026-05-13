@@ -1,9 +1,19 @@
 #include "Cards/StatusEffects/StatusEffectDef.h"
 
 #include "Cards/StatusEffects/StatusEffectTracker.h"
+#include "Cards/Visuals/CardVFXAsset.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
+
+const FCardVisualConfig& UStatusEffectDef::GetVisualConfig() const
+{
+	if ( VFX )
+	{
+		return VFX->Config;
+	}
+	return VisualConfig;
+}
 
 UStatusEffect_Burn::UStatusEffect_Burn()
 {
@@ -22,9 +32,6 @@ void UStatusEffect_Burn::OnTick( AActor* owner, FActiveStatus& state ) const
 
 	if ( instigator && DamagePerTick > 0 )
 	{
-		// Routes through CardEffectHostComponent::HandleDamageDealt on the
-		// instigator so a DOT kill credits the tower (KillLanded trigger,
-		// SessionLogger KillCount, etc.). bIsSplash = false — DOT, not AoE.
 		FDamageEvents::OnDamageDealt.Broadcast( instigator, owner, DamagePerTick, false );
 	}
 

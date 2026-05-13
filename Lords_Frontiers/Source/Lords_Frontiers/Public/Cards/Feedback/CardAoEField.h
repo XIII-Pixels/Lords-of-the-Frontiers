@@ -40,18 +40,13 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Field" )
 	TObjectPtr<USceneComponent> SceneRoot_;
 
-	/**
-	 * Effective radius (cm) the BP visual was authored at. The actor's
-	 * SceneRoot is uniformly scaled by Radius_ / VisualReferenceRadius so
-	 * the visual matches gameplay radius. Set this per-BP to whatever
-	 * radius the decal/mesh/Niagara was designed for.
-	 */
 	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Field|Visual",
-		meta = ( ClampMin = "1.0" ) )
+		meta = ( ClampMin = "1.0",
+			ToolTip = "Effective radius (cm) the BP visual was authored at. SceneRoot is uniformly scaled by Radius / VisualReferenceRadius at runtime." ) )
 	float VisualReferenceRadius = 200.f;
 
-	/** If false, gameplay radius does not affect the actor scale. */
-	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Field|Visual" )
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Field|Visual",
+		meta = ( ToolTip = "If false, gameplay radius does not affect actor scale." ) )
 	bool bScaleVisualToRadius = true;
 
 	float Radius_ = 0.f;

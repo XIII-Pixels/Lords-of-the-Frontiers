@@ -89,11 +89,6 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 
 	const float radiusSq = Radius * Radius;
 
-	// VisualConfig is played ONCE by the dispatcher (UCardEffectHostComponent)
-	// after this Execute returns, with instigator (= the kill victim / event
-	// origin) as the target host. So a spec with Anchor = "На цели" lands the
-	// explosion visual at the AoE center.
-
 	TSet<AActor*> alreadyAffected;
 	int32 affected = 0;
 	for ( const FOverlapResult& result : overlaps )

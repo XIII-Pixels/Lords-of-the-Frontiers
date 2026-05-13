@@ -231,13 +231,8 @@ struct LORDS_FRONTIERS_API FCardEvent
 		meta = ( AllowAbstract = "false" ) )
 	TArray<TObjectPtr<UCardEffect>> Effects;
 
-	/** Class-only match (ignores StateFilter). Used for registration. */
 	bool MatchesBuildingClass( const ABuilding* building ) const;
-
-	/** State-only match (uses StateFilter). Used at dispatch time. */
 	bool MatchesBuildingState( const ABuilding* building ) const;
-
-	/** Combined check — class AND state. Used for one-shot Apply. */
 	bool MatchesBuilding( const ABuilding* building ) const;
 };
 
