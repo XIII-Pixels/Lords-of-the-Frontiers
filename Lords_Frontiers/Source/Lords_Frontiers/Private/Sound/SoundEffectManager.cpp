@@ -5,6 +5,7 @@
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/Data/SoundDataAsset.h"
 #include "sound/AudioEventSource.h"
 
 void USoundEffectManager::Initialize( FSubsystemCollectionBase& collection )
