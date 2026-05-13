@@ -21,6 +21,23 @@ int32 UCardPoolConfig::GetPoolSize() const
 	return total;
 }
 
+float UCardPoolConfig::GetRarityWeightMultiplierForWave( int32 waveNumber, ECardRarity rarity ) const
+{
+	float multiplier = 1.f;
+	for ( const FCardRarityWaveWeightOverride& override : WaveRarityWeightOverrides )
+	{
+		if ( override.WaveNumber != waveNumber )
+		{
+			continue;
+		}
+		if ( const float* found = override.RarityMultipliers.Find( rarity ) )
+		{
+			multiplier *= FMath::Max( 0.f, *found );
+		}
+	}
+	return multiplier;
+}
+
 #if WITH_EDITOR
 EDataValidationResult UCardPoolConfig::IsDataValid( FDataValidationContext& context ) const
 {

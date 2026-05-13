@@ -162,9 +162,12 @@ bool UCardSubsystem::BuildCardChoice( int32 waveNumber, FCardChoice& outChoice )
 				continue;
 			}
 
+			const float waveMultiplier =
+				PoolConfig_->GetRarityWeightMultiplierForWave( waveNumber, rarityPool->Rarity );
+
 			FCardRarityBucket bucket;
 			bucket.Rarity       = rarityPool->Rarity;
-			bucket.RarityWeight = rarityPool->RarityWeight;
+			bucket.RarityWeight = rarityPool->RarityWeight * waveMultiplier;
 			bucket.Cards.Reserve( rarityPool->Cards.Num() );
 
 			for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )

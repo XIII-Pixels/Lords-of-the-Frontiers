@@ -10,6 +10,31 @@
 class UCardDataAsset;
 class UCardRarityPoolConfig;
 
+/**
+ * FCardRarityWaveWeightOverride
+ *
+ * One-shot override of rarity tier weights for a specific wave. The multipliers
+ * apply ONLY to the listed wave; the next wave returns to the base RarityWeight
+ * defined on each UCardRarityPoolConfig. Rarities not present in RarityMultipliers
+ * keep their base weight (multiplier = 1.0).
+ *
+ * Typical use: spike the chance of a Legendary card on a milestone wave.
+ */
+USTRUCT( BlueprintType )
+struct LORDS_FRONTIERS_API FCardRarityWaveWeightOverride
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Override",
+		meta = ( ClampMin = "0",
+			ToolTip = "Wave number this override applies to. The multiplier is NOT carried into the next wave." ) )
+	int32 WaveNumber = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Override",
+		meta = ( ToolTip = "Per-rarity multiplier applied to UCardRarityPoolConfig::RarityWeight on this wave. Missing rarities default to 1.0." ) )
+	TMap<ECardRarity, float> RarityMultipliers;
+};
+
 UCLASS( BlueprintType )
 class LORDS_FRONTIERS_API UCardPoolConfig : public UDataAsset
 {
@@ -19,6 +44,10 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Card Pool",
 		meta = ( ToolTip = "One UCardRarityPoolConfig per rarity tier. The resolver picks a tier weighted by RarityWeight, then picks a card inside it weighted by BaseWeight + synergies." ) )
 	TArray<TObjectPtr<UCardRarityPoolConfig>> RarityPools;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Card Pool",
+		meta = ( ToolTip = "Per-wave overrides for rarity tier weights. Each entry applies its multipliers only on its WaveNumber; the next wave resets to base RarityWeight. Multiple entries with the same WaveNumber are multiplied together." ) )
+	TArray<FCardRarityWaveWeightOverride> WaveRarityWeightOverrides;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Starting Cards" )
 	TArray<TObjectPtr<UCardDataAsset>> StartingCards;
@@ -81,6 +110,14 @@ public:
 	{
 		return RerollBaseCost + FMath::Max( 0, rerollIndex ) * RerollCostIncrement;
 	}
+
+	/**
+	 * Returns the combined multiplier to apply to a rarity tier's RarityWeight on the given wave.
+	 * If multiple overrides target the same wave, their multipliers are combined multiplicatively.
+	 * Rarities not mentioned by any matching override get 1.0.
+	 */
+	UFUNCTION( BlueprintPure, Category = "Card Pool|Wave Overrides" )
+	float GetRarityWeightMultiplierForWave( int32 waveNumber, ECardRarity rarity ) const;
 
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid( class FDataValidationContext& context ) const override;
