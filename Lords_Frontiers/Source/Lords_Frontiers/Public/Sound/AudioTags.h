@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GameplayTagContainer.h"
+#include "NativeGameplayTags.h"
 
 #include "CoreMinimal.h"
 
@@ -10,135 +10,70 @@
 namespace AudioTags
 {
     // ── UI ── MainMenu ────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_UI_MAINMENU_BUTTONS_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.MainMenu.Buttons.Hovered" );
-    inline const FGameplayTag SFX_UI_MAINMENU_BUTTONS_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.MainMenu.Buttons.Clicked" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_MAINMENU_BUTTONS_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_MAINMENU_BUTTONS_CLICKED)
 
     // ── UI ── LevelChoosingMenu ───────────────────────────────────────────────
-    inline const FGameplayTag SFX_UI_LEVELCHOOSINGMENU_BUTTONS_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.LevelChoosingMenu.Buttons.Hovered" );
-    inline const FGameplayTag SFX_UI_LEVELCHOOSINGMENU_BUTTONS_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.LevelChoosingMenu.Buttons.Clicked" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_LEVELCHOOSINGMENU_BUTTONS_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_LEVELCHOOSINGMENU_BUTTONS_CLICKED)
 
     // ── UI ── Buttons ─────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_UI_BUTTON_ENDTURN_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.EndTurn.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_ENDTURN_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.EndTurn.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_BUILDING_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_BUILDING_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Unaffordable.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Building.Unaffordable.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_MOVEBUILDING_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.MoveBuilding.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_MOVEBUILDING_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.MoveBuilding.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_DEMOLISHBUILDING_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.DemolishBuilding.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_DEMOLISHBUILDING_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.DemolishBuilding.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.BuildingCategory.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_BUILDINGCATEGORY_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.BuildingCategory.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.NextWaveInfo.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_NEXTWAVEINFO_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.NextWaveInfo.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_TOGGLECARDBOOK_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.ToggleCardBook.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.ToggleCardBook.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_TIME_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_TIME_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Clicked" );
-
-    inline const FGameplayTag SFX_UI_BUTTON_TIME_PAUSE_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Pause.Hovered" );
-    inline const FGameplayTag SFX_UI_BUTTON_TIME_PAUSE_CLICKED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Button.Time.Pause.Clicked" );
-
-    inline const FGameplayTag SFX_UI_GRID_CELL_HOVERED =
-        FGameplayTag::RequestGameplayTag( "SFX.UI.Grid.Cell.Hovered" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_ENDTURN_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_ENDTURN_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_BUILDING_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_BUILDING_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_MOVEBUILDING_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_MOVEBUILDING_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_DEMOLISHBUILDING_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_DEMOLISHBUILDING_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_BUILDINGCATEGORY_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_NEXTWAVEINFO_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_TOGGLECARDBOOK_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_TIME_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_TIME_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_TIME_PAUSE_HOVERED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_BUTTON_TIME_PAUSE_CLICKED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UI_GRID_CELL_HOVERED)
 
     // ── Pause game ────────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_PAUSEGAME =
-        FGameplayTag::RequestGameplayTag( "SFX.PauseGame" );
-    inline const FGameplayTag SFX_RESUMEGAME =
-        FGameplayTag::RequestGameplayTag( "SFX.ResumeGame" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_PAUSEGAME)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_RESUMEGAME)
 
     // ── Resources ─────────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_RESOURCES_GOLD_AWARDED =
-        FGameplayTag::RequestGameplayTag( "SFX.Resources.Gold.Awarded" );
-    inline const FGameplayTag SFX_RESOURCES_FOOD_AWARDED =
-        FGameplayTag::RequestGameplayTag( "SFX.Resources.Food.Awarded" );
-    inline const FGameplayTag SFX_RESOURCES_POPULATION_AWARDED =
-        FGameplayTag::RequestGameplayTag( "SFX.Resources.Population.Awarded" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_RESOURCES_GOLD_AWARDED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_RESOURCES_FOOD_AWARDED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_RESOURCES_POPULATION_AWARDED)
 
     // ── GamePhase ─────────────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_GAMEPHASE_STARTGAME =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.StartGame" );
-    inline const FGameplayTag SFX_GAMEPHASE_LOSEGAME =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.LoseGame" );
-    inline const FGameplayTag SFX_GAMEPHASE_WINGAME =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.WinGame" );
-
-    inline const FGameplayTag SFX_GAMEPHASE_BUILDING_START =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.Building.Start" );
-
-    inline const FGameplayTag SFX_GAMEPHASE_COMBAT_START =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.Combat.Start" );
-    inline const FGameplayTag SFX_GAMEPHASE_COMBAT_WIN =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.Combat.Win" );
-
-    inline const FGameplayTag SFX_GAMEPHASE_REWARD_START =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.Reward.Start" );
-    inline const FGameplayTag SFX_GAMEPHASE_REWARD_END =
-        FGameplayTag::RequestGameplayTag( "SFX.GamePhase.Reward.End" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_STARTGAME)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_LOSEGAME)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_WINGAME)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_BUILDING_START)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_COMBAT_START)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_COMBAT_WIN)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_REWARD_START)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_GAMEPHASE_REWARD_END)
 
     // ── Building - Default ────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_SELECTED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Selected" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_PLACED_SUCCESS =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Placed.Success" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_PLACED_RESTRICTED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Placed.Restricted" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_DEMOLISHED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Demolished" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_DEATH =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Death" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_RESURRECTED =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Resurrected" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_ATTACK =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.Attack" );
-    inline const FGameplayTag SFX_BUILDING_DEFAULT_TAKEDAMAGE =
-        FGameplayTag::RequestGameplayTag( "SFX.Building.Default.TakeDamage" );
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_SELECTED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_PLACED_SUCCESS)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_PLACED_RESTRICTED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_DEMOLISHED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_DEATH)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_RESURRECTED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_ATTACK)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_BUILDING_DEFAULT_TAKEDAMAGE)
 
     // ── Unit ── Default ───────────────────────────────────────────────────────
-    inline const FGameplayTag SFX_UNIT_DEFAULT_SELECTED =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.Selected" );
-    inline const FGameplayTag SFX_UNIT_DEFAULT_SPAWN =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.Spawn" );
-    inline const FGameplayTag SFX_UNIT_DEFAULT_DEATH =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.Death" );
-    inline const FGameplayTag SFX_UNIT_DEFAULT_ATTACK =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.Attack" );
-    inline const FGameplayTag SFX_UNIT_DEFAULT_TAKEDAMAGE =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.TakeDamage" );
-    inline const FGameplayTag SFX_UNIT_DEFAULT_SPAWNABILITY =
-        FGameplayTag::RequestGameplayTag( "SFX.Unit.Default.SpawnAbility" );
-}; // namespace AudioTags
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UNIT_DEFAULT_SELECTED)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UNIT_DEFAULT_SPAWN)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UNIT_DEFAULT_DEATH)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UNIT_DEFAULT_ATTACK)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UNIT_DEFAULT_TAKEDAMAGE)
+    UE_DECLARE_GAMEPLAY_TAG_EXTERN(SFX_UNIT_DEFAULT_SPAWNABILITY)
+} // namespace AudioTags
