@@ -1,4 +1,4 @@
-#include "sound/SoundDataAsset.h"
+#include "sound/Data/SoundDataAsset.h"
 
 const FSoundEntry* USoundDataAsset::FindByTag( const FGameplayTag& tag )
 {

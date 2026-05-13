@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Sound/MusicDataAsset.h"
+#include "Sound/Data/MusicDataAsset.h"
 
 const FMusicForLevel* UMusicDataAsset::MusicForLevel( TSoftObjectPtr<UWorld> level ) const
 {

@@ -6,7 +6,7 @@
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/MusicDataAsset.h"
+#include "Sound/Data/MusicDataAsset.h"
 
 void UMusicAmbientManager::PlayMusic( USoundBase* sound )
 {
@@ -72,7 +72,7 @@ void UMusicAmbientManager::PlayMainMenuMusic()
 	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->MainMenuMusic();
+		sound = MusicDataAsset_->MainMenuMusic().Sound;
 	}
 	PlayMusic( sound );
 }
@@ -82,7 +82,7 @@ void UMusicAmbientManager::PlayWinBattleMusic()
 	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->WinBattleMusic();
+		sound = MusicDataAsset_->WinBattleMusic().Sound;
 	}
 	PlayMusic( sound );
 }
@@ -92,7 +92,7 @@ void UMusicAmbientManager::PlayWinGameMusic()
 	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->WinGameMusic();
+		sound = MusicDataAsset_->WinGameMusic().Sound;
 	}
 	PlayMusic( sound );
 }
@@ -102,7 +102,7 @@ void UMusicAmbientManager::PlayLoseGameMusic()
 	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->LoseMusic();
+		sound = MusicDataAsset_->LoseMusic().Sound;
 	}
 	PlayMusic( sound );
 }
@@ -114,7 +114,7 @@ void UMusicAmbientManager::PlayCurrentLevelBuildingMusic()
 		if ( const FMusicForLevel* musicForLevel =
 		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
 		{
-			if ( USoundBase* sound = musicForLevel->Building )
+			if ( USoundBase* sound = musicForLevel->Building.Sound )
 			{
 				PlayMusic( sound );
 				return;
@@ -131,7 +131,7 @@ void UMusicAmbientManager::PlayCurrentLevelCombatMusic()
 		if ( const FMusicForLevel* musicForLevel =
 		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
 		{
-			if ( USoundBase* sound = musicForLevel->Battle )
+			if ( USoundBase* sound = musicForLevel->Battle.Sound )
 			{
 				PlayMusic( sound );
 				return;

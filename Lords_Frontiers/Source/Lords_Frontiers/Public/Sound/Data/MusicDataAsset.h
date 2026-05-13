@@ -2,21 +2,25 @@
 
 #pragma once
 
+#include "ContinuousSound.h"
+
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 
 #include "MusicDataAsset.generated.h"
 
+/** (Gregory-hub)
+ * Music for different turns for one level */
 USTRUCT( BlueprintType )
 struct FMusicForLevel
 {
 	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere )
-	TObjectPtr<USoundBase> Building;
+	FContinuousSound Building;
 
 	UPROPERTY( EditAnywhere )
-	TObjectPtr<USoundBase> Battle;
+	FContinuousSound Battle;
 };
 
 /** (Gregory-hub)
@@ -27,40 +31,40 @@ class LORDS_FRONTIERS_API UMusicDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	USoundBase* MainMenuMusic() const
+	const FContinuousSound& MainMenuMusic() const
 	{
 		return MainMenuMusic_;
 	}
 
-	USoundBase* WinBattleMusic() const
+	const FContinuousSound& WinBattleMusic() const
 	{
 		return WinBattleMusic_;
 	}
 
-	USoundBase* WinGameMusic() const
+	const FContinuousSound& WinGameMusic() const
 	{
 		return WinGameMusic_;
 	}
 
-	USoundBase* LoseMusic() const
+	const FContinuousSound& LoseMusic() const
 	{
 		return LoseMusic_;
 	}
 
 	const FMusicForLevel* MusicForLevel( TSoftObjectPtr<UWorld> level ) const;
 
-protected:
+private:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	USoundBase* MainMenuMusic_ = nullptr;
+	FContinuousSound MainMenuMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	USoundBase* WinBattleMusic_ = nullptr;
+	FContinuousSound WinBattleMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	USoundBase* WinGameMusic_ = nullptr;
+	FContinuousSound WinGameMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	USoundBase* LoseMusic_ = nullptr;
+	FContinuousSound LoseMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	TMap<TSoftObjectPtr<UWorld>, FMusicForLevel> MusicForLevels_;
