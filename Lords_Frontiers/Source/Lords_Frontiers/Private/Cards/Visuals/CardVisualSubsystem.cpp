@@ -53,9 +53,12 @@ void UCardVisualSubsystem::Deinitialize()
 
 	for ( FCardStickyRecord& record : Stickies_ )
 	{
-		if ( UNiagaraComponent* niagara = record.NiagaraComponent.Get() )
+		for ( TWeakObjectPtr<UNiagaraComponent>& weak : record.NiagaraComponents )
 		{
-			niagara->ReleaseToPool();
+			if ( UNiagaraComponent* niagara = weak.Get() )
+			{
+				niagara->ReleaseToPool();
+			}
 		}
 		if ( record.bOverlayApplied )
 		{
@@ -177,13 +180,19 @@ void UCardVisualSubsystem::PrewarmIconPool( int32 count )
 
 void UCardVisualSubsystem::PlayOneShot( const FCardVisualConfig& config, AActor* owner, AActor* target )
 {
-	if ( config.Icon.Mode != ECardVisualIconMode::Sticky )
+	for ( const FCardIconSpec& spec : config.Icons )
 	{
-		PlayIcon( config.Icon, owner, target, false, INDEX_NONE );
+		if ( spec.Mode != ECardVisualIconMode::Sticky )
+		{
+			PlayIcon( spec, owner, target, false, INDEX_NONE );
+		}
 	}
-	if ( !config.Niagara.bLoop )
+	for ( const FCardNiagaraSpec& spec : config.Niagaras )
 	{
-		PlayNiagara( config.Niagara, owner, target, false, INDEX_NONE );
+		if ( !spec.bLoop )
+		{
+			PlayNiagara( spec, owner, target, false, INDEX_NONE );
+		}
 	}
 	// Overlay material has no implicit lifetime — only sticky usage is meaningful.
 }
@@ -199,22 +208,16 @@ FCardVisualHandle UCardVisualSubsystem::BeginSticky(
 	record.Host = owner;
 	Stickies_.Add( record );
 
-	if ( config.Icon.Mode == ECardVisualIconMode::Sticky )
+	for ( const FCardIconSpec& spec : config.Icons )
 	{
-		PlayIcon( config.Icon, owner, target, true, id );
-	}
-	else
-	{
-		PlayIcon( config.Icon, owner, target, false, INDEX_NONE );
+		const bool bSticky = spec.Mode == ECardVisualIconMode::Sticky;
+		PlayIcon( spec, owner, target, bSticky, bSticky ? id : INDEX_NONE );
 	}
 
-	if ( config.Niagara.bLoop )
+	for ( const FCardNiagaraSpec& spec : config.Niagaras )
 	{
-		PlayNiagara( config.Niagara, owner, target, true, id );
-	}
-	else
-	{
-		PlayNiagara( config.Niagara, owner, target, false, INDEX_NONE );
+		const bool bSticky = spec.bLoop;
+		PlayNiagara( spec, owner, target, bSticky, bSticky ? id : INDEX_NONE );
 	}
 
 	PlayOverlay( config.Overlay, owner, target, id );
@@ -247,18 +250,26 @@ void UCardVisualSubsystem::EndSticky( FCardVisualHandle handle )
 
 	FCardStickyRecord& record = Stickies_[foundIndex];
 
-	if ( ACardIconStrip* strip = record.IconStrip.Get() )
+	for ( FCardStickyIconSlot& slot : record.IconSlots )
 	{
-		const bool bEmpty = strip->RemoveIconSlot( record.IconSlotId, 0.f );
+		ACardIconStrip* strip = slot.Strip.Get();
+		if ( !strip )
+		{
+			continue;
+		}
+		const bool bEmpty = strip->RemoveIconSlot( slot.SlotId, 0.f );
 		if ( bEmpty )
 		{
 			ReleaseStrip( strip );
 		}
 	}
-	if ( UNiagaraComponent* niagara = record.NiagaraComponent.Get() )
+	for ( TWeakObjectPtr<UNiagaraComponent>& weak : record.NiagaraComponents )
 	{
-		niagara->Deactivate();
-		niagara->ReleaseToPool();
+		if ( UNiagaraComponent* niagara = weak.Get() )
+		{
+			niagara->Deactivate();
+			niagara->ReleaseToPool();
+		}
 	}
 	if ( record.bOverlayApplied )
 	{
@@ -537,8 +548,10 @@ void UCardVisualSubsystem::SpawnIconNow(
 		FCardStickyRecord* record = FindSticky( stickyId );
 		if ( record )
 		{
-			record->IconStrip = strip;
-			record->IconSlotId = slotId;
+			FCardStickyIconSlot slot;
+			slot.Strip = strip;
+			slot.SlotId = slotId;
+			record->IconSlots.Add( slot );
 			record->Host = host;
 		}
 		return;
@@ -556,15 +569,28 @@ void UCardVisualSubsystem::SpawnIconNow(
 void UCardVisualSubsystem::PlayNiagara(
 	const FCardNiagaraSpec& spec, AActor* owner, AActor* target, bool bSticky, int32 stickyId )
 {
-	if ( spec.System.IsNull() || spec.SpawnOn == ECardVisualTarget::None )
+	if ( spec.System.IsNull() )
 	{
+		UE_LOG( LogCardVisuals, Verbose, TEXT( "PlayNiagara skipped: System is null" ) );
+		return;
+	}
+	if ( spec.Anchor == ECardVisualTarget::None )
+	{
+		UE_LOG( LogCardVisuals, Verbose, TEXT( "PlayNiagara skipped: Anchor=None (%s)" ),
+			*spec.System.ToSoftObjectPath().ToString() );
 		return;
 	}
 
 	TArray<AActor*> hosts;
-	ResolveTargetHosts( spec.SpawnOn, owner, target, hosts );
+	ResolveTargetHosts( spec.Anchor, owner, target, hosts );
 	if ( hosts.Num() == 0 )
 	{
+		UE_LOG( LogCardVisuals, Verbose,
+			TEXT( "PlayNiagara %s: no hosts resolved (anchor=%d owner=%s target=%s)" ),
+			*spec.System.ToSoftObjectPath().ToString(),
+			static_cast<int32>( spec.Anchor ),
+			*GetNameSafe( owner ),
+			*GetNameSafe( target ) );
 		return;
 	}
 
@@ -609,12 +635,16 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 {
 	if ( !host )
 	{
+		UE_LOG( LogCardVisuals, Verbose, TEXT( "SpawnNiagaraNow skipped: host is null" ) );
 		return;
 	}
 
 	UNiagaraSystem* system = spec.System.LoadSynchronous();
 	if ( !system )
 	{
+		UE_LOG( LogCardVisuals, Warning,
+			TEXT( "SpawnNiagaraNow: LoadSynchronous returned null for %s" ),
+			*spec.System.ToSoftObjectPath().ToString() );
 		return;
 	}
 
@@ -637,6 +667,11 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 		}
 	}
 
+	const FVector clampedScale(
+		FMath::Max( 0.f, spec.Scale.X ),
+		FMath::Max( 0.f, spec.Scale.Y ),
+		FMath::Max( 0.f, spec.Scale.Z ) );
+
 	if ( attachTo )
 	{
 		component = UNiagaraFunctionLibrary::SpawnSystemAttached(
@@ -649,6 +684,11 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 			!bRetainNiagara,
 			true,
 			pooling );
+
+		if ( component && !clampedScale.Equals( FVector::OneVector ) )
+		{
+			component->SetRelativeScale3D( clampedScale );
+		}
 	}
 	else
 	{
@@ -658,7 +698,7 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 			system,
 			worldLoc,
 			FRotator::ZeroRotator,
-			FVector( 1.f ),
+			clampedScale,
 			!bRetainNiagara,
 			true,
 			pooling );
@@ -666,15 +706,28 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 
 	if ( !component )
 	{
+		UE_LOG( LogCardVisuals, Warning,
+			TEXT( "SpawnNiagaraNow: SpawnSystem returned null for %s on host=%s attachTo=%s" ),
+			*system->GetName(), *GetNameSafe( host ), *GetNameSafe( attachTo ) );
 		return;
 	}
+
+	UE_LOG( LogCardVisuals, Verbose,
+		TEXT( "SpawnNiagaraNow: %s on host=%s attach=%d sticky=%d loc=%s scale=%s" ),
+		*system->GetName(),
+		*GetNameSafe( host ),
+		attachTo ? 1 : 0,
+		bRetainNiagara ? 1 : 0,
+		*( attachTo ? host->GetActorLocation().ToCompactString()
+			: ( host->GetActorLocation() + spec.LocationOffset ).ToCompactString() ),
+		*clampedScale.ToCompactString() );
 
 	if ( bRetainNiagara )
 	{
 		FCardStickyRecord* record = FindSticky( stickyId );
 		if ( record )
 		{
-			record->NiagaraComponent = component;
+			record->NiagaraComponents.Add( component );
 		}
 	}
 }

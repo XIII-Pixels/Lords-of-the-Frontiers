@@ -492,14 +492,19 @@ void UCardSubsystem::ApplyCardEvent(
 			{
 				continue;
 			}
-			if ( !event.MatchesBuilding( building ) )
+			// Class-only gate: runtime effects must register regardless of current
+			// state so a Destroyed-Only card lands its registration even while the
+			// building is alive — the dispatch path re-checks state per trigger.
+			if ( !event.MatchesBuildingClass( building ) )
 			{
 				continue;
 			}
 
+			const bool bStateMatches = event.MatchesBuildingState( building );
+
 			FCardEffectContext ctx = MakeContext( card, eventIndex, stackCount, waveNumber, building );
 
-			const bool bOneShotPassesConditions = bHasOneShotEffect
+			const bool bOneShotPassesConditions = bHasOneShotEffect && bStateMatches
 				? EvaluateConditions( event, ctx )
 				: false;
 
@@ -527,7 +532,7 @@ void UCardSubsystem::ApplyCardEvent(
 				else if ( bOneShotPassesConditions )
 				{
 					effect->Apply( ctx );
-					if ( visuals )
+					if ( visuals && !effect->HandlesOwnVisuals() )
 					{
 						visuals->PlayOneShot( effect->VisualConfig, building, nullptr );
 					}
@@ -851,7 +856,10 @@ void UCardSubsystem::RevertAppliedRecord( const FAppliedCardRecord& record )
 			{
 				for ( ABuilding* building : buildings )
 				{
-					if ( !IsValid( building ) || !event.MatchesBuilding( building ) )
+					// Revert covers anything we applied — apply gate is class-only
+					// (state may change between apply and revert), so use the same
+					// gate here to undo cleanly.
+					if ( !IsValid( building ) || !event.MatchesBuildingClass( building ) )
 					{
 						continue;
 					}
@@ -990,14 +998,16 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 					continue;
 				}
 
-				if ( !event.MatchesBuilding( building ) )
+				if ( !event.MatchesBuildingClass( building ) )
 				{
 					continue;
 				}
 
+				const bool bStateMatches = event.MatchesBuildingState( building );
+
 				FCardEffectContext ctx = MakeContext( card, eventIndex, stack + 1, record.WaveSelected, building );
 
-				const bool bOneShotPassesConditions = bHasOneShot
+				const bool bOneShotPassesConditions = bHasOneShot && bStateMatches
 					? EvaluateConditions( event, ctx )
 					: false;
 

@@ -2,6 +2,8 @@
 
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/Visuals/CardVisualSubsystem.h"
+#include "Entity.h"
+#include "EntityStats.h"
 
 #include "Engine/World.h"
 
@@ -32,6 +34,18 @@ void UStatusEffectTracker::TickComponent(
 	if ( !owner || !world )
 	{
 		return;
+	}
+
+	// Safety net: if the owning entity died but nobody called NotifyOwnerDied
+	// (e.g. unit class without a death hook), tear everything down now so we
+	// don't keep ticking DOTs / looping fire on a corpse.
+	if ( const IEntity* entity = Cast<IEntity>( owner ) )
+	{
+		if ( !entity->Stats().IsAlive() )
+		{
+			NotifyOwnerDied();
+			return;
+		}
 	}
 	const float now = world->GetTimeSeconds();
 
@@ -169,6 +183,12 @@ void UStatusEffectTracker::ClearAll()
 		ReleaseStatusVisual( pair.Value );
 	}
 	Active_.Empty();
+}
+
+void UStatusEffectTracker::NotifyOwnerDied()
+{
+	ClearAll();
+	SetComponentTickEnabled( false );
 }
 
 void UStatusEffectTracker::ReleaseStatusVisual( FActiveStatus& state )

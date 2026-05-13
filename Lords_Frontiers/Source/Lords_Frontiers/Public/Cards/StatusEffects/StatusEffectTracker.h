@@ -55,6 +55,16 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Status" )
 	void ClearAll();
 
+	/**
+	 * Called by the owning actor when it dies. Clears every active status
+	 * (running OnRemove and tearing down sticky visuals) and stops the
+	 * tracker tick so DOT/visuals don't persist on the corpse.
+	 *
+	 * Safe to call multiple times.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Status" )
+	void NotifyOwnerDied();
+
 	static UStatusEffectTracker* EnsureOn( AActor* actor );
 
 private:

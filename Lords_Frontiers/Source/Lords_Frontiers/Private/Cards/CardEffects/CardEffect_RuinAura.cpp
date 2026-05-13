@@ -4,6 +4,7 @@
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Cards/Visuals/CardAoEDebug.h"
+#include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Utilities/TraceChannelMappings.h"
@@ -74,6 +75,7 @@ void UCardEffect_RuinAura::Execute_Implementation( const FCardEffectContext& con
 
 		if ( DamagePerTick > 0 )
 		{
+			FDamageEvents::OnDamageDealt.Broadcast( building, hitActor, DamagePerTick, true );
 			enemy->TakeDamage( DamagePerTick, building );
 		}
 

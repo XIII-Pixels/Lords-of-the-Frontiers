@@ -63,4 +63,19 @@ public:
 	{
 		return false;
 	}
+
+	/**
+	 * If true, the effect itself is responsible for playing VisualConfig (likely per
+	 * target / per spawned actor / etc.). The dispatcher in UCardSubsystem and
+	 * UCardEffectHostComponent will skip the default PlayOneShot for this effect.
+	 *
+	 * Use this for effects like AoE explosions that need to play the configured
+	 * visual on every affected enemy, not just on the kill victim.
+	 */
+	UFUNCTION( BlueprintNativeEvent, BlueprintPure, Category = "Card|Effect" )
+	bool HandlesOwnVisuals() const;
+	virtual bool HandlesOwnVisuals_Implementation() const
+	{
+		return false;
+	}
 };
