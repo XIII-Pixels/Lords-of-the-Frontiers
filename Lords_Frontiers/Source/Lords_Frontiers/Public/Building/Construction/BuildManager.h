@@ -23,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArra
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnPlacingCancelled );
 
 UCLASS()
-class LORDS_FRONTIERS_API ABuildManager : public AActor
+class LORDS_FRONTIERS_API ABuildManager : public AActor, public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -55,7 +55,7 @@ public:
 
 	void ResetPlacementState();
 
-	void RelocateExistingBuilding( const FVector& cellWorldLocation );
+	bool RelocateExistingBuilding( const FVector& cellWorldLocation );
 
 	bool TryPlaceNewBuilding( const FVector& cellWorldLocation );
 
@@ -98,9 +98,15 @@ public:
 	void ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	bool RemoveExistingBuilding( ABuilding* buildingToRemove );
-	
+
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void BeginDestroy() override;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Grid", meta = ( AllowPrivateAccess = "true" ) )
 	TObjectPtr<AGridManager> GridManager_ = nullptr;
@@ -116,8 +122,6 @@ protected:
 
 	void
 	CollectBonusFromNeighbors( const FIntPoint& myCellCoords, TArray<FBonusIconData>& result, const ABuilding* cdo );
-
-
 
 private:
 	UPROPERTY()
@@ -190,4 +194,6 @@ private:
 
 	float CachedPreviewAttackRange_ = 0.f;
 	FIntPoint LastPlacedCellCoords_ = FIntPoint( INDEX_NONE, INDEX_NONE );
+
+	FOnAudioEvent OnAudioEvent_;
 };

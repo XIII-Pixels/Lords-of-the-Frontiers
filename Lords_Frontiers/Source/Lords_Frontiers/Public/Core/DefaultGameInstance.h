@@ -11,6 +11,7 @@
 
 class UMusicDataAsset;
 class UAmbientDataAsset;
+class USoundDataAsset;
 class UGameSaverConfig;
 class ACardFeedbackPopup;
 class ACardIconStrip;
@@ -35,6 +36,12 @@ public:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Sound" )
 	TObjectPtr<UAmbientDataAsset> Ambient;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Sound" )
+	TObjectPtr<USoundDataAsset> SoundData;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Sound" )
+	TObjectPtr<USoundAttenuation> DefaultAttenuation;
 
 	TSubclassOf<ACardFeedbackPopup> GetCardFeedbackPopupClass() const
 	{
