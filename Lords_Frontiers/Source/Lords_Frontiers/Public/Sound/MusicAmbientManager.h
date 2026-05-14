@@ -9,7 +9,8 @@
 
 #include "MusicAmbientManager.generated.h"
 
-struct FContinuousSound;
+class ULoopingSound;
+struct FLoopingSoundConfig;
 class ULevelsDataAsset;
 class UAmbientDataAsset;
 class UMusicDataAsset;
@@ -22,24 +23,24 @@ class LORDS_FRONTIERS_API UMusicAmbientManager : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
+	// Music
 	void PlayMainMenuMusic();
-	void PlayWinBattleMusic();
 	void PlayWinGameMusic();
 	void PlayLoseGameMusic();
 	void PlayCurrentLevelBuildingMusic();
 	void PlayCurrentLevelCombatMusic();
-
-	void PlayCurrentLevelAmbient();
-
 	void StopMusic();
+
+	// Ambient
+	void PlayCurrentLevelAmbient();
 	void StopAllAmbient();
 
-	UAudioComponent* GetMusicPlaying() const
+	ULoopingSound* GetMusicPlaying() const
 	{
 		return Music_;
 	}
 
-	TSet<TObjectPtr<UAudioComponent>> GetAmbientSoundsPlaying() const
+	TSet<TObjectPtr<ULoopingSound>> GetAmbientSoundsPlaying() const
 	{
 		return AmbientSounds_;
 	}
@@ -48,24 +49,19 @@ protected:
 	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
-	void PlayMusic( const FContinuousSound* sound );
-
-	void PlayAmbient( const FContinuousSound* sound );
+	void PlayMusic( const FLoopingSoundConfig* sound );
+	void PlayAmbient( const FLoopingSoundConfig* sound );
 
 private:
-	UAudioComponent* CreateAndPlay( const FContinuousSound* sound ) const;
-
-	void PlayContinuousSound( UAudioComponent* audioComponent, const FContinuousSound* sound ) const;
-
-	void StartPlayback( UAudioComponent* audioComponent, const FContinuousSound* sound, bool initial = false ) const;
+	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound );
 
 	// Only one music track can play at a time
 	UPROPERTY()
-	TObjectPtr<UAudioComponent> Music_ = nullptr;
+	TObjectPtr<ULoopingSound> Music_ = nullptr;
 
 	// Any number of ambient tracks can play simultaneously
 	UPROPERTY()
-	TSet<TObjectPtr<UAudioComponent>> AmbientSounds_;
+	TSet<TObjectPtr<ULoopingSound>> AmbientSounds_;
 
 	// Pointers to data
 

@@ -4,46 +4,51 @@
 
 #include "CoreMinimal.h"
 
-#include "ContinuousSound.generated.h"
+#include "LoopingSoundConfig.generated.h"
 
 class USoundBase;
 
 /** (Gregory-hub)
  * Looping sound */
 USTRUCT( BlueprintType )
-struct FContinuousSound
+struct FLoopingSoundConfig
 {
 	GENERATED_BODY()
 
 public:
 	float StartTimeRandomized() const
 	{
-		return FMath::RandRange( StartTimeRange_.X, StartTimeRange_.Y );
+		return FMath::RandRange( StartTime_.X, StartTime_.Y );
 	}
 
 	float InitialFadeInRandomized() const
 	{
-		return FMath::RandRange( InitialFadeInRange_.X, InitialFadeInRange_.Y );
+		return FMath::RandRange( InitialFadeIn_.X, InitialFadeIn_.Y );
 	}
 
 	float FadeInRandomized() const
 	{
-		return FMath::RandRange( FadeInRange_.X, FadeInRange_.Y );
+		return FMath::RandRange( FadeIn_.X, FadeIn_.Y );
 	}
 
 	float FadeOutRandomized() const
 	{
-		return FMath::RandRange( FadeOutRange_.X, FadeOutRange_.Y );
+		return FMath::RandRange( FadeOut_.X, FadeOut_.Y );
+	}
+
+	float TransitionFadeOutRandomized() const
+	{
+		return FMath::RandRange( TransitionFadeOut_.X, TransitionFadeOut_.Y );
 	}
 
 	float DelayBeforeStartRandomized() const
 	{
-		return FMath::RandRange( DelayBeforeStartRange_.X, DelayBeforeStartRange_.Y );
+		return FMath::RandRange( DelayBeforeStart_.X, DelayBeforeStart_.Y );
 	}
 
 	float RepeatDelayRandomized() const
 	{
-		return FMath::RandRange( RepeatDelayRange_.X, RepeatDelayRange_.Y );
+		return FMath::RandRange( RepeatDelay_.X, RepeatDelay_.Y );
 	}
 
 	UPROPERTY( EditAnywhere )
@@ -57,20 +62,23 @@ public:
 
 protected:
 	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f ) )
-	FVector2D StartTimeRange_ = FVector2D::ZeroVector;
+	FVector2D StartTime_ = FVector2D::ZeroVector;
 
 	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f ) )
-	FVector2D DelayBeforeStartRange_ = FVector2D::ZeroVector;
+	FVector2D DelayBeforeStart_ = FVector2D::ZeroVector;
 
 	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f ) )
-	FVector2D InitialFadeInRange_ = FVector2D::ZeroVector;
+	FVector2D InitialFadeIn_ = FVector2D::ZeroVector;
 
 	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f ) )
-	FVector2D FadeInRange_ = FVector2D::ZeroVector;
+	FVector2D FadeIn_ = FVector2D::ZeroVector;
 
 	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f ) )
-	FVector2D FadeOutRange_ = FVector2D::ZeroVector;
+	FVector2D FadeOut_ = FVector2D::ZeroVector;
+
+	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f ) )
+	FVector2D TransitionFadeOut_ = { 1.0f, 1.0f };
 
 	UPROPERTY( EditAnywhere, meta = ( ClampMin = 0.0f, Tooltip = "Sound will play again after specified time" ) )
-	FVector2D RepeatDelayRange_ = FVector2D::ZeroVector;
+	FVector2D RepeatDelay_ = FVector2D::ZeroVector;
 };

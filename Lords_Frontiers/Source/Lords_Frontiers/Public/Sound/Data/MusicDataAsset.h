@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "ContinuousSound.h"
+#include "LoopingSoundConfig.h"
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
@@ -17,10 +17,10 @@ struct FMusicForLevel
 	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere )
-	FContinuousSound Building;
+	FLoopingSoundConfig Building;
 
 	UPROPERTY( EditAnywhere )
-	FContinuousSound Battle;
+	FLoopingSoundConfig Battle;
 };
 
 /** (Gregory-hub)
@@ -31,22 +31,17 @@ class LORDS_FRONTIERS_API UMusicDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	const FContinuousSound& MainMenuMusic() const
+	const FLoopingSoundConfig& MainMenuMusic() const
 	{
 		return MainMenuMusic_;
 	}
 
-	const FContinuousSound& WinBattleMusic() const
+	const FLoopingSoundConfig& WinMusic() const
 	{
-		return WinBattleMusic_;
+		return WinMusic_;
 	}
 
-	const FContinuousSound& WinGameMusic() const
-	{
-		return WinGameMusic_;
-	}
-
-	const FContinuousSound& LoseMusic() const
+	const FLoopingSoundConfig& LoseMusic() const
 	{
 		return LoseMusic_;
 	}
@@ -55,16 +50,13 @@ public:
 
 private:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	FContinuousSound MainMenuMusic_;
+	FLoopingSoundConfig MainMenuMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	FContinuousSound WinBattleMusic_;
+	FLoopingSoundConfig WinMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	FContinuousSound WinGameMusic_;
-
-	UPROPERTY( EditAnywhere, Category = "Settings" )
-	FContinuousSound LoseMusic_;
+	FLoopingSoundConfig LoseMusic_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	TMap<TSoftObjectPtr<UWorld>, FMusicForLevel> MusicForLevels_;

@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "Sound/Data/ContinuousSound.h"
-
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Sound/Data/LoopingSoundConfig.h"
 
 #include "AmbientDataAsset.generated.h"
 
@@ -17,7 +16,7 @@ struct FAmbientForLevel
 	GENERATED_BODY()
 
 	UPROPERTY( EditAnywhere )
-	TArray<FContinuousSound> AmbientEntries;
+	TArray<FLoopingSoundConfig> AmbientEntries;
 };
 
 /** (Gregory-hub)
@@ -28,7 +27,7 @@ class LORDS_FRONTIERS_API UAmbientDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	const FContinuousSound& WindAmbient() const
+	const FLoopingSoundConfig& WindAmbient() const
 	{
 		return WindAmbient_;
 	}
@@ -40,7 +39,7 @@ public:
 
 private:
 	UPROPERTY( EditAnywhere, Category = "Settings" )
-	FContinuousSound WindAmbient_;
+	FLoopingSoundConfig WindAmbient_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	TMap<TSoftObjectPtr<UWorld>, FAmbientForLevel> AmbientForLevels_;

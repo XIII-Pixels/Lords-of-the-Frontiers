@@ -382,8 +382,6 @@ void UGameLoopManager::EnterRewardPhase()
 		return;
 	}
 
-	PlayBuildingMusicAndAmbient();
-
 	ProceedToNextWave();
 }
 
@@ -453,6 +451,8 @@ void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 	{
 		UnitAIManager_->PathPointsManager()->Empty();
 	}
+
+	PlayBuildingMusicAndAmbient();
 
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
 }
