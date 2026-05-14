@@ -231,6 +231,8 @@ struct LORDS_FRONTIERS_API FCardEvent
 		meta = ( AllowAbstract = "false" ) )
 	TArray<TObjectPtr<UCardEffect>> Effects;
 
+	bool MatchesBuildingClass( const ABuilding* building ) const;
+	bool MatchesBuildingState( const ABuilding* building ) const;
 	bool MatchesBuilding( const ABuilding* building ) const;
 };
 

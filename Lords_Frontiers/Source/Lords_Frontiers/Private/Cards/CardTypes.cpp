@@ -102,14 +102,18 @@ bool FBuildingTargetFilter::MatchesBuilding( const AActor* building ) const
 	}
 }
 
-bool FCardEvent::MatchesBuilding( const ABuilding* building ) const
+bool FCardEvent::MatchesBuildingClass( const ABuilding* building ) const
 {
 	if ( !building )
 	{
 		return false;
 	}
+	return TargetFilter.MatchesBuilding( building );
+}
 
-	if ( !TargetFilter.MatchesBuilding( building ) )
+bool FCardEvent::MatchesBuildingState( const ABuilding* building ) const
+{
+	if ( !building )
 	{
 		return false;
 	}
@@ -123,6 +127,11 @@ bool FCardEvent::MatchesBuilding( const ABuilding* building ) const
 	case ETargetStateFilter::Any:   return true;
 	default:                        return !bRuined;
 	}
+}
+
+bool FCardEvent::MatchesBuilding( const ABuilding* building ) const
+{
+	return MatchesBuildingClass( building ) && MatchesBuildingState( building );
 }
 
 void FEconomyBonuses::AddProductionBonus( EResourceTargetType target, int32 delta )
