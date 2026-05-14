@@ -16,8 +16,8 @@
 #include "Camera/CameraZoomUtils.h"
 #include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
-#include "Components/TextBlock.h"
 #include "Components/HorizontalBox.h"
+#include "Components/TextBlock.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/AudioTags.h"
@@ -190,7 +190,15 @@ void UGameHUDWidget::NativeConstruct()
 	ShowEconomyBuildings();
 
 	UpdateAllBuildingButtons();
-	UpdateWaveInfoButtonVisuals();
+	if ( IsValid( WavePanelClass ) && !IsValid( ActiveWavePanel ) )
+	{
+		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
+		if ( IsValid( ActiveWavePanel ) )
+		{
+			ActiveWavePanel->AddToViewport( -1 );
+		}
+	}
+	UpdateWaveInfo();
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -339,11 +347,6 @@ void UGameHUDWidget::NativeDestruct()
 		}
 	}
 
-	if ( UWorld* world = GetWorld() )
-	{
-		world->GetTimerManager().ClearTimer( WavePanelAnimationTimerHandle );
-	}
-
 	Super::NativeDestruct();
 }
 
@@ -428,6 +431,23 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	}
 
 	UpdateExtraButtonsVisibility();
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( AWaveManager* waveManager = core->GetWaveManager() )
+		{
+			if ( NewPhase == EGameLoopPhase::Combat )
+			{
+				waveManager->OnWaveEnemiesUpdated.AddUniqueDynamic( this, &UGameHUDWidget::UpdateWaveInfo );
+				UpdateWaveInfo();
+			}
+			else if ( NewPhase == EGameLoopPhase::Building )
+			{
+				waveManager->OnWaveEnemiesUpdated.RemoveDynamic( this, &UGameHUDWidget::UpdateWaveInfo );
+				UpdateWaveInfo();
+			}
+		}
+	}
 }
 
 void UGameHUDWidget::HandleBonusPreviewUpdated( const TArray<FBonusIconData>& BonusIcons )
@@ -512,8 +532,20 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	{
 		UpdateBonusIconPositions();
 	}
+
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
+			{
+				UpdateWaveInfo();
+			}
+		}
+	}
 }
 
 void UGameHUDWidget::UpdateBonusIconPositions()
@@ -1162,8 +1194,7 @@ void UGameHUDWidget::PlayOnBuildingButtonClickedSound( const UButton* button ) c
 	}
 }
 
-void UGameHUDWidget::PlayOnBuildingButtonHoveredSound( const UButton* button )
-    const
+void UGameHUDWidget::PlayOnBuildingButtonHoveredSound( const UButton* button ) const
 {
 	if ( button && button->GetBackgroundColor() == AffordableColor )
 	{
@@ -1177,87 +1208,61 @@ void UGameHUDWidget::PlayOnBuildingButtonHoveredSound( const UButton* button )
 
 void UGameHUDWidget::ToggleWaveInfoPanel()
 {
-	if ( !WavePanelClass )
+	if ( IsValid( ActiveWavePanel ) )
+	{
+		ActiveWavePanel->TogglePanel();
+	}
+}
+
+void UGameHUDWidget::UpdateWaveInfo()
+{
+	if ( !IsValid( ActiveWavePanel ) )
 	{
 		return;
 	}
 
-	if ( bIsWavePanelAnimating )
-	{
-		return;
-	}
+	UCoreManager* core = UCoreManager::Get( this );
+	UGameLoopManager* gameLoop = IsValid( core ) ? core->GetGameLoop() : nullptr;
+	AWaveManager* waveManager = IsValid( core ) ? core->GetWaveManager() : nullptr;
 
-	if ( !ActiveWavePanel )
+	if ( IsValid( gameLoop ) && IsValid( waveManager ) )
 	{
-		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
-		if ( ActiveWavePanel )
+		int32 waveIndex = FMath::Max( 0, gameLoop->GetCurrentWave() - 1 );
+
+		TMap<TSubclassOf<AUnit>, int32> waveData;
+
+		if ( gameLoop->GetCurrentPhase() == EGameLoopPhase::Combat )
 		{
-			ActiveWavePanel->AddToViewport( 0 );
+			waveData = waveManager->GetCurrentWaveRemainingEnemies();
+
+			if ( waveData.Num() == 0 )
+			{
+				waveData = waveManager->GetNextWaveComposition( waveIndex );
+			}
 		}
-	}
-
-	if ( !ActiveWavePanel )
-	{
-		return;
-	}
-
-	bIsWavePanelAnimating = true;
-
-	GetWorld()->GetTimerManager().SetTimer(
-	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
-	);
-
-	bIsWavePanelOpen = !bIsWavePanelOpen;
-
-	if ( bIsWavePanelOpen )
-	{
-		UCoreManager* core = UCoreManager::Get( this );
-		UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
-		AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
-
-		if ( gameLoop && waveManager )
+		else
 		{
-			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
-			TMap<TSubclassOf<AUnit>, int32> waveData = waveManager->GetNextWaveComposition( waveIndex );
-			ActiveWavePanel->PopulatePanel( waveData );
+			waveData = waveManager->GetNextWaveComposition( waveIndex );
 		}
 
-		ActiveWavePanel->PlaySlideInAnimation();
-	}
-	else
-	{
-		ActiveWavePanel->PlaySlideOutAnimation();
-	}
+		int32 totalEnemies = 0;
+		for ( const TPair<TSubclassOf<AUnit>, int32>& pair : waveData )
+		{
+			totalEnemies += pair.Value;
+		}
 
-	UpdateWaveInfoButtonVisuals();
+		if ( IsValid( Text_TotalEnemies ) )
+		{
+			Text_TotalEnemies->SetText( FText::AsNumber( totalEnemies ) );
+		}
+
+		ActiveWavePanel->PopulatePanel( waveData );
+	}
 }
 
 void UGameHUDWidget::OnWaveInfoButtonClicked()
 {
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_NEXTWAVEINFO_CLICKED } );
-
 	ToggleWaveInfoPanel();
-}
-
-void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
-{
-	if ( ImgWaveInfoRed )
-	{
-		ImgWaveInfoRed->SetVisibility(
-		    bIsWavePanelOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
-		);
-	}
-	if ( ImgWaveInfoWhite )
-	{
-		ImgWaveInfoWhite->SetVisibility(
-		    bIsWavePanelOpen ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible
-		);
-	}
-}
-
-void UGameHUDWidget::UnlockWaveInfoButton()
-{
-	bIsWavePanelAnimating = false;
 }
 
 void UGameHUDWidget::InitIncomeDisplay()

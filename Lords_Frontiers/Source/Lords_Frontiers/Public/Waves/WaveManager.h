@@ -18,6 +18,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveStartedSignature, int32, Wav
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndedSignature, int32, WaveIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnAllWavesCompletedSignature );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndScheduled, float, SecondsRemaining );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnWaveEnemiesUpdatedSignature );
 
 /*
  (Artyom)
@@ -93,6 +94,9 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
 	FOnAllWavesCompletedSignature OnAllWavesCompleted;
 
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Wave|Events" )
+	FOnWaveEnemiesUpdatedSignature OnWaveEnemiesUpdated;
+
 	UPROPERTY( Transient )
 	TMap<int32, TObjectPtr<UWaveData>> SelectedWavePresets_;
 
@@ -113,6 +117,12 @@ public:
   
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
 	TMap<TSubclassOf<AUnit>, int32> GetNextWaveComposition( int32 TargetWaveIndex ) const;
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Wave|UI" )
+	TMap<TSubclassOf<AUnit>, int32> GetCurrentWaveRemainingEnemies() const
+	{
+		return RemainingEnemiesPerClass_;
+	}
 
 	UPROPERTY( EditAnywhere, Category = "Settings|WaveConfig" )
 	TObjectPtr<UWaveConfigData> WaveConfig_ = nullptr;
@@ -198,4 +208,5 @@ protected:
 
 private:
 	float RuntimeWaveEndSafetyMargin_ = 1.0f;
+	TMap<TSubclassOf<AUnit>, int32> RemainingEnemiesPerClass_;
 };

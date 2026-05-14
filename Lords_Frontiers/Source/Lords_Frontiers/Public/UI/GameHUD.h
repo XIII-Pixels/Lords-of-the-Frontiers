@@ -218,22 +218,14 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
 	void ToggleWaveInfoPanel();
 
-	UPROPERTY( BlueprintReadOnly, Category = "Settings|UI|WaveInfo" )
-	bool bIsWavePanelOpen = false;
-
-	bool bIsWavePanelAnimating = false;
-	FTimerHandle WavePanelAnimationTimerHandle;
-
-	void UnlockWaveInfoButton();
-
-	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UImage> ImgWaveInfoRed;
-
-	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UImage> ImgWaveInfoWhite;
+	UFUNCTION()
+	void UpdateWaveInfo();
 
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> BtnToggleWaveInfo;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Text_TotalEnemies;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UStageProgressWidget> StageProgressBar;
@@ -521,8 +513,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UWaveInfoPanelWidget> ActiveWavePanel;
-
-	void UpdateWaveInfoButtonVisuals();
 
 	UFUNCTION()
 	void OnWaveInfoButtonClicked();
