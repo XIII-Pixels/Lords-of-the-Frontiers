@@ -10,13 +10,13 @@
 #include "Sound/Data/MusicDataAsset.h"
 #include "Sound/LoopingSound.h"
 
-void UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound )
+ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound )
 {
 	if ( Music_ )
 	{
 		if ( IsValid( Music_->GetAudioComponent() ) && Music_->GetAudioComponent()->GetSound() == sound->Sound )
 		{
-			return;
+			return nullptr;
 		}
 		StopMusic();
 	}
@@ -25,19 +25,22 @@ void UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound )
 	{
 		Music_ = CreateAndPlay( sound );
 	}
+	return Music_;
 }
 
-void UMusicAmbientManager::PlayAmbient( const FLoopingSoundConfig* sound )
+ULoopingSound* UMusicAmbientManager::PlayAmbient( const FLoopingSoundConfig* sound )
 {
 	if ( !sound )
 	{
-		return;
+		return nullptr;
 	}
 
 	if ( ULoopingSound* audio = CreateAndPlay( sound ) )
 	{
 		AmbientSounds_.Add( audio );
+		return audio;
 	}
+	return nullptr;
 }
 
 ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound )
@@ -114,12 +117,39 @@ void UMusicAmbientManager::PlayCurrentLevelAmbient()
 	StopAllAmbient();
 	if ( AmbientDataAsset_.IsValid() )
 	{
-		const FAmbientForLevel* ambientForLevel = AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) );
-		for ( const FLoopingSoundConfig& ambient : ambientForLevel->AmbientEntries  )
+		const FAmbientForLevel* ambientForLevel =
+		    AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) );
+		for ( const FLoopingSoundConfig& ambient : ambientForLevel->AmbientEntries )
 		{
 			PlayAmbient( &ambient );
 		}
 	}
+}
+
+void UMusicAmbientManager::PlayWindAmbient()
+{
+	if ( !WindAmbientPlaying_.IsValid() && AmbientDataAsset_.IsValid() )
+	{
+		WindAmbientPlaying_ = PlayAmbient( &AmbientDataAsset_->WindAmbient() );
+	}
+}
+
+void UMusicAmbientManager::StopWindAmbient()
+{
+	if ( WindAmbientPlaying_.IsValid() )
+	{
+		StopAmbient( WindAmbientPlaying_.Get() );
+		WindAmbientPlaying_ = nullptr;
+	}
+}
+
+void UMusicAmbientManager::StopAmbient( ULoopingSound* ambient )
+{
+	if ( IsValid( ambient ) )
+	{
+		ambient->Stop();
+	}
+	AmbientSounds_.Remove( ambient );
 }
 
 void UMusicAmbientManager::StopMusic()

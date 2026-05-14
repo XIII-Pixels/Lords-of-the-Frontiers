@@ -60,6 +60,7 @@ void ULoopingSound::StartPlayback( bool initial )
 	}
 	else
 	{
+		fadeIn = SoundConfig_->FadeInRandomized();
 		UE_LOG(
 		    LogTemp, Log, TEXT( "ULoopingSound: restart playing looping sound: %s" ), *SoundConfig_->Sound->GetName()
 		);
@@ -75,7 +76,13 @@ void ULoopingSound::StartPlayback( bool initial )
 	const float fadeOut = SoundConfig_->FadeOutRandomized();
 	if ( fadeOut > 0 )
 	{
-		const float duration = SoundConfig_->Sound->GetDuration() - startTime;
+		float duration = SoundConfig_->Sound->GetDuration();
+		if ( AudioComponent_->PitchMultiplier > 0.0f )
+		{
+			duration /= AudioComponent_->PitchMultiplier;
+		}
+		duration -= startTime;
+
 		const float fadeOutStart = FMath::Max( 0.0f, duration - fadeOut );
 
 		FTimerDelegate delegate;
@@ -90,14 +97,22 @@ void ULoopingSound::StartPlayback( bool initial )
 		    }
 		);
 
-		GetWorld()->GetTimerManager().SetTimer( FadeTimerHandle_, fadeOutStart, false );
+		GetWorld()->GetTimerManager().SetTimer( FadeTimerHandle_, delegate, fadeOutStart, false );
 	}
 
 	GetWorld()->GetTimerManager().ClearTimer( ReplayTimerHandle_ );
 
 	// Schedule replay
 	const float repeatDelay = SoundConfig_->RepeatDelayRandomized();
-	const float timeBeforeReplay = SoundConfig_->Sound->GetDuration() - startTime + repeatDelay;
+
+	float duration = FMath::Max( 0, SoundConfig_->Sound->GetDuration() );
+	if ( AudioComponent_->PitchMultiplier > 0.0f )
+	{
+		duration /= AudioComponent_->PitchMultiplier;
+	}
+	duration -= startTime;
+
+	const float timeBeforeReplay = duration + repeatDelay;
 
 	FTimerDelegate delegate;
 	delegate.BindWeakLambda( this, [this]() { StartPlayback(); } );

@@ -32,6 +32,9 @@ public:
 
 	// Ambient
 	void PlayCurrentLevelAmbient();
+	void PlayWindAmbient();
+	void StopWindAmbient();
+	void StopAmbient( ULoopingSound* ambient );
 	void StopAllAmbient();
 
 	ULoopingSound* GetMusicPlaying() const
@@ -48,8 +51,8 @@ protected:
 	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
-	void PlayMusic( const FLoopingSoundConfig* sound );
-	void PlayAmbient( const FLoopingSoundConfig* sound );
+	ULoopingSound* PlayMusic( const FLoopingSoundConfig* sound );
+	ULoopingSound* PlayAmbient( const FLoopingSoundConfig* sound );
 
 private:
 	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound );
@@ -61,6 +64,9 @@ private:
 	// Any number of ambient tracks can play simultaneously
 	UPROPERTY()
 	TSet<TObjectPtr<ULoopingSound>> AmbientSounds_;
+
+	UPROPERTY()
+	TWeakObjectPtr<ULoopingSound> WindAmbientPlaying_;
 
 	// Pointers to data
 
