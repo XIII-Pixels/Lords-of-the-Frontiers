@@ -19,6 +19,7 @@ class UHealthBarConfigDataAsset;
 class UGeometryCacheComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingRestored, ABuilding*, Building );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
     FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator
 );
@@ -135,6 +136,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable )
 	FOnBuildingDeath OnBuildingDied;
+
+	UPROPERTY( BlueprintAssignable )
+	FOnBuildingRestored OnBuildingRestored;
 
 	UPROPERTY( BlueprintAssignable )
 	FOnBuildingDamaged OnBuildingDamaged;

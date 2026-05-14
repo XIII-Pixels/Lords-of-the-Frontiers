@@ -88,6 +88,12 @@ protected:
 	UFUNCTION()
 	void HandleOwnerRuined( class ABuilding* building );
 
+	UFUNCTION()
+	void HandleOwnerRestored( class ABuilding* building );
+
+	void SyncStickyForRecord( struct FRegisteredCardEffect& record );
+	void SyncStickyForAllRecords();
+
 	void HandleDamageDealt( AActor* instigator, AActor* target, int damage, bool bIsSplash );
 	void HandleProjectileMissed( AActor* instigator, const FVector& impactLocation );
 	void HandleProjectileLanded( AActor* instigator, const FVector& impactLocation );

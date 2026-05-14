@@ -7,6 +7,7 @@
 
 #include "StatusEffectDef.generated.h"
 
+class UCardVFXAsset;
 struct FActiveStatus;
 
 UCLASS( Abstract, Blueprintable, BlueprintType,
@@ -23,8 +24,17 @@ public:
 		meta = ( ClampMin = "0.1" ) )
 	float Duration = 3.f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status|Visuals" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status|Visuals",
+		meta = ( DisplayName = "VFX (DA)",
+			ToolTip = "DA с пресетом визуала. Если задан — используется он. Если пуст — fallback на встроенный VisualConfig ниже." ) )
+	TObjectPtr<UCardVFXAsset> VFX;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Status|Visuals",
+		meta = ( DisplayName = "Встроенный VisualConfig (legacy)",
+			ToolTip = "Используется только если поле VFX выше не задано." ) )
 	FCardVisualConfig VisualConfig;
+
+	const FCardVisualConfig& GetVisualConfig() const;
 
 	virtual void OnApply( AActor* owner, FActiveStatus& state ) const
 	{

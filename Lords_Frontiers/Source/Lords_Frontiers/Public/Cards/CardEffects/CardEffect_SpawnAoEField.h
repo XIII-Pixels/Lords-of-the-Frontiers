@@ -37,6 +37,25 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect" )
 	EAoECenterOrigin CenterOrigin = EAoECenterOrigin::EventInstigator;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Placement",
+		meta = ( ToolTip = "Trace down from the spawn location to put the field on the ground (WorldStatic). Use for puddles / ground decals so they don't float in the air at the victim's pivot." ) )
+	bool bSnapToGround = true;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Placement",
+		meta = ( ClampMin = "0.0", EditCondition = "bSnapToGround",
+			ToolTip = "How far above the spawn point the trace starts." ) )
+	float GroundTraceUp = 500.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Placement",
+		meta = ( ClampMin = "0.0", EditCondition = "bSnapToGround",
+			ToolTip = "How far below the spawn point the trace ends." ) )
+	float GroundTraceDown = 2000.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Placement",
+		meta = ( EditCondition = "bSnapToGround",
+			ToolTip = "Optional Z bump after snapping to ground (e.g. lift decal slightly above the surface)." ) )
+	float GroundOffsetZ = 0.f;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Effect|Debug" )
 	bool bDebugDrawRadius = false;
 
