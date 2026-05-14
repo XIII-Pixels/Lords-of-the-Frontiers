@@ -62,7 +62,11 @@ public:
 
 private:
 	void ReleaseStatusVisual( FActiveStatus& state );
+	void RecomputeStackedModifiers();
 
 	UPROPERTY()
-	TMap<FName, FActiveStatus> Active_;
+	TArray<FActiveStatus> Active_;
+
+	float CachedOriginalMaxSpeed_ = -1.f;
+	float CachedOriginalAttackCooldown_ = -1.f;
 };

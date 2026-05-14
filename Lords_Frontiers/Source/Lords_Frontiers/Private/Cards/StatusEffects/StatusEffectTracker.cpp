@@ -1,7 +1,10 @@
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 
+#include "Cards/CardPoolConfig.h"
+#include "Cards/CardSubsystem.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/Visuals/CardVisualSubsystem.h"
+#include "Components/FollowComponent.h"
 #include "Entity.h"
 #include "EntityStats.h"
 
@@ -44,59 +47,54 @@ void UStatusEffectTracker::TickComponent(
 			return;
 		}
 	}
+
 	const float now = world->GetTimeSeconds();
 
-	TArray<FName> keys;
-	Active_.GenerateKeyArray( keys );
-
-	TArray<FName> expired;
-	for ( const FName& key : keys )
+	for ( int32 i = 0; i < Active_.Num(); ++i )
 	{
-		FActiveStatus* state = Active_.Find( key );
-		if ( !state )
+		FActiveStatus& state = Active_[i];
+		if ( !state.Def )
 		{
-			continue;
-		}
-		if ( !state->Def )
-		{
-			expired.Add( key );
 			continue;
 		}
 
-		if ( state->Def->GetTickInterval() > 0.f && now >= state->NextTickAt )
+		if ( state.Def->GetTickInterval() > 0.f && now >= state.NextTickAt )
 		{
-			state->Def->OnTick( owner, *state );
+			state.Def->OnTick( owner, state );
 
 			if ( !IsValid( this ) || !IsValid( owner ) )
 			{
 				return;
 			}
 
-			state = Active_.Find( key );
-			if ( !state || !state->Def )
+			if ( !Active_.IsValidIndex( i ) )
 			{
-				continue;
+				return;
 			}
-			state->NextTickAt = now + state->Def->GetTickInterval();
-		}
-
-		if ( now >= state->ExpiresAt )
-		{
-			expired.Add( key );
+			Active_[i].NextTickAt = now + Active_[i].Def->GetTickInterval();
 		}
 	}
 
-	for ( const FName& key : expired )
+	bool bRemovedAny = false;
+	for ( int32 i = Active_.Num() - 1; i >= 0; --i )
 	{
-		if ( FActiveStatus* state = Active_.Find( key ) )
+		FActiveStatus& state = Active_[i];
+		if ( now < state.ExpiresAt )
 		{
-			if ( state->Def )
-			{
-				state->Def->OnRemove( owner, *state );
-			}
-			ReleaseStatusVisual( *state );
-			Active_.Remove( key );
+			continue;
 		}
+		if ( state.Def )
+		{
+			state.Def->OnRemove( owner, state );
+		}
+		ReleaseStatusVisual( state );
+		Active_.RemoveAt( i );
+		bRemovedAny = true;
+	}
+
+	if ( bRemovedAny )
+	{
+		RecomputeStackedModifiers();
 	}
 }
 
@@ -107,17 +105,26 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def, AActor* instigato
 		return;
 	}
 
-	const float now = GetWorld()->GetTimeSeconds();
-
-	if ( FActiveStatus* existing = Active_.Find( def->StatusTag ) )
+	UWorld* world = GetWorld();
+	if ( !world )
 	{
-		existing->ExpiresAt = now + def->Duration;
-		if ( instigator )
-		{
-			existing->Instigator = instigator;
-		}
-		def->OnReapply( GetOwner(), *existing );
 		return;
+	}
+	const float now = world->GetTimeSeconds();
+
+	for ( FActiveStatus& existing : Active_ )
+	{
+		if ( existing.Def == def )
+		{
+			existing.ExpiresAt = now + def->Duration;
+			if ( instigator )
+			{
+				existing.Instigator = instigator;
+			}
+			def->OnReapply( GetOwner(), existing );
+			RecomputeStackedModifiers();
+			return;
+		}
 	}
 
 	FActiveStatus state;
@@ -126,28 +133,34 @@ void UStatusEffectTracker::ApplyStatus( UStatusEffectDef* def, AActor* instigato
 	state.NextTickAt = def->GetTickInterval() > 0.f ? now + def->GetTickInterval() : MAX_flt;
 	state.Instigator = instigator;
 
-	def->OnApply( GetOwner(), state );
+	const int32 idx = Active_.Add( MoveTemp( state ) );
+	def->OnApply( GetOwner(), Active_[idx] );
 
 	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
 	{
-		state.VisualHandle = visuals->BeginSticky( def->GetVisualConfig(), GetOwner(), nullptr );
+		Active_[idx].VisualHandle = visuals->BeginSticky( def->GetVisualConfig(), GetOwner(), nullptr );
 	}
 
-	Active_.Add( def->StatusTag, state );
+	RecomputeStackedModifiers();
 }
 
 bool UStatusEffectTracker::HasStatus( const UStatusEffectDef* def ) const
 {
-	if ( !def || def->StatusTag.IsNone() )
+	if ( !def )
 	{
 		return false;
 	}
-	return Active_.Contains( def->StatusTag );
+	return Active_.ContainsByPredicate( [def]( const FActiveStatus& s ) { return s.Def == def; } );
 }
 
 bool UStatusEffectTracker::HasStatusTag( FName tag ) const
 {
-	return !tag.IsNone() && Active_.Contains( tag );
+	if ( tag.IsNone() )
+	{
+		return false;
+	}
+	return Active_.ContainsByPredicate(
+		[tag]( const FActiveStatus& s ) { return s.Def && s.Def->StatusTag == tag; } );
 }
 
 void UStatusEffectTracker::RemoveStatus( UStatusEffectDef* def )
@@ -157,29 +170,42 @@ void UStatusEffectTracker::RemoveStatus( UStatusEffectDef* def )
 		return;
 	}
 
-	if ( FActiveStatus* state = Active_.Find( def->StatusTag ) )
+	bool bRemovedAny = false;
+	for ( int32 i = Active_.Num() - 1; i >= 0; --i )
 	{
-		if ( state->Def )
+		if ( Active_[i].Def != def )
 		{
-			state->Def->OnRemove( GetOwner(), *state );
+			continue;
 		}
-		ReleaseStatusVisual( *state );
-		Active_.Remove( def->StatusTag );
+		if ( Active_[i].Def )
+		{
+			Active_[i].Def->OnRemove( GetOwner(), Active_[i] );
+		}
+		ReleaseStatusVisual( Active_[i] );
+		Active_.RemoveAt( i );
+		bRemovedAny = true;
+	}
+
+	if ( bRemovedAny )
+	{
+		RecomputeStackedModifiers();
 	}
 }
 
 void UStatusEffectTracker::ClearAll()
 {
 	AActor* owner = GetOwner();
-	for ( auto& pair : Active_ )
+	for ( FActiveStatus& state : Active_ )
 	{
-		if ( pair.Value.Def )
+		if ( state.Def )
 		{
-			pair.Value.Def->OnRemove( owner, pair.Value );
+			state.Def->OnRemove( owner, state );
 		}
-		ReleaseStatusVisual( pair.Value );
+		ReleaseStatusVisual( state );
 	}
 	Active_.Empty();
+
+	RecomputeStackedModifiers();
 }
 
 void UStatusEffectTracker::NotifyOwnerDied()
@@ -200,6 +226,87 @@ void UStatusEffectTracker::ReleaseStatusVisual( FActiveStatus& state )
 		visuals->EndSticky( state.VisualHandle );
 	}
 	state.VisualHandle.Reset();
+}
+
+void UStatusEffectTracker::RecomputeStackedModifiers()
+{
+	AActor* owner = GetOwner();
+	IEntity* entity = Cast<IEntity>( owner );
+	if ( !entity )
+	{
+		return;
+	}
+	FEntityStats& stats = entity->Stats();
+
+	float slowSum = 0.f;
+	float atkSlowSum = 0.f;
+	for ( const FActiveStatus& s : Active_ )
+	{
+		if ( !s.Def )
+		{
+			continue;
+		}
+		if ( s.Def->IsA( UStatusEffect_Slow::StaticClass() ) )
+		{
+			slowSum += s.StackAmount;
+		}
+		else if ( s.Def->IsA( UStatusEffect_AttackSlow::StaticClass() ) )
+		{
+			atkSlowSum += s.StackAmount;
+		}
+	}
+
+	float slowCap = 90.f;
+	float atkSlowCap = 90.f;
+	if ( UCardSubsystem* cards = UCardSubsystem::Get( this ) )
+	{
+		if ( UCardPoolConfig* poolConfig = cards->GetPoolConfig() )
+		{
+			slowCap = FMath::Clamp( poolConfig->GlobalSlowCapPercent, 0.f, 99.f );
+			atkSlowCap = FMath::Clamp( poolConfig->GlobalAttackSlowCapPercent, 0.f, 99.f );
+		}
+	}
+
+	UFollowComponent* follow = owner ? owner->FindComponentByClass<UFollowComponent>() : nullptr;
+
+	if ( slowSum > 0.f )
+	{
+		if ( CachedOriginalMaxSpeed_ < 0.f )
+		{
+			CachedOriginalMaxSpeed_ = stats.MaxSpeed();
+		}
+		const float clamped = FMath::Min( slowSum, slowCap );
+		const float newSpeed = CachedOriginalMaxSpeed_ * ( 1.f - clamped / 100.f );
+		stats.SetMaxSpeed( newSpeed );
+		if ( follow )
+		{
+			follow->SetMaxSpeed( newSpeed );
+		}
+	}
+	else if ( CachedOriginalMaxSpeed_ >= 0.f )
+	{
+		stats.SetMaxSpeed( CachedOriginalMaxSpeed_ );
+		if ( follow )
+		{
+			follow->SetMaxSpeed( CachedOriginalMaxSpeed_ );
+		}
+		CachedOriginalMaxSpeed_ = -1.f;
+	}
+
+	if ( atkSlowSum > 0.f )
+	{
+		if ( CachedOriginalAttackCooldown_ < 0.f )
+		{
+			CachedOriginalAttackCooldown_ = stats.AttackCooldown();
+		}
+		const float clamped = FMath::Min( atkSlowSum, atkSlowCap );
+		stats.SetAttackCooldown( CachedOriginalAttackCooldown_ * ( 1.f + clamped / 100.f ) );
+	}
+	else if ( CachedOriginalAttackCooldown_ >= 0.f )
+	{
+		stats.SetAttackCooldown( CachedOriginalAttackCooldown_ );
+		CachedOriginalAttackCooldown_ = -1.f;
+	}
 }
 
 UStatusEffectTracker* UStatusEffectTracker::EnsureOn( AActor* actor )

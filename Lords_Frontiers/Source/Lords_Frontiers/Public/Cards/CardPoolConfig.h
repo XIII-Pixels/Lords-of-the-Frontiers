@@ -80,11 +80,21 @@ public:
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Reroll",
 		meta = ( ClampMin = "0.0", ClampMax = "1.0", EditCondition = "bAllowReroll",
-			ToolTip = "Weight multiplier applied to cards that have already been shown during the current selection. Lower values make them very unlikely to appear again on a reroll. 1.0 disables the effect; 0.0 effectively excludes them. The list of seen cards is cleared once the player takes the reward." ) )
+			ToolTip = "Множитель веса ОТДЕЛЬНЫХ карт, которые уже показывались в этом окне выбора (стартовый offer + предыдущие реролы). На вес редкости (RarityWeight тира) НЕ влияет — редкость карты выбирается отдельно. 1.0 — фича выключена; 0.05 — карты-повторы почти не выпадают; 0.0 — полностью исключаются (если все карты тира уже видели, тир целиком выпадает из кандидатов). Список 'видел' очищается, когда игрок забирает награду." ) )
 	float RerollSeenWeightMultiplier = 0.05f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Debug" )
 	bool bDebugShowAllCards = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Status Effects",
+		meta = ( ClampMin = "0.0", ClampMax = "99.0",
+			ToolTip = "Глобальный кап на суммарное замедление движения (UStatusEffect_Slow) на враге, когда стакаются разные источники. В процентах. 90 = враг не может стать медленнее, чем 10% от своей оригинальной скорости." ) )
+	float GlobalSlowCapPercent = 90.f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Status Effects",
+		meta = ( ClampMin = "0.0", ClampMax = "99.0",
+			ToolTip = "Глобальный кап на суммарное замедление атаки (UStatusEffect_AttackSlow) на враге, когда стакаются разные источники. В процентах. 90 = AttackCooldown максимум +90% (≈1.9× от оригинала)." ) )
+	float GlobalAttackSlowCapPercent = 90.f;
 
 	UFUNCTION( BlueprintPure, Category = "Card Pool" )
 	int32 GetPoolSize() const;
