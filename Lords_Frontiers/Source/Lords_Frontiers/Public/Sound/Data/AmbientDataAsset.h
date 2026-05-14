@@ -32,10 +32,7 @@ public:
 		return WindAmbient_;
 	}
 
-	TMap<TSoftObjectPtr<UWorld>, FAmbientForLevel> AmbientForLevels() const
-	{
-		return AmbientForLevels_;
-	}
+	const FAmbientForLevel* AmbientForLevel( TSoftObjectPtr<UWorld> level ) const;
 
 private:
 	UPROPERTY( EditAnywhere, Category = "Settings" )

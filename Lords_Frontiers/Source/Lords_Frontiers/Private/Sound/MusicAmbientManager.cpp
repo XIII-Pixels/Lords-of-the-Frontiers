@@ -6,6 +6,7 @@
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/Data/AmbientDataAsset.h"
 #include "Sound/Data/MusicDataAsset.h"
 #include "Sound/LoopingSound.h"
 
@@ -110,6 +111,15 @@ void UMusicAmbientManager::PlayCurrentLevelCombatMusic()
 
 void UMusicAmbientManager::PlayCurrentLevelAmbient()
 {
+	StopAllAmbient();
+	if ( AmbientDataAsset_.IsValid() )
+	{
+		const FAmbientForLevel* ambientForLevel = AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) );
+		for ( const FLoopingSoundConfig& ambient : ambientForLevel->AmbientEntries  )
+		{
+			PlayAmbient( &ambient );
+		}
+	}
 }
 
 void UMusicAmbientManager::StopMusic()
