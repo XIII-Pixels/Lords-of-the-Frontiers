@@ -185,7 +185,6 @@ public:
 		return false;
 	}
 
-
 protected:
 	void SetPhase( EGameLoopPhase newPhase );
 	void EnterBuildingPhase();
@@ -213,6 +212,9 @@ protected:
 
 	bool IsCardSelectionPending() const;
 	void ProceedToNextWave();
+
+	void PlayBuildingMusicAndAmbient() const;
+	void PlayCombatMusicAndAmbient() const;
 
 private:
 

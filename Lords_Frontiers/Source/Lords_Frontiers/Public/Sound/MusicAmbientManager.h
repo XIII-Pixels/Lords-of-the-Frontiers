@@ -9,6 +9,7 @@
 
 #include "MusicAmbientManager.generated.h"
 
+struct FContinuousSound;
 class ULevelsDataAsset;
 class UAmbientDataAsset;
 class UMusicDataAsset;
@@ -47,19 +48,26 @@ protected:
 	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
-	void PlayMusic( USoundBase* sound );
+	void PlayMusic( const FContinuousSound* sound );
 
-	void PlayAmbient( USoundBase* sound );
-
-	UAudioComponent* PlayLoopingSound( USoundBase* sound ) const;
+	void PlayAmbient( const FContinuousSound* sound );
 
 private:
-	// Only one track can play at a time
+	UAudioComponent* CreateAndPlay( const FContinuousSound* sound ) const;
+
+	void PlayContinuousSound( UAudioComponent* audioComponent, const FContinuousSound* sound ) const;
+
+	void StartPlayback( UAudioComponent* audioComponent, const FContinuousSound* sound, bool initial = false ) const;
+
+	// Only one music track can play at a time
 	UPROPERTY()
 	TObjectPtr<UAudioComponent> Music_ = nullptr;
 
+	// Any number of ambient tracks can play simultaneously
 	UPROPERTY()
 	TSet<TObjectPtr<UAudioComponent>> AmbientSounds_;
+
+	// Pointers to data
 
 	UPROPERTY()
 	TWeakObjectPtr<UMusicDataAsset> MusicDataAsset_;

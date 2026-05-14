@@ -8,11 +8,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/Data/MusicDataAsset.h"
 
-void UMusicAmbientManager::PlayMusic( USoundBase* sound )
+void UMusicAmbientManager::PlayMusic( const FContinuousSound* sound )
 {
 	if ( Music_ && Music_->IsPlaying() )
 	{
-		if ( Music_->GetSound() == sound )
+		if ( Music_->GetSound() == sound->Sound )
 		{
 			return;
 		}
@@ -22,89 +22,154 @@ void UMusicAmbientManager::PlayMusic( USoundBase* sound )
 
 	if ( sound )
 	{
-		Music_ = PlayLoopingSound( sound );
+		Music_ = CreateAndPlay( sound );
 	}
 }
 
-void UMusicAmbientManager::PlayAmbient( USoundBase* sound )
+void UMusicAmbientManager::PlayAmbient( const FContinuousSound* sound )
 {
 	if ( !sound )
 	{
 		return;
 	}
 
-	if ( UAudioComponent* audio = PlayLoopingSound( sound ) )
+	if ( UAudioComponent* audio = CreateAndPlay( sound ) )
 	{
 		AmbientSounds_.Add( audio );
 	}
 }
 
-UAudioComponent* UMusicAmbientManager::PlayLoopingSound( USoundBase* sound ) const
+UAudioComponent* UMusicAmbientManager::CreateAndPlay( const FContinuousSound* sound ) const
 {
 	if ( !sound )
 	{
 		return nullptr;
 	}
 
-	if ( UAudioComponent* audio = UGameplayStatics::SpawnSound2D( GetWorld(), sound, 1, 1, 0, nullptr, true, false ) )
+	if ( UAudioComponent* audio = UGameplayStatics::CreateSound2D(
+	         GetWorld(), sound->Sound, sound->Volume, sound->Pitch, 0.0f, nullptr, true, false
+	     ) )
 	{
-		audio->OnAudioFinishedNative.AddWeakLambda(
-		    this,
-		    [this, audio = TWeakObjectPtr<UAudioComponent>( audio )]( UAudioComponent* )
-		    {
-			    if ( audio.IsValid() )
-			    {
-				    audio->Play();
-			    }
-		    }
-		);
-		audio->FadeIn( 0.5f, 1.0f );
-
-		UE_LOG( LogTemp, Log, TEXT( "UMusicAmbientManager: Playing looping sound: %s" ), *sound->GetName() );
+		PlayContinuousSound( audio, sound );
 
 		return audio;
 	}
 	return nullptr;
 }
 
+void UMusicAmbientManager::PlayContinuousSound( UAudioComponent* audioComponent, const FContinuousSound* sound ) const
+{
+	if ( !audioComponent || !sound || !sound->Sound )
+	{
+		return;
+	}
+
+	// Initial delayed start
+	const float initialDelay = sound->DelayBeforeStartRandomized();
+	if ( initialDelay <= 0 )
+	{
+		StartPlayback( audioComponent, sound, true );
+	}
+	else
+	{
+		FTimerHandle startTimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+		    startTimerHandle, [this, audioComponent = TWeakObjectPtr( audioComponent ), sound]()
+		    { StartPlayback( audioComponent.Get(), sound, true ); }, initialDelay, false
+		);
+	}
+}
+
+void UMusicAmbientManager::StartPlayback( UAudioComponent* audioComponent, const FContinuousSound* sound, bool initial )
+    const
+{
+	if ( !audioComponent || !sound || !sound->Sound )
+	{
+		return;
+	}
+
+	float fadeIn;
+	if ( initial )
+	{
+		fadeIn = sound->InitialFadeInRandomized();
+		UE_LOG(
+		    LogTemp, Log, TEXT( "UMusicAmbientManager: Start playing looping sound: %s" ), *sound->Sound->GetName()
+		);
+	}
+	else
+	{
+		fadeIn = sound->FadeInRandomized();
+		UE_LOG( LogTemp, Log, TEXT( "UMusicAmbientManager: Replaying looping sound: %s" ), *sound->Sound->GetName() );
+	}
+
+	// Play with fade in
+	const float startTime = sound->StartTimeRandomized();
+	audioComponent->FadeIn( fadeIn, 1.0f, startTime );
+
+	// Schedule fade out
+	const float fadeOut = sound->FadeOutRandomized();
+	if ( fadeOut > 0 )
+	{
+		const float duration = sound->Sound->GetDuration() - startTime;
+		const float fadeOutStart = FMath::Max( 0.0f, duration - fadeOut );
+
+		FTimerHandle fadeTimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+		    fadeTimerHandle,
+		    [audio = TWeakObjectPtr( audioComponent ), fadeOut]()
+		    {
+			    if ( audio.IsValid() )
+			    {
+				    audio->FadeOut( fadeOut, 0.0f );
+				    UE_LOG(
+				        LogTemp, Log, TEXT( "UMusicAmbientManager: Start fading out: %s" ), *audio->Sound->GetName()
+				    );
+			    }
+		    },
+		    fadeOutStart, false
+		);
+	}
+
+	// Schedule replay
+	const float repeatDelay = sound->RepeatDelayRandomized();
+	const float timeBeforeReplay = sound->Sound->GetDuration() - startTime + repeatDelay;
+	FTimerHandle replayTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+	    replayTimerHandle, [this, audioComponent, sound]() { StartPlayback( audioComponent, sound ); },
+	    timeBeforeReplay, false
+	);
+}
+
 void UMusicAmbientManager::PlayMainMenuMusic()
 {
-	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->MainMenuMusic().Sound;
+		PlayMusic( &MusicDataAsset_->MainMenuMusic() );
 	}
-	PlayMusic( sound );
 }
 
 void UMusicAmbientManager::PlayWinBattleMusic()
 {
-	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->WinBattleMusic().Sound;
+		PlayMusic( &MusicDataAsset_->WinBattleMusic() );
 	}
-	PlayMusic( sound );
 }
 
 void UMusicAmbientManager::PlayWinGameMusic()
 {
-	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->WinGameMusic().Sound;
+		PlayMusic( &MusicDataAsset_->WinGameMusic() );
 	}
-	PlayMusic( sound );
 }
 
 void UMusicAmbientManager::PlayLoseGameMusic()
 {
-	USoundBase* sound = nullptr;
 	if ( MusicDataAsset_.IsValid() )
 	{
-		sound = MusicDataAsset_->LoseMusic().Sound;
+		PlayMusic( &MusicDataAsset_->LoseMusic() );
 	}
-	PlayMusic( sound );
 }
 
 void UMusicAmbientManager::PlayCurrentLevelBuildingMusic()
@@ -114,11 +179,8 @@ void UMusicAmbientManager::PlayCurrentLevelBuildingMusic()
 		if ( const FMusicForLevel* musicForLevel =
 		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
 		{
-			if ( USoundBase* sound = musicForLevel->Building.Sound )
-			{
-				PlayMusic( sound );
-				return;
-			}
+			PlayMusic( &musicForLevel->Building );
+			return;
 		}
 	}
 	StopMusic();
@@ -131,11 +193,8 @@ void UMusicAmbientManager::PlayCurrentLevelCombatMusic()
 		if ( const FMusicForLevel* musicForLevel =
 		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
 		{
-			if ( USoundBase* sound = musicForLevel->Battle.Sound )
-			{
-				PlayMusic( sound );
-				return;
-			}
+			PlayMusic( &musicForLevel->Battle );
+			return;
 		}
 	}
 	StopMusic();

@@ -82,15 +82,6 @@ void UGameLoopManager::StartLoop()
 
 	OnWaveChanged.Broadcast( CurrentWave_, GetTotalWaves() );
 	EnterBuildingPhase();
-
-	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
-	{
-		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
-		{
-			musicManager->StopMusic();
-			musicManager->StopAllAmbient();
-		}
-	}
 }
 
 void UGameLoopManager::Reset()
@@ -184,6 +175,30 @@ void UGameLoopManager::ProceedToNextWave()
 	CurrentWave_++;
 	OnWaveChanged.Broadcast( CurrentWave_, GetTotalWaves() );
 	EnterBuildingPhase();
+}
+
+void UGameLoopManager::PlayBuildingMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->PlayCurrentLevelAmbient();
+			musicManager->PlayCurrentLevelBuildingMusic();
+		}
+	}
+}
+
+void UGameLoopManager::PlayCombatMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayCurrentLevelCombatMusic();
+		}
+	}
 }
 
 void UGameLoopManager::ReportDamageTaken( float damageAmount )
@@ -306,14 +321,7 @@ void UGameLoopManager::EnterBuildingPhase()
 
 	RewardHelper_->RecalculateIncome();
 
-	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
-	{
-		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
-		{
-			musicManager->PlayCurrentLevelBuildingMusic();
-			musicManager->PlayCurrentLevelAmbient();
-		}
-	}
+	PlayBuildingMusicAndAmbient();
 
 	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
 }
@@ -344,14 +352,7 @@ void UGameLoopManager::EnterCombatPhase()
 		StartWave();
 	}
 
-	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
-	{
-		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
-		{
-			musicManager->StopAllAmbient();
-			musicManager->PlayCurrentLevelCombatMusic();
-		}
-	}
+	PlayCombatMusicAndAmbient();
 
 	Log( FString::Printf( TEXT( ">>> COMBAT PHASE (Wave %d, Duration: %.1fs)" ), CurrentWave_, duration ) );
 }
@@ -380,6 +381,8 @@ void UGameLoopManager::EnterRewardPhase()
 		bWaitingForCardSelection_ = true;
 		return;
 	}
+
+	PlayBuildingMusicAndAmbient();
 
 	ProceedToNextWave();
 }
@@ -449,15 +452,6 @@ void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 	if ( UnitAIManager_.IsValid() )
 	{
 		UnitAIManager_->PathPointsManager()->Empty();
-	}
-
-	if ( const auto* gameInstance = Cast<UDefaultGameInstance>( GetGameInstance() ) )
-	{
-		if ( auto* musicManager = gameInstance->GetSubsystem<UMusicAmbientManager>() )
-		{
-			musicManager->PlayCurrentLevelBuildingMusic();
-			musicManager->PlayCurrentLevelAmbient();
-		}
 	}
 
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
