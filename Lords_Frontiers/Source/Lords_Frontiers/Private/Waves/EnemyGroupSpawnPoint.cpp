@@ -2,8 +2,12 @@
 
 #include "Components/ArrowComponent.h"
 #include "Components/BillboardComponent.h"
+#include "GameFramework/Actor.h"
 #include "Engine/World.h"
+#include "UObject/ScriptDelegates.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
+#include "UObject/ScriptDelegates.h"
 #include "Kismet/KismetStringLibrary.h"
 
 AEnemyGroupSpawnPoint::AEnemyGroupSpawnPoint()
@@ -27,6 +31,78 @@ AEnemyGroupSpawnPoint::AEnemyGroupSpawnPoint()
 	bUseActorTagMatching = false;
 
 	bIsEditorOnlyActor = false;
+
+	PortalMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "PortalMeshComponent" ) );
+	PortalMeshComponent->SetupAttachment( RootComponent );
+	PortalMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	PortalMeshComponent->SetGenerateOverlapEvents( false );
+	PortalMeshComponent->SetHiddenInGame( true );
+	PortalMeshComponent->SetVisibility( false );
+}
+
+void AEnemyGroupSpawnPoint::BeginPlay()
+{
+	Super::BeginPlay();
+	ApplyPortalVisualConfig();
+	SetPortalVisible( false );
+}
+
+void AEnemyGroupSpawnPoint::ApplyPortalVisualConfig()
+{
+	if ( !PortalMeshComponent )
+	{
+		return;
+	}
+
+	if ( !PortalVisualConfig.bEnabled )
+	{
+		SetPortalVisible( false );
+		return;
+	}
+
+	if ( PortalVisualConfig.PortalMesh )
+	{
+		PortalMeshComponent->SetStaticMesh( PortalVisualConfig.PortalMesh );
+	}
+
+	for ( int32 i = 0; i < PortalVisualConfig.OverrideMaterials.Num(); ++i )
+	{
+		if ( PortalVisualConfig.OverrideMaterials[i] )
+		{
+			PortalMeshComponent->SetMaterial( i, PortalVisualConfig.OverrideMaterials[i] );
+		}
+	}
+
+	PortalMeshComponent->SetRelativeLocation( PortalVisualConfig.RelativeLocation );
+	PortalMeshComponent->SetRelativeRotation( PortalVisualConfig.RelativeRotation );
+	PortalMeshComponent->SetRelativeScale3D( PortalVisualConfig.RelativeScale );
+}
+
+void AEnemyGroupSpawnPoint::SetPortalVisible( bool bVisible, bool bDisableCollision )
+{
+	if ( !PortalMeshComponent || !PortalVisualConfig.bEnabled )
+	{
+		return;
+	}
+
+	PortalMeshComponent->SetHiddenInGame( !bVisible );
+	PortalMeshComponent->SetVisibility( bVisible, true );
+
+	if ( bVisible )
+	{
+		PortalMeshComponent->SetCollisionEnabled( ECollisionEnabled::NoCollision );
+	}
+	else
+	{
+		PortalMeshComponent->SetCollisionEnabled(
+		    bDisableCollision ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryOnly
+		);
+	}
+}
+void AEnemyGroupSpawnPoint::OnConstruction( const FTransform& Transform )
+{
+	Super::OnConstruction( Transform );
+	ApplyPortalVisualConfig();
 }
 
 bool AEnemyGroupSpawnPoint::MatchesId( const FName& id ) const

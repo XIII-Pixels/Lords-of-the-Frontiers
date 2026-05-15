@@ -6,6 +6,7 @@
 #include "AI/UnitAIManager.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
+#include "WavesMesh/WaveMeshManager.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopRewardHelper.h"
 #include "TimerManager.h"
@@ -300,6 +301,30 @@ void UGameLoopManager::EnterBuildingPhase()
 
 	OnBuildTurnChanged.Broadcast( CurrentBuildTurn_, GetMaxBuildTurns() );
 
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( AWaveManager* waveManager = core->GetWaveManager() )
+		{
+			if ( AWavePortalManager* portalManager = core->GetWavePortalManager() )
+			{
+				const int32 waveIndex = CurrentWave_ - 1;
+				if ( const UWaveData* waveData = waveManager->GetSelectedWaveData( waveIndex ) )
+				{
+					portalManager->PrepareWave( waveData, waveIndex );
+					portalManager->ShowPreparedPortals();
+				}
+				else
+				{
+					UE_LOG(
+					    LogTemp, Warning,
+					    TEXT( "EnterBuildingPhase: no selected wave data for waveIndex=%d (CurrentWave_=%d)" ),
+					    waveIndex, CurrentWave_
+					);
+				}
+			}
+		}
+	}
+
 	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
 
 	RewardHelper_->RecalculateIncome();
@@ -343,6 +368,14 @@ void UGameLoopManager::EnterRewardPhase()
 
 	SetPhase( EGameLoopPhase::Reward );
 	ClearSelectionForPhaseChange();
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( AWavePortalManager* portalManager = core->GetWavePortalManager() )
+		{
+			portalManager->EndWave();
+		}
+	}
 
 	Log( FString::Printf(
 	    TEXT( ">>> REWARD PHASE (Wave %d, Perfect: %s)" ), CurrentWave_, bPerfectWave_ ? TEXT( "YES" ) : TEXT( "NO" )

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Lords_Frontiers/Public/Waves/EnemyGroupSpawnPoint.h"
 #include "Core/GameSessionController.h"
+#include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
@@ -9,87 +11,57 @@
 
 class UCoreManager;
 
-USTRUCT( BlueprintType )
-struct FWaveMeshEntry
+USTRUCT()
+struct FActiveSpawnPointPortalState
 {
 	GENERATED_BODY()
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh" )
-	FString Label;
+	UPROPERTY()
+	TWeakObjectPtr<AEnemyGroupSpawnPoint> SpawnPoint;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh", meta = ( ClampMin = "1" ) )
-	int32 ShowOnWave = 1;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh", meta = ( ClampMin = "-1" ) )
-	int32 HideAfterWave = -1;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh" )
-	bool bShowDuringBuildPhase = true;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh" )
-	bool bHideOnCombatEnd = true;
-
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh" )
-	bool bDisableCollisionWhenHidden = true;
-
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh" )
-	TArray<AActor*> Actors;
+	int32 TotalSpawns = 0;
+	int32 RemainingSpawns = 0;
+	bool bVisible = false;
 };
 
-
-UCLASS( BlueprintType, Blueprintable, meta = ( DisplayName = "Wave Mesh Manager" ) )
-class LORDS_FRONTIERS_API AWaveMeshManager : public AActor
+UCLASS( BlueprintType, Blueprintable, meta = ( DisplayName = "Wave Portal Manager" ) )
+class LORDS_FRONTIERS_API AWavePortalManager : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	AWaveMeshManager();
+	AWavePortalManager();
 
-	virtual void BeginPlay() override;
-	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Portal" )
+	bool bShowPortalsInBuildPhase = true;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh Config", meta = ( TitleProperty = "Label" ) )
-	TArray<FWaveMeshEntry> WaveEntries;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Portal" )
+	bool bHidePortalsOnWaveEnd = true;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Wave Mesh Config" )
-	bool bHideAllOnStart = true;
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Portal" )
+	bool bDisableCollisionWhenHidden = true;
 
-	UFUNCTION( BlueprintCallable, Category = "Wave Mesh" )
-	void ForceRefreshVisibility();
+	UFUNCTION( BlueprintCallable, Category = "Portal" )
+	void PrepareWave( const UWaveData* WaveData, int32 WaveIndex );
 
-	UFUNCTION( BlueprintCallable, Category = "Wave Mesh|Debug" )
-	void LogAllEntries() const;
+	UFUNCTION( BlueprintCallable, Category = "Portal" )
+	void ShowPreparedPortals();
 
-protected:
+	UFUNCTION( BlueprintCallable, Category = "Portal" )
+	void NotifyEnemySpawnStarted( FName SpawnPointId );
 
-	UFUNCTION()
-	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
+	UFUNCTION( BlueprintCallable, Category = "Portal" )
+	void EndWave();
 
-	UFUNCTION()
-	void HandleWaveChanged( int32 CurrentWave, int32 TotalWaves );
-
-	UFUNCTION()
-	void HandleSystemsReady();
+	UFUNCTION( BlueprintCallable, Category = "Portal" )
+	void ClearWave();
 
 private:
-	void BindToGameLoop();
-
-	void UnbindFromGameLoop();
-
-	void HideAllManagedActors();
-
-	void EvaluateAllEntries( int32 currentWave, EGameLoopPhase currentPhase );
-
-	bool ShouldEntryBeVisible( const FWaveMeshEntry& entry, int32 currentWave, EGameLoopPhase currentPhase ) const;
-
-	void SetActorVisible( AActor* actor, bool bVisible, bool bDisableCollision );
+	void ShowPortal( FName SpawnPointId );
+	void HidePortal( FName SpawnPointId );
 
 	UPROPERTY()
-	TWeakObjectPtr<UGameLoopManager> GameLoopManager_;
+	TMap<FName, FActiveSpawnPointPortalState> ActivePortals_;
 
-	int32 CachedWave_ = 0;
-
-	bool bIsBound_ = false;
+	int32 CachedWaveIndex_ = INDEX_NONE;
 };

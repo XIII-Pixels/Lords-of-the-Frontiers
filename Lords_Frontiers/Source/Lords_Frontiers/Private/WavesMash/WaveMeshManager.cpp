@@ -7,324 +7,154 @@
 
 DEFINE_LOG_CATEGORY_STATIC( LogWaveMesh, Log, All );
 
-AWaveMeshManager::AWaveMeshManager()
+AWavePortalManager::AWavePortalManager()
 {
 	PrimaryActorTick.bCanEverTick = false;
-
-	RootComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "Root" ) );
 }
 
-void AWaveMeshManager::BeginPlay()
+void AWavePortalManager::PrepareWave( const UWaveData* WaveData, int32 WaveIndex )
 {
-	Super::BeginPlay();
+	ClearWave();
+	CachedWaveIndex_ = WaveIndex;
 
-	if ( bHideAllOnStart )
+	if ( !GetWorld() || !WaveData )
 	{
-		HideAllManagedActors();
+		return;
 	}
 
-	BindToGameLoop();
+	TMap<FName, int32> totalPerSpawnPoint;
 
-	if ( !bIsBound_ )
+	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& pair : WaveData->EnemySpawnMap )
 	{
-		UCoreManager* core = UCoreManager::Get( this );
-		if ( core )
+		const FEnemySpawnSettings& spawnSettings = pair.Value;
+
+		for ( const FPortalSpawnEntry& portalEntry : spawnSettings.Portals )
 		{
-			core->OnSystemsReady.AddDynamic( this, &AWaveMeshManager::HandleSystemsReady );
-			UE_LOG( LogWaveMesh, Log, TEXT( "GameLoop not ready yet, waiting for OnSystemsReady..." ) );
-		}
-		else
-		{
-			UE_LOG( LogWaveMesh, Error, TEXT( "CoreManager not available!" ) );
-		}
-	}
-}
-
-void AWaveMeshManager::EndPlay( const EEndPlayReason::Type endPlayReason )
-{
-	UnbindFromGameLoop();
-
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( core )
-	{
-		core->OnSystemsReady.RemoveDynamic( this, &AWaveMeshManager::HandleSystemsReady );
-	}
-
-	Super::EndPlay( endPlayReason );
-}
-
-void AWaveMeshManager::HandleSystemsReady()
-{
-	UE_LOG( LogWaveMesh, Log, TEXT( "OnSystemsReady received, binding now..." ) );
-
-	BindToGameLoop();
-
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( core )
-	{
-		core->OnSystemsReady.RemoveDynamic( this, &AWaveMeshManager::HandleSystemsReady );
-	}
-}
-
-void AWaveMeshManager::BindToGameLoop()
-{
-	if ( bIsBound_ )
-	{
-		return;
-	}
-
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		UE_LOG( LogWaveMesh, Warning, TEXT( "BindToGameLoop: CoreManager not available" ) );
-		return;
-	}
-
-	UGameLoopManager* gameLoop = core->GetGameLoop();
-	if ( !gameLoop )
-	{
-		UE_LOG( LogWaveMesh, Warning, TEXT( "BindToGameLoop: GameLoopManager not available" ) );
-		return;
-	}
-
-	GameLoopManager_ = gameLoop;
-
-	gameLoop->OnPhaseChanged.AddDynamic( this, &AWaveMeshManager::HandlePhaseChanged );
-	gameLoop->OnWaveChanged.AddDynamic( this, &AWaveMeshManager::HandleWaveChanged );
-
-	bIsBound_ = true;
-
-	CachedWave_ = gameLoop->GetCurrentWave();
-	if ( CachedWave_ > 0 )
-	{
-		ForceRefreshVisibility();
-	}
-
-	UE_LOG( LogWaveMesh, Log, TEXT( "Bound to GameLoopManager. Entries: %d" ), WaveEntries.Num() );
-}
-
-void AWaveMeshManager::UnbindFromGameLoop()
-{
-	if ( !bIsBound_ )
-	{
-		return;
-	}
-
-	if ( UGameLoopManager* gameLoop = GameLoopManager_.Get() )
-	{
-		gameLoop->OnPhaseChanged.RemoveDynamic( this, &AWaveMeshManager::HandlePhaseChanged );
-		gameLoop->OnWaveChanged.RemoveDynamic( this, &AWaveMeshManager::HandleWaveChanged );
-	}
-
-	GameLoopManager_.Reset();
-	bIsBound_ = false;
-
-	UE_LOG( LogWaveMesh, Log, TEXT( "Unbound from GameLoopManager" ) );
-}
-
-void AWaveMeshManager::HideAllManagedActors()
-{
-	for ( const FWaveMeshEntry& entry : WaveEntries )
-	{
-		for ( AActor* actor : entry.Actors )
-		{
-			if ( actor )
-			{
-				SetActorVisible( actor, false, entry.bDisableCollisionWhenHidden );
-			}
-		}
-	}
-}
-
-void AWaveMeshManager::SetActorVisible( AActor* actor, bool bVisible, bool bDisableCollision )
-{
-	if ( !actor )
-	{
-		return;
-	}
-
-	const bool bCurrentlyHidden = actor->IsHidden();
-	if ( bCurrentlyHidden == bVisible )
-	{
-		actor->SetActorHiddenInGame( !bVisible );
-
-		if ( bDisableCollision )
-		{
-			actor->SetActorEnableCollision( bVisible );
-		}
-	}
-}
-
-void AWaveMeshManager::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
-{
-	UGameLoopManager* gameLoop = GameLoopManager_.Get();
-	if ( !gameLoop )
-	{
-		return;
-	}
-
-	const int32 currentWave = gameLoop->GetCurrentWave();
-
-	UE_LOG(
-	    LogWaveMesh, Log, TEXT( "Phase changed: %d -> %d, Wave: %d" ), static_cast<int32>( OldPhase ),
-	    static_cast<int32>( NewPhase ), currentWave
-	);
-
-	UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>();
-	if ( session && session->IsGamePaused() )
-	{
-		return;
-	}
-
-	EvaluateAllEntries( currentWave, NewPhase );
-}
-
-void AWaveMeshManager::HandleWaveChanged( int32 CurrentWave, int32 TotalWaves )
-{
-	CachedWave_ = CurrentWave;
-	UE_LOG( LogWaveMesh, Log, TEXT( "Wave changed: %d / %d" ), CurrentWave, TotalWaves );
-}
-
-void AWaveMeshManager::ForceRefreshVisibility()
-{
-	UGameLoopManager* gameLoop = GameLoopManager_.Get();
-	if ( !gameLoop )
-	{
-		return;
-	}
-
-	const int32 currentWave = gameLoop->GetCurrentWave();
-	const EGameLoopPhase currentPhase = gameLoop->GetCurrentPhase();
-
-	UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>();
-	if ( session && session->IsGamePaused() )
-	{
-		return;
-	}
-
-	EvaluateAllEntries( currentWave, currentPhase );
-}
-
-void AWaveMeshManager::EvaluateAllEntries( int32 currentWave, EGameLoopPhase currentPhase )
-{
-	TMap<AActor*, bool> ActorVisibility;
-	TMap<AActor*, bool> ActorCollisionDisable;
-
-	for ( const FWaveMeshEntry& entry : WaveEntries )
-	{
-		const bool bEntryWantsVisible = ShouldEntryBeVisible( entry, currentWave, currentPhase );
-
-		for ( AActor* actor : entry.Actors )
-		{
-			if ( !actor )
+			if ( portalEntry.Count <= 0 || portalEntry.SpawnPointId.IsNone() )
 			{
 				continue;
 			}
 
-			bool* existing = ActorVisibility.Find( actor );
-			if ( existing )
-			{
-				*existing = *existing || bEntryWantsVisible;
-			}
-			else
-			{
-				ActorVisibility.Add( actor, bEntryWantsVisible );
-			}
-
-			bool* existingCollision = ActorCollisionDisable.Find( actor );
-			if ( existingCollision )
-			{
-				*existingCollision = *existingCollision && entry.bDisableCollisionWhenHidden;
-			}
-			else
-			{
-				ActorCollisionDisable.Add( actor, entry.bDisableCollisionWhenHidden );
-			}
+			totalPerSpawnPoint.FindOrAdd( portalEntry.SpawnPointId ) += portalEntry.Count;
 		}
 	}
 
-	for ( auto& pair : ActorVisibility )
+	for ( const TPair<FName, int32>& pair : totalPerSpawnPoint )
 	{
-		AActor* actor = pair.Key;
-		const bool bVisible = pair.Value;
-		const bool bCurrentlyHidden = actor->IsHidden();
+		AEnemyGroupSpawnPoint* spawnPoint = AEnemyGroupSpawnPoint::FindSpawnPointById( this, pair.Key );
 
-		if ( bCurrentlyHidden == bVisible )
+		if ( !spawnPoint )
 		{
-			actor->SetActorHiddenInGame( !bVisible );
+			continue;
+		}
 
-			const bool* bDisableCollision = ActorCollisionDisable.Find( actor );
-			if ( bDisableCollision && *bDisableCollision )
-			{
-				actor->SetActorEnableCollision( bVisible );
-			}
+		spawnPoint->ApplyPortalVisualConfig();
 
-			UE_LOG(
-			    LogWaveMesh, Log, TEXT( "Actor '%s' -> %s" ), *actor->GetName(),
-			    bVisible ? TEXT( "SHOWN" ) : TEXT( "HIDDEN" )
-			);
+		FActiveSpawnPointPortalState& state = ActivePortals_.FindOrAdd( pair.Key );
+		state.SpawnPoint = spawnPoint;
+		state.TotalSpawns = pair.Value;
+		state.RemainingSpawns = pair.Value;
+		state.bVisible = false;
+
+		if ( bShowPortalsInBuildPhase && spawnPoint->PortalVisualConfig.bShowInBuildPhase )
+		{
+			ShowPortal( pair.Key );
 		}
 	}
 }
 
-bool AWaveMeshManager::ShouldEntryBeVisible(
-    const FWaveMeshEntry& entry, int32 currentWave, EGameLoopPhase currentPhase
-) const
+void AWavePortalManager::ShowPreparedPortals()
 {
-	const bool bInWaveRange =
-	    ( currentWave >= entry.ShowOnWave ) && ( entry.HideAfterWave <= 0 || currentWave <= entry.HideAfterWave );
-
-	if ( !bInWaveRange )
+	for ( TPair<FName, FActiveSpawnPointPortalState>& pair : ActivePortals_ )
 	{
-		return false;
+		ShowPortal( pair.Key );
 	}
-
-	switch ( currentPhase )
-	{
-	case EGameLoopPhase::Building:
-	case EGameLoopPhase::Startup:
-	{
-		return entry.bShowDuringBuildPhase;
-	}
-	case EGameLoopPhase::Combat:
-	{
-		return true;
-	}
-	case EGameLoopPhase::Reward:
-	{
-		if ( entry.HideAfterWave > 0 && currentWave >= entry.HideAfterWave )
-		{
-			return false;
-		}
-		return !entry.bHideOnCombatEnd;
-	}
-	case EGameLoopPhase::None:
-	default:
-	{
-		return false;
-	}
-	}
-
 }
 
-void AWaveMeshManager::LogAllEntries() const
+void AWavePortalManager::NotifyEnemySpawnStarted( FName SpawnPointId )
 {
-#if !UE_BUILD_SHIPPING
-	UE_LOG( LogWaveMesh, Log, TEXT( "--- WaveMeshManager: %d entries ---" ), WaveEntries.Num() );
-
-	for ( int32 i = 0; i < WaveEntries.Num(); ++i )
+	FActiveSpawnPointPortalState* state = ActivePortals_.Find( SpawnPointId );
+	if ( !state )
 	{
-		const FWaveMeshEntry& entry = WaveEntries[i];
-		const FString hideStr =
-		    entry.HideAfterWave > 0 ? FString::Printf( TEXT( "%d" ), entry.HideAfterWave ) : TEXT( "never" );
-
-		UE_LOG(
-		    LogWaveMesh, Log, TEXT( "  [%d] '%s': Show=%d, Hide=%s, Actors=%d, BuildPhase=%s, HideOnCombatEnd=%s" ), i,
-		    *entry.Label, entry.ShowOnWave, *hideStr, entry.Actors.Num(),
-		    entry.bShowDuringBuildPhase ? TEXT( "Y" ) : TEXT( "N" ), entry.bHideOnCombatEnd ? TEXT( "Y" ) : TEXT( "N" )
-		);
+		return;
 	}
 
-	UE_LOG( LogWaveMesh, Log, TEXT( "------------------------------------" ) );
-#endif
+	if ( !state->bVisible )
+	{
+		ShowPortal( SpawnPointId );
+	}
+
+	state->RemainingSpawns = FMath::Max( 0, state->RemainingSpawns - 1 );
+
+	const AEnemyGroupSpawnPoint* spawnPoint = state->SpawnPoint.Get();
+	if ( !spawnPoint )
+	{
+		return;
+	}
+
+	if ( state->RemainingSpawns == 0 &&
+	     spawnPoint->PortalVisualConfig.HidePolicy == EPortalHidePolicy::HideAfterLastSpawn )
+	{
+		HidePortal( SpawnPointId );
+	}
+}
+
+void AWavePortalManager::EndWave()
+{
+	if ( !bHidePortalsOnWaveEnd )
+	{
+		return;
+	}
+
+	for ( const TPair<FName, FActiveSpawnPointPortalState>& pair : ActivePortals_ )
+	{
+		HidePortal( pair.Key );
+	}
+}
+
+void AWavePortalManager::ClearWave()
+{
+	for ( const TPair<FName, FActiveSpawnPointPortalState>& pair : ActivePortals_ )
+	{
+		HidePortal( pair.Key );
+	}
+
+	ActivePortals_.Empty();
+	CachedWaveIndex_ = INDEX_NONE;
+}
+
+void AWavePortalManager::ShowPortal( FName SpawnPointId )
+{
+	FActiveSpawnPointPortalState* state = ActivePortals_.Find( SpawnPointId );
+	if ( !state )
+	{
+		return;
+	}
+
+	AEnemyGroupSpawnPoint* spawnPoint = state->SpawnPoint.Get();
+	if ( !spawnPoint )
+	{
+		return;
+	}
+
+	spawnPoint->SetPortalVisible( true, bDisableCollisionWhenHidden );
+	state->bVisible = true;
+}
+
+void AWavePortalManager::HidePortal( FName SpawnPointId )
+{
+	FActiveSpawnPointPortalState* state = ActivePortals_.Find( SpawnPointId );
+	if ( !state )
+	{
+		return;
+	}
+
+	AEnemyGroupSpawnPoint* spawnPoint = state->SpawnPoint.Get();
+	if ( !spawnPoint )
+	{
+		return;
+	}
+
+	spawnPoint->SetPortalVisible( false, bDisableCollisionWhenHidden );
+	state->bVisible = false;
 }

@@ -8,9 +8,11 @@
 #include "Cards/CardSubsystem.h"
 #include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Components/Attack/AttackRangedComponent.h"
+#include "Core/CoreManager.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
+#include "Waves/WaveManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCardEffectHost, Log, All );
 
@@ -411,6 +413,14 @@ void UCardEffectHostComponent::HandleAuraTick()
 	if ( Active_.Num() == 0 )
 	{
 		return;
+	}
+	if ( const UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		const AWaveManager* wm = core->GetWaveManager();
+		if ( wm && !wm->IsWaveActive() )
+		{
+			return;
+		}
 	}
 	DispatchTrigger( ECardTriggerReason::AuraTick, nullptr );
 }
