@@ -267,8 +267,6 @@ void UStatusEffectTracker::RecomputeStackedModifiers()
 		}
 	}
 
-	UFollowComponent* follow = owner ? owner->FindComponentByClass<UFollowComponent>() : nullptr;
-
 	if ( slowSum > 0.f )
 	{
 		if ( CachedOriginalMaxSpeed_ < 0.f )
@@ -278,18 +276,10 @@ void UStatusEffectTracker::RecomputeStackedModifiers()
 		const float clamped = FMath::Min( slowSum, slowCap );
 		const float newSpeed = CachedOriginalMaxSpeed_ * ( 1.f - clamped / 100.f );
 		stats.SetMaxSpeed( newSpeed );
-		if ( follow )
-		{
-			follow->SetMaxSpeed( newSpeed );
-		}
 	}
 	else if ( CachedOriginalMaxSpeed_ >= 0.f )
 	{
 		stats.SetMaxSpeed( CachedOriginalMaxSpeed_ );
-		if ( follow )
-		{
-			follow->SetMaxSpeed( CachedOriginalMaxSpeed_ );
-		}
 		CachedOriginalMaxSpeed_ = -1.f;
 	}
 

@@ -23,8 +23,6 @@ public:
 	void StartFollowing();
 	void StopFollowing();
 
-	void SetMaxSpeed( float maxSpeed );
-
 protected:
 	virtual void BeginPlay() override;
 

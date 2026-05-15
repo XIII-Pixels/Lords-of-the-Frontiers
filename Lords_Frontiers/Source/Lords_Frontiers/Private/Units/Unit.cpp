@@ -57,7 +57,6 @@ void AUnit::BeginPlay()
 	FollowComponent_ = FindComponentByClass<UFollowComponent>();
 	if ( FollowComponent_ )
 	{
-		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
