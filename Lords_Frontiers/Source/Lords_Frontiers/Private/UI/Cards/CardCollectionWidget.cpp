@@ -3,6 +3,7 @@
 #include "Cards/CardDataAsset.h"
 #include "Cards/CardSubsystem.h"
 #include "Cards/CardTypes.h"
+#include "Framework/Application/SlateApplication.h"
 #include "UI/Cards/CardWidget.h"
 
 #include "Animation/WidgetAnimation.h"
@@ -13,7 +14,9 @@
 #include "Components/Image.h"
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
-#include "Framework/Application/SlateApplication.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 void UCardCollectionWidget::NativeConstruct()
 {
@@ -22,11 +25,13 @@ void UCardCollectionWidget::NativeConstruct()
 	if ( OpenBookButton )
 	{
 		OpenBookButton->OnClicked.AddDynamic( this, &UCardCollectionWidget::HandleOpenButtonClicked );
+		OpenBookButton->OnHovered.AddDynamic( this, &UCardCollectionWidget::HandleOpenButtonHovered );
 	}
 
 	if ( CloseBookButton )
 	{
 		CloseBookButton->OnClicked.AddDynamic( this, &UCardCollectionWidget::HandleCloseButtonClicked );
+		CloseBookButton->OnHovered.AddDynamic( this, &UCardCollectionWidget::HandleCloseButtonHovered );
 	}
 
 	if ( BackdropButton )
@@ -55,6 +60,18 @@ void UCardCollectionWidget::NativeConstruct()
 			subsystem->OnCardsApplied.AddDynamic( this, &UCardCollectionWidget::HandleCardsApplied );
 		}
 	}
+
+	// Sound
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->RegisterObject( this );
+			}
+		}
+	}
 }
 
 void UCardCollectionWidget::NativeDestruct()
@@ -62,11 +79,13 @@ void UCardCollectionWidget::NativeDestruct()
 	if ( IsValid( OpenBookButton ) )
 	{
 		OpenBookButton->OnClicked.RemoveDynamic( this, &UCardCollectionWidget::HandleOpenButtonClicked );
+		OpenBookButton->OnHovered.RemoveDynamic( this, &UCardCollectionWidget::HandleOpenButtonHovered );
 	}
 
 	if ( IsValid( CloseBookButton ) )
 	{
 		CloseBookButton->OnClicked.RemoveDynamic( this, &UCardCollectionWidget::HandleCloseButtonClicked );
+		CloseBookButton->OnHovered.RemoveDynamic( this, &UCardCollectionWidget::HandleCloseButtonHovered );
 	}
 
 	if ( IsValid( BackdropButton ) )
@@ -85,6 +104,18 @@ void UCardCollectionWidget::NativeDestruct()
 	}
 
 	ClearCells();
+
+	// Sound
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->UnregisterObject( this );
+			}
+		}
+	}
 
 	Super::NativeDestruct();
 }
@@ -128,6 +159,8 @@ void UCardCollectionWidget::OpenBook()
 		PlayAnimation( BookOpenAnim );
 	}
 
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED } );
+
 	OnBookOpened();
 }
 
@@ -149,6 +182,9 @@ void UCardCollectionWidget::CloseBook()
 	}
 
 	SetBookVisualsVisible( false );
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED } );
+
 	OnBookClosed();
 }
 
@@ -182,7 +218,7 @@ TArray<UCardDataAsset*> UCardCollectionWidget::BuildDisplayOrder( const TArray<U
 				}
 			}
 
-			lastIndexByCard[ card ] = insertAt;
+			lastIndexByCard[card] = insertAt;
 		}
 		else
 		{
@@ -200,8 +236,7 @@ void UCardCollectionWidget::RebuildCells( const TArray<UCardDataAsset*>& display
 
 	if ( !LeftPageGrid || !RightPageGrid )
 	{
-		UE_LOG( LogTemp, Error,
-			TEXT( "CardCollectionWidget: LeftPageGrid / RightPageGrid not bound in widget BP" ) );
+		UE_LOG( LogTemp, Error, TEXT( "CardCollectionWidget: LeftPageGrid / RightPageGrid not bound in widget BP" ) );
 		return;
 	}
 
@@ -212,7 +247,7 @@ void UCardCollectionWidget::RebuildCells( const TArray<UCardDataAsset*>& display
 
 	for ( int32 cellIdx = 0; cellIdx < totalCells; ++cellIdx )
 	{
-		UCardDataAsset* cardData = displayOrder.IsValidIndex( cellIdx ) ? displayOrder[ cellIdx ] : nullptr;
+		UCardDataAsset* cardData = displayOrder.IsValidIndex( cellIdx ) ? displayOrder[cellIdx] : nullptr;
 
 		UWidget* cell = cardData ? CreateCardCellWidget( cardData ) : CreateEmptyCellWidget();
 		if ( !cell )
@@ -297,9 +332,11 @@ UWidget* UCardCollectionWidget::CreateCardCellWidget( UCardDataAsset* cardData )
 
 	if ( !widgetClass )
 	{
-		UE_LOG( LogTemp, Warning,
-			TEXT( "CardCollectionWidget: no widget class for rarity %d and no fallback CardWidgetClass set" ),
-			static_cast<int32>( cardData->Rarity ) );
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "CardCollectionWidget: no widget class for rarity %d and no fallback CardWidgetClass set" ),
+		    static_cast<int32>( cardData->Rarity )
+		);
 		return nullptr;
 	}
 
@@ -328,8 +365,9 @@ UWidget* UCardCollectionWidget::CreateEmptyCellWidget()
 {
 	if ( !QuestionSlotClass )
 	{
-		UE_LOG( LogTemp, Warning,
-			TEXT( "CardCollectionWidget: QuestionSlotClass is not set — empty cells will be skipped" ) );
+		UE_LOG(
+		    LogTemp, Warning, TEXT( "CardCollectionWidget: QuestionSlotClass is not set — empty cells will be skipped" )
+		);
 		return nullptr;
 	}
 
@@ -402,8 +440,7 @@ void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 	// BookRoot is decorative — let children handle hit-testing on their own.
 	if ( BookRoot )
 	{
-		BookRoot->SetVisibility(
-			bVisible ? ESlateVisibility::SelfHitTestInvisible : hiddenVisibility );
+		BookRoot->SetVisibility( bVisible ? ESlateVisibility::SelfHitTestInvisible : hiddenVisibility );
 	}
 
 	// Book art and the page canvases must catch clicks themselves so the BackdropButton
@@ -438,8 +475,7 @@ void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 	}
 }
 
-FReply UCardCollectionWidget::NativeOnMouseButtonDown(
-	const FGeometry& myGeometry, const FPointerEvent& mouseEvent )
+FReply UCardCollectionWidget::NativeOnMouseButtonDown( const FGeometry& myGeometry, const FPointerEvent& mouseEvent )
 {
 	// Children (card buttons, the close button, the backdrop button) get the click first
 	// and consume it via FReply::Handled. This override fires only when the click landed
@@ -515,7 +551,7 @@ void UCardCollectionWidget::UpdateCellLayout()
 
 	for ( int32 i = 0; i < CellSizeBoxes_.Num(); ++i )
 	{
-		USizeBox* sizeBox = CellSizeBoxes_[ i ];
+		USizeBox* sizeBox = CellSizeBoxes_[i];
 		if ( !IsValid( sizeBox ) )
 		{
 			continue;
@@ -529,12 +565,11 @@ void UCardCollectionWidget::UpdateCellLayout()
 
 		if ( UCanvasPanelSlot* slot = Cast<UCanvasPanelSlot>( sizeBox->Slot ) )
 		{
-			const FIntPoint colRow = CellGridPositions_.IsValidIndex( i )
-				? CellGridPositions_[ i ]
-				: FIntPoint::ZeroValue;
+			const FIntPoint colRow =
+			    CellGridPositions_.IsValidIndex( i ) ? CellGridPositions_[i] : FIntPoint::ZeroValue;
 			const FVector2D centre(
-				( static_cast<float>( colRow.X ) + 0.5f ) * cellW,
-				( static_cast<float>( colRow.Y ) + 0.5f ) * cellH );
+			    ( static_cast<float>( colRow.X ) + 0.5f ) * cellW, ( static_cast<float>( colRow.Y ) + 0.5f ) * cellH
+			);
 			slot->SetPosition( centre );
 			slot->SetSize( appliedSize );
 		}
@@ -576,6 +611,16 @@ void UCardCollectionWidget::HandleCloseButtonClicked()
 	CloseBook();
 }
 
+void UCardCollectionWidget::HandleOpenButtonHovered()
+{
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_HOVERED } );
+}
+
+void UCardCollectionWidget::HandleCloseButtonHovered()
+{
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_HOVERED } );
+}
+
 void UCardCollectionWidget::HandleBackdropClicked()
 {
 	// The backdrop button covers the whole viewport, so clicks on the book art also reach it
@@ -598,9 +643,8 @@ void UCardCollectionWidget::HandleBackdropClicked()
 		return widget->GetCachedGeometry().IsUnderLocation( screenPos );
 	};
 
-	const bool bClickInsideBook =
-		isCursorOver( BookImage ) || isCursorOver( PagesImage )
-		|| isCursorOver( LeftPageGrid ) || isCursorOver( RightPageGrid );
+	const bool bClickInsideBook = isCursorOver( BookImage ) || isCursorOver( PagesImage ) ||
+	                              isCursorOver( LeftPageGrid ) || isCursorOver( RightPageGrid );
 
 	if ( bClickInsideBook )
 	{
@@ -718,7 +762,7 @@ void UCardCollectionWidget::ApplyCellZoom( USizeBox* sizeBox, bool bZoomed ) con
 			const int32 idx = CellSizeBoxes_.IndexOfByKey( sizeBox );
 			if ( idx != INDEX_NONE && CellGridPositions_.IsValidIndex( idx ) )
 			{
-				const FIntPoint colRow = CellGridPositions_[ idx ];
+				const FIntPoint colRow = CellGridPositions_[idx];
 				slot->SetZOrder( colRow.Y * GetCardsPerRow() + colRow.X );
 			}
 		}

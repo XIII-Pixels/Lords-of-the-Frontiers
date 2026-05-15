@@ -13,8 +13,8 @@
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
-#include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
+#include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 #include "UI/BonusNeighborhood/BonusIconsData.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -25,6 +25,9 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
+
 ABuildManager::ABuildManager()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -64,6 +67,33 @@ void ABuildManager::BeginPlay()
 			core->OnSystemsReady.AddDynamic( this, &ABuildManager::OnCoreSystemsReady );
 		}
 	}
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->RegisterObject( this );
+			}
+		}
+	}
+}
+
+void ABuildManager::BeginDestroy()
+{
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->UnregisterObject( this );
+			}
+		}
+	}
+
+	Super::BeginDestroy();
 }
 
 void ABuildManager::OnCoreSystemsReady()
@@ -142,7 +172,9 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 		if ( !ResManager->CanAfford( CDO->GetBuildingCost() ) )
 		{
 			if ( GEngine )
+			{
 				GEngine->AddOnScreenDebugMessage( -1, 3.f, FColor::Red, TEXT( "Not enough resources to build this!" ) );
+			}
 			CancelPlacing();
 			return;
 		}
@@ -297,6 +329,11 @@ bool ABuildManager::ValidatePlacement( FVector& outCellWorldLocation ) const
 		return false;
 	}
 
+	if ( !GridVisualizer_->GetCellWorldCenter( CurrentCellCoords_, outCellWorldLocation ) )
+	{
+		return false;
+	}
+
 	if ( !bHasValidCell_ || !bCanBuildHere_ )
 	{
 		const bool bAllowOriginalCell =
@@ -306,11 +343,6 @@ bool ABuildManager::ValidatePlacement( FVector& outCellWorldLocation ) const
 		{
 			return false;
 		}
-	}
-
-	if ( !GridVisualizer_->GetCellWorldCenter( CurrentCellCoords_, outCellWorldLocation ) )
-	{
-		return false;
 	}
 
 	return true;
@@ -367,17 +399,17 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 	return true;
 }
 
-void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
+bool ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 {
 	if ( !RelocatedBuilding_ || !GridManager_ )
 	{
-		return;
+		return false;
 	}
 
 	FGridCell* newCell = GridManager_->GetCell( CurrentCellCoords_.X, CurrentCellCoords_.Y );
 	if ( !newCell )
 	{
-		return;
+		return false;
 	}
 
 	RelocatedBuilding_->SetActorLocation( cellWorldLocation );
@@ -405,6 +437,7 @@ void ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	PlayPlacementAnimation( RelocatedBuilding_ );
 	HideBuildingTooltip();
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
+	return true;
 }
 
 void ABuildManager::ResetPlacementState()
@@ -439,26 +472,38 @@ void ABuildManager::ResetPlacementState()
 
 void ABuildManager::ConfirmPlacing()
 {
+	bool success = false;
+
 	FVector cellWorldLocation;
 	if ( !ValidatePlacement( cellWorldLocation ) )
 	{
-		return;
+		success = false;
+	}
+	else
+	{
+		if ( !bIsRelocating_ || !RelocatedBuilding_ )
+		{
+			success = TryPlaceNewBuilding( cellWorldLocation );
+		}
+		else
+		{
+			success = RelocateExistingBuilding( cellWorldLocation );
+
+			ResetPlacementState();
+
+			CachedBonusIcons_.Empty();
+			OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
+			if ( GridVisualizer_ )
+			{
+				GridVisualizer_->HideBonusHighlight();
+			}
+		}
 	}
 
-	if ( !bIsRelocating_ || !RelocatedBuilding_ )
+	if ( const ABuilding* cdo = CurrentBuildingClass_ ? CurrentBuildingClass_->GetDefaultObject<ABuilding>() : nullptr )
 	{
-		TryPlaceNewBuilding( cellWorldLocation );
-		return;
-	}
-
-	RelocateExistingBuilding( cellWorldLocation );
-	ResetPlacementState();
-
-	CachedBonusIcons_.Empty();
-	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
-	if ( GridVisualizer_ )
-	{
-		GridVisualizer_->HideBonusHighlight();
+		const FGameplayTag audioTag = success ? cdo->AudioTags().PlacedSuccess : cdo->AudioTags().PlacedRestricted;
+		OnAudioEvent_.Broadcast( { audioTag, cellWorldLocation } );
 	}
 }
 
@@ -537,6 +582,11 @@ void ABuildManager::UpdatePreviewVisual( const FVector& worldLocation, const boo
 	if ( bHidingPreviewForAnimation_ )
 	{
 		return;
+	}
+
+	if ( PreviewActor_->GetActorLocation() != worldLocation )
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_GRID_CELL_HOVERED, worldLocation } );
 	}
 
 	PreviewActor_->SetActorHiddenInGame( false );
@@ -1074,6 +1124,8 @@ bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	{
 		return false;
 	}
+
+	OnAudioEvent_.Broadcast( { buildingToRemove->AudioTags().Demolished, buildingToRemove->GetActorLocation() } );
 
 	FIntPoint foundCoords( -1, -1 );
 	bool bFound = false;

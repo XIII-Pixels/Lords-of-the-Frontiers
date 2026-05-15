@@ -9,12 +9,11 @@
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "GameFramework/FloatingPawnMovement.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/App.h"
 
-// Sets default values
 AStrategyCamera::AStrategyCamera()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -25,7 +24,9 @@ AStrategyCamera::AStrategyCamera()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>( TEXT( "SpringArm" ) );
 	SpringArm->SetupAttachment( RootComponent );
 	SpringArm->bDoCollisionTest = false;
-	SpringArm->bEnableCameraLag = true;
+
+	SpringArm->bEnableCameraLag = false;
+	SpringArm->bEnableCameraRotationLag = false;
 
 	SpringArm->bUsePawnControlRotation = false;
 	SpringArm->bInheritPitch = false;
@@ -43,8 +44,6 @@ AStrategyCamera::AStrategyCamera()
 	Camera->OrthoNearClipPlane = -2000.0f;
 	Camera->OrthoFarClipPlane = 10000.0f;
 
-	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>( TEXT( "MovementComponent" ) );
-
 	TargetZoom_ = 2048.0f;
 	TargetYaw_ = CameraYaw_;
 	CurrentYaw_ = CameraYaw_;
@@ -54,16 +53,13 @@ AStrategyCamera::AStrategyCamera()
 		UKismetSystemLibrary::ExecuteConsoleCommand(
 		    GetWorld(), TEXT( "r.Shadow.Virtual.ResolutionLodBiasDirectional -2" )
 		);
-
 		UKismetSystemLibrary::ExecuteConsoleCommand( GetWorld(), TEXT( "r.Shadow.Virtual.ClipMargin 0.25" ) );
-
 		UKismetSystemLibrary::ExecuteConsoleCommand(
 		    GetWorld(), TEXT( "r.Shadow.Virtual.SMRT.RayCountDirectional 4" )
 		);
 	}
 }
 
-// Called when the game starts or when spawned
 void AStrategyCamera::BeginPlay()
 {
 	Super::BeginPlay();
@@ -74,9 +70,9 @@ void AStrategyCamera::BeginPlay()
 	{
 		Camera->OrthoWidth = InitialOrthoWidth_;
 		TargetZoom_ = InitialOrthoWidth_;
-		SpringArm->TargetArmLength = 3000.0f; // fix
+		SpringArm->TargetArmLength = 3000.0f;
 	}
-	else // Perspective
+	else
 	{
 		Camera->SetFieldOfView( FieldOfView_ );
 		SpringArm->TargetArmLength = InitialTargetArmLength_;
@@ -85,12 +81,12 @@ void AStrategyCamera::BeginPlay()
 
 	if ( APlayerController* pc = Cast<APlayerController>( GetController() ) )
 	{
-		if ( UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		if ( UEnhancedInputLocalPlayerSubsystem* subsystem =
 		         ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>( pc->GetLocalPlayer() ) )
 		{
 			if ( DefaultMappingContext )
 			{
-				Subsystem->AddMappingContext( DefaultMappingContext, 0 );
+				subsystem->AddMappingContext( DefaultMappingContext, 0 );
 			}
 		}
 
@@ -103,12 +99,7 @@ void AStrategyCamera::BeginPlay()
 	startingLocation.Z = 0.0f;
 	SetActorLocation( startingLocation );
 
-	MovementComponent->MaxSpeed = MoveSpeed_;
-	MovementComponent->Acceleration = MoveAcceleration_;
-	MovementComponent->Deceleration = MoveDeceleration_;
-
 	SpringArm->TargetArmLength = 3000.0f;
-	SpringArm->CameraLagSpeed = CameraLagSpeed_;
 	SpringArm->SetRelativeRotation( FRotator( CameraPitch_, CameraYaw_, 0.0f ) );
 
 	Camera->OrthoWidth = TargetZoom_;
@@ -153,39 +144,49 @@ void AStrategyCamera::BeginPlay()
 	);
 }
 
+void AStrategyCamera::SetZoomToMax()
+{
+	TargetZoom_ = MaxZoom_;
+	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
+	{
+		Camera->OrthoWidth = MaxZoom_;
+	}
+	else
+	{
+		SpringArm->TargetArmLength = MaxZoom_;
+	}
+}
+
 // Called every frame
 void AStrategyCamera::Tick( float deltaTime )
 {
 	Super::Tick( deltaTime );
 
-	float GlobalTimeDilation = UGameplayStatics::GetGlobalTimeDilation( GetWorld() );
-	float TimeScale = ( GlobalTimeDilation > 0.0f ) ? ( 1.0f / GlobalTimeDilation ) : 1.0f;
-
-	float RealDeltaTime = deltaTime * TimeScale;
-
-	MovementComponent->MaxSpeed = MoveSpeed_ * TimeScale;
-	MovementComponent->Acceleration = MoveAcceleration_ * TimeScale;
-	MovementComponent->Deceleration = MoveDeceleration_ * TimeScale;
+	float realDeltaTime = FApp::GetDeltaTime();
 
 	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
 	{
-		Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, RealDeltaTime, ZoomInterpSpeed_ );
+		Camera->OrthoWidth = FMath::FInterpTo( Camera->OrthoWidth, TargetZoom_, realDeltaTime, ZoomInterpSpeed_ );
 	}
 	else
 	{
 		SpringArm->TargetArmLength =
-		    FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom_, RealDeltaTime, ZoomInterpSpeed_ );
+		    FMath::FInterpTo( SpringArm->TargetArmLength, TargetZoom_, realDeltaTime, ZoomInterpSpeed_ );
 	}
 
 	FRotator currentRot = SpringArm->GetRelativeRotation();
 	FRotator targetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
-	FRotator newRot = FMath::RInterpTo( currentRot, targetRot, RealDeltaTime, RotationSpeed_ * 0.1f );
+	FRotator newRot = FMath::RInterpTo( currentRot, targetRot, realDeltaTime, RotationSpeed_ * 0.1f );
 	SpringArm->SetRelativeRotation( newRot );
 
 	if ( bEnableEdgeScrolling_ )
 	{
 		HandleEdgeScrolling();
 	}
+
+	FVector inputVector = ConsumeMovementInputVector().GetClampedToMaxSize( 1.0f );
+
+	FVector deltaMove = inputVector * MoveSpeed_ * realDeltaTime;
 
 	float currentZoom =
 	    ( ProjectionMode_ == ECameraProjectionMode::Orthographic ) ? Camera->OrthoWidth : SpringArm->TargetArmLength;
@@ -196,24 +197,33 @@ void AStrategyCamera::Tick( float deltaTime )
 	float curvedAlpha = FMath::Pow( zoomAlpha, BoundsCurveExponent_ );
 
 	FVector2D currentExtents;
-	currentExtents.X = FMath::Lerp( MaxMoveAreaExtents_.X, MinMoveAreaExtents_.X, curvedAlpha );
-	currentExtents.Y = FMath::Lerp( MaxMoveAreaExtents_.Y, MinMoveAreaExtents_.Y, curvedAlpha );
+	if ( bIgnoreZoomBoundsCurve_ )
+	{
+		currentExtents = MaxMoveAreaExtents_;
+	}
+	else
+	{
+		currentExtents.X = FMath::Lerp( MaxMoveAreaExtents_.X, MinMoveAreaExtents_.X, curvedAlpha );
+		currentExtents.Y = FMath::Lerp( MaxMoveAreaExtents_.Y, MinMoveAreaExtents_.Y, curvedAlpha );
+	}
 
 	FVector2D dynamicMinBounds = MapCenter_ - currentExtents;
 	FVector2D dynamicMaxBounds = MapCenter_ + currentExtents;
 
 	FVector currentLoc = GetActorLocation();
+
+	currentLoc += deltaMove;
+
 	FVector clampedLoc = currentLoc;
 	clampedLoc.X = FMath::Clamp( clampedLoc.X, dynamicMinBounds.X, dynamicMaxBounds.X );
 	clampedLoc.Y = FMath::Clamp( clampedLoc.Y, dynamicMinBounds.Y, dynamicMaxBounds.Y );
 
-	if ( !currentLoc.Equals( clampedLoc, 0.1f ) )
+	if ( !GetActorLocation().Equals( clampedLoc, 0.1f ) )
 	{
 		SetActorLocation( clampedLoc );
 	}
 }
 
-// Called to bind functionality to input
 void AStrategyCamera::SetupPlayerInputComponent( UInputComponent* playerInputComponent )
 {
 	Super::SetupPlayerInputComponent( playerInputComponent );
@@ -253,7 +263,7 @@ void AStrategyCamera::Move( const FInputActionValue& value )
 
 void AStrategyCamera::Zoom( const FInputActionValue& value )
 {
-	if ( bIsCameraInputDisabled_ )
+	if ( bIsCameraInputDisabled_ || bIsZoomDisabled_ )
 		return;
 
 	float zoomDirection = value.Get<float>();

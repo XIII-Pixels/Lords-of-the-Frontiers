@@ -1,8 +1,11 @@
 #pragma once
 
+#include "GameResource.h"
+
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
-#include "GameResource.h"
+#include "sound/AudioEvent.h"
+#include "sound/AudioEventSource.h"
 
 #include "ResourceManager.generated.h"
 
@@ -13,7 +16,7 @@ static constexpr int32 cDefaultMaxResource = 999999;
 // Component responsible for storing and managing the resources of the owner
 // (Player)
 UCLASS( ClassGroup = ( Custom ), meta = ( BlueprintSpawnableComponent ) )
-class LORDS_FRONTIERS_API UResourceManager : public UActorComponent
+class LORDS_FRONTIERS_API UResourceManager : public UActorComponent, public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -23,10 +26,12 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
+
 public:
 	// Adds the specified amount of resource
 	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )
-	void AddResource( EResourceType type, int32 quantity );
+	void AddResource( EResourceType type, int32 quantity, bool noSound = false );
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Resource Management" )
 	void ResetResources();
@@ -58,6 +63,11 @@ public:
 
 	int32 ForceSpendResource( EResourceType type, int32 quantity );
 
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
 private:
 	// Resource Storage: Key - Type, Value - Quantity
 	UPROPERTY( VisibleAnywhere, Category = "Settings|Resources" )
@@ -65,4 +75,6 @@ private:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Resources" )
 	TMap<EResourceType, int32> MaxResources_;
+
+	FOnAudioEvent OnAudioEvent_;
 };

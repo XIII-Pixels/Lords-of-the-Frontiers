@@ -7,6 +7,8 @@
 #include "Selectable.h"
 
 #include "CoreMinimal.h"
+#include "sound/AudioEvent.h"
+#include "sound/AudioEventSource.h"
 
 #include "Building.generated.h"
 
@@ -17,12 +19,43 @@ class UHealthBarConfigDataAsset;
 class UGeometryCacheComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingDeath, ABuilding*, Building );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBuildingRestored, ABuilding*, Building );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
     FOnBuildingDamaged, ABuilding*, Building, int32, Damage, AActor*, Instigator
 );
 
+USTRUCT( BlueprintType )
+struct FBuildingAudioTags
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Selected;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag PlacedSuccess;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag PlacedRestricted;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Demolished;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Death;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Resurrected;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag Attack;
+
+	UPROPERTY( EditDefaultsOnly )
+	FGameplayTag TakeDamage;
+};
+
 UCLASS( Abstract )
-class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable
+class LORDS_FRONTIERS_API ABuilding : public APawn, public IEntity, public ISelectable, public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -105,9 +138,13 @@ public:
 	FOnBuildingDeath OnBuildingDied;
 
 	UPROPERTY( BlueprintAssignable )
+	FOnBuildingRestored OnBuildingRestored;
+
+	UPROPERTY( BlueprintAssignable )
 	FOnBuildingDamaged OnBuildingDamaged;
 
 	static UTexture2D* GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass );
+
 	UFUNCTION( BlueprintPure, Category = "Settings|State" )
 	bool IsRuined() const
 	{
@@ -126,6 +163,11 @@ public:
 		return bCanBeRemoved_;
 	}
 
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
 	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
 	int32 GetBuildingTotalCostGold() const;
 
@@ -137,6 +179,11 @@ public:
 
 	UFUNCTION( BlueprintPure, Category = "Settings|Economy" )
 	FResourceProduction GetDemolitionRefund() const;
+
+	const FBuildingAudioTags& AudioTags() const
+	{
+		return AudioTags_;
+	}
 
 protected:
 	virtual void BeginPlay() override;
@@ -168,6 +215,8 @@ protected:
 
 	void HideSelectionOverlay();
 
+	void ResolveAudioTags();
+
 	UPROPERTY()
 	TObjectPtr<UBoxComponent> CollisionComponent_;
 
@@ -197,9 +246,11 @@ protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	TObjectPtr<UStaticMeshComponent> SelectionOverlayMesh_;
 
-
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Visuals" )
 	FVector2D AnimationRateRange_ = FVector2D( 0.8f, 1.2f );
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Audio" )
+	FBuildingAudioTags AudioTags_;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|State" )
 	bool bIsRuined_ = false;
@@ -252,6 +303,8 @@ protected:
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
 	FResourceProduction DemolitionRefund_;
+
+	FOnAudioEvent OnAudioEvent_;
 
 private:
 	FTimerHandle RuinTimerHandle_;

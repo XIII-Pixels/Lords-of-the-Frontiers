@@ -17,10 +17,12 @@
 #include "Camera/CameraZoomUtils.h"
 #include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
-#include "Components/TextBlock.h"
 #include "Components/HorizontalBox.h"
+#include "Components/TextBlock.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 void UGameHUDWidget::NativeConstruct()
 {
@@ -42,22 +44,27 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
+		ButtonRelocateBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverRelocateBuilding );
 	}
 	if ( ButtonRemoveBuilding )
 	{
 		ButtonRemoveBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
+		ButtonRemoveBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverRemoveBuilding );
 	}
 	if ( ButtonDefensiveBuildings )
 	{
 		ButtonDefensiveBuildings->OnClicked.AddDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
+		ButtonDefensiveBuildings->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverDefensiveBuildings );
 	}
 	if ( ButtonEconomyBuilding )
 	{
 		ButtonEconomyBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
+		ButtonEconomyBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEconomyBuilding );
 	}
 	if ( ButtonEndTurn )
 	{
 		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+		ButtonEndTurn->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
 	}
 
 	if ( ButtonBuildingWoodenHouse )
@@ -153,6 +160,19 @@ void UGameHUDWidget::NativeConstruct()
 	if ( BtnToggleWaveInfo )
 	{
 		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+		BtnToggleWaveInfo->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWaveInfoButton );
+	}
+
+	// Sound
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->RegisterObject( this );
+			}
+		}
 	}
 
 	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
@@ -171,48 +191,119 @@ void UGameHUDWidget::NativeConstruct()
 	ShowEconomyBuildings();
 
 	UpdateAllBuildingButtons();
-	UpdateWaveInfoButtonVisuals();
+	if ( IsValid( WavePanelClass ) && !IsValid( ActiveWavePanel ) )
+	{
+		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
+		if ( IsValid( ActiveWavePanel ) )
+		{
+			ActiveWavePanel->AddToViewport( -1 );
+		}
+	}
+	UpdateWaveInfo();
 }
 
 void UGameHUDWidget::NativeDestruct()
 {
 	if ( ButtonRelocateBuilding )
+	{
 		ButtonRelocateBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
+		ButtonRelocateBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverRelocateBuilding );
+	}
 	if ( ButtonRemoveBuilding )
+	{
 		ButtonRemoveBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
+		ButtonRemoveBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverRemoveBuilding );
+	}
 	if ( ButtonDefensiveBuildings )
+	{
 		ButtonDefensiveBuildings->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
+		ButtonDefensiveBuildings->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverDefensiveBuildings );
+	}
 	if ( ButtonEconomyBuilding )
+	{
 		ButtonEconomyBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
+		ButtonEconomyBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEconomyBuilding );
+	}
+
 	if ( ButtonEndTurn )
+	{
 		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+		ButtonEndTurn->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
+	}
 
 	if ( ButtonBuildingWoodenHouse )
+	{
 		ButtonBuildingWoodenHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
+		ButtonBuildingWoodenHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWoodenHouse );
+		ButtonBuildingWoodenHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingStrawHouse )
+	{
 		ButtonBuildingStrawHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
+		ButtonBuildingStrawHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverStrawHouse );
+		ButtonBuildingStrawHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingFarm )
+	{
 		ButtonBuildingFarm->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
+		ButtonBuildingFarm->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverFarm );
+		ButtonBuildingFarm->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingLawnHouse )
+	{
 		ButtonBuildingLawnHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
+		ButtonBuildingLawnHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverLawnHouse );
+		ButtonBuildingLawnHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingMagicHouse )
+	{
 		ButtonBuildingMagicHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
+		ButtonBuildingMagicHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverMagicHouse );
+		ButtonBuildingMagicHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 
 	if ( ButtonBuildingWoodWall )
+	{
 		ButtonBuildingWoodWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
+		ButtonBuildingWoodWall->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWoodWall );
+		ButtonBuildingWoodWall->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingStoneWall )
+	{
 		ButtonBuildingStoneWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
+		ButtonBuildingStoneWall->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverStoneWall );
+		ButtonBuildingStoneWall->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingTowerT0 )
+	{
 		ButtonBuildingTowerT0->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
+		ButtonBuildingTowerT0->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerT0 );
+		ButtonBuildingTowerT0->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingTowerT1 )
+	{
 		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
+		ButtonBuildingTowerT1->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerT1 );
+		ButtonBuildingTowerT1->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingTowerT2 )
+	{
 		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
+		ButtonBuildingTowerT2->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
+		ButtonBuildingTowerT2->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 	if ( ButtonBuildingMortira )
+	{
 		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
+		ButtonBuildingMortira->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
+		ButtonBuildingMortira->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
+	}
 
 	if ( BtnToggleWaveInfo )
+	{
 		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
+		BtnToggleWaveInfo->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWaveInfoButton );
+	}
 
 	ABuildManager* buildManager =
 	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
@@ -245,9 +336,16 @@ void UGameHUDWidget::NativeDestruct()
 		}
 	}
 
-	if ( UWorld* world = GetWorld() )
+	// Sound
+	if ( const UWorld* world = GetWorld() )
 	{
-		world->GetTimerManager().ClearTimer( WavePanelAnimationTimerHandle );
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->UnregisterObject( this );
+			}
+		}
 	}
 
 	Super::NativeDestruct();
@@ -334,6 +432,23 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 	}
 
 	UpdateExtraButtonsVisibility();
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( AWaveManager* waveManager = core->GetWaveManager() )
+		{
+			if ( NewPhase == EGameLoopPhase::Combat )
+			{
+				waveManager->OnWaveEnemiesUpdated.AddUniqueDynamic( this, &UGameHUDWidget::UpdateWaveInfo );
+				UpdateWaveInfo();
+			}
+			else if ( NewPhase == EGameLoopPhase::Building )
+			{
+				waveManager->OnWaveEnemiesUpdated.RemoveDynamic( this, &UGameHUDWidget::UpdateWaveInfo );
+				UpdateWaveInfo();
+			}
+		}
+	}
 }
 
 void UGameHUDWidget::HandleBonusPreviewUpdated( const TArray<FBonusIconData>& BonusIcons )
@@ -418,8 +533,20 @@ void UGameHUDWidget::NativeTick( const FGeometry& MyGeometry, float InDeltaTime 
 	{
 		UpdateBonusIconPositions();
 	}
+
 	TickIncomeAnimation( Text_GoldIncome, Arrow_Gold, GoldIncomeAnim_, InDeltaTime );
 	TickIncomeAnimation( Text_FoodIncome, Arrow_Food, FoodIncomeAnim_, InDeltaTime );
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
+			{
+				UpdateWaveInfo();
+			}
+		}
+	}
 }
 
 void UGameHUDWidget::UpdateBonusIconPositions()
@@ -556,7 +683,9 @@ void UGameHUDWidget::UpdateResources()
 	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
 
 	if ( !rM )
+	{
 		return;
+	}
 
 	int32 gold = rM->GetResourceAmount( EResourceType::Gold );
 	int32 food = rM->GetResourceAmount( EResourceType::Food );
@@ -611,11 +740,15 @@ void UGameHUDWidget::OnEndTurnClicked()
 			gL->EndBuildTurn();
 		}
 	}
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_CLICKED } );
 }
 
 void UGameHUDWidget::OnRelocateBuildingClicked()
 {
 	UE_LOG( LogTemp, Log, TEXT( "Relocate building clicked" ) );
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_MOVEBUILDING_CLICKED } );
 
 	UCoreManager* coreManager = UCoreManager::Get( this );
 	if ( !coreManager )
@@ -667,6 +800,8 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 {
 	UE_LOG( LogTemp, Log, TEXT( "Remove building clicked" ) );
 
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_DEMOLISHBUILDING_CLICKED } );
+
 	UCoreManager* coreManager = UCoreManager::Get( this );
 	if ( !coreManager )
 	{
@@ -707,18 +842,22 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 	}
 
 	resourceManager->AddResources( refund );
-	
+
 	selectionManager->ClearSelection();
 	HandleSelectionChanged();
 	UpdateExtraButtonsVisibility();
 }
 void UGameHUDWidget::OnDefensiveBuildingsClicked()
 {
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_CLICKED } );
+
 	ShowDefensiveBuildings();
 }
 
 void UGameHUDWidget::OnEconomyBuildingClicked()
 {
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_CLICKED } );
+
 	ShowEconomyBuildings();
 }
 
@@ -791,56 +930,78 @@ void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
 
 void UGameHUDWidget::OnBuildWoodenHouseClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingWoodenHouse );
+
 	StartBuilding( WoodenHouseClass );
 }
 
 void UGameHUDWidget::OnBuildStrawHouseClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingStrawHouse );
+
 	StartBuilding( StrawHouseClass );
 }
 
 void UGameHUDWidget::OnBuildFarmClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingFarm );
+
 	StartBuilding( FarmClass );
 }
 
 void UGameHUDWidget::OnBuildLawnHouseClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingLawnHouse );
+
 	StartBuilding( LawnHouseClass );
 }
 
 void UGameHUDWidget::OnBuildMagicHouseClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingMagicHouse );
+
 	StartBuilding( MagicHouseClass );
 }
 
 void UGameHUDWidget::OnBuildWoodWallClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingWoodWall );
+
 	StartBuilding( WoodWallClass );
 }
 
 void UGameHUDWidget::OnBuildStoneWallClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingStoneWall );
+
 	StartBuilding( StoneWallClass );
 }
 
 void UGameHUDWidget::OnBuildTowerT0Clicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT0 );
+
 	StartBuilding( TowerT0Class );
 }
 
 void UGameHUDWidget::OnBuildTowerT1Clicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT1 );
+
 	StartBuilding( TowerT1Class );
 }
 
 void UGameHUDWidget::OnBuildTowerT2Clicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT2 );
+
 	StartBuilding( TowerT2Class );
 }
 
 void UGameHUDWidget::OnBuildTowerMortiraClicked()
 {
+	PlayOnBuildingButtonClickedSound( ButtonBuildingMortira );
+
 	StartBuilding( TowerMortiraClass );
 }
 
@@ -1007,93 +1168,105 @@ void UGameHUDWidget::OnBuildingUnhovered()
 {
 	if ( bIsBuildingLocked && LockedBuildingClass )
 	{
-		return;
+		ShowTooltipForBuilding( LockedBuildingClass );
+	}
+	else
+	{
+		if ( ActiveEconomyTooltip )
+		{
+			ActiveEconomyTooltip->HideTooltip();
+		}
+		if ( ActiveDefensiveTooltip )
+		{
+			ActiveDefensiveTooltip->HideTooltip();
+		}
+	}
+	HideTooltipForBuilding();
+}
+
+void UGameHUDWidget::PlayOnBuildingButtonClickedSound( const UButton* button ) const
+{
+	if ( button && button->GetBackgroundColor() == AffordableColor )
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
+	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_CLICKED } );
+	}
+}
+
+void UGameHUDWidget::PlayOnBuildingButtonHoveredSound( const UButton* button ) const
+{
+	if ( button && button->GetBackgroundColor() == AffordableColor )
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
+	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_HOVERED } );
 	}
 
-	HideTooltipForBuilding();
+
 }
 
 void UGameHUDWidget::ToggleWaveInfoPanel()
 {
-	if ( !WavePanelClass )
+	if ( IsValid( ActiveWavePanel ) )
+	{
+		ActiveWavePanel->TogglePanel();
+	}
+}
+
+void UGameHUDWidget::UpdateWaveInfo()
+{
+	if ( !IsValid( ActiveWavePanel ) )
 	{
 		return;
 	}
 
-	if ( bIsWavePanelAnimating )
-	{
-		return;
-	}
+	UCoreManager* core = UCoreManager::Get( this );
+	UGameLoopManager* gameLoop = IsValid( core ) ? core->GetGameLoop() : nullptr;
+	AWaveManager* waveManager = IsValid( core ) ? core->GetWaveManager() : nullptr;
 
-	if ( !ActiveWavePanel )
+	if ( IsValid( gameLoop ) && IsValid( waveManager ) )
 	{
-		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
-		if ( ActiveWavePanel )
+		int32 waveIndex = FMath::Max( 0, gameLoop->GetCurrentWave() - 1 );
+
+		TMap<TSubclassOf<AUnit>, int32> waveData;
+
+		if ( gameLoop->GetCurrentPhase() == EGameLoopPhase::Combat )
 		{
-			ActiveWavePanel->AddToViewport( 0 );
+			waveData = waveManager->GetCurrentWaveRemainingEnemies();
+
+			if ( waveData.Num() == 0 )
+			{
+				waveData = waveManager->GetNextWaveComposition( waveIndex );
+			}
 		}
-	}
-
-	if ( !ActiveWavePanel )
-	{
-		return;
-	}
-
-	bIsWavePanelAnimating = true;
-
-	GetWorld()->GetTimerManager().SetTimer(
-	    WavePanelAnimationTimerHandle, this, &UGameHUDWidget::UnlockWaveInfoButton, 0.3f, false
-	);
-
-	bIsWavePanelOpen = !bIsWavePanelOpen;
-
-	if ( bIsWavePanelOpen )
-	{
-		UCoreManager* core = UCoreManager::Get( this );
-		UGameLoopManager* gameLoop = core ? core->GetGameLoop() : nullptr;
-		AWaveManager* waveManager = core ? core->GetWaveManager() : nullptr;
-
-		if ( gameLoop && waveManager )
+		else
 		{
-			int32 waveIndex = gameLoop->GetCurrentWave() - 1;
-			TMap<TSubclassOf<AUnit>, int32> waveData = waveManager->GetNextWaveComposition( waveIndex );
-			ActiveWavePanel->PopulatePanel( waveData );
+			waveData = waveManager->GetNextWaveComposition( waveIndex );
 		}
 
-		ActiveWavePanel->PlaySlideInAnimation();
-	}
-	else
-	{
-		ActiveWavePanel->PlaySlideOutAnimation();
-	}
+		int32 totalEnemies = 0;
+		for ( const TPair<TSubclassOf<AUnit>, int32>& pair : waveData )
+		{
+			totalEnemies += pair.Value;
+		}
 
-	UpdateWaveInfoButtonVisuals();
+		if ( IsValid( Text_TotalEnemies ) )
+		{
+			Text_TotalEnemies->SetText( FText::AsNumber( totalEnemies ) );
+		}
+
+		ActiveWavePanel->PopulatePanel( waveData );
+	}
 }
 
 void UGameHUDWidget::OnWaveInfoButtonClicked()
 {
 	ToggleWaveInfoPanel();
-}
-
-void UGameHUDWidget::UpdateWaveInfoButtonVisuals()
-{
-	if ( ImgWaveInfoRed )
-	{
-		ImgWaveInfoRed->SetVisibility(
-		    bIsWavePanelOpen ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
-		);
-	}
-	if ( ImgWaveInfoWhite )
-	{
-		ImgWaveInfoWhite->SetVisibility(
-		    bIsWavePanelOpen ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible
-		);
-	}
-}
-
-void UGameHUDWidget::UnlockWaveInfoButton()
-{
-	bIsWavePanelAnimating = false;
 }
 
 void UGameHUDWidget::InitIncomeDisplay()
@@ -1247,7 +1420,9 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 	const bool bVictory = ( Result == EGameResult::Win );
 	TSubclassOf<UGameStateOverlayWidget> ClassToUse = bVictory ? WinWidgetClass : LoseWidgetClass;
 	if ( !ClassToUse )
+	{
 		return;
+	}
 
 	ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, ClassToUse );
 	if ( ActiveOverlay )
@@ -1276,6 +1451,8 @@ void UGameHUDWidget::TogglePauseMenu()
 
 	if ( ActiveOverlay )
 	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_RESUMEGAME } );
+
 		ActiveOverlay->OnResumeRequested.RemoveDynamic( this, &UGameHUDWidget::TogglePauseMenu );
 
 		ActiveOverlay->RemoveFromParent();
@@ -1292,7 +1469,11 @@ void UGameHUDWidget::TogglePauseMenu()
 	else
 	{
 		if ( !PauseWidgetClass )
+		{
 			return;
+		}
+
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_PAUSEGAME } );
 
 		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, PauseWidgetClass );
 		if ( ActiveOverlay )
@@ -1425,10 +1606,7 @@ bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
 	}
 	if ( !BossBarsContainer )
 	{
-		UE_LOG(
-		    LogTemp, Warning,
-		    TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" )
-		);
+		UE_LOG( LogTemp, Warning, TEXT( "UGameHUDWidget::AddBossBar: BossBarsContainer is not bound in WBP_GameHUD" ) );
 		return false;
 	}
 	BossBarsContainer->AddChildToHorizontalBox( bar );
@@ -1584,6 +1762,7 @@ void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 
 	HandleSelectionChanged();
 }
+
 void UGameHUDWidget::HideTooltipForBuilding()
 {
 	if ( CurrentTooltip )
