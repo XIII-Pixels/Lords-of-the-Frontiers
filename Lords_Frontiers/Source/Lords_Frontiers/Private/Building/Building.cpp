@@ -515,6 +515,8 @@ void ABuilding::RestoreFromRuins()
 	ActivateBuildingMesh();
 
 	UpdateSelectionOverlay();
+
+	OnBuildingRestored.Broadcast( this );
 }
 
 void ABuilding::FullRestore()
@@ -530,6 +532,8 @@ void ABuilding::FullRestore()
 			CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
 			CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
 		}
+
+		OnBuildingRestored.Broadcast( this );
 
 		if ( EconomyComponent_ )
 		{
