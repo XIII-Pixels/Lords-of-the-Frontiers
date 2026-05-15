@@ -26,6 +26,61 @@ USelectionManagerComponent* ADebugPlayerController::GetSelectionManager() const
 	return SelectionManagerComponent_;
 }
 
+void ADebugPlayerController::OnPossess( APawn* pawn )
+{
+	Super::OnPossess( pawn );
+
+	if ( !pawn )
+	{
+		return;
+	}
+
+	auto logListenerNotFound = []()
+	{
+		UE_LOG(
+		    LogTemp, Error,
+		    TEXT( "ADebugPlayerController: component of possessed pawn named AudioListener is not found" )
+		);
+	};
+
+	USceneComponent* listenerComp = Cast<USceneComponent>( pawn->GetDefaultSubobjectByName( TEXT( "AudioListener" ) ) );
+	if ( !listenerComp )
+	{
+		logListenerNotFound();
+		return;
+	}
+
+	GetWorld()->GetTimerManager().SetTimerForNextTick(
+	    [this, listenerComp, logListenerNotFound]()
+	    {
+		    if ( !listenerComp )
+		    {
+			    logListenerNotFound();
+			    return;
+		    }
+
+		    // Set listener to center of actor (which should be on ground)
+		    SetAudioListenerOverride( listenerComp, FVector::ZeroVector, FRotator::ZeroRotator );
+
+		    FVector location;
+		    FVector front;
+		    FVector right;
+		    GetAudioListenerPosition( location, front, right );
+
+		    UE_LOG(
+		        LogTemp, Log, TEXT( "ADebugPlayerController: audio listener position overriden: %s" ),
+		        *location.ToString()
+		    );
+		    UE_LOG( LogTemp, Log, TEXT( "ADebugPlayerController: Front: %s Right: %s" ), *front.ToString(), *right.ToString() );
+	    }
+	);
+}
+
+void ADebugPlayerController::Tick( float deltaSeconds )
+{
+	Super::Tick( deltaSeconds );
+}
+
 void ADebugPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -134,7 +189,6 @@ void ADebugPlayerController::HandleLeftClick()
 		);
 	}
 }
-
 
 void ADebugPlayerController::HandleRightClick()
 {

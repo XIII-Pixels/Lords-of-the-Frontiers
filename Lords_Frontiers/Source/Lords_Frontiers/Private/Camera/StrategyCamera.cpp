@@ -37,6 +37,9 @@ AStrategyCamera::AStrategyCamera()
 	Camera->SetupAttachment( SpringArm );
 	Camera->bUsePawnControlRotation = false;
 
+	AudioListener = CreateDefaultSubobject<UCameraComponent>( TEXT( "AudioListener" ) );
+	AudioListener->SetupAttachment( RootComponent );
+
 	Camera->ProjectionMode = ECameraProjectionMode::Orthographic;
 	Camera->OrthoWidth = 2048.0f;
 	SpringArm->TargetArmLength = 2000.0f;
@@ -178,6 +181,7 @@ void AStrategyCamera::Tick( float deltaTime )
 	FRotator targetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
 	FRotator newRot = FMath::RInterpTo( currentRot, targetRot, realDeltaTime, RotationSpeed_ * 0.1f );
 	SpringArm->SetRelativeRotation( newRot );
+	AudioListener->SetRelativeRotation( { 0.0f, newRot.Yaw, 0.0f } );
 
 	if ( bEnableEdgeScrolling_ )
 	{
