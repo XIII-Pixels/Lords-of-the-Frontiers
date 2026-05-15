@@ -452,7 +452,10 @@ void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 		UnitAIManager_->PathPointsManager()->Empty();
 	}
 
-	PlayBuildingMusicAndAmbient();
+	if ( CurrentPhase_ != EGameLoopPhase::None )
+	{
+		PlayBuildingMusicAndAmbient();
+	}
 
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
 }
@@ -494,7 +497,7 @@ void UGameLoopManager::HandleDelayedBuildingRestoration()
 
 bool UGameLoopManager::IsCardSelectionPending() const
 {
-	UCardSubsystem* cardSub = UCardSubsystem::Get(GetWorld());
+	UCardSubsystem* cardSub = UCardSubsystem::Get( GetWorld() );
 	if ( !cardSub )
 	{
 		return false;

@@ -10,7 +10,8 @@
 #include "LoopingSound.generated.h"
 
 /** (Gregory-hub)
- * Sound that loops according to sound settings */
+ * Sound that loops according to sound settings
+ * IMPORTANT: sound timers use game time. Setting game speed makes them invalid */
 UCLASS()
 class LORDS_FRONTIERS_API ULoopingSound : public UObject
 {

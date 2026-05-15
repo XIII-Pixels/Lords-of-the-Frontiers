@@ -102,6 +102,9 @@ private:
 	UFUNCTION()
 	void HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave );
 
+	void PlayWinMusicAndAmbient() const;
+	void PlayLoseMusicAndAmbient() const;
+
 	UPROPERTY()
 	TObjectPtr<UGameLoopManager> GameLoopManager_;
 

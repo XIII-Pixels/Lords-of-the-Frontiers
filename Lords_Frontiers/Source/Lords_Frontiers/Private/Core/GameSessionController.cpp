@@ -3,12 +3,16 @@
 #include "Core/GameSessionController.h"
 
 #include "Core/CoreManager.h"
+#include "Core/DefaultGameInstance.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Saving/GameSaveData.h"
 #include "Core/Saving/GameSaver.h"
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
 
+#include "Sound/MusicAmbientManager.h"
+
+class UMusicAmbientManager;
 void UGameSessionController::Initialize( FSubsystemCollectionBase& Collection )
 {
 	Super::Initialize( Collection );
@@ -62,6 +66,14 @@ void UGameSessionController::EndGame( EGameResult result )
 {
 	bIsGameStarted_ = false;
 
+	if ( UGameInstance* gi = GetGameInstance() )
+	{
+		if ( UGameSessionController* session = gi->GetSubsystem<UGameSessionController>() )
+		{
+			session->ResetSpeed();
+		}
+	}
+
 	switch ( result )
 	{
 	case EGameResult::Win:
@@ -97,10 +109,12 @@ void UGameSessionController::EndGame( EGameResult result )
 
 void UGameSessionController::EnterVictoryPhase()
 {
+	PlayWinMusicAndAmbient();
 }
 
 void UGameSessionController::EnterDefeatPhase()
 {
+	PlayLoseMusicAndAmbient();
 }
 
 void UGameSessionController::PauseGame()
@@ -145,6 +159,30 @@ float UGameSessionController::GetTimerScale() const
 void UGameSessionController::HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave )
 {
 	EndGame( EGameResult::Win );
+}
+
+void UGameSessionController::PlayWinMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayWinGameMusic();
+		}
+	}
+}
+
+void UGameSessionController::PlayLoseMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayLoseGameMusic();
+		}
+	}
 }
 
 void UGameSessionController::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )

@@ -37,6 +37,8 @@ void ULoopingSound::Play()
 	}
 	else
 	{
+		GetWorld()->GetTimerManager().ClearTimer( StartTimerHandle_ );
+
 		FTimerDelegate delegate;
 		delegate.BindWeakLambda( this, [this]() { StartPlayback( true ); } );
 		GetWorld()->GetTimerManager().SetTimer( StartTimerHandle_, delegate, initialDelay, false );
@@ -66,23 +68,26 @@ void ULoopingSound::StartPlayback( bool initial )
 		);
 	}
 
-	// Play with fade in
 	const float startTime = SoundConfig_->StartTimeRandomized();
-	AudioComponent_->FadeIn( fadeIn, 1.0f, startTime );
+	const float fadeOut = SoundConfig_->FadeOutRandomized();
+	const float repeatDelay = SoundConfig_->RepeatDelayRandomized();
+
+	float duration = FMath::Max( 0, SoundConfig_->Sound->GetDuration() );
+	if ( AudioComponent_->PitchMultiplier > 0.0f )
+	{
+		duration /= AudioComponent_->PitchMultiplier;
+	}
+	duration -= startTime;
 
 	GetWorld()->GetTimerManager().ClearTimer( FadeTimerHandle_ );
+	GetWorld()->GetTimerManager().ClearTimer( ReplayTimerHandle_ );
+
+	// Play with fade in
+	AudioComponent_->FadeIn( fadeIn, 1.0f, startTime );
 
 	// Schedule fade out
-	const float fadeOut = SoundConfig_->FadeOutRandomized();
 	if ( fadeOut > 0 )
 	{
-		float duration = SoundConfig_->Sound->GetDuration();
-		if ( AudioComponent_->PitchMultiplier > 0.0f )
-		{
-			duration /= AudioComponent_->PitchMultiplier;
-		}
-		duration -= startTime;
-
 		const float fadeOutStart = FMath::Max( 0.0f, duration - fadeOut );
 
 		FTimerDelegate delegate;
@@ -100,18 +105,7 @@ void ULoopingSound::StartPlayback( bool initial )
 		GetWorld()->GetTimerManager().SetTimer( FadeTimerHandle_, delegate, fadeOutStart, false );
 	}
 
-	GetWorld()->GetTimerManager().ClearTimer( ReplayTimerHandle_ );
-
 	// Schedule replay
-	const float repeatDelay = SoundConfig_->RepeatDelayRandomized();
-
-	float duration = FMath::Max( 0, SoundConfig_->Sound->GetDuration() );
-	if ( AudioComponent_->PitchMultiplier > 0.0f )
-	{
-		duration /= AudioComponent_->PitchMultiplier;
-	}
-	duration -= startTime;
-
 	const float timeBeforeReplay = duration + repeatDelay;
 
 	FTimerDelegate delegate;
