@@ -1,6 +1,7 @@
 ﻿#include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Lords_Frontiers/Public/Waves/WaveData.h"
@@ -352,6 +353,11 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 
 	RemainingEnemiesPerClass_.Empty();
 
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
+
 	OnWaveEnded.Broadcast( waveIndex );
 
 	if ( bLogSpawning )
@@ -414,6 +420,11 @@ void AWaveManager::CancelCurrentWave()
 	bIsWaveActive_ = false;
 
 	RemainingEnemiesPerClass_.Empty();
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
 
 	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
@@ -606,6 +617,10 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 			{
 				bIsWaveActive_ = false;
 				ClearActiveTimers();
+				if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+				{
+					visuals->EndAllSticky();
+				}
 				OnWaveEnded.Broadcast( CurrentWaveIndex );
 			}
 			if ( UWorld* world = GetWorld() )
