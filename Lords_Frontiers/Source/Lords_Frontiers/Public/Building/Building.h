@@ -209,6 +209,8 @@ protected:
 
 	void ActivateRuinsMesh();
 
+	void SetStaticMeshWithMaterials( UStaticMesh* mesh );
+
 	void UpdateSelectionOverlay();
 
 	void ShowSelectionOverlay();

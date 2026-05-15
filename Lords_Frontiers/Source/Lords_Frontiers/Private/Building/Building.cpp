@@ -3,6 +3,7 @@
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
+#include "GeometryCacheComponent.h"
 #include "Lords_Frontiers/Public/Resources/EconomyComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Resources/EconomyComponent.h"
@@ -10,7 +11,6 @@
 #include "Utilities/TraceChannelMappings.h"
 #include "VFX/EntityVFXConfig.h"
 
-#include "GeometryCacheComponent.h"
 #include "Components/BoxComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
@@ -327,7 +327,7 @@ void ABuilding::ActivateBuildingMesh()
 	}
 	else
 	{
-		StaticMeshComponent_->SetStaticMesh( BuildingMesh_ );
+		SetStaticMeshWithMaterials( BuildingMesh_ );
 		StaticMeshComponent_->SetVisibility( true );
 
 		SkeletalMeshComponent_->SetVisibility( false );
@@ -340,7 +340,7 @@ void ABuilding::ActivateRuinsMesh()
 {
 	if ( RuinedMesh_ )
 	{
-		StaticMeshComponent_->SetStaticMesh( RuinedMesh_ );
+		SetStaticMeshWithMaterials( RuinedMesh_ );
 		StaticMeshComponent_->SetRenderCustomDepth( false );
 		StaticMeshComponent_->SetVisibility( true );
 
@@ -348,6 +348,21 @@ void ABuilding::ActivateRuinsMesh()
 		GeometryCacheComponent_->SetVisibility( false );
 	}
 	UpdateSelectionOverlay();
+}
+
+void ABuilding::SetStaticMeshWithMaterials( UStaticMesh* mesh )
+{
+	if ( !mesh )
+	{
+		return;
+	}
+
+	StaticMeshComponent_->SetStaticMesh( mesh );
+
+	for ( int32 i = 0; i < mesh->GetStaticMaterials().Num(); i++ )
+	{
+		StaticMeshComponent_->SetMaterial( i, mesh->GetStaticMaterials()[i].MaterialInterface );
+	}
 }
 
 FEntityStats& ABuilding::Stats()
