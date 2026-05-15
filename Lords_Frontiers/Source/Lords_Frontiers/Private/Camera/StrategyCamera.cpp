@@ -144,6 +144,20 @@ void AStrategyCamera::BeginPlay()
 	);
 }
 
+void AStrategyCamera::SetZoomToMax()
+{
+	TargetZoom_ = MaxZoom_;
+	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
+	{
+		Camera->OrthoWidth = MaxZoom_;
+	}
+	else
+	{
+		SpringArm->TargetArmLength = MaxZoom_;
+	}
+}
+
+// Called every frame
 void AStrategyCamera::Tick( float deltaTime )
 {
 	Super::Tick( deltaTime );
@@ -183,8 +197,15 @@ void AStrategyCamera::Tick( float deltaTime )
 	float curvedAlpha = FMath::Pow( zoomAlpha, BoundsCurveExponent_ );
 
 	FVector2D currentExtents;
-	currentExtents.X = FMath::Lerp( MaxMoveAreaExtents_.X, MinMoveAreaExtents_.X, curvedAlpha );
-	currentExtents.Y = FMath::Lerp( MaxMoveAreaExtents_.Y, MinMoveAreaExtents_.Y, curvedAlpha );
+	if ( bIgnoreZoomBoundsCurve_ )
+	{
+		currentExtents = MaxMoveAreaExtents_;
+	}
+	else
+	{
+		currentExtents.X = FMath::Lerp( MaxMoveAreaExtents_.X, MinMoveAreaExtents_.X, curvedAlpha );
+		currentExtents.Y = FMath::Lerp( MaxMoveAreaExtents_.Y, MinMoveAreaExtents_.Y, curvedAlpha );
+	}
 
 	FVector2D dynamicMinBounds = MapCenter_ - currentExtents;
 	FVector2D dynamicMaxBounds = MapCenter_ + currentExtents;
@@ -242,7 +263,7 @@ void AStrategyCamera::Move( const FInputActionValue& value )
 
 void AStrategyCamera::Zoom( const FInputActionValue& value )
 {
-	if ( bIsCameraInputDisabled_ )
+	if ( bIsCameraInputDisabled_ || bIsZoomDisabled_ )
 		return;
 
 	float zoomDirection = value.Get<float>();

@@ -29,6 +29,12 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Config" )
 	TObjectPtr<UGameLoopConfig> GameLoopConfig;
 
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Config",
+	    meta = ( ToolTip = "Per-map overrides. Key = short map name without PIE prefix. Falls back to GameLoopConfig." )
+	)
+	TMap<FName, TObjectPtr<UGameLoopConfig>> GameLoopConfigByMap;
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Cards" )
 	TObjectPtr<UCardPoolConfig> CardPoolConfig;
 
@@ -46,4 +52,6 @@ private:
 	void InitializeCardSystem();
 	void CreateHUD();
 	void SetupCamera();
+
+	UGameLoopConfig* SelectGameLoopConfig() const;
 };

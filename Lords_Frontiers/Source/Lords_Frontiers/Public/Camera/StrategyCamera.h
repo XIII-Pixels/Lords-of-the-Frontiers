@@ -56,6 +56,33 @@ public:
 		return bIsCameraInputDisabled_;
 	}
 
+	UFUNCTION( BlueprintCallable, Category = "Settings|Zoom" )
+	void SetZoomToMax();
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Zoom" )
+	void SetZoomDisabled( bool bDisabled )
+	{
+		bIsZoomDisabled_ = bDisabled;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Zoom" )
+	bool IsZoomDisabled() const
+	{
+		return bIsZoomDisabled_;
+	}
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Bounds" )
+	void SetIgnoreZoomBoundsCurve( bool bIgnore )
+	{
+		bIgnoreZoomBoundsCurve_ = bIgnore;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Bounds" )
+	bool IsIgnoringZoomBoundsCurve() const
+	{
+		return bIgnoreZoomBoundsCurve_;
+	}
+
 	float MinZoom() const
 	{
 		return MinZoom_;
@@ -162,6 +189,8 @@ private:
 	float TargetYaw_;
 	float CurrentYaw_;
 	bool bIsCameraInputDisabled_ = false;
+	bool bIsZoomDisabled_ = false;
+	bool bIgnoreZoomBoundsCurve_ = false;
 
 	FVector2D MapCenter_;
 	FVector2D MaxMoveAreaExtents_;

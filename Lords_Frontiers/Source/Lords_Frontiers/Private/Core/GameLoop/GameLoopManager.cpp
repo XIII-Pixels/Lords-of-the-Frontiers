@@ -7,6 +7,7 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopRewardHelper.h"
 #include "TimerManager.h"
+#include "Tutorial/TutorialSubsystem.h"
 #include "Waves/WaveManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
@@ -122,6 +123,11 @@ void UGameLoopManager::EndBuildTurn()
 	{
 		Log( TEXT( "WARNING: Cannot end build turn now" ) );
 		return;
+	}
+
+	if ( UTutorialSubsystem* tutorial = UTutorialSubsystem::Get( this ) )
+	{
+		tutorial->NotifyEndTurnPressed();
 	}
 
 	if ( CurrentBuildTurn_ >= GetMaxBuildTurns() )
