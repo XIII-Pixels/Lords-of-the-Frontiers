@@ -334,16 +334,16 @@ void UGameLoopManager::EnterCombatPhase()
 
 void UGameLoopManager::EnterRewardPhase()
 {
+	RewardHelper_->CollectBuildingIncome();
+	RewardHelper_->ApplyMaintenanceCosts();
+	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
+	RewardHelper_->RestoreBuildings();
+
 	SetPhase( EGameLoopPhase::Reward );
 
 	Log( FString::Printf(
 	    TEXT( ">>> REWARD PHASE (Wave %d, Perfect: %s)" ), CurrentWave_, bPerfectWave_ ? TEXT( "YES" ) : TEXT( "NO" )
 	) );
-
-	RewardHelper_->CollectBuildingIncome();
-	RewardHelper_->ApplyMaintenanceCosts();
-	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
-	RewardHelper_->RestoreBuildings();
 
 	if ( IsLastWave() )
 	{

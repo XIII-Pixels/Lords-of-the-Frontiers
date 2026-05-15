@@ -163,9 +163,12 @@ bool UCardSubsystem::BuildCardChoice( int32 waveNumber, FCardChoice& outChoice )
 				continue;
 			}
 
+			const float waveMultiplier =
+				PoolConfig_->GetRarityWeightMultiplierForWave( waveNumber, rarityPool->Rarity );
+
 			FCardRarityBucket bucket;
 			bucket.Rarity       = rarityPool->Rarity;
-			bucket.RarityWeight = rarityPool->RarityWeight;
+			bucket.RarityWeight = rarityPool->RarityWeight * waveMultiplier;
 			bucket.Cards.Reserve( rarityPool->Cards.Num() );
 
 			for ( const TObjectPtr<UCardDataAsset>& card : rarityPool->Cards )
@@ -495,14 +498,16 @@ void UCardSubsystem::ApplyCardEvent(
 			{
 				continue;
 			}
-			if ( !event.MatchesBuilding( building ) )
+			if ( !event.MatchesBuildingClass( building ) )
 			{
 				continue;
 			}
 
+			const bool bStateMatches = event.MatchesBuildingState( building );
+
 			FCardEffectContext ctx = MakeContext( card, eventIndex, stackCount, waveNumber, building );
 
-			const bool bOneShotPassesConditions = bHasOneShotEffect
+			const bool bOneShotPassesConditions = bHasOneShotEffect && bStateMatches
 				? EvaluateConditions( event, ctx )
 				: false;
 
@@ -530,9 +535,9 @@ void UCardSubsystem::ApplyCardEvent(
 				else if ( bOneShotPassesConditions )
 				{
 					effect->Apply( ctx );
-					if ( visuals )
+					if ( visuals && !effect->HandlesOwnVisuals() )
 					{
-						visuals->PlayOneShot( effect->VisualConfig, building, nullptr );
+						visuals->PlayOneShot( effect->GetVisualConfig(), building, nullptr );
 					}
 				}
 			}
@@ -854,7 +859,7 @@ void UCardSubsystem::RevertAppliedRecord( const FAppliedCardRecord& record )
 			{
 				for ( ABuilding* building : buildings )
 				{
-					if ( !IsValid( building ) || !event.MatchesBuilding( building ) )
+					if ( !IsValid( building ) || !event.MatchesBuildingClass( building ) )
 					{
 						continue;
 					}
@@ -993,14 +998,16 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 					continue;
 				}
 
-				if ( !event.MatchesBuilding( building ) )
+				if ( !event.MatchesBuildingClass( building ) )
 				{
 					continue;
 				}
 
+				const bool bStateMatches = event.MatchesBuildingState( building );
+
 				FCardEffectContext ctx = MakeContext( card, eventIndex, stack + 1, record.WaveSelected, building );
 
-				const bool bOneShotPassesConditions = bHasOneShot
+				const bool bOneShotPassesConditions = bHasOneShot && bStateMatches
 					? EvaluateConditions( event, ctx )
 					: false;
 

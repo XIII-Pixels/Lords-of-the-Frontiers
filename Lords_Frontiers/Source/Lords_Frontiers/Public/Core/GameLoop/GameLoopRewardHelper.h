@@ -37,7 +37,7 @@ public:
 	void ApplyMaintenanceCosts();
 
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Rewards" )
-	void ApplyReward( FResourceReward& reward );
+	void ApplyReward( FResourceReward& reward, bool starting = false );
 
 	UFUNCTION( BlueprintCallable, Category = "GameLoop|Rewards" )
 	void RecalculateIncome();
