@@ -1,6 +1,7 @@
 #include "UI/Cards/CardWidget.h"
 
 #include "Cards/CardDataAsset.h"
+#include "Cards/CardTypes.h"
 
 #include "Components/Button.h"
 #include "Components/Image.h"
@@ -132,4 +133,23 @@ void UCardWidget::UpdateCardVisuals()
 
 	ApplyIconTexture( BuildingIconImage, CardData_->BuildingIcon );
 	ApplyIconTexture( FeatureIconImage, CardData_->FeatureIcon );
+
+	const bool bHasFire = CardData_->EffectFrames.Contains( ECardEffectFrame::Fire );
+	const bool bHasSlow = CardData_->EffectFrames.Contains( ECardEffectFrame::Slow );
+
+	UTexture2D* effectFrameTexture = nullptr;
+	if ( bHasFire && bHasSlow )
+	{
+		effectFrameTexture = EffectFrameSlowFireTexture;
+	}
+	else if ( bHasFire )
+	{
+		effectFrameTexture = EffectFrameFireTexture;
+	}
+	else if ( bHasSlow )
+	{
+		effectFrameTexture = EffectFrameSlowTexture;
+	}
+
+	ApplyIconTexture( EffectFrameIconImage, effectFrameTexture );
 }
