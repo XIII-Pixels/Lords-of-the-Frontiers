@@ -5,6 +5,7 @@
 #include "AI/EntityAIController.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
+#include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "NiagaraFunctionLibrary.h"
@@ -56,7 +57,6 @@ void AUnit::BeginPlay()
 	FollowComponent_ = FindComponentByClass<UFollowComponent>();
 	if ( FollowComponent_ )
 	{
-		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
@@ -320,6 +320,11 @@ void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 
 void AUnit::OnDeath()
 {
+	if ( UStatusEffectTracker* tracker = FindComponentByClass<UStatusEffectTracker>() )
+	{
+		tracker->NotifyOwnerDied();
+	}
+
 	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
 	HealthBarSubscription_.Reset();
 

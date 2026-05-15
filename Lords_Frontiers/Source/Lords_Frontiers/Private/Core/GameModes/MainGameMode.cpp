@@ -5,6 +5,7 @@
 #include "Lords_Frontiers/Public/UI/GameHUD.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/CoreManager.h"
+#include "Core/GameLoop/GameLoopConfig.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
 #include "Grid/GridManager.h"
@@ -58,10 +59,13 @@ void AMainGameMode::InitializeGameSystems()
 		return;
 	}
 
-	if ( GameLoopConfig )
+	if ( UGameLoopConfig* selected = SelectGameLoopConfig() )
 	{
-		GL->InitGameLoop( GameLoopConfig, Core->GetUnitAIManager() );
-		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with config" ) );
+		GL->InitGameLoop( selected, Core->GetUnitAIManager() );
+		UE_LOG(
+		    LogTemp, Log, TEXT( "MainGameMode: GameLoop initialized with %s" ),
+		    *selected->GetName()
+		);
 	}
 
 	if ( UGameSessionController* Session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
@@ -180,4 +184,21 @@ void AMainGameMode::SetupCamera()
 	{
 		PC->SetViewTarget( Camera );
 	}
+}
+
+UGameLoopConfig* AMainGameMode::SelectGameLoopConfig() const
+{
+	if ( const UWorld* world = GetWorld() )
+	{
+		const FString rawName = world->GetMapName();
+		const FString mapName = UWorld::RemovePIEPrefix( rawName );
+		if ( const TObjectPtr<UGameLoopConfig>* override = GameLoopConfigByMap.Find( FName( *mapName ) ) )
+		{
+			if ( *override )
+			{
+				return *override;
+			}
+		}
+	}
+	return GameLoopConfig;
 }

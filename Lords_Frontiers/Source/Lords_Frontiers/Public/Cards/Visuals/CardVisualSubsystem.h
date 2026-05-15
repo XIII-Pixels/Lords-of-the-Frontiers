@@ -16,6 +16,18 @@ class USkeletalMeshComponent;
 class UTexture2D;
 
 USTRUCT()
+struct FCardStickyIconSlot
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TWeakObjectPtr<ACardIconStrip> Strip;
+
+	UPROPERTY()
+	int32 SlotId = INDEX_NONE;
+};
+
+USTRUCT()
 struct FCardStickyRecord
 {
 	GENERATED_BODY()
@@ -24,13 +36,10 @@ struct FCardStickyRecord
 	TWeakObjectPtr<AActor> Host;
 
 	UPROPERTY()
-	TWeakObjectPtr<ACardIconStrip> IconStrip;
+	TArray<FCardStickyIconSlot> IconSlots;
 
 	UPROPERTY()
-	int32 IconSlotId = INDEX_NONE;
-
-	UPROPERTY()
-	TWeakObjectPtr<UNiagaraComponent> NiagaraComponent;
+	TArray<TWeakObjectPtr<UNiagaraComponent>> NiagaraComponents;
 
 	UPROPERTY()
 	TWeakObjectPtr<USkeletalMeshComponent> OverlayMesh;

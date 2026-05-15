@@ -24,11 +24,13 @@ void UCardFeedback::ShowIconOnActor(
 	}
 
 	FCardVisualConfig config;
-	config.Icon.Icon = icon;
-	config.Icon.ShowOn = ECardVisualTarget::Owner;
-	config.Icon.Mode = ECardVisualIconMode::Popup;
-	config.Icon.PopupDurationSeconds = durationSeconds;
-	config.Icon.PopupFloatHeight = floatHeight;
+	FCardIconSpec spec;
+	spec.Icon = icon;
+	spec.ShowOn = ECardVisualTarget::Owner;
+	spec.Mode = ECardVisualIconMode::Popup;
+	spec.PopupDurationSeconds = durationSeconds;
+	spec.PopupFloatHeight = floatHeight;
+	config.Icons.Add( spec );
 
 	visuals->PlayOneShot( config, owner, nullptr );
 }

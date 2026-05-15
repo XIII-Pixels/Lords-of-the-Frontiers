@@ -92,11 +92,6 @@ void UFollowComponent::StopFollowing()
 	bFollowTarget_ = false;
 }
 
-void UFollowComponent::SetMaxSpeed( float maxSpeed )
-{
-	MaxSpeed = maxSpeed;
-}
-
 void UFollowComponent::MoveTowardsTarget( float deltaTime )
 {
 	if ( !Unit_.IsValid() || !Unit_->FollowedTarget().IsValid() )
@@ -115,6 +110,8 @@ void UFollowComponent::MoveTowardsTarget( float deltaTime )
 	CurrentDeviationYaw_ = FMath::Clamp( CurrentDeviationYaw_, -MaxDeviationAngle_, MaxDeviationAngle_ );
 	const FRotator rot( 0, CurrentDeviationYaw_, 0 );
 	CurrentDirection_ = rot.RotateVector( CurrentDirection_ );
+
+	MaxSpeed = Unit_->Stats().MaxSpeed();
 
 	AddInputVector( CurrentDirection_ );
 }

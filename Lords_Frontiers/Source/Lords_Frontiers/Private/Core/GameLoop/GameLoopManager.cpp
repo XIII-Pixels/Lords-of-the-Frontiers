@@ -8,6 +8,7 @@
 #include "Core/DefaultGameInstance.h"
 #include "Core/GameLoop/GameLoopRewardHelper.h"
 #include "TimerManager.h"
+#include "Tutorial/TutorialSubsystem.h"
 #include "Waves/WaveManager.h"
 
 #include "Sound/MusicAmbientManager.h"
@@ -125,6 +126,11 @@ void UGameLoopManager::EndBuildTurn()
 	{
 		Log( TEXT( "WARNING: Cannot end build turn now" ) );
 		return;
+	}
+
+	if ( UTutorialSubsystem* tutorial = UTutorialSubsystem::Get( this ) )
+	{
+		tutorial->NotifyEndTurnPressed();
 	}
 
 	if ( CurrentBuildTurn_ >= GetMaxBuildTurns() )
@@ -359,16 +365,16 @@ void UGameLoopManager::EnterCombatPhase()
 
 void UGameLoopManager::EnterRewardPhase()
 {
+	RewardHelper_->CollectBuildingIncome();
+	RewardHelper_->ApplyMaintenanceCosts();
+	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
+	RewardHelper_->RestoreBuildings();
+
 	SetPhase( EGameLoopPhase::Reward );
 
 	Log( FString::Printf(
 	    TEXT( ">>> REWARD PHASE (Wave %d, Perfect: %s)" ), CurrentWave_, bPerfectWave_ ? TEXT( "YES" ) : TEXT( "NO" )
 	) );
-
-	RewardHelper_->CollectBuildingIncome();
-	RewardHelper_->ApplyMaintenanceCosts();
-	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
-	RewardHelper_->RestoreBuildings();
 
 	if ( IsLastWave() )
 	{
