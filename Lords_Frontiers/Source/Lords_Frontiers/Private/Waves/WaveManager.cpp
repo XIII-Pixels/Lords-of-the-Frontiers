@@ -1,6 +1,7 @@
 ﻿#include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Lords_Frontiers/Public/Waves/WaveData.h"
@@ -39,6 +40,7 @@ void AWaveManager::BeginPlay()
 	if ( WaveConfig_ )
 	{
 		ApplyWaveConfig();
+		BuildSelectedWavePresetCache();
 	}
 	if ( bAutoStartOnBeginPlay )
 	{
@@ -118,6 +120,7 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 		return;
 	}
 
+	RemainingEnemiesPerClass_ = GetNextWaveComposition( CurrentWaveIndex );
 	bIsWaveActive_ = true;
 	OnWaveStarted.Broadcast( CurrentWaveIndex );
 
@@ -334,6 +337,13 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 	bIsWaveActive_ = false;
 	ClearActiveTimers();
 
+	RemainingEnemiesPerClass_.Empty();
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
+
 	OnWaveEnded.Broadcast( waveIndex );
 
 	if ( bLogSpawning )
@@ -394,6 +404,13 @@ void AWaveManager::CancelCurrentWave()
 	}
 
 	bIsWaveActive_ = false;
+
+	RemainingEnemiesPerClass_.Empty();
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
 
 	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
@@ -540,10 +557,21 @@ int32 AWaveManager::DestroyAllEnemies()
 
 void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 {
-	// Remove from SpawnedUnits
+	if ( IsValid( destroyedActor ) )
+	{
+		for ( TPair<TSubclassOf<AUnit>, int32>& pair : RemainingEnemiesPerClass_ )
+		{
+			if ( destroyedActor->IsA( pair.Key ) )
+			{
+				pair.Value = FMath::Max( 0, pair.Value - 1 );
+				break;
+			}
+		}
+		OnWaveEnemiesUpdated.Broadcast();
+	}
 	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
 	{
-		if ( SpawnedUnits_[i].Get() == destroyedActor /* || !SpawnedUnits[i].IsValid*/ )
+		if ( SpawnedUnits_[i].Get() == destroyedActor )
 		{
 			SpawnedUnits_.RemoveAtSwap( i );
 			break;
@@ -555,8 +583,6 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 		bool bHasPendingSpawns = false;
 		if ( bIsWaveActive_ )
 		{
-			UE_LOG( LogTemp, Log, TEXT( "WaveManager: SpawnedUnits empty, scheduling end-of-wave timer (1s)." ) );
-
 			if ( UWorld* world = GetWorld() )
 			{
 				FTimerManager& tm = world->GetTimerManager();
@@ -573,11 +599,14 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 
 		if ( !bHasPendingSpawns )
 		{
-
 			if ( bIsWaveActive_ )
 			{
 				bIsWaveActive_ = false;
 				ClearActiveTimers();
+				if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+				{
+					visuals->EndAllSticky();
+				}
 				OnWaveEnded.Broadcast( CurrentWaveIndex );
 			}
 			if ( UWorld* world = GetWorld() )
@@ -585,7 +614,6 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 				FTimerDelegate del =
 				    FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
 				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
-
 				OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
 			}
 		}

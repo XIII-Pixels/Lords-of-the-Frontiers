@@ -124,6 +124,7 @@ void UCardEffect_AoEExplosion::Execute_Implementation( const FCardEffectContext&
 				tracker->ApplyStatus( StatusToApply, ownerBuilding );
 			}
 		}
+
 		++affected;
 	}
 

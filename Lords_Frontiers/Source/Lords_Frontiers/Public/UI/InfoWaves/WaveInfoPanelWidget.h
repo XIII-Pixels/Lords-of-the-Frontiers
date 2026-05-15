@@ -6,9 +6,11 @@
 #include "WaveInfoPanelWidget.generated.h"
 
 class AUnit;
-class UHorizontalBox;
+class UPanelWidget;
 class UEnemyInfoDataAsset;
 class UEnemyRowWidget;
+class UCurveFloat;
+class UButton;
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UWaveInfoPanelWidget : public UUserWidget
@@ -16,21 +18,64 @@ class LORDS_FRONTIERS_API UWaveInfoPanelWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	virtual void NativeConstruct() override;
+	virtual void NativeTick( const FGeometry& myGeometry, float inDeltaTime ) override;
+
 	void PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>& waveData );
 
-	UFUNCTION( BlueprintImplementableEvent, Category = "Settings|UI|Animation" )
-	void PlaySlideInAnimation();
+	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
+	void OpenPanel();
 
-	UFUNCTION( BlueprintImplementableEvent, Category = "Settings|UI|Animation" )
-	void PlaySlideOutAnimation();
+	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
+	void ClosePanel();
+
+	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
+	void TogglePanel();
+
+	UFUNCTION( BlueprintPure, Category = "UI|WaveInfo" )
+	bool IsPanelOpen() const
+	{
+		return bIsOpen_;
+	}
 
 protected:
 	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UHorizontalBox> EnemyListContainer;
+	TObjectPtr<UWidget> SlideContainer;
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UPanelWidget> EnemyListContainer;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> BtnHandle;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Data" )
 	TObjectPtr<UEnemyInfoDataAsset> EnemyDataAsset;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Classes" )
 	TSubclassOf<UEnemyRowWidget> EnemyRowClass;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" )
+	float AnimDuration_ = 0.3f;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" )
+	TObjectPtr<UCurveFloat> SlideCurve_;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" )
+	FVector2D ClosedOffset_ = FVector2D( 0.0f, -300.0f );
+
+	UPROPERTY( EditAnywhere, Category = "Settings|Animation" )
+	FVector2D OpenOffset_ = FVector2D( 0.0f, 0.0f );
+
+	UPROPERTY( meta = ( BindWidget ) )
+	TObjectPtr<UWidget> PaperVisual;
+
+private:
+	UFUNCTION()
+	void OnHandleClicked();
+
+	bool bIsOpen_ = true;
+	float AnimProgress_ = 1.0f;
+
+	UPROPERTY( Transient )
+	TMap<TSubclassOf<AUnit>, TObjectPtr<UEnemyRowWidget>> ActiveRowsMap_;
 };

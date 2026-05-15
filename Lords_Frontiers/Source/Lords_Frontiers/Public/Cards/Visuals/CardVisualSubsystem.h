@@ -16,6 +16,18 @@ class USkeletalMeshComponent;
 class UTexture2D;
 
 USTRUCT()
+struct FCardStickyIconSlot
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TWeakObjectPtr<ACardIconStrip> Strip;
+
+	UPROPERTY()
+	int32 SlotId = INDEX_NONE;
+};
+
+USTRUCT()
 struct FCardStickyRecord
 {
 	GENERATED_BODY()
@@ -24,13 +36,10 @@ struct FCardStickyRecord
 	TWeakObjectPtr<AActor> Host;
 
 	UPROPERTY()
-	TWeakObjectPtr<ACardIconStrip> IconStrip;
+	TArray<FCardStickyIconSlot> IconSlots;
 
 	UPROPERTY()
-	int32 IconSlotId = INDEX_NONE;
-
-	UPROPERTY()
-	TWeakObjectPtr<UNiagaraComponent> NiagaraComponent;
+	TArray<TWeakObjectPtr<UNiagaraComponent>> NiagaraComponents;
 
 	UPROPERTY()
 	TWeakObjectPtr<USkeletalMeshComponent> OverlayMesh;
@@ -43,6 +52,9 @@ struct FCardStickyRecord
 
 	UPROPERTY()
 	int32 Id = INDEX_NONE;
+
+	UPROPERTY()
+	TArray<FTimerHandle> PendingTimers;
 };
 
 USTRUCT()
@@ -92,6 +104,9 @@ public:
 	FCardVisualHandle BeginSticky( const FCardVisualConfig& config, AActor* owner, AActor* target );
 
 	void EndSticky( FCardVisualHandle handle );
+
+	UFUNCTION( BlueprintCallable, Category = "Card|Visuals" )
+	void EndAllSticky();
 
 	UFUNCTION( BlueprintCallable, Category = "Card|Visuals" )
 	void SetPopupClassOverride( TSubclassOf<ACardFeedbackPopup> popupClass );
@@ -149,6 +164,9 @@ private:
 
 	UPROPERTY()
 	TArray<FTimerHandle> PendingTimers_;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<UNiagaraComponent>> AllSpawnedNiagaras_;
 
 	int32 NextStickyId_ = 1;
 };

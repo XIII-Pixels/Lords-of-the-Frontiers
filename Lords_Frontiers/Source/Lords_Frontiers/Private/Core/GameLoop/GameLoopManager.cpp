@@ -8,6 +8,7 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopRewardHelper.h"
 #include "TimerManager.h"
+#include "Tutorial/TutorialSubsystem.h"
 #include "Waves/WaveManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
@@ -123,6 +124,11 @@ void UGameLoopManager::EndBuildTurn()
 	{
 		Log( TEXT( "WARNING: Cannot end build turn now" ) );
 		return;
+	}
+
+	if ( UTutorialSubsystem* tutorial = UTutorialSubsystem::Get( this ) )
+	{
+		tutorial->NotifyEndTurnPressed();
 	}
 
 	if ( CurrentBuildTurn_ >= GetMaxBuildTurns() )
@@ -353,6 +359,11 @@ void UGameLoopManager::EnterCombatPhase()
 
 void UGameLoopManager::EnterRewardPhase()
 {
+	RewardHelper_->CollectBuildingIncome();
+	RewardHelper_->ApplyMaintenanceCosts();
+	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
+	RewardHelper_->RestoreBuildings();
+
 	SetPhase( EGameLoopPhase::Reward );
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -366,11 +377,6 @@ void UGameLoopManager::EnterRewardPhase()
 	Log( FString::Printf(
 	    TEXT( ">>> REWARD PHASE (Wave %d, Perfect: %s)" ), CurrentWave_, bPerfectWave_ ? TEXT( "YES" ) : TEXT( "NO" )
 	) );
-
-	RewardHelper_->CollectBuildingIncome();
-	RewardHelper_->ApplyMaintenanceCosts();
-	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
-	RewardHelper_->RestoreBuildings();
 
 	if ( IsLastWave() )
 	{

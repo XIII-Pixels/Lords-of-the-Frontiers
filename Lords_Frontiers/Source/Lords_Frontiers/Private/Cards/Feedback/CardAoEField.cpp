@@ -3,12 +3,14 @@
 #include "Cards/StatusEffects/StatusEffectDef.h"
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Cards/Visuals/CardAoEDebug.h"
+#include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
 #include "Utilities/TraceChannelMappings.h"
 
 #include "Components/SceneComponent.h"
+#include "Engine/GameInstance.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 
@@ -41,11 +43,60 @@ void ACardAoEField::Initialize(
 	DebugColor_ = debugColor;
 	Elapsed_ = 0.f;
 	NextTickAt_ = TickInterval_;
+
+	ApplyVisualScale();
+}
+
+void ACardAoEField::ApplyVisualScale()
+{
+	if ( !bScaleVisualToRadius || !SceneRoot_ || Radius_ <= 0.f )
+	{
+		return;
+	}
+
+	const float reference = FMath::Max( 1.f, VisualReferenceRadius );
+	const float factor = Radius_ / reference;
+	SceneRoot_->SetWorldScale3D( FVector( factor ) );
 }
 
 void ACardAoEField::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( UGameInstance* gameInstance = world->GetGameInstance() )
+		{
+			if ( UGameLoopManager* loop = gameInstance->GetSubsystem<UGameLoopManager>() )
+			{
+				loop->OnPhaseChanged.AddDynamic( this, &ACardAoEField::HandleGameLoopPhaseChanged );
+			}
+		}
+	}
+}
+
+void ACardAoEField::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( UGameInstance* gameInstance = world->GetGameInstance() )
+		{
+			if ( UGameLoopManager* loop = gameInstance->GetSubsystem<UGameLoopManager>() )
+			{
+				loop->OnPhaseChanged.RemoveDynamic( this, &ACardAoEField::HandleGameLoopPhaseChanged );
+			}
+		}
+	}
+
+	Super::EndPlay( endPlayReason );
+}
+
+void ACardAoEField::HandleGameLoopPhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )
+{
+	if ( oldPhase == EGameLoopPhase::Combat && newPhase != EGameLoopPhase::Combat )
+	{
+		Destroy();
+	}
 }
 
 void ACardAoEField::Tick( float deltaTime )

@@ -8,9 +8,11 @@
 #include "Cards/CardSubsystem.h"
 #include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Components/Attack/AttackRangedComponent.h"
+#include "Core/CoreManager.h"
 #include "Core/Subsystems/SessionLogger/DamageEvent.h"
 #include "Entity.h"
 #include "EntityStats.h"
+#include "Waves/WaveManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCardEffectHost, Log, All );
 
@@ -23,17 +25,26 @@ namespace
 			return false;
 		}
 
-		const FCardVisualConfig& cfg = effect->VisualConfig;
+		const FCardVisualConfig& cfg = effect->GetVisualConfig();
 
-		const bool bLoopingNiagara = !cfg.Niagara.System.IsNull()
-			&& cfg.Niagara.bLoop
-			&& cfg.Niagara.SpawnOn != ECardVisualTarget::None;
+		for ( const FCardNiagaraSpec& n : cfg.Niagaras )
+		{
+			if ( !n.System.IsNull() && n.bLoop && n.Anchor != ECardVisualTarget::None )
+			{
+				return true;
+			}
+		}
 
-		const bool bStickyIcon = !cfg.Icon.Icon.IsNull()
-			&& cfg.Icon.Mode == ECardVisualIconMode::Sticky
-			&& cfg.Icon.ShowOn != ECardVisualTarget::None;
+		for ( const FCardIconSpec& i : cfg.Icons )
+		{
+			if ( !i.Icon.IsNull() && i.Mode == ECardVisualIconMode::Sticky
+				&& i.ShowOn != ECardVisualTarget::None )
+			{
+				return true;
+			}
+		}
 
-		return bLoopingNiagara || bStickyIcon;
+		return false;
 	}
 }
 
@@ -69,20 +80,14 @@ void UCardEffectHostComponent::RegisterEffect( UCardDataAsset* card, int32 event
 	record.EventIndex = eventIndex;
 	record.Effect = effect;
 
-	if ( HasStickyVisual( effect ) )
-	{
-		if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
-		{
-			record.StickyHandle = visuals->BeginSticky( effect->VisualConfig, GetOwner(), nullptr );
-		}
-	}
-
 	Active_.Add( record );
 
 	BindAttackDelegates();
 	BindBuildingDelegates();
 	BindDamageEvents();
 	StartAuraTimer();
+
+	SyncStickyForRecord( Active_.Last() );
 }
 
 void UCardEffectHostComponent::UnregisterBySourceCard( UCardDataAsset* card )
@@ -231,6 +236,7 @@ void UCardEffectHostComponent::BindBuildingDelegates()
 
 	building->OnBuildingDamaged.AddDynamic( this, &UCardEffectHostComponent::HandleOwnerDamaged );
 	building->OnBuildingDied.AddDynamic( this, &UCardEffectHostComponent::HandleOwnerRuined );
+	building->OnBuildingRestored.AddDynamic( this, &UCardEffectHostComponent::HandleOwnerRestored );
 	bIsBoundToBuilding_ = true;
 }
 
@@ -245,6 +251,7 @@ void UCardEffectHostComponent::UnbindBuildingDelegates()
 	{
 		building->OnBuildingDamaged.RemoveDynamic( this, &UCardEffectHostComponent::HandleOwnerDamaged );
 		building->OnBuildingDied.RemoveDynamic( this, &UCardEffectHostComponent::HandleOwnerRuined );
+		building->OnBuildingRestored.RemoveDynamic( this, &UCardEffectHostComponent::HandleOwnerRestored );
 	}
 	bIsBoundToBuilding_ = false;
 }
@@ -256,7 +263,59 @@ void UCardEffectHostComponent::HandleOwnerDamaged( ABuilding* building, int32 da
 
 void UCardEffectHostComponent::HandleOwnerRuined( ABuilding* building )
 {
+	SyncStickyForAllRecords();
 	DispatchTrigger( ECardTriggerReason::Ruined, nullptr );
+}
+
+void UCardEffectHostComponent::HandleOwnerRestored( ABuilding* /*building*/ )
+{
+	SyncStickyForAllRecords();
+}
+
+void UCardEffectHostComponent::SyncStickyForAllRecords()
+{
+	for ( FRegisteredCardEffect& record : Active_ )
+	{
+		SyncStickyForRecord( record );
+	}
+}
+
+void UCardEffectHostComponent::SyncStickyForRecord( FRegisteredCardEffect& record )
+{
+	const UCardEffect* effect = record.Effect;
+	if ( !effect || !record.SourceCard )
+	{
+		return;
+	}
+	if ( !HasStickyVisual( effect ) )
+	{
+		return;
+	}
+
+	const ABuilding* building = Cast<ABuilding>( GetOwner() );
+	if ( !building || !record.SourceCard->Events.IsValidIndex( record.EventIndex ) )
+	{
+		return;
+	}
+
+	const FCardEvent& event = record.SourceCard->Events[record.EventIndex];
+	const bool bStateMatches = event.MatchesBuildingState( building );
+
+	UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this );
+	if ( !visuals )
+	{
+		return;
+	}
+
+	if ( bStateMatches && !record.StickyHandle.IsValid() )
+	{
+		record.StickyHandle = visuals->BeginSticky( effect->GetVisualConfig(), GetOwner(), nullptr );
+	}
+	else if ( !bStateMatches && record.StickyHandle.IsValid() )
+	{
+		visuals->EndSticky( record.StickyHandle );
+		record.StickyHandle.Reset();
+	}
 }
 
 void UCardEffectHostComponent::BindDamageEvents()
@@ -355,6 +414,14 @@ void UCardEffectHostComponent::HandleAuraTick()
 	{
 		return;
 	}
+	if ( const UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		const AWaveManager* wm = core->GetWaveManager();
+		if ( wm && !wm->IsWaveActive() )
+		{
+			return;
+		}
+	}
 	DispatchTrigger( ECardTriggerReason::AuraTick, nullptr );
 }
 
@@ -429,6 +496,15 @@ void UCardEffectHostComponent::DispatchInternal( ECardTriggerReason reason, AAct
 			continue;
 		}
 
+		if ( building && rec.SourceCard->Events.IsValidIndex( rec.EventIndex ) )
+		{
+			const FCardEvent& event = rec.SourceCard->Events[rec.EventIndex];
+			if ( !event.MatchesBuildingState( building ) )
+			{
+				continue;
+			}
+		}
+
 		FCardEffectContext ctx;
 		ctx.SourceCard = rec.SourceCard;
 		ctx.Building = building;
@@ -481,9 +557,9 @@ void UCardEffectHostComponent::DispatchInternal( ECardTriggerReason reason, AAct
 
 		rec.Effect->Execute( ctx );
 
-		if ( !bBypassConditions && visuals && building )
+		if ( !bBypassConditions && visuals && building && !rec.Effect->HandlesOwnVisuals() )
 		{
-			visuals->PlayOneShot( rec.Effect->VisualConfig, building, instigator );
+			visuals->PlayOneShot( rec.Effect->GetVisualConfig(), building, instigator );
 		}
 	}
 }

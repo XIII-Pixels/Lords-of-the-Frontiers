@@ -4,6 +4,8 @@
 #include "Cards/Feedback/CardAoEField.h"
 #include "Cards/StatusEffects/StatusEffectDef.h"
 
+#include "CollisionQueryParams.h"
+#include "Engine/HitResult.h"
 #include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogCardSpawnAoEField, Log, All );
@@ -58,6 +60,30 @@ void UCardEffect_SpawnAoEField::Execute_Implementation( const FCardEffectContext
 	if ( !world )
 	{
 		return;
+	}
+
+	if ( bSnapToGround )
+	{
+		const FVector traceStart = spawnLocation + FVector( 0.f, 0.f, GroundTraceUp );
+		const FVector traceEnd   = spawnLocation - FVector( 0.f, 0.f, GroundTraceDown );
+
+		FCollisionQueryParams traceParams( SCENE_QUERY_STAT( CardSpawnAoEField_GroundSnap ), false );
+		if ( building )
+		{
+			traceParams.AddIgnoredActor( building );
+		}
+		if ( victim )
+		{
+			traceParams.AddIgnoredActor( victim );
+		}
+
+		FHitResult hit;
+		const bool bHitGround = world->LineTraceSingleByChannel(
+			hit, traceStart, traceEnd, ECC_WorldStatic, traceParams );
+		if ( bHitGround )
+		{
+			spawnLocation.Z = hit.ImpactPoint.Z + GroundOffsetZ;
+		}
 	}
 
 	FActorSpawnParameters params;

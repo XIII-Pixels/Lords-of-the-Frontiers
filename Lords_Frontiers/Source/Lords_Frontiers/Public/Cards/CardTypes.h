@@ -98,6 +98,13 @@ enum class ECardRarity : uint8
 	Legendary	UMETA( DisplayName = "Legendary" ),
 };
 
+UENUM( BlueprintType )
+enum class ECardEffectFrame : uint8
+{
+	Fire	UMETA( DisplayName = "Fire" ),
+	Slow	UMETA( DisplayName = "Slow" ),
+};
+
 namespace CardTypeHelpers
 {
 	inline EResourceType ToResourceType( EResourceTargetType target )
@@ -231,6 +238,8 @@ struct LORDS_FRONTIERS_API FCardEvent
 		meta = ( AllowAbstract = "false" ) )
 	TArray<TObjectPtr<UCardEffect>> Effects;
 
+	bool MatchesBuildingClass( const ABuilding* building ) const;
+	bool MatchesBuildingState( const ABuilding* building ) const;
 	bool MatchesBuilding( const ABuilding* building ) const;
 };
 

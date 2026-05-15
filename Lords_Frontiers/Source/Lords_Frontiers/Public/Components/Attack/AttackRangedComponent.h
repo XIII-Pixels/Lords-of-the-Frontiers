@@ -21,15 +21,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnAttackTargetChanged, AActor*, O
 UENUM( BlueprintType )
 enum class ETowerTargetPriority : uint8
 {
-	Closest		UMETA( DisplayName = "Closest (Default)" ),
-	LowestHP	UMETA( DisplayName = "Lowest HP" ),
-	HighestHP	UMETA( DisplayName = "Highest HP" ),
+	Closest UMETA( DisplayName = "Closest (Default)" ),
+	LowestHP UMETA( DisplayName = "Lowest HP" ),
+	HighestHP UMETA( DisplayName = "Highest HP" ),
 };
 
 /** (Gregory-hub)
  * Makes actor attack enemy actors in sight
  * Treat this class as abstract (crashes if marked abstract) */
-UCLASS( /* Abstract */)
+UCLASS( /* Abstract */ )
 class LORDS_FRONTIERS_API UAttackRangedComponent : public UAttackComponent
 {
 	GENERATED_BODY()
@@ -38,7 +38,7 @@ public:
 	UAttackRangedComponent();
 
 	// Launch projectile
-	virtual void Attack( TObjectPtr<AActor> hitActor ) override;
+	virtual bool Attack( TObjectPtr<AActor> hitActor ) override;
 
 	virtual TObjectPtr<const AActor> AttackTarget() const override
 	{
@@ -67,9 +67,9 @@ public:
 	void FireExtraProjectile( AActor* target, float damageMultiplier = 1.f );
 
 	void FireShrapnel(
-		const FVector& spawnLocation, int32 count, float damageMultiplier,
-		float spreadDegrees, float range, float speed, float splashRadius,
-		TSubclassOf<ABaseProjectile> overrideClass );
+	    const FVector& spawnLocation, int32 count, float damageMultiplier, float spreadDegrees, float range,
+	    float speed, float splashRadius, TSubclassOf<ABaseProjectile> overrideClass
+	);
 
 	UFUNCTION( BlueprintCallable, Category = "Attack|Cards" )
 	void AddPendingDamageBonus( float bonusPercent )
@@ -106,7 +106,7 @@ protected:
 	// Look around
 	void Look();
 
-	virtual void SetAttackMode() PURE_VIRTUAL( UAttackRangedComponent::SetAttackMode, );
+	virtual void SetAttackMode(){};
 
 	// Template method pattern
 	bool CanBeAttacked( TObjectPtr<AActor> actor ) const;

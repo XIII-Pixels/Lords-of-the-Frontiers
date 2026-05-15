@@ -5,6 +5,7 @@
 #include "AI/EntityAIController.h"
 #include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
+#include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
 #include "NiagaraFunctionLibrary.h"
@@ -20,6 +21,8 @@
 #include "Components/SpawnAbilityComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 AUnit::AUnit()
 {
@@ -54,7 +57,6 @@ void AUnit::BeginPlay()
 	FollowComponent_ = FindComponentByClass<UFollowComponent>();
 	if ( FollowComponent_ )
 	{
-		FollowComponent_->SetMaxSpeed( Stats_.MaxSpeed() );
 		FollowComponent_->UpdatedComponent = CollisionComponent_;
 	}
 
@@ -67,13 +69,19 @@ void AUnit::BeginPlay()
 
 	ResolveVFXDefaults();
 
+	const UWorld* world = GetWorld();
+	if ( !world )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "AUnit::BeginPlay: world not found" ) );
+	}
+
 	if ( HealthBarConfig_ )
 	{
 		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 		    this,
-		    [this]( int /*newHealth*/, int /*maxHealth*/ )
+		    [this, world]( int /*newHealth*/, int /*maxHealth*/ )
 		    {
-			    if ( UWorld* world = GetWorld() )
+			    if ( world )
 			    {
 				    if ( UHealthBarPoolSubsystem* pool = world->GetSubsystem<UHealthBarPoolSubsystem>() )
 				    {
@@ -92,15 +100,40 @@ void AUnit::BeginPlay()
 		}
 	}
 
-	PlayAnimationIdle();
+	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+	{
+		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->RegisterObject( this );
+		}
+	}
+
+    OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+
+    PlayAnimationIdle();
 
 	SpawnSpawnVFX();
+}
+
+void AUnit::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	Super::EndPlay( endPlayReason );
+
+	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( GetWorld() ) )
+	{
+		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->UnregisterObject( this );
+		}
+	}
 }
 
 void AUnit::PostInitProperties()
 {
 	Super::PostInitProperties();
 
+	ResolveAudioTags();
+  
 	if ( IsValid( IdleAnimation_.Animation ) )
 	{
 		bIdleIsAnimated_ = true;
@@ -176,7 +209,10 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 		}
 		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )
 		{
-			AttackComponent_->Attack( hitActor );
+			if ( bool success = AttackComponent_->Attack( hitActor ) )
+			{
+				OnAudioEvent_.Broadcast( { AudioTags_.Attack, GetActorLocation() } );
+			}
 		}
 	}
 }
@@ -231,6 +267,39 @@ bool AUnit::PlayAnimation( const FAnimationConfig& animation ) const
 	return false;
 }
 
+void AUnit::ResolveAudioTags()
+{
+	if ( !AudioTags_.Selected.IsValid() )
+	{
+		AudioTags_.Selected = AudioTags::SFX_UNIT_DEFAULT_SELECTED;
+	}
+
+	if ( !AudioTags_.Spawn.IsValid() )
+	{
+		AudioTags_.Spawn = AudioTags::SFX_UNIT_DEFAULT_SPAWN;
+	}
+
+	if ( !AudioTags_.Death.IsValid() )
+	{
+		AudioTags_.Death = AudioTags::SFX_UNIT_DEFAULT_DEATH;
+	}
+
+	if ( !AudioTags_.Attack.IsValid() )
+	{
+		AudioTags_.Attack = AudioTags::SFX_UNIT_DEFAULT_ATTACK;
+	}
+
+	if ( !AudioTags_.TakeDamage.IsValid() )
+	{
+		AudioTags_.TakeDamage = AudioTags::SFX_UNIT_DEFAULT_TAKEDAMAGE;
+	}
+
+	if ( !AudioTags_.SpawnAbility.IsValid() )
+	{
+		AudioTags_.SpawnAbility = AudioTags::SFX_UNIT_DEFAULT_SPAWNABILITY;
+	}
+}
+
 void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 {
 	if ( !Stats_.IsAlive() )
@@ -243,10 +312,19 @@ void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 	{
 		OnDeath();
 	}
+	else
+	{
+		OnAudioEvent_.Broadcast( { AudioTags_.TakeDamage, GetActorLocation() } );
+	}
 }
 
 void AUnit::OnDeath()
 {
+	if ( UStatusEffectTracker* tracker = FindComponentByClass<UStatusEffectTracker>() )
+	{
+		tracker->NotifyOwnerDied();
+	}
+
 	Stats_.OnHealthChanged.Remove( HealthBarSubscription_ );
 	HealthBarSubscription_.Reset();
 
@@ -282,6 +360,8 @@ void AUnit::OnDeath()
 	{
 		SkeletalMeshComponent_->SetVisibility( false, true );
 	}
+
+	OnAudioEvent_.Broadcast( { AudioTags_.Death, GetActorLocation() } );
 
 	if ( ResolvedDeathVFXDelay_ > 0.0f )
 	{
