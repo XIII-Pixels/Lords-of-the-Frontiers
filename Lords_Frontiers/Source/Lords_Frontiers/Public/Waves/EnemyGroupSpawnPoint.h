@@ -69,21 +69,15 @@ public:
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Spawn" )
 	bool bUseActorTagMatching = false;
 
-	// Sector that this portal belongs to (e.g. N, NE, E ...). Used by the
-	// infinite mode builder to pick portals by direction. Leave NAME_None if
-	// the portal should not participate in infinite mode.
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|InfiniteMode" )
 	FName Sector = NAME_None;
 
-	// Hint for the builder: this portal is allowed to spawn boss-tier enemies.
-	// Disable for tight corridors where a huge boss would get stuck.
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|InfiniteMode" )
 	bool bAllowBoss = true;
 
-	// Visual components (arrow + billboard) to help designer see orientation in
-	// editor
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
 	FPortalVisualConfig PortalVisualConfig;
+
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UArrowComponent> ArrowComponent;

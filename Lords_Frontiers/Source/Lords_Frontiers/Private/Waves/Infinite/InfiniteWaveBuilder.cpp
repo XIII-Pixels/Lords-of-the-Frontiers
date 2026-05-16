@@ -88,10 +88,6 @@ void UInfiniteWaveBuilder::ResetState()
 	LastScalingBuff = FEnemyBuff();
 }
 
-// ---------------------------------------------------------------------------
-// Budget / scaling
-// ---------------------------------------------------------------------------
-
 int32 UInfiniteWaveBuilder::ComputeBudget( int32 waveIndex ) const
 {
 	if ( !Config )
@@ -160,10 +156,6 @@ FEnemyBuff UInfiniteWaveBuilder::ComputeScalingBuff( int32 waveIndex ) const
 	return result;
 }
 
-// ---------------------------------------------------------------------------
-// Theme roll
-// ---------------------------------------------------------------------------
-
 const FInfiniteTheme* UInfiniteWaveBuilder::RollTheme( FRandomStream& rng, int32 waveIndex, bool bSpike ) const
 {
 	if ( !Config || Config->Themes.Num() == 0 )
@@ -212,10 +204,6 @@ const FInfiniteTheme* UInfiniteWaveBuilder::RollTheme( FRandomStream& rng, int32
 	return &Config->Themes.Last();
 }
 
-// ---------------------------------------------------------------------------
-// Preset weighting
-// ---------------------------------------------------------------------------
-
 float UInfiniteWaveBuilder::RecencyMultiplier( int32 lastSeenWave, int32 currentWave ) const
 {
 	if ( !Config || Config->RecentWaveMemory <= 0 )
@@ -261,7 +249,6 @@ float UInfiniteWaveBuilder::PresetWeight(
 
 	float w = FMath::Max( 0.0f, preset->BaseWeight );
 
-	// Theme tag multipliers
 	for ( const FThemeTagWeight& tw : theme.TagWeights )
 	{
 		if ( preset->HasTag( tw.Tag ) )
@@ -272,16 +259,13 @@ float UInfiniteWaveBuilder::PresetWeight(
 
 	if ( !bCoreOnly )
 	{
-		// Affordability: penalize purchases that consume <5% or >95% of remaining budget.
 		const float ratio = static_cast<float>( preset->Cost ) / FMath::Max( 1.f, static_cast<float>( remainingBudget ) );
 		const float aff = 1.0f - FMath::Abs( ratio - 0.35f );
 		w *= FMath::Clamp( aff, 0.4f, 1.0f );
 
-		// Anti-repeat penalty: each prior purchase in this wave reduces weight.
 		const float antiRepeat = FMath::Pow( 0.7f, static_cast<float>( used ) );
 		w *= antiRepeat;
 
-		// Recency penalty across waves.
 		if ( const int32* lastSeen = LastWaveSeenPreset_.Find( preset->GetFName() ) )
 		{
 			w *= RecencyMultiplier( *lastSeen, waveIndex );
@@ -312,7 +296,6 @@ UEnemyPresetData* UInfiniteWaveBuilder::PickPreset(
 
 		if ( bOffThemeOnly && w > 0.f )
 		{
-			// "Off-theme" = preset whose tags do not benefit from any theme TagWeight > 1.
 			bool bMatchesTheme = false;
 			for ( const FThemeTagWeight& tw : theme.TagWeights )
 			{
@@ -348,10 +331,6 @@ UEnemyPresetData* UInfiniteWaveBuilder::PickPreset(
 	}
 	return Config->Presets.Last().Get();
 }
-
-// ---------------------------------------------------------------------------
-// Sector pass
-// ---------------------------------------------------------------------------
 
 TArray<FName> UInfiniteWaveBuilder::CollectAllSectors( UObject* worldContextObject ) const
 {
@@ -403,7 +382,6 @@ TArray<FName> UInfiniteWaveBuilder::PickActiveSectors(
 	const int32 maxN = FMath::Clamp( theme.MaxActiveSectors, minN, pool.Num() );
 	const int32 wantN = rng.RandRange( minN, maxN );
 
-	// Build weighted list with recency penalty.
 	TArray<float> weights;
 	weights.Reserve( pool.Num() );
 	float total = 0.f;
@@ -460,7 +438,6 @@ TArray<FName> UInfiniteWaveBuilder::PickActiveSectors(
 
 	if ( wantN >= 2 && Config->SectorRing.Num() > 1 )
 	{
-		// Constrain second sector by ring relations if requested.
 		const int32 ringFirst = Config->SectorRing.IndexOfByKey( pool[firstIdx] );
 		if ( ringFirst != INDEX_NONE && ( theme.bRequireOppositeSectors || theme.bRequireAdjacentSectors ) )
 		{
@@ -513,10 +490,6 @@ TArray<FName> UInfiniteWaveBuilder::PickActiveSectors(
 	return out;
 }
 
-// ---------------------------------------------------------------------------
-// Portal assignment
-// ---------------------------------------------------------------------------
-
 void UInfiniteWaveBuilder::AssignPortalsToPurchases(
     FRandomStream& rng, TArray<FInfinitePurchase>& purchases, const TArray<FName>& activeSectors,
     const TMap<FName, TArray<FName>>& sectorToPortalIds, const TArray<FName>& flyerFreePortals
@@ -527,7 +500,6 @@ void UInfiniteWaveBuilder::AssignPortalsToPurchases(
 		return;
 	}
 
-	// Find a boss/apex preset to reserve a sector for it.
 	FName bossSector = NAME_None;
 	for ( const FInfinitePurchase& p : purchases )
 	{
@@ -538,12 +510,9 @@ void UInfiniteWaveBuilder::AssignPortalsToPurchases(
 		}
 	}
 
-	// Track sector usage so consecutive purchases of the SAME preset prefer
-	// the same sector (squad cohesion), except splash which we spread out.
 	TMap<FName, FName> sectorByPresetId;
 	int32 freeFlyersLeft = ( Config && Config->bAllowFlyerFreePortal ) ? 1 : 0;
 
-	// Round-robin pointer for choosing within active sectors.
 	int32 rr = 0;
 
 	for ( FInfinitePurchase& p : purchases )
@@ -553,7 +522,6 @@ void UInfiniteWaveBuilder::AssignPortalsToPurchases(
 			continue;
 		}
 
-		// Boss / apex: dedicated sector + a portal that allows bosses.
 		if ( p.Preset->HasTag( EEnemyTag::Boss ) || p.Preset->HasTag( EEnemyTag::Apex ) )
 		{
 			p.ChosenSector = bossSector;
@@ -577,7 +545,6 @@ void UInfiniteWaveBuilder::AssignPortalsToPurchases(
 			}
 			else
 			{
-				// For splash, prefer a sector different from the last used one.
 				FName chosen = NAME_None;
 				if ( bIsSplash && !preferred.IsNone() && activeSectors.Num() > 1 )
 				{
@@ -610,7 +577,6 @@ void UInfiniteWaveBuilder::AssignPortalsToPurchases(
 			sectorByPresetId.FindOrAdd( p.Preset->GetFName() ) = p.ChosenSector;
 		}
 
-		// Pick portal id within sector.
 		const TArray<FName>* portalsInSector = sectorToPortalIds.Find( p.ChosenSector );
 		if ( portalsInSector && portalsInSector->Num() > 0 )
 		{
@@ -619,17 +585,12 @@ void UInfiniteWaveBuilder::AssignPortalsToPurchases(
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Assembly
-// ---------------------------------------------------------------------------
-
 UWaveData* UInfiniteWaveBuilder::AssembleWaveData(
     const TArray<FInfinitePurchase>& purchases, const FInfiniteTheme& theme, const FEnemyBuff& scalingBuff, bool bSpike
 ) const
 {
 	UWaveData* waveData = NewObject<UWaveData>( const_cast<UInfiniteWaveBuilder*>( this ), NAME_None, RF_Transient );
 
-	// Combined buff = preset buff * theme buff * scaling buff (* spike extra).
 	FEnemyBuff baseBuff = CombineBuffsMultiplicative( theme.ThemeBuff, scalingBuff );
 	if ( bSpike && Config )
 	{
@@ -660,19 +621,11 @@ UWaveData* UInfiniteWaveBuilder::AssembleWaveData(
 		entry.SpawnInterval = p.Preset->SpawnInterval;
 		settings.Portals.Add( entry );
 
-		// Buff is per-class -- preset buff baked in once; theme/scaling baked
-		// on top. If two purchases of the same class have different buffs
-		// (rare), last assignment wins -- acceptable because PresetBuff is
-		// part of the preset identity.
 		settings.Buff = CombineBuffsMultiplicative( p.Preset->PresetBuff, baseBuff );
 	}
 
 	return waveData;
 }
-
-// ---------------------------------------------------------------------------
-// Main entry point
-// ---------------------------------------------------------------------------
 
 void UInfiniteWaveBuilder::RememberWave( int32 waveIndex, const TArray<FInfinitePurchase>& purchases, bool bApexSeen )
 {
@@ -714,7 +667,6 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 	const FInfiniteTheme* themePtr = RollTheme( rng, waveIndex, bSpike );
 	if ( !themePtr )
 	{
-		// Synthetic fallback theme.
 		static const FInfiniteTheme fallbackTheme;
 		themePtr = &fallbackTheme;
 	}
@@ -769,9 +721,8 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 		return true;
 	};
 
-	// --- Core pass ---------------------------------------------------------
 	int32 coreBudget = FMath::RoundToInt( budgetStart * FMath::Clamp( theme.CoreBudgetFraction, 0.0f, 1.0f ) );
-	UEnemyPresetData* coreAnchor = PickPreset( rng, theme, waveIndex, coreBudget, usedThisWave, /*bCoreOnly=*/true, /*bOffThemeOnly=*/false );
+	UEnemyPresetData* coreAnchor = PickPreset( rng, theme, waveIndex, coreBudget, usedThisWave, true, false );
 	if ( coreAnchor )
 	{
 		while ( coreAnchor && coreAnchor->Cost <= coreBudget && coreAnchor->Cost <= budget )
@@ -789,33 +740,28 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 		}
 	}
 
-	// --- Filler pass -------------------------------------------------------
 	for ( int32 safety = 0; safety < 64; ++safety )
 	{
-		UEnemyPresetData* next = PickPreset( rng, theme, waveIndex, budget, usedThisWave, /*bCoreOnly=*/false, /*bOffThemeOnly=*/false );
+		UEnemyPresetData* next = PickPreset( rng, theme, waveIndex, budget, usedThisWave, false, false );
 		if ( !next )
 		{
 			break;
 		}
 		if ( !buyPreset( next ) )
 		{
-			// Couldn't actually buy this one (rule rejected). Continue trying.
-			// Mark it as "used" so the same one isn't picked endlessly.
 			usedThisWave.FindOrAdd( next->GetFName() ) = Config->GlobalMaxSamePresetPerWave;
 		}
 	}
 
-	// --- Spice pass --------------------------------------------------------
 	if ( rng.GetFraction() < theme.SpiceChance )
 	{
-		UEnemyPresetData* spice = PickPreset( rng, theme, waveIndex, budget, usedThisWave, /*bCoreOnly=*/false, /*bOffThemeOnly=*/true );
+		UEnemyPresetData* spice = PickPreset( rng, theme, waveIndex, budget, usedThisWave, false, true );
 		if ( spice )
 		{
 			buyPreset( spice );
 		}
 	}
 
-	// --- Guarantee defense targeting --------------------------------------
 	if ( Config->GuaranteeDefenseTargetingFromWave >= 0 && waveIndex >= Config->GuaranteeDefenseTargetingFromWave )
 	{
 		bool bHasDefenseTargeter = false;
@@ -831,7 +777,6 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 		}
 		if ( !bHasDefenseTargeter )
 		{
-			// Force-buy the cheapest defense/ranged preset that fits.
 			UEnemyPresetData* fallback = nullptr;
 			int32 cheapest = MAX_int32;
 			for ( const TObjectPtr<UEnemyPresetData>& presetPtr : Config->Presets )
@@ -853,17 +798,14 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 			}
 			if ( fallback )
 			{
-				// Allow guaranteed purchase even if it overspends slightly.
 				budget = FMath::Max( budget, fallback->Cost );
 				buyPreset( fallback );
 			}
 		}
 	}
 
-	// --- Carry-over --------------------------------------------------------
 	CarryOverBudget = FMath::Max( 0, budget );
 
-	// --- Sectors -----------------------------------------------------------
 	UWorld* world = worldContextObject ? worldContextObject->GetWorld() : nullptr;
 
 	TArray<FName> allSectors;
@@ -904,7 +846,6 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 
 	AssignPortalsToPurchases( rng, purchases, activeSectors, sectorToPortalIds, flyerFreePortals );
 
-	// Special case: boss/apex purchase wants a sector that allows bosses.
 	for ( FInfinitePurchase& p : purchases )
 	{
 		if ( !p.Preset )
@@ -921,7 +862,6 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 		}
 	}
 
-	// --- Update memory -----------------------------------------------------
 	bool bApexSeen = false;
 	for ( const FInfinitePurchase& p : purchases )
 	{

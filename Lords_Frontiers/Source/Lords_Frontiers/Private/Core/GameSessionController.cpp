@@ -8,6 +8,13 @@
 #include "Core/Saving/GameSaver.h"
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
+#include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
+#include "EntityStats.h"
+#include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
+#include "Lords_Frontiers/Public/Match/MatchStatsTracker.h"
+#include "Lords_Frontiers/Public/Units/Unit.h"
+#include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 void UGameSessionController::Initialize( FSubsystemCollectionBase& Collection )
 {
@@ -58,9 +65,63 @@ void UGameSessionController::RestartGame()
 	StartGame();
 }
 
+bool UGameSessionController::IsInsideEndlessMode() const
+{
+	UWorld* world = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
+	if ( !world )
+	{
+		world = GetWorld();
+	}
+	if ( !world )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "IsInsideEndlessMode: world is null." ) );
+		return false;
+	}
+
+	TArray<AActor*> actors;
+	UGameplayStatics::GetAllActorsOfClass( world, AWaveManager::StaticClass(), actors );
+	if ( actors.Num() == 0 )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "IsInsideEndlessMode: no AWaveManager found in world." ) );
+		return false;
+	}
+
+	for ( AActor* a : actors )
+	{
+		const AWaveManager* wm = Cast<AWaveManager>( a );
+		if ( !wm )
+		{
+			continue;
+		}
+		const bool bByLatch = wm->IsEndlessRunActive();
+		const bool bByIndex = wm->HasInfiniteMode() && wm->IsInfiniteWaveIndex( wm->CurrentWaveIndex );
+		UE_LOG(
+			LogTemp, Log,
+			TEXT( "IsInsideEndlessMode: WaveManager '%s' hasInfinite=%d currentWave=%d latch=%d byIndex=%d" ),
+			*wm->GetName(), wm->HasInfiniteMode() ? 1 : 0, wm->CurrentWaveIndex,
+			bByLatch ? 1 : 0, bByIndex ? 1 : 0
+		);
+		if ( bByLatch || bByIndex )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void UGameSessionController::EndGame( EGameResult result )
 {
 	bIsGameStarted_ = false;
+
+	const EGameResult inputResult = result;
+	if ( ( result == EGameResult::Win || result == EGameResult::Lose ) && IsInsideEndlessMode() )
+	{
+		result = EGameResult::EndlessRun;
+	}
+	UE_LOG(
+		LogTemp, Log, TEXT( "GameSessionController::EndGame input=%d final=%d" ),
+		static_cast<int32>( inputResult ), static_cast<int32>( result )
+	);
 
 	switch ( result )
 	{
@@ -83,7 +144,18 @@ void UGameSessionController::EndGame( EGameResult result )
 		EnterDefeatPhase();
 		break;
 	case EGameResult::Abandoned:
-		// No special phase for abandoned games, just reset to main menu or similar.
+		break;
+	case EGameResult::EndlessRun:
+		if ( UGameInstance* gi = GetGameInstance() )
+		{
+			if ( UMatchStatsTracker* tracker = gi->GetSubsystem<UMatchStatsTracker>() )
+			{
+				const FString playerName = ( tracker->GetConfig() && !tracker->GetConfig()->PlayerEntryName.IsEmpty() )
+												? tracker->GetConfig()->PlayerEntryName
+												: TEXT( "Ты" );
+				tracker->FinalizeAndPush( playerName );
+			}
+		}
 		break;
 	default:
 		break;
@@ -92,7 +164,44 @@ void UGameSessionController::EndGame( EGameResult result )
 	{
 		GameLoopManager_->StopLoop();
 	}
+
+	CleanupBattlefield();
+
 	OnGameEndDelegate.Broadcast( result );
+}
+
+void UGameSessionController::CleanupBattlefield()
+{
+	UWorld* world = GetGameInstance() ? GetGameInstance()->GetWorld() : GetWorld();
+	if ( !world )
+	{
+		return;
+	}
+
+	TArray<AActor*> waveManagers;
+	UGameplayStatics::GetAllActorsOfClass( world, AWaveManager::StaticClass(), waveManagers );
+	for ( AActor* a : waveManagers )
+	{
+		if ( AWaveManager* wm = Cast<AWaveManager>( a ) )
+		{
+			wm->CancelCurrentWave();
+		}
+	}
+
+	TArray<AActor*> units;
+	UGameplayStatics::GetAllActorsOfClass( world, AUnit::StaticClass(), units );
+	int32 destroyed = 0;
+	for ( AActor* a : units )
+	{
+		AUnit* unit = Cast<AUnit>( a );
+		if ( !unit || unit->Team() != ETeam::Dog )
+		{
+			continue;
+		}
+		unit->Destroy();
+		++destroyed;
+	}
+	UE_LOG( LogTemp, Log, TEXT( "GameSessionController: cleanup destroyed %d enemy units." ), destroyed );
 }
 
 void UGameSessionController::EnterVictoryPhase()

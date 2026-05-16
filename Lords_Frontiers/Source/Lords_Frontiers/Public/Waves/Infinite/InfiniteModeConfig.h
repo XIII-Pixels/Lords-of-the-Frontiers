@@ -11,11 +11,6 @@
 
 class UCurveFloat;
 
-/*
- * One theme = an "identity" a wave can take. Affects preset weighting,
- * core/filler ratio, spice chance, theme buff and how many sectors are
- * active.
- */
 USTRUCT( BlueprintType, meta = ( DisplayName = "Тема волны" ) )
 struct FInfiniteTheme
 {
@@ -58,10 +53,6 @@ struct FInfiniteTheme
 	bool bRequireAdjacentSectors = false;
 };
 
-/*
- * Per-wave enemy stat scaling. Multipliers grow with wave index inside the
- * infinite mode.
- */
 USTRUCT( BlueprintType, meta = ( DisplayName = "Масштабирование статов" ) )
 struct FInfiniteScalingConfig
 {
@@ -83,9 +74,6 @@ struct FInfiniteScalingConfig
 	TObjectPtr<UCurveFloat> ScalingCurve = nullptr;
 };
 
-/*
- * Single full configuration of the infinite mode.
- */
 UCLASS( BlueprintType, meta = ( DisplayName = "Конфиг бесконечного режима" ) )
 class LORDS_FRONTIERS_API UInfiniteModeConfig : public UDataAsset
 {

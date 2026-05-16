@@ -8,6 +8,7 @@
 #include "Cards/StatusEffects/StatusEffectTracker.h"
 #include "Core/CoreManager.h"
 #include "Core/Subsystems/HealthBarPoolSubsystem/HealthBarPoolSubsystem.h"
+#include "Lords_Frontiers/Public/Units/UnitEvents.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Transform/TransformableHandleUtils.h"
 #include "UI/HealthBar/HealthBarConfigDataAsset.h"
@@ -320,6 +321,8 @@ void AUnit::TakeDamage( int damage, AActor* /*instigator*/ )
 
 void AUnit::OnDeath()
 {
+	FUnitEvents::OnUnitDied.Broadcast( this );
+
 	if ( UStatusEffectTracker* tracker = FindComponentByClass<UStatusEffectTracker>() )
 	{
 		tracker->NotifyOwnerDied();

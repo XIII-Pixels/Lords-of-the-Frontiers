@@ -175,6 +175,12 @@ public:
 		return bIsBoss_;
 	}
 
+	UFUNCTION( BlueprintPure, Category = "Settings|Boss" )
+	bool IsBossForStats() const
+	{
+		return bIsBossForStats_;
+	}
+
 	virtual FOnAudioEvent& GetOnAudioEvent() override
 	{
 		return OnAudioEvent_;
@@ -227,8 +233,11 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|HealthBar" )
 	TObjectPtr<UHealthBarConfigDataAsset> HealthBarConfig_;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Boss" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Boss", meta = ( DisplayName = "Босс (полоса HP)", ToolTip = "Включает оформление полосы здоровья как у босса. На подсчёт очков и статистику не влияет." ) )
 	bool bIsBoss_ = false;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Boss", meta = ( DisplayName = "Босс (статистика и счёт)", ToolTip = "Если включено, юнит учитывается как босс в статистике матча и в подсчёте очков. От полосы HP не зависит." ) )
+	bool bIsBossForStats_ = false;
 
 	FDelegateHandle HealthBarSubscription_;
 

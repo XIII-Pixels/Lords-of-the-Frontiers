@@ -9,10 +9,6 @@
 
 #include "EnemyPresetData.generated.h"
 
-/*
- * (InfiniteMode) Single preset = "buyable squad". Designer authors many
- * presets and the infinite wave builder spends a per-wave budget on them.
- */
 UCLASS( BlueprintType, meta = ( DisplayName = "Присет врагов (бесконечный режим)" ) )
 class LORDS_FRONTIERS_API UEnemyPresetData : public UDataAsset
 {

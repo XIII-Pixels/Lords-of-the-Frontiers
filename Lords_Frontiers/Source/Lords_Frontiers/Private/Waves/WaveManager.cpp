@@ -126,8 +126,6 @@ int32 AWaveManager::ClampWaveIndex( int32 waveIndex ) const
 
 	if ( HasInfiniteMode() )
 	{
-		// Infinite mode has no upper bound. Lower bound is 0 unless
-		// StartWaveIndex shifts that. waveIndex >= 0 is acceptable.
 		return FMath::Max( 0, waveIndex );
 	}
 
@@ -153,8 +151,8 @@ void AWaveManager::StartWaves()
 		BuildSelectedWavePresetCache();
 	}
 	EnsureInfiniteBuilder();
-	
-	if ( SelectedWavePresets_.Num() == 0 )
+
+	if ( WaveConfig_ && SelectedWavePresets_.Num() == 0 )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Selected preset cache is empty, building now." ) );
 	}
@@ -202,12 +200,16 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 
 	CurrentWaveIndex = clampedIndex;
 
+	if ( !bEndlessRunStarted_ && IsInfiniteWaveIndex( CurrentWaveIndex ) )
+	{
+		bEndlessRunStarted_ = true;
+		UE_LOG( LogTemp, Log, TEXT( "WaveManager: endless run started at wave %d." ), CurrentWaveIndex );
+	}
+
 	const UWaveData* WaveData = GetSelectedWaveData( CurrentWaveIndex );
 	if ( !WaveData )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no valid preset." ), CurrentWaveIndex );
-		// In infinite mode, a null wave means the builder is misconfigured.
-		// Don't recurse looking for the next "valid" infinite wave.
 		if ( IsInfiniteWaveIndex( CurrentWaveIndex ) )
 		{
 			BroadcastAllWavesCompleted();
@@ -842,8 +844,6 @@ const UWaveData* AWaveManager::GetWaveData( int32 index ) const
 		return found->Get();
 	}
 
-	// Infinite wave preset is built on demand by GetSelectedWaveData()/StartWaveAtIndex.
-	// GetWaveData() is a read-only accessor and does not mutate the cache.
 	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( index ) )
 	{
 		return nullptr;

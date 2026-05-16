@@ -4,10 +4,6 @@
 
 #include "InfiniteModeTypes.generated.h"
 
-/*
- * Tags used by the infinite mode builder to classify enemy presets and to
- * drive theme weights. Stored as bitmask in UEnemyPresetData::TagMask.
- */
 UENUM( BlueprintType, meta = ( Bitflags, UseEnumValuesAsMaskValuesInEditor = "false" ) )
 enum class EEnemyTag : uint8
 {
@@ -38,10 +34,6 @@ namespace InfiniteMode
 	}
 }
 
-/*
- * Multiplier applied to a preset's base weight when the preset has the given
- * tag. Used inside FInfiniteTheme.
- */
 USTRUCT( BlueprintType, meta = ( DisplayName = "Вес тега темы" ) )
 struct FThemeTagWeight
 {
