@@ -100,6 +100,22 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 {
 	Super::NativeTick( myGeometry, inDeltaTime );
 
+	const bool bIsVisibleState = CurrentState == ETooltipState::Visible ||
+	                             CurrentState == ETooltipState::AnimatingIn ||
+	                             CurrentState == ETooltipState::HoldFlash ||
+	                             CurrentState == ETooltipState::FadeFlash;
+
+	if ( !bUsePreviewCache_ && bIsVisibleState && CurrentBuildingInstance_.IsValid() )
+	{
+		constexpr float kInstanceRefreshInterval = 0.2f;
+		InstanceRefreshAccumulator_ += inDeltaTime;
+		if ( InstanceRefreshAccumulator_ >= kInstanceRefreshInterval )
+		{
+			InstanceRefreshAccumulator_ = 0.0f;
+			RefreshFromInstance();
+		}
+	}
+
 	switch ( CurrentState )
 	{
 	case ETooltipState::DelayShow:
@@ -196,6 +212,7 @@ void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 
 	CurrentBuildingClass = buildingClass;
 	PendingBuildingClass = nullptr;
+	CurrentBuildingInstance_ = nullptr;
 	bUsePreviewCache_ = true;
 
 	ClearContainers();
@@ -225,6 +242,8 @@ void UBuildingTooltipWidget::ShowTooltipForBuildingInstance( const ABuilding* bu
 
 	CurrentBuildingClass = building->GetClass();
 	PendingBuildingClass = nullptr;
+	CurrentBuildingInstance_ = building;
+	InstanceRefreshAccumulator_ = 0.0f;
 	bUsePreviewCache_ = false;
 
 	ClearContainers();
@@ -233,6 +252,8 @@ void UBuildingTooltipWidget::ShowTooltipForBuildingInstance( const ABuilding* bu
 	UpdateEconomy( building );
 	UpdateStats( building );
 	UpdateBonuses();
+
+	LastInstanceSnapshot_ = CaptureInstanceSnapshot( building );
 
 	CurrentState = ETooltipState::DelayShow;
 	StateTimer = ShowDelay;
@@ -263,6 +284,9 @@ void UBuildingTooltipWidget::ForceHide()
 	bIsLocked = false;
 	bIsAutoHiding = false;
 	bUsePreviewCache_ = false;
+	CurrentBuildingInstance_ = nullptr;
+	InstanceRefreshAccumulator_ = 0.0f;
+	LastInstanceSnapshot_ = FInstanceSnapshot{};
 
 	SetVisibility( ESlateVisibility::Hidden );
 }
@@ -304,6 +328,16 @@ UTexture2D* UBuildingTooltipWidget::GetStatIcon( EStatsType type )
 
 void UBuildingTooltipWidget::UpdateContent()
 {
+	if ( const ABuilding* instance = CurrentBuildingInstance_.Get() )
+	{
+		ClearContainers();
+		UpdateHeader( instance );
+		UpdateEconomy( instance );
+		UpdateStats( instance );
+		UpdateBonuses();
+		return;
+	}
+
 	if ( !IsValid( CurrentBuildingClass ) )
 	{
 		return;
@@ -322,33 +356,84 @@ void UBuildingTooltipWidget::UpdateContent()
 	UpdateBonuses();
 }
 
-void UBuildingTooltipWidget::ApplyCurrentBuildingModifiers(
-    const ABuilding* sourceBuilding, FEntityStats& inOutStats, FResourceProduction& inOutBuildingCost,
-    FResourceProduction& inOutMaintenanceCost
+void UBuildingTooltipWidget::RefreshFromInstance()
+{
+	const ABuilding* instance = CurrentBuildingInstance_.Get();
+	if ( !instance )
+	{
+		return;
+	}
+
+	const FInstanceSnapshot snapshot = CaptureInstanceSnapshot( instance );
+	if ( LastInstanceSnapshot_.Equals( snapshot ) )
+	{
+		return;
+	}
+	LastInstanceSnapshot_ = snapshot;
+
+	ClearContainers();
+	UpdateHeader( instance );
+	UpdateEconomy( instance );
+	UpdateStats( instance );
+	UpdateBonuses();
+}
+
+bool UBuildingTooltipWidget::FInstanceSnapshot::Equals( const FInstanceSnapshot& other ) const
+{
+	return bValid == other.bValid && Health == other.Health && MaxHealth == other.MaxHealth &&
+	       AttackDamage == other.AttackDamage && FMath::IsNearlyEqual( AttackRange, other.AttackRange ) &&
+	       FMath::IsNearlyEqual( AttackCooldown, other.AttackCooldown ) &&
+	       FMath::IsNearlyEqual( SplashRadius, other.SplashRadius ) && CostGold == other.CostGold &&
+	       CostFood == other.CostFood && CostPopulation == other.CostPopulation && MaintGold == other.MaintGold &&
+	       MaintFood == other.MaintFood && MaintPopulation == other.MaintPopulation &&
+	       PlayerGold == other.PlayerGold && PlayerFood == other.PlayerFood &&
+	       PlayerPopulation == other.PlayerPopulation;
+}
+
+UBuildingTooltipWidget::FInstanceSnapshot UBuildingTooltipWidget::CaptureInstanceSnapshot(
+    const ABuilding* building
 ) const
 {
-	if ( !sourceBuilding )
+	FInstanceSnapshot snapshot;
+	if ( !building )
 	{
-		return;
+		return snapshot;
 	}
 
-	const UCardSubsystem* cardSubsystem = UCardSubsystem::Get( this );
-	if ( !cardSubsystem )
-	{
-		return;
-	}
+	snapshot.bValid = true;
 
-	const TArray<FAppliedCardBonus> bonuses = cardSubsystem->GetBuildingBonuses( sourceBuilding );
+	const FEntityStats& stats = building->Stats();
+	snapshot.Health = stats.Health();
+	snapshot.MaxHealth = stats.MaxHealth();
+	snapshot.AttackDamage = stats.AttackDamage();
+	snapshot.AttackRange = stats.AttackRange();
+	snapshot.AttackCooldown = stats.AttackCooldown();
+	snapshot.SplashRadius = stats.SplashRadius();
 
-	for ( const FAppliedCardBonus& bonus : bonuses )
+	const FResourceProduction cost = building->GetBuildingCost();
+	snapshot.CostGold = cost.Gold;
+	snapshot.CostFood = cost.Food;
+	snapshot.CostPopulation = cost.Population;
+
+	const FResourceProduction maint = building->GetMaintenanceCost();
+	snapshot.MaintGold = maint.Gold;
+	snapshot.MaintFood = maint.Food;
+	snapshot.MaintPopulation = maint.Population;
+
+	if ( const APlayerController* pc = GetOwningPlayer() )
 	{
-		if ( !bonus.Effect )
+		if ( UCoreManager* core = UCoreManager::Get( pc ) )
 		{
-			continue;
+			if ( UResourceManager* rm = core->GetResourceManager() )
+			{
+				snapshot.PlayerGold = rm->GetResourceAmount( EResourceType::Gold );
+				snapshot.PlayerFood = rm->GetResourceAmount( EResourceType::Food );
+				snapshot.PlayerPopulation = rm->GetResourceAmount( EResourceType::Population );
+			}
 		}
-
-		bonus.Effect->PreviewBuildingTooltip( sourceBuilding, inOutStats, inOutBuildingCost, inOutMaintenanceCost );
 	}
+
+	return snapshot;
 }
 
 void UBuildingTooltipWidget::ClearContainers()
@@ -530,7 +615,8 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* building )
 		UBuildingTooltipHealthRow* healthRow = CreateWidget<UBuildingTooltipHealthRow>( pc, HealthRowClass );
 		if ( healthRow )
 		{
-			healthRow->Setup( GetStatIcon( EStatsType::MaxHealth ), FString::FromInt( stats.MaxHealth() ) );
+			const int32 healthToShow = bUsePreviewCache_ ? stats.MaxHealth() : stats.Health();
+			healthRow->Setup( GetStatIcon( EStatsType::MaxHealth ), FString::FromInt( healthToShow ) );
 			Box_Health->AddChild( healthRow );
 		}
 	}

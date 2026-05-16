@@ -100,11 +100,10 @@ public:
 	bool RemoveExistingBuilding( ABuilding* buildingToRemove );
 
 	void HideBuildingTooltip();
-	
-	void ShowAllDefensiveRanges();
 
 	void HideAllDefensiveRanges();
-	
+
+
 	virtual FOnAudioEvent& GetOnAudioEvent() override
 	{
 		return OnAudioEvent_;

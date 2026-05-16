@@ -215,7 +215,7 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 			{
 				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
 				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
-				ShowAllDefensiveRanges();
+				HideAllDefensiveRanges();
 			}
 			else
 			{
@@ -391,10 +391,6 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 
 	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
 	PlayPlacementAnimation( newBuilding );
-	if ( CachedPreviewAttackRange_ > 0.0f )
-	{
-		ShowAllDefensiveRanges();
-	}
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
 	return true;
 }
@@ -795,7 +791,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 			{
 				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
 				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
-				ShowAllDefensiveRanges();
+				HideAllDefensiveRanges();
 			}
 			else
 			{
@@ -1060,29 +1056,6 @@ void ABuildManager::ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildi
 	else
 	{
 		GridVisualizer_->HideBonusHighlight();
-	}
-}
-
-void ABuildManager::ShowAllDefensiveRanges()
-{
-	if ( !GridManager_ )
-	{
-		return;
-	}
-
-	for ( int32 y = 0; y < GridManager_->GetGridHeight(); ++y )
-	{
-		for ( int32 x = 0; x < GridManager_->GetRowWidth( y ); ++x )
-		{
-			FGridCell* cell = GridManager_->GetCell( x, y );
-			if ( cell && cell->bIsOccupied && cell->Occupant.IsValid() )
-			{
-				if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( cell->Occupant.Get() ) )
-				{
-					tower->ShowAttackRange();
-				}
-			}
-		}
 	}
 }
 

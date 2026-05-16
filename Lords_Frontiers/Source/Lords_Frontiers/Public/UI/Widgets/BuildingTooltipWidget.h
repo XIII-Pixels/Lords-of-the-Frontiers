@@ -118,11 +118,6 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void StartAutoHideTimer();
 
-	void ApplyCurrentBuildingModifiers(
-	    const ABuilding* SourceBuilding, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
-	    FResourceProduction& InOutMaintenanceCost
-	) const;
-
 protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.2f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float HideDelay = 0.1f;
@@ -186,13 +181,43 @@ private:
 	UPROPERTY() TSubclassOf<ABuilding> CurrentBuildingClass;
 	UPROPERTY() TSubclassOf<ABuilding> PendingBuildingClass;
 
+	TWeakObjectPtr<const ABuilding> CurrentBuildingInstance_;
+	float InstanceRefreshAccumulator_ = 0.0f;
+
+	struct FInstanceSnapshot
+	{
+		bool bValid = false;
+		int32 Health = 0;
+		int32 MaxHealth = 0;
+		int32 AttackDamage = 0;
+		float AttackRange = 0.0f;
+		float AttackCooldown = 0.0f;
+		float SplashRadius = 0.0f;
+		int32 CostGold = 0;
+		int32 CostFood = 0;
+		int32 CostPopulation = 0;
+		int32 MaintGold = 0;
+		int32 MaintFood = 0;
+		int32 MaintPopulation = 0;
+		int32 PlayerGold = 0;
+		int32 PlayerFood = 0;
+		int32 PlayerPopulation = 0;
+
+		bool Equals( const FInstanceSnapshot& other ) const;
+	};
+
+	FInstanceSnapshot LastInstanceSnapshot_;
+
+	FInstanceSnapshot CaptureInstanceSnapshot( const ABuilding* building ) const;
+
 	void ApplyAnimation();
-	
+
 	void ClearContainers();
 	void UpdateHeader( const ABuilding* cDO );
 	void UpdateEconomy( const ABuilding* building );
 	void UpdateStats( const ABuilding* building );
 	void UpdateBonuses();
+	void RefreshFromInstance();
 
 	bool bIsLocked = false;
 	bool bIsAutoHiding = false;

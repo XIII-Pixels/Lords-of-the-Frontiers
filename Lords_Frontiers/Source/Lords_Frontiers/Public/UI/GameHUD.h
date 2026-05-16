@@ -258,6 +258,11 @@ public:
 	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 	void ShowTooltipForBuilding( const ABuilding* BuildingInstance );
 
+private:
+	UBuildingTooltipWidget* EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck );
+
+public:
+
 	UFUNCTION( BlueprintCallable )
 	void HideTooltipForBuilding();
 

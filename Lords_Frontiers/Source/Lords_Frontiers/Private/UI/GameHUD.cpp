@@ -1492,36 +1492,21 @@ void UGameHUDWidget::TogglePauseMenu()
 	}
 }
 
-void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
+UBuildingTooltipWidget* UGameHUDWidget::EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck )
 {
-	if ( !buildingClass )
+	if ( !buildingForTypeCheck )
 	{
 		HideTooltipForBuilding();
-		return;
+		return nullptr;
 	}
 
-	const ABuilding* cdo = buildingClass->GetDefaultObject<ABuilding>();
-	if ( !cdo )
-	{
-		HideTooltipForBuilding();
-		return;
-	}
-
-	TSubclassOf<UBuildingTooltipWidget> tooltipClass = nullptr;
-
-	if ( cdo->IsA<ADefensiveBuilding>() )
-	{
-		tooltipClass = DefensiveTooltipClass;
-	}
-	else
-	{
-		tooltipClass = EconomyTooltipClass;
-	}
+	TSubclassOf<UBuildingTooltipWidget> tooltipClass =
+	    buildingForTypeCheck->IsA<ADefensiveBuilding>() ? DefensiveTooltipClass : EconomyTooltipClass;
 
 	if ( !tooltipClass )
 	{
 		HideTooltipForBuilding();
-		return;
+		return nullptr;
 	}
 
 	if ( !CurrentTooltip || !CurrentTooltip->IsA( tooltipClass ) )
@@ -1535,52 +1520,31 @@ void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClas
 		CurrentTooltip = CreateWidget<UBuildingTooltipWidget>( GetWorld(), tooltipClass );
 		if ( !CurrentTooltip )
 		{
-			return;
+			return nullptr;
 		}
 
 		CurrentTooltip->AddToViewport( 99 );
 	}
 
 	CurrentTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
-	CurrentTooltip->ShowTooltip( buildingClass );
+	return CurrentTooltip;
+}
+
+void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
+{
+	const ABuilding* cdo = buildingClass ? buildingClass->GetDefaultObject<ABuilding>() : nullptr;
+	if ( UBuildingTooltipWidget* tooltip = EnsureTooltipForBuilding( cdo ) )
+	{
+		tooltip->ShowTooltip( buildingClass );
+	}
 }
 
 void UGameHUDWidget::ShowTooltipForBuilding( const ABuilding* building )
 {
-	if ( !building )
+	if ( UBuildingTooltipWidget* tooltip = EnsureTooltipForBuilding( building ) )
 	{
-		HideTooltipForBuilding();
-		return;
+		tooltip->ShowTooltipForBuildingInstance( building );
 	}
-
-	TSubclassOf<UBuildingTooltipWidget> tooltipClass =
-	    building->IsA<ADefensiveBuilding>() ? DefensiveTooltipClass : EconomyTooltipClass;
-
-	if ( !tooltipClass )
-	{
-		HideTooltipForBuilding();
-		return;
-	}
-
-	if ( !CurrentTooltip || !CurrentTooltip->IsA( tooltipClass ) )
-	{
-		if ( CurrentTooltip )
-		{
-			CurrentTooltip->RemoveFromParent();
-		}
-
-		CurrentTooltip = CreateWidget<UBuildingTooltipWidget>( GetWorld(), tooltipClass );
-		if ( !CurrentTooltip )
-		{
-			return;
-		}
-
-		CurrentTooltip->AddToViewport( 99 );
-	}
-
-	CurrentTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
-
-	CurrentTooltip->ShowTooltipForBuildingInstance( building );
 }
 
 void UGameHUDWidget::InitializeTooltipWidget(
@@ -1665,19 +1629,14 @@ void UGameHUDWidget::HandleSelectionChanged()
 
 	ShowTooltipForBuilding( selectedBuilding );
 
-	if ( Cast<ADefensiveBuilding>( selectedBuilding ) )
+	if ( buildManager )
 	{
-		if ( buildManager )
-		{
-			buildManager->ShowAllDefensiveRanges();
-		}
+		buildManager->HideAllDefensiveRanges();
 	}
-	else
+
+	if ( ADefensiveBuilding* defensive = Cast<ADefensiveBuilding>( selectedBuilding ) )
 	{
-		if ( buildManager )
-		{
-			buildManager->HideAllDefensiveRanges();
-		}
+		defensive->ShowAttackRange();
 	}
 }
 void UGameHUDWidget::UpdateExtraButtonsVisibility()
