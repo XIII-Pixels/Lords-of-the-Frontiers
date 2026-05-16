@@ -14,6 +14,7 @@
 #include "Utilities/TraceChannelMappings.h"
 #include "VFX/EntityVFXConfig.h"
 #include "Waves/EnemyBuff.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 
 #include "Components/Attack/UnitAttackRangedComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -30,6 +31,7 @@ AUnit::AUnit()
 
 	CollisionComponent_ = CreateDefaultSubobject<UCapsuleComponent>( TEXT( "CapsuleCollision" ) );
 	CollisionComponent_->SetCollisionObjectType( ECC_Entity );
+	CollisionComponent_->SetCollisionResponseToChannel( ECC_Visibility, ECR_Block );
 	SetRootComponent( CollisionComponent_ );
 
 	AttackComponent_ = CreateDefaultSubobject<UUnitAttackRangedComponent>( TEXT( "Attack Ranged " ) );
@@ -70,16 +72,12 @@ void AUnit::BeginPlay()
 	ResolveVFXDefaults();
 
 	const UWorld* world = GetWorld();
-	if ( !world )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "AUnit::BeginPlay: world not found" ) );
-	}
 
 	if ( HealthBarConfig_ )
 	{
 		HealthBarSubscription_ = Stats_.OnHealthChanged.AddWeakLambda(
 		    this,
-		    [this, world]( int /*newHealth*/, int /*maxHealth*/ )
+		    [this, world]( int, int )
 		    {
 			    if ( world )
 			    {
@@ -108,9 +106,23 @@ void AUnit::BeginPlay()
 		}
 	}
 
-    OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+	if ( IsValid( CollisionComponent_ ) )
+	{
+		CollisionComponent_->SetCollisionResponseToChannel( ECC_Visibility, ECR_Block );
+		CollisionComponent_->OnClicked.AddUniqueDynamic( this, &AUnit::OnUnitClicked );
+	}
 
-    PlayAnimationIdle();
+	if ( IsValid( SkeletalMeshComponent_ ) )
+	{
+		SkeletalMeshComponent_->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+		SkeletalMeshComponent_->SetCollisionResponseToChannel( ECC_Visibility, ECR_Block );
+		SkeletalMeshComponent_->OnClicked.AddUniqueDynamic( this, &AUnit::OnUnitClicked );
+	}
+
+
+	OnAudioEvent_.Broadcast( { AudioTags_.Spawn, GetActorLocation() } );
+
+	PlayAnimationIdle();
 
 	SpawnSpawnVFX();
 }
@@ -531,4 +543,32 @@ void AUnit::ChangeStats( const FEnemyBuff* buff )
 	Stats_.SetMaxSpeed( Stats_.MaxSpeed() * buff->MaxSpeedMultiplier );
 
 	Stats_.Heal( Stats_.MaxHealth() );
+}
+
+void AUnit::OnUnitClicked( UPrimitiveComponent* TouchedComponent, FKey ButtonPressed )
+{
+	if ( ButtonPressed != EKeys::LeftMouseButton )
+	{
+		return;
+	}
+
+	if ( !Stats_.IsAlive() || IsActorBeingDestroyed() )
+	{
+		return;
+	}
+
+	UE_LOG( LogTemp, Warning, TEXT( "OnUnitClicked fired for unit: %s" ), *GetName() );
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( USelectionManagerComponent* selManager = core->GetSelectionManager() )
+		{
+			selManager->SelectSingle( this );
+		}
+	}
+}
+
+bool AUnit::CanBeSelected_Implementation() const
+{
+	return Stats_.IsAlive() && !IsActorBeingDestroyed();
 }
