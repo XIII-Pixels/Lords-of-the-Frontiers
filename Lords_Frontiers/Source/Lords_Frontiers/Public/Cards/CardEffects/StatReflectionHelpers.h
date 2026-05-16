@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Building/Building.h"
-#include "EntityStats.h"
+#include "Lords_Frontiers/Public/EntityStats.h"
 
 #include "CoreMinimal.h"
 #include "UObject/UnrealType.h"
@@ -87,5 +87,36 @@ namespace CardStatReflection
 		}
 
 		return 0.f;
+	}
+
+	inline bool ApplyStatDeltaToStats( FEntityStats& Stats, FName StatName, float SignedDelta )
+	{
+		if ( StatName.IsNone() || FMath::IsNearlyZero( SignedDelta ) )
+		{
+			return false;
+		}
+
+		FProperty* prop = FEntityStats::StaticStruct()->FindPropertyByName( StatName );
+		FNumericProperty* numericProp = CastField<FNumericProperty>( prop );
+		if ( !numericProp )
+		{
+			return false;
+		}
+
+		uint8* statsPtr = reinterpret_cast<uint8*>( &Stats );
+		void* valuePtr = numericProp->ContainerPtrToValuePtr<void>( statsPtr );
+
+		if ( numericProp->IsFloatingPoint() )
+		{
+			const double currentValue = numericProp->GetFloatingPointPropertyValue( valuePtr );
+			numericProp->SetFloatingPointPropertyValue( valuePtr, currentValue + SignedDelta );
+		}
+		else
+		{
+			const int64 currentValue = numericProp->GetSignedIntPropertyValue( valuePtr );
+			numericProp->SetIntPropertyValue( valuePtr, currentValue + FMath::RoundToInt( SignedDelta ) );
+		}
+
+		return true;
 	}
 }

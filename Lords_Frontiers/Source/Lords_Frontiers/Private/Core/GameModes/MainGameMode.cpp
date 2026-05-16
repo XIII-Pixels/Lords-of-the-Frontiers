@@ -186,6 +186,11 @@ void AMainGameMode::SetupCamera()
 	}
 }
 
+UGameHUDWidget* AMainGameMode::GetGameHUDWidget() const
+{
+	return Cast<UGameHUDWidget>( HUDWidget );
+}
+
 UGameLoopConfig* AMainGameMode::SelectGameLoopConfig() const
 {
 	if ( const UWorld* world = GetWorld() )

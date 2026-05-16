@@ -250,6 +250,12 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Core|Debug" )
 	void LogSystemsStatus() const;
 
+	UFUNCTION( BlueprintPure, Category = "Core" )
+	AWavePortalManager* GetWavePortalManager() const
+	{
+		return WavePortalManager_;
+	}
+
 protected:
 	/**
 	 * Generic manager registration with consistent logging and null checks.
@@ -300,6 +306,9 @@ protected:
 	/** Weak ref to unit AI manager. */
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
+
+	UPROPERTY()
+	TObjectPtr<AWavePortalManager> WavePortalManager_ = nullptr;
 
 	/**
 	 * Strong reference to GameLoopManager.

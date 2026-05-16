@@ -22,6 +22,11 @@ public:
 	virtual void Revert_Implementation( const FCardEffectContext& context ) override;
 	virtual FText GetDisplayText_Implementation() const override;
 
+	void PreviewBuildingTooltip_Implementation(
+	    const ABuilding* building, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+	    FResourceProduction& InOutMaintenanceCost
+	) const override;
+
 private:
 	void ApplyDelta( const FCardEffectContext& context, int32 signedDelta ) const;
 };
