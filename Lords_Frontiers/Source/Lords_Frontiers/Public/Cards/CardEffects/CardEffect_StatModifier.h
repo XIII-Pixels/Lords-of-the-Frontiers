@@ -26,6 +26,11 @@ public:
 	UFUNCTION()
 	static TArray<FString> GetModifiableStatNames();
 
+	void PreviewBuildingTooltip_Implementation(
+	    const ABuilding* building, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+	    FResourceProduction& InOutMaintenanceCost
+	) const override;
+
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid( class FDataValidationContext& context ) const override;
 #endif

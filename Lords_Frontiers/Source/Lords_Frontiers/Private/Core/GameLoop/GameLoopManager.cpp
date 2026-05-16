@@ -1,5 +1,7 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "AI/Path/PathPointsManager.h"
+#include "Core/Selection/SelectionManagerComponent.h"
+#include "Building/Construction/BuildManager.h"
 
 #include "AI/UnitAIManager.h"
 #include "Cards/CardPoolConfig.h"
@@ -365,6 +367,7 @@ void UGameLoopManager::EnterRewardPhase()
 	RewardHelper_->RestoreBuildings();
 
 	SetPhase( EGameLoopPhase::Reward );
+	ClearSelectionForPhaseChange();
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
@@ -544,4 +547,19 @@ void UGameLoopManager::UnbindFromWaveManager()
 
 	bIsBoundToWaveManager_ = false;
 	Log( TEXT( "Unbound from WaveManager" ) );
+}
+void UGameLoopManager::ClearSelectionForPhaseChange()
+{
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( USelectionManagerComponent* selection = core->GetSelectionManager() )
+		{
+			selection->ClearSelection();
+		}
+
+		if ( ABuildManager* buildManager = core->GetBuildManager() )
+		{
+			buildManager->HideAllDefensiveRanges();
+		}
+	}
 }

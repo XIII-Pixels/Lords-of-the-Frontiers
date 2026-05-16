@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Lords_Frontiers/Public/UI/GameHUD.h"
 
 #include "DebugPlayerController.generated.h"
 
@@ -39,6 +40,19 @@ public:
 
 	UFUNCTION( Exec )
 	void Card_ResetUnlocks();
+
+	UPROPERTY()
+	TObjectPtr<UGameHUDWidget> GameHUDWidget_ = nullptr;
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|HUD" )
+	UGameHUDWidget* GetGameHUDWidget() const
+	{
+		return GameHUDWidget_;
+	}
+	ABuildManager* GetBuildManager() const
+	{
+		return BuildManager_;
+	}
 
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )

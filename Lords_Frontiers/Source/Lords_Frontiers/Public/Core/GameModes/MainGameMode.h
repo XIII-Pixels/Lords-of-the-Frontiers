@@ -12,6 +12,7 @@ class UGameLoopConfig;
 class UUserWidget;
 class UCardPoolConfig;
 class UEntityVFXConfig;
+class UGameHUDWidget;
 
 UCLASS()
 class LORDS_FRONTIERS_API AMainGameMode : public AGameModeBase
@@ -22,6 +23,8 @@ public:
 	AMainGameMode();
 
 	virtual void StartPlay() override;
+
+	UGameHUDWidget* GetGameHUDWidget() const;
 
 protected:
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Pools" )

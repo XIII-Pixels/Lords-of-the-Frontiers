@@ -365,6 +365,7 @@ void UCardSubsystem::ApplySelectedCards( const TArray<UCardDataAsset*>& selected
 	ClearCurrentSelectionExclusions();
 
 	OnCardsApplied.Broadcast( appliedList );
+	InvalidateBuildingTooltipPreviewCache();
 
 	UE_LOG( LogCardSubsystem, Log, TEXT( "Applied %d selected cards" ), appliedList.Num() );
 
@@ -434,6 +435,7 @@ void UCardSubsystem::ApplySingleCardOnce(
 	{
 		ApplyCardEvent( card, eventIndex, card->Events[eventIndex], waveNumber, newStackCount, buildings );
 	}
+	InvalidateBuildingTooltipPreviewCache();
 
 	UE_LOG(
 	    LogCardSubsystem, Log, TEXT( "Card '%s' applied (wave %d, stack %d)" ),
@@ -552,7 +554,7 @@ void UCardSubsystem::ApplyCardEvent(
 }
 
 FCardEffectContext UCardSubsystem::MakeContext(
-    UCardDataAsset* card, int32 eventIndex, int32 stackCount, int32 waveNumber, ABuilding* building )
+    UCardDataAsset* card, int32 eventIndex, int32 stackCount, int32 waveNumber, ABuilding* building ) const
 {
 	FCardEffectContext ctx;
 	ctx.SourceCard = card;
@@ -560,7 +562,7 @@ FCardEffectContext UCardSubsystem::MakeContext(
 	ctx.EventIndex = eventIndex;
 	ctx.WaveNumber = waveNumber;
 	ctx.StackCount = stackCount;
-	ctx.Subsystem = this;
+	ctx.Subsystem = const_cast<UCardSubsystem*>( this );
 
 	if ( building )
 	{
@@ -783,6 +785,7 @@ void UCardSubsystem::ResetCardHistory()
 	{
 		RevertAppliedRecord( AppliedCardHistory_[i] );
 	}
+	InvalidateBuildingTooltipPreviewCache();
 
 	AppliedCardHistory_.Empty();
 	AcquisitionLog_.Empty();
@@ -1167,4 +1170,110 @@ UWorld* UCardSubsystem::GetWorldSafe() const
 {
 	UGameInstance* gi = GetGameInstance();
 	return gi ? gi->GetWorld() : nullptr;
+}
+
+void UCardSubsystem::InvalidateBuildingTooltipPreviewCache()
+{
+	BuildingTooltipPreviewCache_.Empty();
+}
+
+bool UCardSubsystem::GetBuildingTooltipPreview(
+    TSubclassOf<ABuilding> buildingClass, FBuildingTooltipPreview& OutPreview
+)
+{
+	if ( !buildingClass )
+	{
+		return false;
+	}
+
+	if ( const FBuildingTooltipPreview* Found = BuildingTooltipPreviewCache_.Find( buildingClass ) )
+	{
+		OutPreview = *Found;
+		return Found->bIsValid;
+	}
+
+	FBuildingTooltipPreview Preview;
+	if ( !BuildBuildingTooltipPreview( buildingClass, Preview ) )
+	{
+		return false;
+	}
+
+	BuildingTooltipPreviewCache_.Add( buildingClass, Preview );
+	OutPreview = Preview;
+	return true;
+}
+
+bool UCardSubsystem::BuildBuildingTooltipPreview(
+    TSubclassOf<ABuilding> buildingClass, FBuildingTooltipPreview& OutPreview
+) const
+{
+	OutPreview = FBuildingTooltipPreview();
+
+	const ABuilding* cdo = buildingClass ? buildingClass->GetDefaultObject<ABuilding>() : nullptr;
+	if ( !cdo )
+	{
+		return false;
+	}
+
+	OutPreview.Stats = cdo->Stats();
+	OutPreview.BuildingCost = cdo->GetBuildingCost();
+	OutPreview.MaintenanceCost = cdo->GetMaintenanceCost();
+	OutPreview.bIsValid = true;
+
+	for ( const FAppliedCardRecord& record : AppliedCardHistory_ )
+	{
+		if ( !record.Card )
+		{
+			continue;
+		}
+
+		const int32 stackCount = FMath::Max( 1, record.StackCount );
+
+		for ( int32 stackIndex = 0; stackIndex < stackCount; ++stackIndex )
+		{
+			for ( int32 eventIndex = 0; eventIndex < record.Card->Events.Num(); ++eventIndex )
+			{
+				const FCardEvent& event = record.Card->Events[eventIndex];
+
+				if ( !event.MatchesBuilding( cdo ) )
+				{
+					continue;
+				}
+
+				bool bHasPerBuildingEffect = false;
+				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+				{
+					if ( effect && !effect->IsGlobalEffect() )
+					{
+						bHasPerBuildingEffect = true;
+						break;
+					}
+				}
+
+				FCardEffectContext ctx = MakeContext(
+				    record.Card, eventIndex, stackCount, record.WaveSelected, const_cast<ABuilding*>( cdo )
+				);
+
+				if ( !EvaluateConditions( event, ctx ) )
+				{
+					continue;
+				}
+
+				if ( bHasPerBuildingEffect )
+				{
+					for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+					{
+						if ( effect && !effect->IsGlobalEffect() )
+						{
+							effect->PreviewBuildingTooltip(
+							    cdo, OutPreview.Stats, OutPreview.BuildingCost, OutPreview.MaintenanceCost
+							);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return true;
 }
