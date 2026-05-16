@@ -34,6 +34,10 @@ public:
 		meta = ( ToolTip = "«Особенность» — feature/specialty icon shown on the card widget." ) )
 	TObjectPtr<UTexture2D> FeatureIcon = nullptr;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "Effect frame badges to show on the card widget. Empty = no frame; Fire = Effect_Frame_Fire; Slow = Effect_Frame_Slow; Fire+Slow = Effect_Frame_Slow_Fire." ) )
+	TArray<ECardEffectFrame> EffectFrames;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
 	ECardRarity Rarity = ECardRarity::Common;
 

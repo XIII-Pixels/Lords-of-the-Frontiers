@@ -1,6 +1,7 @@
 ﻿#include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
 #include "AI/Path/Path.h"
+#include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Lords_Frontiers/Public/Waves/Infinite/InfiniteModeConfig.h"
@@ -8,6 +9,7 @@
 #include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
+#include "WavesMesh/WaveMeshManager.h"
 #if WITH_EDITOR
 #include "Editor.h"
 #endif
@@ -49,6 +51,7 @@ void AWaveManager::BeginPlay()
 	{
 		StartWaves();
 	}
+	BuildSelectedWavePresetCache();
 }
 
 bool AWaveManager::HasInfiniteMode() const
@@ -150,6 +153,11 @@ void AWaveManager::StartWaves()
 		BuildSelectedWavePresetCache();
 	}
 	EnsureInfiniteBuilder();
+	
+	if ( SelectedWavePresets_.Num() == 0 )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Selected preset cache is empty, building now." ) );
+	}
 
 	const int32 StartIndex = ClampWaveIndex( CurrentWaveIndex );
 	if ( StartIndex == INDEX_NONE )
@@ -176,7 +184,6 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 	if ( WaveConfig_ && SelectedWavePresets_.Num() == 0 )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Selected preset cache is empty, building now." ) );
-		BuildSelectedWavePresetCache();
 	}
 
 	const int32 clampedIndex = ClampWaveIndex( waveIndex );
@@ -271,7 +278,8 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveInde
 
 			for ( int32 enemyIndex = 0; enemyIndex < portalEntry.Count; ++enemyIndex )
 			{
-				const float timeFromWaveStart = portalEntry.StartDelay + ( enemyIndex * portalEntry.SpawnInterval ) + 0.1f; //DO NOT REMOVE THIS 0.1F. Spawn amount breaks without it
+				const float timeFromWaveStart =
+				    portalEntry.StartDelay + ( enemyIndex * portalEntry.SpawnInterval ) + 0.1f; // DO NOT REMOVE
 
 				if ( timeFromWaveStart < 0.f )
 				{
@@ -287,16 +295,6 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveInde
 				GetWorld()->GetTimerManager().SetTimer( timerHandle, spawnDelegate, timeFromWaveStart, false );
 
 				ActiveSpawnTimers_.Add( timerHandle );
-
-				if ( bLogSpawning )
-				{
-					UE_LOG(
-					    LogTemp, Log,
-					    TEXT( "WaveManager: Scheduled spawn Wave[%d] Enemy[%s] Portal[%s] EnemyIndex[%d] at +%f s" ),
-					    waveIndex, *GetNameSafe( enemyClass ), *portalEntry.SpawnPointId.ToString(), enemyIndex,
-					    timeFromWaveStart
-					);
-				}
 			}
 		}
 	}
@@ -332,24 +330,7 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnP
 		return;
 	}
 
-	const AEnemyGroupSpawnPoint* spawnPointConst = nullptr;
-	{
-		TArray<AActor*> foundSpawnPoints;
-		UGameplayStatics::GetAllActorsOfClass( GetWorld(), AEnemyGroupSpawnPoint::StaticClass(), foundSpawnPoints );
-
-		for ( AActor* actor : foundSpawnPoints )
-		{
-			if ( AEnemyGroupSpawnPoint* spawnPoint = Cast<AEnemyGroupSpawnPoint>( actor ) )
-			{
-				if ( spawnPoint->SpawnPointId == spawnPointId )
-				{
-					spawnPointConst = spawnPoint;
-					break;
-				}
-			}
-		}
-	}
-
+	const AEnemyGroupSpawnPoint* spawnPointConst = AEnemyGroupSpawnPoint::FindSpawnPointById( this, spawnPointId );
 	if ( !spawnPointConst )
 	{
 		if ( bLogSpawning )
@@ -404,6 +385,14 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnP
 	SpawnedUnits_.Add( spawned );
 	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
 
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( AWavePortalManager* portalManager = core->GetWavePortalManager() )
+		{
+			portalManager->NotifyEnemySpawnStarted( spawnPointId );
+		}
+	}
+
 	if ( bLogSpawning )
 	{
 		UE_LOG(
@@ -451,6 +440,11 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 	ClearActiveTimers();
 
 	RemainingEnemiesPerClass_.Empty();
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
 
 	OnWaveEnded.Broadcast( waveIndex );
 
@@ -516,6 +510,11 @@ void AWaveManager::CancelCurrentWave()
 	bIsWaveActive_ = false;
 
 	RemainingEnemiesPerClass_.Empty();
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
 
 	OnWaveEnded.Broadcast( CurrentWaveIndex );
 
@@ -712,6 +711,10 @@ void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
 			{
 				bIsWaveActive_ = false;
 				ClearActiveTimers();
+				if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+				{
+					visuals->EndAllSticky();
+				}
 				OnWaveEnded.Broadcast( CurrentWaveIndex );
 			}
 			if ( UWorld* world = GetWorld() )

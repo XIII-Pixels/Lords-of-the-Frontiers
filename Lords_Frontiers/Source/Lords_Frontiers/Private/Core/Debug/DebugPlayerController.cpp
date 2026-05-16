@@ -6,7 +6,12 @@
 #include "Cards/CardSubsystem.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "UI/Cards/CardSelectionHUDComponent.h"
+#include "Selectable.h"
+#include "Utilities/TraceChannelMappings.h"
 
+#include "CollisionQueryParams.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -94,45 +99,54 @@ void ADebugPlayerController::HandleLeftClick()
 		return;
 	}
 
-	// Trace under cursor
+	// Primary cursor trace by Visibility — handles buildings whose root box
+	// blocks the Visibility channel (houses, walls, etc.).
 	FHitResult hit;
-	const bool bHit = GetHitResultUnderCursorByChannel(
+	bool bHit = GetHitResultUnderCursorByChannel(
 	    UEngineTypes::ConvertToTraceType( ECollisionChannel::ECC_Visibility ), false, hit
 	);
 
-	if ( !bHit )
+	AActor* hitActor = bHit ? hit.GetActor() : nullptr;
+	const bool bHitSelectable = IsValid( hitActor ) && hitActor->Implements<USelectable>();
+
+	// Fallback: object-type trace against ECC_Entity, for selectables whose
+	// BP leaves the Visibility channel unblocked (defensive towers).
+	if ( !bHitSelectable )
 	{
-		if ( GEngine )
+		FVector worldOrigin = FVector::ZeroVector;
+		FVector worldDir = FVector::ZeroVector;
+		if ( DeprojectMousePositionToWorld( worldOrigin, worldDir ) )
 		{
-			GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "ClearSelection VOID" ) );
+			if ( UWorld* world = GetWorld() )
+			{
+				const FVector traceEnd = worldOrigin + worldDir * 100000.0f;
+				FCollisionObjectQueryParams objParams;
+				objParams.AddObjectTypesToQuery( ECC_Entity );
+				FCollisionQueryParams queryParams( SCENE_QUERY_STAT( SelectionEntityTrace ), false );
+
+				FHitResult entityHit;
+				if ( world->LineTraceSingleByObjectType( entityHit, worldOrigin, traceEnd, objParams, queryParams ) )
+				{
+					if ( AActor* entityActor = entityHit.GetActor() )
+					{
+						if ( entityActor->Implements<USelectable>() )
+						{
+							hitActor = entityActor;
+							bHit = true;
+						}
+					}
+				}
+			}
 		}
+	}
+
+	if ( !bHit || !IsValid( hitActor ) )
+	{
 		selection->ClearSelection();
 		return;
 	}
 
-	AActor* hitActor = hit.GetActor();
-	if ( !IsValid( hitActor ) )
-	{
-		if ( GEngine )
-		{
-			GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "Other actor" ) );
-		}
-		selection->ClearSelection();
-		return;
-	}
-
-	if ( GEngine )
-	{
-		GEngine->AddOnScreenDebugMessage( -1, 2.0f, FColor::Red, TEXT( "SelectSingle" ) );
-	}
 	selection->SelectSingle( hitActor );
-
-	if ( GEngine )
-	{
-		GEngine->AddOnScreenDebugMessage(
-		    -1, 2.0f, FColor::Yellow, FString::Printf( TEXT( "Hit actor: %s" ), *GetNameSafe( hit.GetActor() ) )
-		);
-	}
 }
 
 

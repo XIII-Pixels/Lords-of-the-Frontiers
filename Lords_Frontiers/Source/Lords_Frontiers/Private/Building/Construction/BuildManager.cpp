@@ -4,8 +4,11 @@
 #include "Building/Construction/BuildPreviewActor.h"
 #include "Building/Construction/BuildingPlacementAnimComponent.h"
 #include "Building/Construction/BuildingPlacementUtils.h"
+#include "Lords_Frontiers/Public/UI/GameHUD.h"
 #include "Building/DefensiveBuilding.h"
+#include "Core/GameModes/MainGameMode.h"
 #include "Core/CoreManager.h"
+#include "Core/Debug/DebugPlayerController.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
 #include "Grid/GridManager.h"
@@ -212,13 +215,14 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 			{
 				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
 				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
-				ShowAllDefensiveRanges();
+				HideAllDefensiveRanges();
 			}
 			else
 			{
 				CachedPreviewAttackRange_ = 0.f;
 				PreviewActor_->HideAttackRange();
 				HideAllDefensiveRanges();
+				HideBuildingTooltip();
 			}
 		}
 
@@ -300,7 +304,7 @@ void ABuildManager::CancelPlacing()
 	{
 		GEngine->AddOnScreenDebugMessage( -1, 1.5f, FColor::Yellow, TEXT( "Building / relocating mode cancelled" ) );
 	}
-
+	HideBuildingTooltip();
 	CachedBonusIcons_.Empty();
 	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
 	GridVisualizer_->HideBonusHighlight();
@@ -387,10 +391,6 @@ bool ABuildManager::TryPlaceNewBuilding( const FVector& cellWorldLocation )
 
 	OnBuildingConfirmed.Broadcast( newBuilding, CurrentCellCoords_ );
 	PlayPlacementAnimation( newBuilding );
-	if ( CachedPreviewAttackRange_ > 0.0f )
-	{
-		ShowAllDefensiveRanges();
-	}
 	DebugMessage( FColor::Green, TEXT( "Building placed" ) );
 	return true;
 }
@@ -431,7 +431,7 @@ bool ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	}
 
 	PlayPlacementAnimation( RelocatedBuilding_ );
-
+	HideBuildingTooltip();
 	DebugMessage( FColor::Green, TEXT( "Building relocated" ) );
 	return true;
 }
@@ -670,9 +670,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		if ( GEngine )
 		{
 			GEngine->AddOnScreenDebugMessage(
-			    -1, 2.0f, FColor::Red,
-			    TEXT( "StartRelocatingBuilding: GridManager or GridVisualizer is "
-			          "null" )
+			    -1, 2.0f, FColor::Red, TEXT( "StartRelocatingBuilding: GridManager or GridVisualizer is null" )
 			);
 		}
 		return;
@@ -687,7 +685,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 	{
 		GridVisualizer_->ShowGrid();
 	}
-	// 2) Находим клетку, в которой сейчас стоит это здание.
+
 	FIntPoint foundCoords( -1, -1 );
 	bool bFound = false;
 
@@ -704,7 +702,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 				continue;
 			}
 
-			// В этой клетке стоит наш buildingToMove?
 			if ( cell->Occupant.Get() == buildingToMove )
 			{
 				foundCoords = FIntPoint( x, y );
@@ -725,7 +722,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 		return;
 	}
 
-	// 3) Сохраняем состояние переноса.
 	RelocatedBuilding_ = buildingToMove;
 	OriginalCellCoords_ = foundCoords;
 	bIsRelocating_ = true;
@@ -758,7 +754,6 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
-	// 5) Спавним/показываем превью как при обычном строительстве.
 	if ( !PreviewActor_ )
 	{
 		if ( UWorld* world = GetWorld() )
@@ -796,7 +791,7 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 			{
 				CachedPreviewAttackRange_ = buildingCDO->Stats().AttackRange();
 				PreviewActor_->ShowAttackRange( CachedPreviewAttackRange_ );
-				ShowAllDefensiveRanges();
+				HideAllDefensiveRanges();
 			}
 			else
 			{
@@ -1064,29 +1059,6 @@ void ABuildManager::ShowBonusHighlightForBuilding( TSubclassOf<ABuilding> buildi
 	}
 }
 
-void ABuildManager::ShowAllDefensiveRanges()
-{
-	if ( !GridManager_ )
-	{
-		return;
-	}
-
-	for ( int32 y = 0; y < GridManager_->GetGridHeight(); ++y )
-	{
-		for ( int32 x = 0; x < GridManager_->GetRowWidth( y ); ++x )
-		{
-			FGridCell* cell = GridManager_->GetCell( x, y );
-			if ( cell && cell->bIsOccupied && cell->Occupant.IsValid() )
-			{
-				if ( ADefensiveBuilding* tower = Cast<ADefensiveBuilding>( cell->Occupant.Get() ) )
-				{
-					tower->ShowAttackRange();
-				}
-			}
-		}
-	}
-}
-
 void ABuildManager::HideAllDefensiveRanges()
 {
 	if ( !GridManager_ )
@@ -1173,3 +1145,17 @@ bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	DebugMessage( FColor::Green, TEXT( "Building removed" ) );
 	return true;
 }
+void ABuildManager::HideBuildingTooltip()
+{
+	if ( UWorld* world = GetWorld() )
+	{
+		if ( AMainGameMode* gm = world->GetAuthGameMode<AMainGameMode>() )
+		{
+			if ( UGameHUDWidget* hud = gm->GetGameHUDWidget() )
+			{
+				hud->HideTooltipForBuilding();
+			}
+		}
+	}
+}
+	

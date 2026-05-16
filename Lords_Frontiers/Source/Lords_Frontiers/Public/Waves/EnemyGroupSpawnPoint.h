@@ -16,6 +16,43 @@ class UBillboardComponent;
 the point
   - Optionally uses ActorTags matching for lookup (bUseActorTagMatching)
  */
+UENUM( BlueprintType )
+enum class EPortalHidePolicy : uint8
+{
+	HideAfterLastSpawn UMETA( DisplayName = "Hide After Last Spawn" ),
+	KeepUntilWaveEnd UMETA( DisplayName = "Keep Until Wave End" ),
+};
+
+USTRUCT( BlueprintType )
+struct FPortalVisualConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	bool bEnabled = true;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	TObjectPtr<UStaticMesh> PortalMesh = nullptr;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	TArray<TObjectPtr<UMaterialInterface>> OverrideMaterials;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	FVector RelativeLocation = FVector::ZeroVector;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	FRotator RelativeRotation = FRotator::ZeroRotator;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	FVector RelativeScale = FVector( 1.f );
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	bool bShowInBuildPhase = true;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	EPortalHidePolicy HidePolicy = EPortalHidePolicy::HideAfterLastSpawn;
+};
+
 UCLASS( Blueprintable )
 class LORDS_FRONTIERS_API AEnemyGroupSpawnPoint : public AActor
 {
@@ -24,15 +61,11 @@ class LORDS_FRONTIERS_API AEnemyGroupSpawnPoint : public AActor
 public:
 	AEnemyGroupSpawnPoint();
 
-	// Unique identifier for this spawn point. Can be used by Wave/WaveManager to
-	// find the point
 	UPROPERTY(
 	    EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Spawn", meta = ( DisplayName = "Spawn Point ID" )
 	)
 	FName SpawnPointId = NAME_None;
 
-	// If true, the actor's tags will also be considered when searching by id
-	// Use if you prefer to find spawn points by Actor->Tags in the level
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Spawn" )
 	bool bUseActorTagMatching = false;
 
@@ -49,40 +82,53 @@ public:
 
 	// Visual components (arrow + billboard) to help designer see orientation in
 	// editor
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
+	FPortalVisualConfig PortalVisualConfig;
+
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UArrowComponent> ArrowComponent;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 
-	// Return transform to spawn enemies (world transform of this actor)
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<UStaticMeshComponent> PortalMeshComponent;
+
 	UFUNCTION( BlueprintPure, Category = "Settings|Spawn" )
 	FTransform GetSpawnTransform() const
 	{
 		return GetActorTransform();
 	}
 
-	// Return forward vector (spawn facing) in world space.
 	UFUNCTION( BlueprintPure, Category = "Settings|Spawn" )
 	FVector GetSpawnForwardVector() const
 	{
 		return GetActorForwardVector();
 	}
 
-	// Does this spawn point match the given id/name? (checks SpawnPointId and
-	// optionally ActorTags)
 	UFUNCTION( BlueprintCallable, Category = "Settings|Spawn" )
 	bool MatchesId( const FName& id ) const;
 
-	// Helper: find first spawn point in world that matches id
-	// Returns nullptr if none found. Useful for WaveManager: pass GetWorld() as
-	// WorldContext
 	UFUNCTION( BlueprintCallable, Category = "Settings|Spawn", meta = ( WorldContext = "WorldContextObject" ) )
-	static AEnemyGroupSpawnPoint* FindSpawnPointById( UObject* worldContextObject, const FName& id );
+	static AEnemyGroupSpawnPoint* FindSpawnPointById( UObject* WorldContextObject, const FName& id );
 
-	// Helper: find all spawn points that match id (may be multiple when using
-	// tags)
 	UFUNCTION( BlueprintCallable, Category = "Settings|Spawn", meta = ( WorldContext = "WorldContextObject" ) )
 	static void
-	FindAllSpawnPointsById( UObject* worldContextObject, const FName& id, TArray<AEnemyGroupSpawnPoint*>& outFound );
+	FindAllSpawnPointsById( UObject* WorldContextObject, const FName& id, TArray<AEnemyGroupSpawnPoint*>& outFound );
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Portal" )
+	void ApplyPortalVisualConfig();
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Portal" )
+	void SetPortalVisible( bool bVisible, bool bDisableCollision = true );
+
+	UFUNCTION( BlueprintPure, Category = "Settings|Portal" )
+	bool IsPortalVisible() const
+	{
+		return PortalMeshComponent && PortalMeshComponent->IsVisible();
+	}
+
+protected:
+	virtual void OnConstruction( const FTransform& Transform ) override;
+	virtual void BeginPlay() override;
 };

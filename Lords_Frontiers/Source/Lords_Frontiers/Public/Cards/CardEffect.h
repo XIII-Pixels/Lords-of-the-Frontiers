@@ -2,6 +2,7 @@
 
 #include "Cards/CardTypes.h"
 #include "Cards/Visuals/CardVisualTypes.h"
+#include "Lords_Frontiers/Public/EntityStats.h"
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
@@ -44,6 +45,19 @@ public:
 	UFUNCTION( BlueprintNativeEvent, Category = "Card|Effect" )
 	void Execute( const FCardEffectContext& context );
 	virtual void Execute_Implementation( const FCardEffectContext& context )
+	{
+	}
+
+	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category = "Card|Effect|Preview" )
+	void PreviewBuildingTooltip(
+	    const ABuilding* building, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+	    FResourceProduction& InOutMaintenanceCost
+	) const;
+
+	virtual void PreviewBuildingTooltip_Implementation(												// MUST override to get actual data to UI Buttons
+	    const ABuilding* building, FEntityStats& InOutStats, FResourceProduction& InOutBuildingCost,
+	    FResourceProduction& InOutMaintenanceCost
+	) const
 	{
 	}
 
