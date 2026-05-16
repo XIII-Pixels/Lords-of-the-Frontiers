@@ -53,6 +53,24 @@ struct FInfiniteTheme
 	bool bRequireAdjacentSectors = false;
 };
 
+USTRUCT( BlueprintType, meta = ( DisplayName = "Диапазон масштабирования" ) )
+struct FInfiniteScalingRange
+{
+	GENERATED_BODY()
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( ClampMin = "0", DisplayName = "С волны" ) )
+	int32 FromWave = 0;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "По волну (включительно, -1 = без предела)" ) )
+	int32 ToWave = -1;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Прирост за шаг", ToolTip = "Накапливается к множителям пока волна в этом диапазоне. Когда диапазон заканчивается, накопленное усиление сохраняется." ) )
+	FEnemyBuff PerWaveDelta;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( ClampMin = "1", DisplayName = "Шаг (волн на одно усиление)" ) )
+	int32 StepEveryNWaves = 1;
+};
+
 USTRUCT( BlueprintType, meta = ( DisplayName = "Масштабирование статов" ) )
 struct FInfiniteScalingConfig
 {
@@ -61,17 +79,20 @@ struct FInfiniteScalingConfig
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Базовый бафф (стартовая волна)", ToolTip = "Множители на самой первой бесконечной волне. Обычно все = 1.0." ) )
 	FEnemyBuff BaseBuff;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Прирост за шаг", ToolTip = "Сколько добавляется к каждому множителю за один 'шаг' волны. Например, HP=0.08 значит '+8% HP за шаг'." ) )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Прирост за шаг (по умолчанию)", ToolTip = "Используется если Диапазоны не заданы. Игнорируется когда массив Диапазонов не пуст." ) )
 	FEnemyBuff PerWaveDelta;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Потолок множителей", ToolTip = "Максимальные значения множителей. Без потолка скейлинг ломает баланс." ) )
 	FEnemyBuff CapBuff;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( ClampMin = "1", DisplayName = "Шаг (волн на одно усиление)", ToolTip = "1 = усиливать каждую волну. 5 = ступенька каждые 5 волн." ) )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( ClampMin = "1", DisplayName = "Шаг (по умолчанию)", ToolTip = "Используется в режиме 'Прирост за шаг (по умолчанию)'. Игнорируется когда массив Диапазонов не пуст — там у каждого диапазона свой шаг." ) )
 	int32 StepEveryNWaves = 1;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Кривая масштабирования", ToolTip = "Опционально: нелинейная кривая. X = номер шага, Y = коэффициент. Если не задана — линейный рост." ) )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Кривая масштабирования", ToolTip = "Опционально: нелинейная кривая. X = номер шага, Y = коэффициент. Если не задана — линейный рост. Действует только в режиме 'Прирост по умолчанию'." ) )
 	TObjectPtr<UCurveFloat> ScalingCurve = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, meta = ( DisplayName = "Диапазоны усиления", ToolTip = "Если хотя бы один диапазон задан — используются они вместо 'Прироста по умолчанию'. Накопление усилений сохраняется при переходе из диапазона в диапазон." ) )
+	TArray<FInfiniteScalingRange> Ranges;
 };
 
 UCLASS( BlueprintType, meta = ( DisplayName = "Конфиг бесконечного режима" ) )

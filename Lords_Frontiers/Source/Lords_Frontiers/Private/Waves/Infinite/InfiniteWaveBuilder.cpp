@@ -138,18 +138,52 @@ FEnemyBuff UInfiniteWaveBuilder::ComputeScalingBuff( int32 waveIndex ) const
 	}
 
 	const FInfiniteScalingConfig& scaling = Config->Scaling;
-	const int32 stepsSinceStart = FMath::Max( 0, waveIndex - Config->StartWaveIndex );
-	const int32 stepDiv = FMath::Max( 1, scaling.StepEveryNWaves );
-	const float rawSteps = static_cast<float>( stepsSinceStart / stepDiv );
 
-	const float curvedSteps = scaling.ScalingCurve ? scaling.ScalingCurve->GetFloatValue( rawSteps ) : rawSteps;
-
-	for ( int32 i = 0; i < 5; ++i )
+	if ( scaling.Ranges.Num() == 0 )
 	{
-		const float base = ScalarFromBuff( scaling.BaseBuff, i );
-		const float delta = ScalarFromBuff( scaling.PerWaveDelta, i );
-		const float value = base + delta * curvedSteps;
-		SetScalar( result, i, FMath::Max( 1.0f, value ) );
+		const int32 stepsSinceStart = FMath::Max( 0, waveIndex - Config->StartWaveIndex );
+		const int32 stepDiv = FMath::Max( 1, scaling.StepEveryNWaves );
+		const float rawSteps = static_cast<float>( stepsSinceStart / stepDiv );
+		const float curvedSteps = scaling.ScalingCurve ? scaling.ScalingCurve->GetFloatValue( rawSteps ) : rawSteps;
+
+		for ( int32 i = 0; i < 5; ++i )
+		{
+			const float base = ScalarFromBuff( scaling.BaseBuff, i );
+			const float delta = ScalarFromBuff( scaling.PerWaveDelta, i );
+			SetScalar( result, i, FMath::Max( 1.0f, base + delta * curvedSteps ) );
+		}
+	}
+	else
+	{
+		// Accumulate steps × delta from every range that overlaps with [0..waveIndex].
+		// Previous-range gains are preserved when the wave passes into a new range.
+		for ( int32 i = 0; i < 5; ++i )
+		{
+			float value = ScalarFromBuff( scaling.BaseBuff, i );
+
+			for ( const FInfiniteScalingRange& range : scaling.Ranges )
+			{
+				const int32 rangeStart = FMath::Max( 0, range.FromWave );
+				const int32 rangeEnd = ( range.ToWave < 0 ) ? waveIndex : FMath::Min( waveIndex, range.ToWave );
+				if ( rangeEnd < rangeStart )
+				{
+					continue;
+				}
+
+				const int32 wavesInRange = rangeEnd - rangeStart + 1;
+				const int32 stepDiv = FMath::Max( 1, range.StepEveryNWaves );
+				const int32 steps = wavesInRange / stepDiv;
+				if ( steps <= 0 )
+				{
+					continue;
+				}
+
+				const float delta = ScalarFromBuff( range.PerWaveDelta, i );
+				value += delta * static_cast<float>( steps );
+			}
+
+			SetScalar( result, i, FMath::Max( 1.0f, value ) );
+		}
 	}
 
 	result = ClampBuffToCap( result, scaling.CapBuff );
