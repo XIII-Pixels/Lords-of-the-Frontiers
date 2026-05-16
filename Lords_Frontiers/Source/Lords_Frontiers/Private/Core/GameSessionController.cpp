@@ -56,13 +56,17 @@ void UGameSessionController::ResetState()
 
 void UGameSessionController::RestartGame()
 {
-	EndGame( EGameResult::Abandoned );
-	if ( GameLoopManager_ )
+	UWorld* world = GetGameInstance() ? GetGameInstance()->GetWorld() : GetWorld();
+	if ( !world )
 	{
-		GameLoopManager_->Reset();
+		UE_LOG( LogTemp, Warning, TEXT( "RestartGame: world is null, cannot reload level." ) );
+		return;
 	}
-	// For now, just call StartGame. In the future, we may want to add additional logic here.
-	StartGame();
+
+	const FString mapName = UWorld::RemovePIEPrefix( world->GetMapName() );
+	UE_LOG( LogTemp, Log, TEXT( "RestartGame: reloading level '%s' for a fresh run." ), *mapName );
+
+	UGameplayStatics::OpenLevel( world, FName( *mapName ) );
 }
 
 bool UGameSessionController::IsInsideEndlessMode() const
