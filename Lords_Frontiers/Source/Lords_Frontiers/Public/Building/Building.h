@@ -185,6 +185,8 @@ public:
 		return AudioTags_;
 	}
 
+	void SpawnConstructionVFX();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
@@ -289,8 +291,6 @@ protected:
 
 	float ResolvedRuinDelay_ = 0.0f;
 	float ResolvedConstructionDelay_ = 0.0f;
-
-	void SpawnConstructionVFX();
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
 	bool bCanBeRelocated_ = true;
