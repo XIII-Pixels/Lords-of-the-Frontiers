@@ -485,10 +485,16 @@ void ABuildManager::ConfirmPlacing()
 		{
 			success = RelocateExistingBuilding( cellWorldLocation );
 
+			if ( success && RelocatedBuilding_ )
+			{
+				RelocatedBuilding_->SpawnConstructionVFX();
+			}
+
 			ResetPlacementState();
 
 			CachedBonusIcons_.Empty();
 			OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
+
 			if ( GridVisualizer_ )
 			{
 				GridVisualizer_->HideBonusHighlight();
@@ -499,9 +505,11 @@ void ABuildManager::ConfirmPlacing()
 	if ( const ABuilding* cdo = CurrentBuildingClass_ ? CurrentBuildingClass_->GetDefaultObject<ABuilding>() : nullptr )
 	{
 		const FGameplayTag audioTag = success ? cdo->AudioTags().PlacedSuccess : cdo->AudioTags().PlacedRestricted;
+
 		OnAudioEvent_.Broadcast( { audioTag, cellWorldLocation } );
 	}
 }
+
 
 void ABuildManager::UpdateHoveredCell()
 {
@@ -1139,7 +1147,7 @@ bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	}
 
 	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, foundCoords );
-
+	buildingToRemove->SpawnDestructionVFX();
 	buildingToRemove->Destroy();
 
 	DebugMessage( FColor::Green, TEXT( "Building removed" ) );
