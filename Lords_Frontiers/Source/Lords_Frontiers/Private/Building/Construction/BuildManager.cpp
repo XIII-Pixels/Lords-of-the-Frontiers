@@ -1147,7 +1147,7 @@ bool ABuildManager::RemoveExistingBuilding( ABuilding* buildingToRemove )
 	}
 
 	RecalculateBonusesFromNeighbors( UBuildingBonusComponent::MaxPossibleBonusRadius, foundCoords );
-
+	buildingToRemove->SpawnDestructionVFX();
 	buildingToRemove->Destroy();
 
 	DebugMessage( FColor::Green, TEXT( "Building removed" ) );

@@ -187,6 +187,8 @@ public:
 
 	void SpawnConstructionVFX();
 
+	void SpawnDestructionVFX();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
@@ -196,8 +198,6 @@ protected:
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
 	void ResolveVFXDefaults();
-
-	void SpawnDestructionVFX();
 
 	virtual void OnDeath();
 
