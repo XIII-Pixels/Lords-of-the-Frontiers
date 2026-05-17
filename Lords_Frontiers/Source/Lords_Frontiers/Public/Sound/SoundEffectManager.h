@@ -5,10 +5,11 @@
 #include "Subsystems/WorldSubsystem.h"
 
 #include "CoreMinimal.h"
-#include "SoundDataAsset.h"
 
 #include "SoundEffectManager.generated.h"
 
+struct FSoundEntry;
+class USoundDataAsset;
 class UAudioComponent;
 class USoundAttenuation;
 

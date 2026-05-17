@@ -177,6 +177,12 @@ protected:
 	)
 	float InitialTargetArmLength_ = 8000.0f;
 
+	UPROPERTY(
+	    EditAnywhere, Category = "Settings|Sound",
+	    meta = ( ClampMin = 0.0f, ClampMax = 1.0f, Tooltip = "When camera exeeds a threshold there is wind sound" )
+	)
+	float WindyZoomPart_ = 0.3f;
+
 public:
 	virtual void Tick( float deltaTime ) override;
 	virtual void SetupPlayerInputComponent( class UInputComponent* playerInputComponent ) override;

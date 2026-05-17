@@ -30,7 +30,7 @@ void UDefaultGameInstance::Init()
 
 	if ( levelSubsystem )
 	{
-		levelSubsystem->SetLevels( Levels_ );
+		levelSubsystem->SetLevels( Levels );
 	}
 
 	if ( gameSaver && !gameSaver->HasLaunchedBefore() )

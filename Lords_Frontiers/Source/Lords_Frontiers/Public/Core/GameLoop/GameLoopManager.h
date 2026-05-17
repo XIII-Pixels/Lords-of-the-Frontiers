@@ -184,6 +184,7 @@ public:
 	{
 		return false;
 	}
+
 	void ClearSelectionForPhaseChange();
 
 protected:
@@ -213,6 +214,9 @@ protected:
 
 	bool IsCardSelectionPending() const;
 	void ProceedToNextWave();
+
+	void PlayBuildingMusicAndAmbient() const;
+	void PlayCombatMusicAndAmbient() const;
 
 private:
 

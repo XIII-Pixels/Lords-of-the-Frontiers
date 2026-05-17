@@ -1,5 +1,6 @@
 #include "Camera/StrategyCamera.h"
 
+#include "Core/DefaultGameInstance.h"
 #include "Grid/GridManager.h"
 #include "UI/GameHUD.h"
 
@@ -12,6 +13,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/MusicAmbientManager.h"
 #include "Misc/App.h"
 
 AStrategyCamera::AStrategyCamera()
@@ -272,6 +274,23 @@ void AStrategyCamera::Zoom( const FInputActionValue& value )
 
 	float zoomDirection = value.Get<float>();
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
+
+	// Should be done with delegates
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			if ( TargetZoom_ > MaxZoom_ - ( MaxZoom_ - MinZoom_ ) * WindyZoomPart_ )	// while in upper part of
+			// zoom range
+			{
+				musicManager->PlayWindAmbient();
+			}
+			else
+			{
+				musicManager->StopWindAmbient();
+			}
+		}
+	}
 }
 
 void AStrategyCamera::Rotate( const FInputActionValue& value )
