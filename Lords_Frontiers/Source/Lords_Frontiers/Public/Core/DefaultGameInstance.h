@@ -9,6 +9,8 @@
 
 #include "DefaultGameInstance.generated.h"
 
+class UMusicDataAsset;
+class UAmbientDataAsset;
 class USoundDataAsset;
 class UGameSaverConfig;
 class ACardFeedbackPopup;
@@ -23,9 +25,18 @@ class LORDS_FRONTIERS_API UDefaultGameInstance : public UGameInstance
 public:
 	virtual void Init() override;
 
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
+	TObjectPtr<ULevelsDataAsset> Levels;
+
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Saving" )
 	TObjectPtr<UGameSaverConfig> GameSaverConfig;
-  
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Sound" )
+	TObjectPtr<UMusicDataAsset> Music;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Sound" )
+	TObjectPtr<UAmbientDataAsset> Ambient;
+
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Sound" )
 	TObjectPtr<USoundDataAsset> SoundData;
 
@@ -43,9 +54,6 @@ public:
 	}
 
 protected:
-	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
-	TObjectPtr<ULevelsDataAsset> Levels_;
-
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Cards" )
 	TSubclassOf<ACardFeedbackPopup> CardFeedbackPopupClass_;
 

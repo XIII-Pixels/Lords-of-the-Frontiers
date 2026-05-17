@@ -1,5 +1,6 @@
 #include "Camera/StrategyCamera.h"
 
+#include "Core/DefaultGameInstance.h"
 #include "Grid/GridManager.h"
 #include "UI/GameHUD.h"
 
@@ -12,6 +13,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/MusicAmbientManager.h"
 #include "Misc/App.h"
 
 AStrategyCamera::AStrategyCamera()
@@ -36,6 +38,9 @@ AStrategyCamera::AStrategyCamera()
 	Camera = CreateDefaultSubobject<UCameraComponent>( TEXT( "Camera" ) );
 	Camera->SetupAttachment( SpringArm );
 	Camera->bUsePawnControlRotation = false;
+
+	AudioListener = CreateDefaultSubobject<UCameraComponent>( TEXT( "AudioListener" ) );
+	AudioListener->SetupAttachment( RootComponent );
 
 	Camera->ProjectionMode = ECameraProjectionMode::Orthographic;
 	Camera->OrthoWidth = 2048.0f;
@@ -178,6 +183,7 @@ void AStrategyCamera::Tick( float deltaTime )
 	FRotator targetRot = FRotator( CameraPitch_, TargetYaw_, 0.0f );
 	FRotator newRot = FMath::RInterpTo( currentRot, targetRot, realDeltaTime, RotationSpeed_ * 0.1f );
 	SpringArm->SetRelativeRotation( newRot );
+	AudioListener->SetRelativeRotation( { 0.0f, newRot.Yaw, 0.0f } );
 
 	if ( bEnableEdgeScrolling_ )
 	{
@@ -268,6 +274,23 @@ void AStrategyCamera::Zoom( const FInputActionValue& value )
 
 	float zoomDirection = value.Get<float>();
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
+
+	// Should be done with delegates
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			if ( TargetZoom_ > MaxZoom_ - ( MaxZoom_ - MinZoom_ ) * WindyZoomPart_ )	// while in upper part of
+			// zoom range
+			{
+				musicManager->PlayWindAmbient();
+			}
+			else
+			{
+				musicManager->StopWindAmbient();
+			}
+		}
+	}
 }
 
 void AStrategyCamera::Rotate( const FInputActionValue& value )

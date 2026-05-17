@@ -3,6 +3,7 @@
 #include "Core/GameSessionController.h"
 
 #include "Core/CoreManager.h"
+#include "Core/DefaultGameInstance.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Saving/GameSaveData.h"
 #include "Core/Saving/GameSaver.h"
@@ -17,6 +18,9 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
+#include "Sound/MusicAmbientManager.h"
+
+class UMusicAmbientManager;
 void UGameSessionController::Initialize( FSubsystemCollectionBase& Collection )
 {
 	Super::Initialize( Collection );
@@ -127,6 +131,13 @@ void UGameSessionController::EndGame( EGameResult result )
 		LogTemp, Log, TEXT( "GameSessionController::EndGame input=%d final=%d" ),
 		static_cast<int32>( inputResult ), static_cast<int32>( result )
 	);
+	if ( UGameInstance* gi = GetGameInstance() )
+	{
+		if ( UGameSessionController* session = gi->GetSubsystem<UGameSessionController>() )
+		{
+			session->ResetSpeed();
+		}
+	}
 
 	switch ( result )
 	{
@@ -223,10 +234,12 @@ void UGameSessionController::CleanupBattlefield()
 
 void UGameSessionController::EnterVictoryPhase()
 {
+	PlayWinMusicAndAmbient();
 }
 
 void UGameSessionController::EnterDefeatPhase()
 {
+	PlayLoseMusicAndAmbient();
 }
 
 void UGameSessionController::PauseGame()
@@ -271,6 +284,30 @@ float UGameSessionController::GetTimerScale() const
 void UGameSessionController::HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave )
 {
 	EndGame( EGameResult::Win );
+}
+
+void UGameSessionController::PlayWinMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayWinGameMusic();
+		}
+	}
+}
+
+void UGameSessionController::PlayLoseMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayLoseGameMusic();
+		}
+	}
 }
 
 void UGameSessionController::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase )

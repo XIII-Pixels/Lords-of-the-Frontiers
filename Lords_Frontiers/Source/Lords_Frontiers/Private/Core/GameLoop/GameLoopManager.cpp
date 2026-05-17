@@ -3,15 +3,19 @@
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "Building/Construction/BuildManager.h"
 
+#include "AI/Path/PathPointsManager.h"
 #include "AI/UnitAIManager.h"
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "WavesMesh/WaveMeshManager.h"
 #include "Core/CoreManager.h"
+#include "Core/DefaultGameInstance.h"
 #include "Core/GameLoop/GameLoopRewardHelper.h"
 #include "TimerManager.h"
 #include "Tutorial/TutorialSubsystem.h"
 #include "Waves/WaveManager.h"
+
+#include "Sound/MusicAmbientManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogGameLoop, Log, All );
 
@@ -183,6 +187,30 @@ void UGameLoopManager::ProceedToNextWave()
 	EnterBuildingPhase();
 }
 
+void UGameLoopManager::PlayBuildingMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->PlayCurrentLevelAmbient();
+			musicManager->PlayCurrentLevelBuildingMusic();
+		}
+	}
+}
+
+void UGameLoopManager::PlayCombatMusicAndAmbient() const
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			musicManager->StopAllAmbient();
+			musicManager->PlayCurrentLevelCombatMusic();
+		}
+	}
+}
+
 void UGameLoopManager::ReportDamageTaken( float damageAmount )
 {
 	if ( damageAmount > 0.0f && bPerfectWave_ )
@@ -328,6 +356,10 @@ void UGameLoopManager::EnterBuildingPhase()
 	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
 
 	RewardHelper_->RecalculateIncome();
+
+	PlayBuildingMusicAndAmbient();
+
+	Log( FString::Printf( TEXT( ">>> BUILDING PHASE (Wave %d, Turn 1/%d)" ), CurrentWave_, GetMaxBuildTurns() ) );
 }
 
 void UGameLoopManager::EnterCombatPhase()
@@ -355,6 +387,8 @@ void UGameLoopManager::EnterCombatPhase()
 	{
 		StartWave();
 	}
+
+	PlayCombatMusicAndAmbient();
 
 	Log( FString::Printf( TEXT( ">>> COMBAT PHASE (Wave %d, Duration: %.1fs)" ), CurrentWave_, duration ) );
 }
@@ -463,6 +497,11 @@ void UGameLoopManager::HandleWaveEnded( int32 waveIndex )
 		UnitAIManager_->PathPointsManager()->Empty();
 	}
 
+	if ( CurrentPhase_ != EGameLoopPhase::None )
+	{
+		PlayBuildingMusicAndAmbient();
+	}
+
 	Log( FString::Printf( TEXT( "WaveManager: Wave %d ended" ), waveIndex + 1 ) );
 }
 
@@ -503,7 +542,7 @@ void UGameLoopManager::HandleDelayedBuildingRestoration()
 
 bool UGameLoopManager::IsCardSelectionPending() const
 {
-	UCardSubsystem* cardSub = UCardSubsystem::Get(GetWorld());
+	UCardSubsystem* cardSub = UCardSubsystem::Get( GetWorld() );
 	if ( !cardSub )
 	{
 		return false;
