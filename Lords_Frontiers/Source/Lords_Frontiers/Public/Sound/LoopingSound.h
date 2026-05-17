@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AudioSettingsSubsystem.h"
 #include "Data/LoopingSoundConfig.h"
 
 #include "CoreMinimal.h"
@@ -18,7 +19,7 @@ class LORDS_FRONTIERS_API ULoopingSound : public UObject
 	GENERATED_BODY()
 
 public:
-	void Initialize( const FLoopingSoundConfig* soundConfig );
+	void Initialize( const FLoopingSoundConfig* soundConfig, EAudioCategory category = EAudioCategory::Effects );
 	void Play();
 	void Stop();
 
@@ -30,6 +31,11 @@ public:
 	const FLoopingSoundConfig* GetConfig() const
 	{
 		return SoundConfig_;
+	}
+
+	EAudioCategory GetCategory() const
+	{
+		return Category_;
 	}
 
 protected:
@@ -44,6 +50,13 @@ private:
 	void StartPlayback( bool initial = false );
 
 	void ClearTimers();
+
+	UFUNCTION()
+	void HandleVolumeChanged( EAudioCategory changedCategory, float newVolume );
+
+	void ApplyCategoryVolume();
+
+	EAudioCategory Category_ = EAudioCategory::Effects;
 
 	FTimerHandle ReplayTimerHandle_;
 	FTimerHandle FadeTimerHandle_;

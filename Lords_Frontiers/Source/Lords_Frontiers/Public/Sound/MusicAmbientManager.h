@@ -55,7 +55,13 @@ protected:
 	ULoopingSound* PlayAmbient( const FLoopingSoundConfig* sound );
 
 private:
-	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound );
+	enum class EMusicAmbientKind : uint8
+	{
+		Music,
+		Ambient,
+	};
+
+	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind );
 
 	// Only one music track can play at a time
 	UPROPERTY()

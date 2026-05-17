@@ -1,6 +1,7 @@
 #include "UI/Widgets/GameStateOverlayWidget.h"
 
 #include "Core/GameSessionController.h"
+#include "UI/AudioSettingsWidget.h"
 
 #include "Camera/StrategyCamera.h"
 #include "Components/Button.h"
@@ -18,6 +19,8 @@ void UGameStateOverlayWidget::NativeConstruct()
 		ButtonNextLevel->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnNextLevelClicked );
 	if ( ButtonResume )
 		ButtonResume->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnResumeClicked );
+	if ( ButtonSettings )
+		ButtonSettings->OnClicked.AddDynamic( this, &UGameStateOverlayWidget::OnSettingsClicked );
 }
 
 void UGameStateOverlayWidget::OnMainMenuClicked()
@@ -52,4 +55,26 @@ void UGameStateOverlayWidget::OnNextLevelClicked()
 void UGameStateOverlayWidget::OnResumeClicked()
 {
 	OnResumeRequested.Broadcast();
+}
+
+void UGameStateOverlayWidget::OnSettingsClicked()
+{
+	if ( !AudioSettingsWidgetClass || ActiveAudioSettings_ )
+	{
+		return;
+	}
+
+	ActiveAudioSettings_ = CreateWidget<UAudioSettingsWidget>( this, AudioSettingsWidgetClass );
+	if ( !ActiveAudioSettings_ )
+	{
+		return;
+	}
+
+	ActiveAudioSettings_->OnClosed.AddDynamic( this, &UGameStateOverlayWidget::OnAudioSettingsClosed );
+	ActiveAudioSettings_->AddToViewport( 100 );
+}
+
+void UGameStateOverlayWidget::OnAudioSettingsClosed()
+{
+	ActiveAudioSettings_ = nullptr;
 }

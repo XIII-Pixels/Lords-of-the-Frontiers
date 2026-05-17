@@ -2,15 +2,20 @@
 
 #include "Sound/LoopingSound.h"
 
+#include "Sound/AudioSettingsSubsystem.h"
+
 #include "Components/AudioComponent.h"
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
-void ULoopingSound::Initialize( const FLoopingSoundConfig* soundConfig )
+void ULoopingSound::Initialize( const FLoopingSoundConfig* soundConfig, EAudioCategory category )
 {
 	if ( !soundConfig || !IsValid( soundConfig->Sound ) )
 	{
 		return;
 	}
+
+	Category_ = category;
 
 	AudioComponent_ = UGameplayStatics::CreateSound2D(
 	    GetWorld(), soundConfig->Sound, soundConfig->Volume, soundConfig->Pitch, 0.0f, nullptr, true, false
@@ -19,7 +24,43 @@ void ULoopingSound::Initialize( const FLoopingSoundConfig* soundConfig )
 	if ( AudioComponent_ )
 	{
 		SoundConfig_ = soundConfig;
+		ApplyCategoryVolume();
+
+		if ( UGameInstance* gi = UGameplayStatics::GetGameInstance( this ) )
+		{
+			if ( UAudioSettingsSubsystem* settings = gi->GetSubsystem<UAudioSettingsSubsystem>() )
+			{
+				settings->OnVolumeChanged.AddDynamic( this, &ULoopingSound::HandleVolumeChanged );
+			}
+		}
 	}
+}
+
+void ULoopingSound::HandleVolumeChanged( EAudioCategory changedCategory, float /*newVolume*/ )
+{
+	if ( changedCategory == Category_ )
+	{
+		ApplyCategoryVolume();
+	}
+}
+
+void ULoopingSound::ApplyCategoryVolume()
+{
+	if ( !IsValid( AudioComponent_ ) || !SoundConfig_ )
+	{
+		return;
+	}
+
+	float categoryVolume = UAudioSettingsSubsystem::DefaultCategoryVolume;
+	if ( UGameInstance* gi = UGameplayStatics::GetGameInstance( this ) )
+	{
+		if ( const UAudioSettingsSubsystem* settings = gi->GetSubsystem<UAudioSettingsSubsystem>() )
+		{
+			categoryVolume = settings->GetVolume( Category_ );
+		}
+	}
+
+	AudioComponent_->SetVolumeMultiplier( SoundConfig_->Volume * categoryVolume );
 }
 
 void ULoopingSound::Play()

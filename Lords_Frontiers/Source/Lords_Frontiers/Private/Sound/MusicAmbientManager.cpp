@@ -6,6 +6,7 @@
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioSettingsSubsystem.h"
 #include "Sound/Data/AmbientDataAsset.h"
 #include "Sound/Data/MusicDataAsset.h"
 #include "Sound/LoopingSound.h"
@@ -23,7 +24,7 @@ ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound
 
 	if ( sound )
 	{
-		Music_ = CreateAndPlay( sound );
+		Music_ = CreateAndPlay( sound, EMusicAmbientKind::Music );
 	}
 	return Music_;
 }
@@ -35,7 +36,7 @@ ULoopingSound* UMusicAmbientManager::PlayAmbient( const FLoopingSoundConfig* sou
 		return nullptr;
 	}
 
-	if ( ULoopingSound* audio = CreateAndPlay( sound ) )
+	if ( ULoopingSound* audio = CreateAndPlay( sound, EMusicAmbientKind::Ambient ) )
 	{
 		AmbientSounds_.Add( audio );
 		return audio;
@@ -43,7 +44,7 @@ ULoopingSound* UMusicAmbientManager::PlayAmbient( const FLoopingSoundConfig* sou
 	return nullptr;
 }
 
-ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound )
+ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind )
 {
 	if ( !sound )
 	{
@@ -52,7 +53,9 @@ ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* s
 
 	if ( auto* audio = NewObject<ULoopingSound>( this ) )
 	{
-		audio->Initialize( sound );
+		const EAudioCategory category =
+		    kind == EMusicAmbientKind::Music ? EAudioCategory::Music : EAudioCategory::Ambient;
+		audio->Initialize( sound, category );
 		audio->Play();
 
 		return audio;

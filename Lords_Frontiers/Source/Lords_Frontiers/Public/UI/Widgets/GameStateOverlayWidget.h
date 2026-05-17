@@ -8,6 +8,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnResumeRequested );
 class UButton;
+class UAudioSettingsWidget;
 
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UGameStateOverlayWidget : public UUserWidget
@@ -33,6 +34,9 @@ protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> ButtonResume;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> ButtonSettings;
+
 	UFUNCTION()
 	void OnMainMenuClicked();
 
@@ -45,9 +49,21 @@ protected:
 	UFUNCTION()
 	void OnResumeClicked();
 
+	UFUNCTION()
+	void OnSettingsClicked();
+
+	UFUNCTION()
+	void OnAudioSettingsClosed();
+
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	FName mainMenuLevelName = "MainMenu";
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings" )
 	FName nextLevelName = "Level_2";
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Audio" )
+	TSubclassOf<UAudioSettingsWidget> AudioSettingsWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UAudioSettingsWidget> ActiveAudioSettings_;
 };

@@ -5,8 +5,38 @@
 
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/AudioSettingsSubsystem.h"
 #include "Sound/Data/SoundDataAsset.h"
 #include "sound/AudioEventSource.h"
+
+namespace
+{
+	EAudioCategory CategoryForTag( const FGameplayTag& tag )
+	{
+		if ( !tag.IsValid() )
+		{
+			return EAudioCategory::Effects;
+		}
+		const FString tagString = tag.ToString();
+		if ( tagString.StartsWith( TEXT( "SFX.UI." ) ) || tagString.Equals( TEXT( "SFX.UI" ) ) )
+		{
+			return EAudioCategory::UI;
+		}
+		return EAudioCategory::Effects;
+	}
+
+	float CategoryVolumeMultiplier( const UObject* worldContext, EAudioCategory category )
+	{
+		if ( UGameInstance* gi = UGameplayStatics::GetGameInstance( worldContext ) )
+		{
+			if ( const UAudioSettingsSubsystem* settings = gi->GetSubsystem<UAudioSettingsSubsystem>() )
+			{
+				return settings->GetVolume( category );
+			}
+		}
+		return UAudioSettingsSubsystem::DefaultCategoryVolume;
+	}
+} // namespace
 
 void USoundEffectManager::Initialize( FSubsystemCollectionBase& collection )
 {
@@ -107,11 +137,11 @@ void USoundEffectManager::HandleAudioEvent( FAudioEvent event )
 
 	if ( entry->bIs3D )
 	{
-		Play3D( *entry, event.WorldLocation );
+		Play3D( *entry, event.SoundTag, event.WorldLocation );
 	}
 	else
 	{
-		Play2D( *entry );
+		Play2D( *entry, event.SoundTag );
 	}
 }
 
@@ -166,14 +196,15 @@ void USoundEffectManager::OnSoundFinished( TWeakObjectPtr<UAudioComponent> compo
 	ReleaseAudioComponent( component );
 }
 
-void USoundEffectManager::Play2D( const FSoundEntry& entry )
+void USoundEffectManager::Play2D( const FSoundEntry& entry, const FGameplayTag& tag )
 {
 	if ( !entry.Sound )
 	{
 		return;
 	}
 
-	const float volume = FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y );
+	const float categoryVolume = CategoryVolumeMultiplier( this, CategoryForTag( tag ) );
+	const float volume = FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) * categoryVolume;
 	const float pitch  = FMath::RandRange( entry.PitchRange.X, entry.PitchRange.Y );
 
 	UAudioComponent* audio = UGameplayStatics::SpawnSound2D(
@@ -196,7 +227,7 @@ void USoundEffectManager::Play2D( const FSoundEntry& entry )
 	UE_LOG( LogTemp, Log, TEXT( "USoundEffectManager: playing 2D sound: %s" ), *entry.Sound->GetName() );
 }
 
-void USoundEffectManager::Play3D( const FSoundEntry& entry, const FVector& worldLocation )
+void USoundEffectManager::Play3D( const FSoundEntry& entry, const FGameplayTag& tag, const FVector& worldLocation )
 {
 	UAudioComponent* audio = AcquireAudioComponent().Get();
 	if ( !audio )
@@ -204,9 +235,11 @@ void USoundEffectManager::Play3D( const FSoundEntry& entry, const FVector& world
 		return;
 	}
 
+	const float categoryVolume = CategoryVolumeMultiplier( this, CategoryForTag( tag ) );
+
 	audio->SetWorldLocation( worldLocation );
 	audio->SetSound( entry.Sound );
-	audio->SetVolumeMultiplier( FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) );
+	audio->SetVolumeMultiplier( FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) * categoryVolume );
 	audio->SetPitchMultiplier( FMath::RandRange( entry.PitchRange.X, entry.PitchRange.Y ) );
 	audio->bAllowSpatialization = true;
 
