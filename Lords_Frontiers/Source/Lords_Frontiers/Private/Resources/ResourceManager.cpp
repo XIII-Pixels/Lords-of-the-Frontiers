@@ -52,8 +52,14 @@ void UResourceManager::AddResource( EResourceType type, int32 quantity, bool noS
 	}
 
 	int32& CurrentAmount = Resources_.FindOrAdd( type );
+	const int32 prev = CurrentAmount;
 	CurrentAmount = FMath::Min( CurrentAmount + quantity, GetMaxResourceAmount( type ) );
+	const int32 delta = CurrentAmount - prev;
 	OnResourceChanged.Broadcast( type, CurrentAmount );
+	if ( delta > 0 )
+	{
+		OnResourceAdded.Broadcast( type, delta );
+	}
 
 	if ( !noSound )
 	{

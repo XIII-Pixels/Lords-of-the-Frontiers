@@ -10,6 +10,7 @@
 #include "ResourceManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnResourceChanged, EResourceType, Type, int32, NewAmount );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnResourceAdded, EResourceType, Type, int32, Delta );
 
 static constexpr int32 cDefaultMaxResource = 999999;
 
@@ -51,6 +52,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Resource Management|Events" )
 	FOnResourceChanged OnResourceChanged;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Resource Management|Events", meta = ( DisplayName = "Ресурс добавлен (Δ)" ) )
+	FOnResourceAdded OnResourceAdded;
 
 	int32 GetMaxResourceAmount( EResourceType type ) const;
 

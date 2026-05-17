@@ -14,7 +14,8 @@ enum class EGameResult : uint8
 {
 	Win,
 	Lose,
-	Abandoned
+	Abandoned,
+	EndlessRun UMETA( DisplayName = "Endless Run" )
 };
 
 class UGameLoopManager;
@@ -83,6 +84,9 @@ public:
 		return bIsGamePaused_;
 	}
 
+	UFUNCTION( BlueprintPure, Category = "Session" )
+	bool IsInsideEndlessMode() const;
+
 	UPROPERTY( BlueprintAssignable, Category = "GameSession|Events" )
 	FOnGameEnd OnGameEndDelegate;
 
@@ -95,6 +99,7 @@ public:
 private:
 	void EnterVictoryPhase();
 	void EnterDefeatPhase();
+	void CleanupBattlefield();
 
 	UFUNCTION()
 	void HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase newPhase );

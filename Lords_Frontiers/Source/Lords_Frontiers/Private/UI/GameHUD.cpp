@@ -1427,6 +1427,14 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 		ActiveOverlay->RemoveFromParent();
 		ActiveOverlay = nullptr;
 	}
+
+	// Endless и Abandoned не имеют классических баннеров победы/поражения;
+	// финал бесконечного режима показывается MatchResultsWidget'ом.
+	if ( Result == EGameResult::EndlessRun || Result == EGameResult::Abandoned )
+	{
+		return;
+	}
+
 	const bool bVictory = ( Result == EGameResult::Win );
 	TSubclassOf<UGameStateOverlayWidget> ClassToUse = bVictory ? WinWidgetClass : LoseWidgetClass;
 	if ( !ClassToUse )

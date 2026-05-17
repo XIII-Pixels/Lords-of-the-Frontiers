@@ -9,6 +9,9 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
 #include "Grid/GridManager.h"
+#include "Lords_Frontiers/Public/Match/MatchResultsWidget.h"
+#include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
+#include "Lords_Frontiers/Public/Match/MatchStatsTracker.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Camera/CameraActor.h"
@@ -68,11 +71,46 @@ void AMainGameMode::InitializeGameSystems()
 		);
 	}
 
+	if ( UMatchStatsTracker* tracker = GetGameInstance()->GetSubsystem<UMatchStatsTracker>() )
+	{
+		tracker->BeginMatch( MatchScoringConfig );
+		if ( !MatchScoringConfig )
+		{
+			UE_LOG( LogTemp, Warning, TEXT( "MainGameMode: MatchScoringConfig не назначен — счёт всегда будет 0." ) );
+		}
+	}
+
 	if ( UGameSessionController* Session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 	{
+		Session->OnGameEndDelegate.AddUniqueDynamic( this, &AMainGameMode::HandleGameEnded );
 		Session->StartGame();
 		UE_LOG( LogTemp, Log, TEXT( "MainGameMode: Game started via SessionController" ) );
 	}
+}
+
+void AMainGameMode::HandleGameEnded( EGameResult result )
+{
+	if ( result != EGameResult::EndlessRun )
+	{
+		return;
+	}
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		const FName mapName( *UWorld::RemovePIEPrefix( world->GetMapName() ) );
+		if ( EndlessMapNames.Num() > 0 && !EndlessMapNames.Contains( mapName ) )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "MainGameMode: '%s' не в списке EndlessMapNames — виджет результатов не показываем." ), *mapName.ToString() );
+			return;
+		}
+	}
+
+	if ( !ResultsWidgetClass )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "MainGameMode: ResultsWidgetClass не назначен — виджет результатов не появится." ) );
+		return;
+	}
+	UMatchResultsWidget::ShowForLocalPlayer( this, ResultsWidgetClass, result );
 }
 
 void AMainGameMode::InitializeCardSystem()

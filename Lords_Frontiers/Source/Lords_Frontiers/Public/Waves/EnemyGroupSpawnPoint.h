@@ -69,8 +69,15 @@ public:
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Spawn" )
 	bool bUseActorTagMatching = false;
 
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|InfiniteMode" )
+	FName Sector = NAME_None;
+
+	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|InfiniteMode" )
+	bool bAllowBoss = true;
+
 	UPROPERTY( EditInstanceOnly, BlueprintReadWrite, Category = "Settings|Portal" )
 	FPortalVisualConfig PortalVisualConfig;
+
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UArrowComponent> ArrowComponent;

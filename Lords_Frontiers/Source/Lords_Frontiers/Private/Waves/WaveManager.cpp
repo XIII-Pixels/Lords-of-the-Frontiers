@@ -4,6 +4,8 @@
 #include "Cards/Visuals/CardVisualSubsystem.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Lords_Frontiers/Public/Waves/Infinite/InfiniteModeConfig.h"
+#include "Lords_Frontiers/Public/Waves/Infinite/InfiniteWaveBuilder.h"
 #include "Lords_Frontiers/Public/Waves/WaveData.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
@@ -42,6 +44,9 @@ void AWaveManager::BeginPlay()
 		ApplyWaveConfig();
 		BuildSelectedWavePresetCache();
 	}
+
+	EnsureInfiniteBuilder();
+
 	if ( bAutoStartOnBeginPlay )
 	{
 		StartWaves();
@@ -49,25 +54,105 @@ void AWaveManager::BeginPlay()
 	BuildSelectedWavePresetCache();
 }
 
+bool AWaveManager::HasInfiniteMode() const
+{
+	return InfiniteConfig != nullptr;
+}
+
+bool AWaveManager::IsInfiniteWaveIndex( int32 waveIndex ) const
+{
+	if ( !InfiniteConfig )
+	{
+		return false;
+	}
+	return waveIndex >= InfiniteConfig->StartWaveIndex;
+}
+
+void AWaveManager::EnsureInfiniteBuilder()
+{
+	if ( !InfiniteConfig )
+	{
+		InfiniteBuilder_ = nullptr;
+		return;
+	}
+
+	if ( !InfiniteBuilder_ )
+	{
+		InfiniteBuilder_ = NewObject<UInfiniteWaveBuilder>( this );
+	}
+	const int32 seed = ( InfiniteSessionSeed != 0 ) ? InfiniteSessionSeed : FMath::Rand();
+	InfiniteBuilder_->Initialize( InfiniteConfig, seed );
+}
+
+void AWaveManager::SetInfiniteConfig( UInfiniteModeConfig* newConfig )
+{
+	InfiniteConfig = newConfig;
+	EnsureInfiniteBuilder();
+}
+
+UWaveData* AWaveManager::BuildAndCacheInfiniteWave( int32 waveIndex )
+{
+	if ( !InfiniteConfig )
+	{
+		return nullptr;
+	}
+	EnsureInfiniteBuilder();
+	if ( !InfiniteBuilder_ )
+	{
+		return nullptr;
+	}
+
+	UWaveData* generated = InfiniteBuilder_->BuildWave( waveIndex, this );
+	if ( generated )
+	{
+		SelectedWavePresets_.Add( waveIndex, generated );
+
+		if ( bLogSpawning )
+		{
+			UE_LOG(
+			    LogTemp, Log,
+			    TEXT( "WaveManager: Built infinite wave %d. Theme=%s Budget=%d EnemyTypes=%d" ), waveIndex,
+			    *InfiniteBuilder_->LastThemeId.ToString(), InfiniteBuilder_->LastBudget,
+			    generated->EnemySpawnMap.Num()
+			);
+		}
+	}
+	return generated;
+}
+
 int32 AWaveManager::ClampWaveIndex( int32 waveIndex ) const
 {
-	if ( GetWavesCount() == 0 )
+	const int32 finiteCount = GetWavesCount();
+
+	if ( HasInfiniteMode() )
+	{
+		return FMath::Max( 0, waveIndex );
+	}
+
+	if ( finiteCount == 0 )
 	{
 		return INDEX_NONE;
 	}
 
-	return FMath::Clamp( waveIndex, 0, GetWavesCount() - 1 );
+	return FMath::Clamp( waveIndex, 0, finiteCount - 1 );
 }
 
 void AWaveManager::StartWaves()
 {
-	if ( !WaveConfig_ || WaveConfig_->Waves.Num() == 0 )
+	const bool bHasFinite = WaveConfig_ && WaveConfig_->Waves.Num() > 0;
+	if ( !bHasFinite && !HasInfiniteMode() )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
 	}
 
-	if ( SelectedWavePresets_.Num() == 0 )
+	if ( bHasFinite )
+	{
+		BuildSelectedWavePresetCache();
+	}
+	EnsureInfiniteBuilder();
+
+	if ( WaveConfig_ && SelectedWavePresets_.Num() == 0 )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Selected preset cache is empty, building now." ) );
 	}
@@ -78,7 +163,10 @@ void AWaveManager::StartWaves()
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: No waves to start." ) );
 		return;
 	}
-	UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Using WaveConfig=%s" ), *GetNameSafe( WaveConfig_ ) );
+	UE_LOG(
+	    LogTemp, Warning, TEXT( "WaveManager: Using WaveConfig=%s, Infinite=%s" ), *GetNameSafe( WaveConfig_ ),
+	    HasInfiniteMode() ? TEXT( "yes" ) : TEXT( "no" )
+	);
 
 	bHasRequestedFirstWave_ = true;
 	StartWaveAtIndex( StartIndex );
@@ -86,12 +174,12 @@ void AWaveManager::StartWaves()
 
 void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 {
-	if ( !WaveConfig_ )
+	if ( !WaveConfig_ && !HasInfiniteMode() )
 	{
 		return;
 	}
 
-	if ( SelectedWavePresets_.Num() == 0 )
+	if ( WaveConfig_ && SelectedWavePresets_.Num() == 0 )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Selected preset cache is empty, building now." ) );
 	}
@@ -112,10 +200,21 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 
 	CurrentWaveIndex = clampedIndex;
 
+	if ( !bEndlessRunStarted_ && IsInfiniteWaveIndex( CurrentWaveIndex ) )
+	{
+		bEndlessRunStarted_ = true;
+		UE_LOG( LogTemp, Log, TEXT( "WaveManager: endless run started at wave %d." ), CurrentWaveIndex );
+	}
+
 	const UWaveData* WaveData = GetSelectedWaveData( CurrentWaveIndex );
 	if ( !WaveData )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no valid preset. Skipping." ), CurrentWaveIndex );
+		UE_LOG( LogTemp, Warning, TEXT( "WaveManager: Wave %d has no valid preset." ), CurrentWaveIndex );
+		if ( IsInfiniteWaveIndex( CurrentWaveIndex ) )
+		{
+			BroadcastAllWavesCompleted();
+			return;
+		}
 		MoveToNextWaveAndStart();
 		return;
 	}
@@ -205,7 +304,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveInde
 
 void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnPointId, int32 enemyIndex )
 {
-	if ( !GetWorld() || !WaveConfig_ || !enemyClass )
+	if ( !GetWorld() || !enemyClass )
 	{
 		return;
 	}
@@ -215,7 +314,8 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnP
 		return;
 	}
 
-	if ( !WaveConfig_->Waves.IsValidIndex( waveIndex ) )
+	const bool bIsInfinite = IsInfiniteWaveIndex( waveIndex );
+	if ( !bIsInfinite && ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( waveIndex ) ) )
 	{
 		return;
 	}
@@ -306,14 +406,18 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnP
 
 bool AWaveManager::MoveToNextWaveAndStart()
 {
-	if ( !WaveConfig_ || GetWavesCount() == 0 )
+	const bool bHasFinite = WaveConfig_ && GetWavesCount() > 0;
+	if ( !bHasFinite && !HasInfiniteMode() )
 	{
 		return false;
 	}
 
 	const int32 nextIndex = CurrentWaveIndex + 1;
 
-	if ( !WaveConfig_->Waves.IsValidIndex( nextIndex ) )
+	const bool bFiniteHasNext = bHasFinite && WaveConfig_->Waves.IsValidIndex( nextIndex );
+	const bool bInfiniteHasNext = IsInfiniteWaveIndex( nextIndex );
+
+	if ( !bFiniteHasNext && !bInfiniteHasNext )
 	{
 		BroadcastAllWavesCompleted();
 		if ( bLogSpawning )
@@ -351,7 +455,7 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager::OnWaveEndTimerElapsed: Wave %d ended." ), waveIndex );
 	}
 
-	if ( GetWavesCount() > 0 && waveIndex >= GetWavesCount() - 1 )
+	if ( GetWavesCount() > 0 && waveIndex >= GetWavesCount() - 1 && !IsInfiniteWaveIndex( waveIndex + 1 ) )
 	{
 		BroadcastAllWavesCompleted();
 
@@ -369,7 +473,8 @@ void AWaveManager::AdvanceToNextWave()
 		CancelCurrentWave();
 	}
 
-	if ( !WaveConfig_ || GetWavesCount() == 0 )
+	const bool bHasFinite = WaveConfig_ && GetWavesCount() > 0;
+	if ( !bHasFinite && !HasInfiniteMode() )
 	{
 		BroadcastAllWavesCompleted();
 		if ( bLogSpawning )
@@ -380,7 +485,8 @@ void AWaveManager::AdvanceToNextWave()
 	}
 
 	const int32 nextIndex = CurrentWaveIndex + 1;
-	if ( !WaveConfig_->Waves.IsValidIndex( nextIndex ) )
+	const bool bFiniteHasNext = bHasFinite && WaveConfig_->Waves.IsValidIndex( nextIndex );
+	if ( !bFiniteHasNext && !IsInfiniteWaveIndex( nextIndex ) )
 	{
 		BroadcastAllWavesCompleted();
 		if ( bLogSpawning )
@@ -426,6 +532,10 @@ void AWaveManager::RestartWaves()
 	SelectedWavePresets_.Empty();
 	CancelCurrentWave();
 	CurrentWaveIndex = 0;
+	if ( InfiniteBuilder_ )
+	{
+		InfiniteBuilder_->ResetState();
+	}
 	StartWaves();
 }
 
@@ -624,7 +734,8 @@ TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targ
 {
 	TMap<TSubclassOf<AUnit>, int32> result;
 
-	if ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( targetWaveIndex ) )
+	const bool bIsInfinite = IsInfiniteWaveIndex( targetWaveIndex );
+	if ( !bIsInfinite && ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( targetWaveIndex ) ) )
 	{
 		return result;
 	}
@@ -859,6 +970,11 @@ const UWaveData* AWaveManager::GetSelectedWaveData( int32 waveIndex ) const
 	if ( const TObjectPtr<UWaveData>* found = SelectedWavePresets_.Find( waveIndex ) )
 	{
 		return found->Get();
+	}
+
+	if ( IsInfiniteWaveIndex( waveIndex ) )
+	{
+		return const_cast<AWaveManager*>( this )->BuildAndCacheInfiniteWave( waveIndex );
 	}
 
 	return nullptr;

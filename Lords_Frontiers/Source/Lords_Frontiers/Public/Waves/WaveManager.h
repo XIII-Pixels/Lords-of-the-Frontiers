@@ -13,6 +13,8 @@
 
 class AUnitAIManager;
 class AGridManager;
+class UInfiniteModeConfig;
+class UInfiniteWaveBuilder;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveStartedSignature, int32, WaveIndex ); // needed to call from BP
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnWaveEndedSignature, int32, WaveIndex );
@@ -69,6 +71,12 @@ public:
 
 	// Current wave index (0-based)
 	int32 CurrentWaveIndex = 0;
+
+	// Latched true the first time CurrentWaveIndex enters the infinite range,
+	// stays true for the rest of the session. Used by EndGame to decide
+	// whether Win/Lose should be converted to EndlessRun.
+	UPROPERTY( Transient, VisibleAnywhere, Category = "Settings|InfiniteMode" )
+	bool bEndlessRunStarted_ = false;
 
 	// List of waves. Index in array is the wave number
 	TArray<FWave> Waves;
@@ -136,6 +144,27 @@ public:
 	const UWaveData* GetWaveData( int32 Index ) const;
 
 	int32 GetWavesCount() const;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|InfiniteMode" )
+	TObjectPtr<UInfiniteModeConfig> InfiniteConfig = nullptr;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|InfiniteMode" )
+	int32 InfiniteSessionSeed = 0;
+
+	UFUNCTION( BlueprintCallable, Category = "Wave|InfiniteMode" )
+	void SetInfiniteConfig( UInfiniteModeConfig* newConfig );
+
+	UFUNCTION( BlueprintPure, Category = "Wave|InfiniteMode" )
+	bool IsEndlessRunActive() const
+	{
+		return bEndlessRunStarted_;
+	}
+
+	UFUNCTION( BlueprintPure, Category = "Wave|InfiniteMode" )
+	bool IsInfiniteWaveIndex( int32 waveIndex ) const;
+
+	UFUNCTION( BlueprintPure, Category = "Wave|InfiniteMode" )
+	bool HasInfiniteMode() const;
 
 	const FEnemyBuff* FindBuffForCurrentWave( TSubclassOf<AUnit> EnemyClass ) const;
 
@@ -209,4 +238,11 @@ protected:
 private:
 	float RuntimeWaveEndSafetyMargin_ = 1.0f;
 	TMap<TSubclassOf<AUnit>, int32> RemainingEnemiesPerClass_;
+
+	UPROPERTY( Transient )
+	TObjectPtr<UInfiniteWaveBuilder> InfiniteBuilder_ = nullptr;
+
+	void EnsureInfiniteBuilder();
+
+	UWaveData* BuildAndCacheInfiniteWave( int32 waveIndex );
 };
