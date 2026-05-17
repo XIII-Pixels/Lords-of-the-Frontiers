@@ -185,6 +185,10 @@ public:
 		return AudioTags_;
 	}
 
+	void SpawnConstructionVFX();
+
+	void SpawnDestructionVFX();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
@@ -194,8 +198,6 @@ protected:
 	virtual UNiagaraSystem* GetHitVFX() const override;
 
 	void ResolveVFXDefaults();
-
-	void SpawnDestructionVFX();
 
 	virtual void OnDeath();
 
@@ -208,6 +210,8 @@ protected:
 	void ActivateBuildingMesh();
 
 	void ActivateRuinsMesh();
+
+	void SetStaticMeshWithMaterials( UStaticMesh* mesh );
 
 	void UpdateSelectionOverlay();
 
@@ -289,8 +293,6 @@ protected:
 
 	float ResolvedRuinDelay_ = 0.0f;
 	float ResolvedConstructionDelay_ = 0.0f;
-
-	void SpawnConstructionVFX();
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Build" )
 	bool bCanBeRelocated_ = true;
