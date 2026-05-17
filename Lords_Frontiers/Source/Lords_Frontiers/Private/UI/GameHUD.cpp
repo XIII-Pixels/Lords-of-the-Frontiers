@@ -178,6 +178,16 @@ void UGameHUDWidget::NativeConstruct()
 	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
 	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
 
+	if ( IsValid( EnemyTooltipClass ) && !IsValid( ActiveEnemyTooltip ) )
+	{
+		ActiveEnemyTooltip = CreateWidget<UEnemyTooltipWidget>( this, EnemyTooltipClass );
+		if ( IsValid( ActiveEnemyTooltip ) )
+		{
+			ActiveEnemyTooltip->AddToViewport( 99 );
+			ActiveEnemyTooltip->ForceHide();
+		}
+	}
+
 	InitIncomeDisplay();
 
 	InitIncomeDisplay();
@@ -1602,49 +1612,53 @@ void UGameHUDWidget::HandleSelectionChanged()
 
 	UCoreManager* coreManager = UCoreManager::Get( this );
 	if ( !coreManager )
-	{
 		return;
-	}
 
 	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
 	if ( !selectionManager )
-	{
 		return;
-	}
 
-	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
+	AActor* selectedActor = selectionManager->GetPrimarySelectedActor();
+	ABuilding* selectedBuilding = Cast<ABuilding>( selectedActor );
+	AUnit* selectedUnit = Cast<AUnit>( selectedActor );
 
 	ABuildManager* buildManager = nullptr;
 	if ( APlayerController* pc = GetOwningPlayer() )
 	{
 		if ( auto* debugPC = Cast<ADebugPlayerController>( pc ) )
 		{
-			buildManager = debugPC->GetBuildManager(); 
+			buildManager = debugPC->GetBuildManager();
 		}
 	}
-
-	if ( !selectedBuilding )
-	{
-		HideTooltipForBuilding();
-
-		if ( buildManager )
-		{
-			buildManager->HideAllDefensiveRanges();
-		}
-
-		return;
-	}
-
-	ShowTooltipForBuilding( selectedBuilding );
 
 	if ( buildManager )
 	{
 		buildManager->HideAllDefensiveRanges();
 	}
 
-	if ( ADefensiveBuilding* defensive = Cast<ADefensiveBuilding>( selectedBuilding ) )
+	if ( IsValid( selectedBuilding ) )
 	{
-		defensive->ShowAttackRange();
+		HideTooltipForEnemy();
+		ShowTooltipForBuilding( selectedBuilding );
+
+		if ( ADefensiveBuilding* defensive = Cast<ADefensiveBuilding>( selectedBuilding ) )
+		{
+			defensive->ShowAttackRange();
+		}
+	}
+	else if ( IsValid( selectedUnit ) )
+	{
+		HideTooltipForBuilding();
+
+		if ( IsValid( ActiveEnemyTooltip ) )
+		{
+			ActiveEnemyTooltip->ShowTooltip( selectedUnit );
+		}
+	}
+	else
+	{
+		HideTooltipForBuilding();
+		HideTooltipForEnemy();
 	}
 }
 void UGameHUDWidget::UpdateExtraButtonsVisibility()
@@ -1735,5 +1749,12 @@ void UGameHUDWidget::HideTooltipForBuilding()
 	if ( CurrentTooltip )
 	{
 		CurrentTooltip->HideTooltip();
+	}
+}
+void UGameHUDWidget::HideTooltipForEnemy()
+{
+	if ( IsValid( ActiveEnemyTooltip ) )
+	{
+		ActiveEnemyTooltip->HideTooltip();
 	}
 }

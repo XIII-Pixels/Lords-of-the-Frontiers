@@ -13,6 +13,7 @@
 #include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
+#include "UI/Widgets/EnemyTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -266,6 +267,9 @@ public:
 	UFUNCTION( BlueprintCallable )
 	void HideTooltipForBuilding();
 
+	UFUNCTION( BlueprintCallable )
+	void HideTooltipForEnemy();
+
 	UPROPERTY()
 	TObjectPtr<UBuildingTooltipWidget> CurrentTooltip;
 
@@ -373,6 +377,11 @@ protected:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
 	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
+	TSubclassOf<UEnemyTooltipWidget> EnemyTooltipClass;
+
+	UPROPERTY() TObjectPtr<UEnemyTooltipWidget> ActiveEnemyTooltip;
 
 	FTimerHandle TooltipTimerHandle;
 
