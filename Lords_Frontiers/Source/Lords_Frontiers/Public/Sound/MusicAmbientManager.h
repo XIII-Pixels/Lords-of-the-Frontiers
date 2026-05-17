@@ -28,14 +28,16 @@ public:
 	void PlayLoseGameMusic();
 	void PlayCurrentLevelBuildingMusic();
 	void PlayCurrentLevelCombatMusic();
-	void StopMusic();
+	void StopMusic( bool instant = false );
 
 	// Ambient
 	void PlayCurrentLevelAmbient();
 	void PlayWindAmbient();
 	void StopWindAmbient();
 	void StopAmbient( ULoopingSound* ambient );
-	void StopAllAmbient();
+	void StopAllAmbient( bool instant = false );
+
+	void AdjustAmbientVolume( float volumeLevel );
 
 	ULoopingSound* GetMusicPlaying() const
 	{

@@ -13,8 +13,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/MusicAmbientManager.h"
 #include "Misc/App.h"
+#include "Sound/MusicAmbientManager.h"
 
 AStrategyCamera::AStrategyCamera()
 {
@@ -108,6 +108,20 @@ void AStrategyCamera::BeginPlay()
 	SpringArm->SetRelativeRotation( FRotator( CameraPitch_, CameraYaw_, 0.0f ) );
 
 	Camera->OrthoWidth = TargetZoom_;
+
+	GetWorld()->GetTimerManager().SetTimerForNextTick(
+		this,
+		&ThisClass::HandleAudioChangesOnZoom
+	);
+
+	FTimerHandle handle;
+	GetWorld()->GetTimerManager().SetTimer(
+		handle,
+		this,
+		&ThisClass::HandleAudioChangesOnZoom,
+		0.1f,
+		false
+	);
 
 	TArray<AActor*> foundCameras;
 	UGameplayStatics::GetAllActorsOfClass( GetWorld(), ACameraActor::StaticClass(), foundCameras );
@@ -253,7 +267,9 @@ void AStrategyCamera::SetupPlayerInputComponent( UInputComponent* playerInputCom
 void AStrategyCamera::Move( const FInputActionValue& value )
 {
 	if ( bIsCameraInputDisabled_ )
+	{
 		return;
+	}
 
 	FVector2D movementVector = value.Get<FVector2D>();
 
@@ -270,33 +286,22 @@ void AStrategyCamera::Move( const FInputActionValue& value )
 void AStrategyCamera::Zoom( const FInputActionValue& value )
 {
 	if ( bIsCameraInputDisabled_ || bIsZoomDisabled_ )
+	{
 		return;
+	}
 
 	float zoomDirection = value.Get<float>();
 	TargetZoom_ = FMath::Clamp( TargetZoom_ - ( zoomDirection * ZoomSpeed_ ), MinZoom_, MaxZoom_ );
 
-	// Should be done with delegates
-	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
-	{
-		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
-		{
-			if ( TargetZoom_ > MaxZoom_ - ( MaxZoom_ - MinZoom_ ) * WindyZoomPart_ )	// while in upper part of
-			// zoom range
-			{
-				musicManager->PlayWindAmbient();
-			}
-			else
-			{
-				musicManager->StopWindAmbient();
-			}
-		}
-	}
+	HandleAudioChangesOnZoom();
 }
 
 void AStrategyCamera::Rotate( const FInputActionValue& value )
 {
 	if ( bIsCameraInputDisabled_ )
+	{
 		return;
+	}
 
 	float direction = value.Get<float>();
 
@@ -310,7 +315,9 @@ void AStrategyCamera::Rotate( const FInputActionValue& value )
 void AStrategyCamera::HandleEdgeScrolling()
 {
 	if ( bIsCameraInputDisabled_ )
+	{
 		return;
+	}
 
 	if ( APlayerController* PC = Cast<APlayerController>( GetController() ) )
 	{
@@ -323,14 +330,22 @@ void AStrategyCamera::HandleEdgeScrolling()
 			FVector2D movementInput( 0.f, 0.f );
 
 			if ( mouseX <= EdgeScrollThreshold_ )
+			{
 				movementInput.X = -1.f;
+			}
 			else if ( mouseX >= viewportX - EdgeScrollThreshold_ )
+			{
 				movementInput.X = 1.f;
+			}
 
 			if ( mouseY <= EdgeScrollThreshold_ )
+			{
 				movementInput.Y = 1.f;
+			}
 			else if ( mouseY >= viewportY - EdgeScrollThreshold_ )
+			{
 				movementInput.Y = -1.f;
+			}
 
 			if ( !movementInput.IsZero() )
 			{
@@ -356,6 +371,27 @@ void AStrategyCamera::TogglePause( const FInputActionValue& value )
 		if ( UGameHUDWidget* HUD = Cast<UGameHUDWidget>( FoundWidgets[0] ) )
 		{
 			HUD->TogglePauseMenu();
+		}
+	}
+}
+
+void AStrategyCamera::HandleAudioChangesOnZoom()
+{
+	if ( const auto* gi = Cast<UDefaultGameInstance>( GetGameInstance() ) )
+	{
+		if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+		{
+			if ( TargetZoom_ >
+			     MaxZoom_ - ( MaxZoom_ - MinZoom_ ) * WindyZoomPart_ ) // while in upper part of zoom range
+			{
+				musicManager->PlayWindAmbient();
+			}
+			else
+			{
+				musicManager->StopWindAmbient();
+			}
+
+			musicManager->AdjustAmbientVolume( 1.0f - ( TargetZoom_ - MinZoom_ ) / ( MaxZoom_ - MinZoom_ ) );
 		}
 	}
 }

@@ -1,22 +1,28 @@
 #include "Tutorial/TutorialSubsystem.h"
 
+#include "Core/CoreManager.h"
+#include "Core/DefaultGameInstance.h"
+#include "Core/GameLoop/GameLoopManager.h"
+#include "Core/GameSessionController.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Tutorial/TutorialConfig.h"
+
 #include "Blueprint/UserWidget.h"
 #include "Camera/StrategyCamera.h"
 #include "Components/InputComponent.h"
 #include "Components/MeshComponent.h"
-#include "Core/CoreManager.h"
-#include "Core/GameLoop/GameLoopManager.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
-#include "Framework/Application/SlateApplication.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
+#include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInterface.h"
 #include "Misc/PackageName.h"
-#include "Tutorial/TutorialConfig.h"
+#include "Sound/MusicAmbientManager.h"
 
+class UMusicAmbientManager;
 DEFINE_LOG_CATEGORY_STATIC( LogTutorial, Log, All );
 
 UTutorialSubsystem* UTutorialSubsystem::Get( const UObject* worldContextObject )
@@ -140,7 +146,7 @@ void UTutorialSubsystem::NotifyEndTurnPressed()
 	{
 		return;
 	}
-	if ( Config_->Steps[ CurrentStepIndex_ ].Advance == ETutorialAdvance::OnEndTurnPressed )
+	if ( Config_->Steps[CurrentStepIndex_].Advance == ETutorialAdvance::OnEndTurnPressed )
 	{
 		Advance();
 	}
@@ -152,7 +158,7 @@ void UTutorialSubsystem::NotifyUpgradePicked()
 	{
 		return;
 	}
-	if ( Config_->Steps[ CurrentStepIndex_ ].Advance == ETutorialAdvance::OnUpgradePicked )
+	if ( Config_->Steps[CurrentStepIndex_].Advance == ETutorialAdvance::OnUpgradePicked )
 	{
 		Advance();
 	}
@@ -173,13 +179,9 @@ void UTutorialSubsystem::EnterStep( int32 index )
 		return;
 	}
 
-	const FTutorialStep& step = Config_->Steps[ index ];
+	const FTutorialStep& step = Config_->Steps[index];
 	UE_LOG(
-	    LogTutorial,
-	    Log,
-	    TEXT( "EnterStep %d, widget=%s, advance=%d" ),
-	    index,
-	    *GetNameSafe( step.WidgetClass ),
+	    LogTutorial, Log, TEXT( "EnterStep %d, widget=%s, advance=%d" ), index, *GetNameSafe( step.WidgetClass ),
 	    static_cast<int32>( step.Advance )
 	);
 
@@ -201,6 +203,26 @@ void UTutorialSubsystem::EnterStep( int32 index )
 		EnsureCursorForWidget();
 		EnableSkipInputCapture();
 	}
+
+	if ( index == 0 || index == 1 )
+	{
+		if ( const auto* gi = Cast<UDefaultGameInstance>( UGameplayStatics::GetGameInstance( GetWorld() ) ) )
+		{
+			if ( auto* musicManager = gi->GetSubsystem<UMusicAmbientManager>() )
+			{
+				if ( index == 0 )
+				{
+					musicManager->StopAllAmbient( true );
+					musicManager->StopMusic( true );
+				}
+				else if ( index == 1 )
+				{
+					musicManager->PlayCurrentLevelAmbient();
+					musicManager->PlayCurrentLevelBuildingMusic();
+				}
+			}
+		}
+	}
 }
 
 void UTutorialSubsystem::Advance()
@@ -215,7 +237,7 @@ ETutorialAdvance UTutorialSubsystem::GetCurrentStepAdvance() const
 	{
 		return ETutorialAdvance::None;
 	}
-	return Config_->Steps[ CurrentStepIndex_ ].Advance;
+	return Config_->Steps[CurrentStepIndex_].Advance;
 }
 
 void UTutorialSubsystem::OnBubbleClickAnywhere()
@@ -225,13 +247,12 @@ void UTutorialSubsystem::OnBubbleClickAnywhere()
 		return;
 	}
 
-	if ( GetWorld() && LastAdvanceTime_ > 0.0
-	     && GetWorld()->GetTimeSeconds() - LastAdvanceTime_ < 0.3 )
+	if ( GetWorld() && LastAdvanceTime_ > 0.0 && GetWorld()->GetTimeSeconds() - LastAdvanceTime_ < 0.3 )
 	{
 		return;
 	}
 
-	if ( Config_->Steps[ CurrentStepIndex_ ].Advance == ETutorialAdvance::ClickAnywhere )
+	if ( Config_->Steps[CurrentStepIndex_].Advance == ETutorialAdvance::ClickAnywhere )
 	{
 		Advance();
 	}
@@ -295,7 +316,7 @@ void UTutorialSubsystem::ApplyHighlight( const TArray<FName>& tags )
 		}
 
 		actor->ForEachComponent<UMeshComponent>(
-		    false, [ material ]( UMeshComponent* mesh ) { mesh->SetOverlayMaterial( material ); }
+		    false, [material]( UMeshComponent* mesh ) { mesh->SetOverlayMaterial( material ); }
 		);
 		HighlightedActors_.Add( actor );
 	}
@@ -360,9 +381,11 @@ void UTutorialSubsystem::HandleSkipInputPressed()
 	{
 		return;
 	}
-	const ETutorialAdvance advance = Config_->Steps[ CurrentStepIndex_ ].Advance;
-	UE_LOG( LogTutorial, Log, TEXT( "LMB consumed at step %d (advance=%d)" ),
-	        CurrentStepIndex_, static_cast<int32>( advance ) );
+	const ETutorialAdvance advance = Config_->Steps[CurrentStepIndex_].Advance;
+	UE_LOG(
+	    LogTutorial, Log, TEXT( "LMB consumed at step %d (advance=%d)" ), CurrentStepIndex_,
+	    static_cast<int32>( advance )
+	);
 	if ( advance == ETutorialAdvance::ClickAnywhere )
 	{
 		Advance();
@@ -389,10 +412,10 @@ void UTutorialSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopP
 		return;
 	}
 
-	const ETutorialAdvance advance = Config_->Steps[ CurrentStepIndex_ ].Advance;
+	const ETutorialAdvance advance = Config_->Steps[CurrentStepIndex_].Advance;
 
-	if ( advance == ETutorialAdvance::OnWaveWon && oldPhase == EGameLoopPhase::Combat
-	     && newPhase == EGameLoopPhase::Reward )
+	if ( advance == ETutorialAdvance::OnWaveWon && oldPhase == EGameLoopPhase::Combat &&
+	     newPhase == EGameLoopPhase::Reward )
 	{
 		Advance();
 		return;
@@ -439,12 +462,8 @@ bool UTutorialSubsystem::IsTutorialMap() const
 	shortName = UWorld::RemovePIEPrefix( shortName );
 	const bool match = Config_->TutorialMapName == FName( *shortName );
 	UE_LOG(
-	    LogTutorial,
-	    Log,
-	    TEXT( "IsTutorialMap: current='%s' expected='%s' match=%s" ),
-	    *shortName,
-	    *Config_->TutorialMapName.ToString(),
-	    match ? TEXT( "true" ) : TEXT( "false" )
+	    LogTutorial, Log, TEXT( "IsTutorialMap: current='%s' expected='%s' match=%s" ), *shortName,
+	    *Config_->TutorialMapName.ToString(), match ? TEXT( "true" ) : TEXT( "false" )
 	);
 	return match;
 }

@@ -121,12 +121,12 @@ void ULoopingSound::ClearTimers()
 	}
 }
 
-void ULoopingSound::Stop()
+void ULoopingSound::Stop( bool instant )
 {
 	ClearTimers();
 
 	float fadeOut = 0.0f;
-	if ( SoundConfig_ )
+	if ( !instant && SoundConfig_ )
 	{
 		fadeOut = SoundConfig_->TransitionFadeOutRandomized();
 	}
