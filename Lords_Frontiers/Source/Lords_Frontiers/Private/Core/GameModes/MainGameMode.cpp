@@ -90,13 +90,24 @@ void AMainGameMode::InitializeGameSystems()
 
 void AMainGameMode::HandleGameEnded( EGameResult result )
 {
+	if ( result != EGameResult::EndlessRun )
+	{
+		return;
+	}
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		const FName mapName( *UWorld::RemovePIEPrefix( world->GetMapName() ) );
+		if ( EndlessMapNames.Num() > 0 && !EndlessMapNames.Contains( mapName ) )
+		{
+			UE_LOG( LogTemp, Log, TEXT( "MainGameMode: '%s' не в списке EndlessMapNames — виджет результатов не показываем." ), *mapName.ToString() );
+			return;
+		}
+	}
+
 	if ( !ResultsWidgetClass )
 	{
 		UE_LOG( LogTemp, Warning, TEXT( "MainGameMode: ResultsWidgetClass не назначен — виджет результатов не появится." ) );
-		return;
-	}
-	if ( result == EGameResult::Abandoned )
-	{
 		return;
 	}
 	UMatchResultsWidget::ShowForLocalPlayer( this, ResultsWidgetClass, result );
