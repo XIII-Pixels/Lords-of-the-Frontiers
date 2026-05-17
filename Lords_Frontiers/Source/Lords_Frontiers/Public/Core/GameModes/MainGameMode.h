@@ -53,6 +53,9 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI", meta = ( DisplayName = "Виджет результатов (WBP_MatchResults)" ) )
 	TSubclassOf<UMatchResultsWidget> ResultsWidgetClass;
 
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI", meta = ( DisplayName = "Карты бесконечного режима", ToolTip = "Имена уровней (без префиксов), на которых показывается виджет результатов. На остальных уровнях — обычные баннеры Win/Lose." ) )
+	TArray<FName> EndlessMapNames = { TEXT( "Level_3_WP" ) };
+
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|VFX" )
 	TObjectPtr<UEntityVFXConfig> EntityVFXConfig;
 

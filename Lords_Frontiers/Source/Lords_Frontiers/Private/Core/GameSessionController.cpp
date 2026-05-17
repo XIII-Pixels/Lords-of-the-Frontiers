@@ -9,6 +9,7 @@
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
 #include "Engine/World.h"
+#include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "EntityStats.h"
 #include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
@@ -201,6 +202,18 @@ void UGameSessionController::CleanupBattlefield()
 		if ( !unit || unit->Team() != ETeam::Dog )
 		{
 			continue;
+		}
+
+		// Мгновенно убираем визуал и взаимодействие, чтобы враг не мелькал
+		// «живым» между EndGame и обработкой Destroy в конце кадра.
+		unit->SetActorHiddenInGame( true );
+		unit->SetActorEnableCollision( false );
+		unit->SetActorTickEnabled( false );
+		if ( AController* controller = unit->GetController() )
+		{
+			controller->StopMovement();
+			controller->UnPossess();
+			controller->Destroy();
 		}
 		unit->Destroy();
 		++destroyed;
