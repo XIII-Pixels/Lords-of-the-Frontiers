@@ -250,6 +250,16 @@ void UCardVisualSubsystem::EndSticky( FCardVisualHandle handle )
 
 	FCardStickyRecord& record = Stickies_[foundIndex];
 
+	if ( UWorld* world = GetWorld() )
+	{
+		FTimerManager& timers = world->GetTimerManager();
+		for ( FTimerHandle& pending : record.PendingTimers )
+		{
+			timers.ClearTimer( pending );
+		}
+	}
+	record.PendingTimers.Empty();
+
 	for ( FCardStickyIconSlot& slot : record.IconSlots )
 	{
 		ACardIconStrip* strip = slot.Strip.Get();
@@ -267,7 +277,7 @@ void UCardVisualSubsystem::EndSticky( FCardVisualHandle handle )
 	{
 		if ( UNiagaraComponent* niagara = weak.Get() )
 		{
-			niagara->Deactivate();
+			niagara->DeactivateImmediate();
 			niagara->ReleaseToPool();
 		}
 	}
@@ -281,6 +291,25 @@ void UCardVisualSubsystem::EndSticky( FCardVisualHandle handle )
 	}
 
 	Stickies_.RemoveAt( foundIndex );
+}
+
+void UCardVisualSubsystem::EndAllSticky()
+{
+	while ( Stickies_.Num() > 0 )
+	{
+		FCardVisualHandle handle;
+		handle.Id = Stickies_.Last().Id;
+		EndSticky( handle );
+	}
+
+	for ( TWeakObjectPtr<UNiagaraComponent>& weak : AllSpawnedNiagaras_ )
+	{
+		if ( UNiagaraComponent* niagara = weak.Get() )
+		{
+			niagara->DeactivateImmediate();
+		}
+	}
+	AllSpawnedNiagaras_.Empty();
 }
 
 ACardFeedbackPopup* UCardVisualSubsystem::AcquireIconActor()
@@ -512,6 +541,13 @@ void UCardVisualSubsystem::PlayIcon(
 				self->SpawnIconNow( specCopy, liveHost, bStickyCopy, stickyIdCopy );
 			} ), spec.DelaySeconds, false );
 		PendingTimers_.Add( handle );
+		if ( bSticky )
+		{
+			if ( FCardStickyRecord* record = FindSticky( stickyId ) )
+			{
+				record->PendingTimers.Add( handle );
+			}
+		}
 	}
 }
 
@@ -627,6 +663,13 @@ void UCardVisualSubsystem::PlayNiagara(
 				self->SpawnNiagaraNow( specCopy, liveHost, bStickyCopy, stickyIdCopy );
 			} ), spec.DelaySeconds, false );
 		PendingTimers_.Add( handle );
+		if ( bSticky )
+		{
+			if ( FCardStickyRecord* record = FindSticky( stickyId ) )
+			{
+				record->PendingTimers.Add( handle );
+			}
+		}
 	}
 }
 
@@ -711,6 +754,10 @@ void UCardVisualSubsystem::SpawnNiagaraNow(
 			*system->GetName(), *GetNameSafe( host ), *GetNameSafe( attachTo ) );
 		return;
 	}
+
+	AllSpawnedNiagaras_.RemoveAllSwap(
+		[]( const TWeakObjectPtr<UNiagaraComponent>& w ) { return !w.IsValid(); } );
+	AllSpawnedNiagaras_.Add( component );
 
 	if ( !spec.ScaleUserParameter.IsNone() )
 	{
@@ -801,6 +848,10 @@ void UCardVisualSubsystem::PlayOverlay(
 			self->ApplyOverlayNow( specCopy, liveHost, stickyIdCopy );
 		} ), spec.DelaySeconds, false );
 	PendingTimers_.Add( handle );
+	if ( FCardStickyRecord* record = FindSticky( stickyId ) )
+	{
+		record->PendingTimers.Add( handle );
+	}
 }
 
 void UCardVisualSubsystem::ApplyOverlayNow(

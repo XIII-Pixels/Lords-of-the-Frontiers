@@ -7,6 +7,7 @@
 #include "ControlledByTree.h"
 #include "Entity.h"
 #include "EntityStats.h"
+#include "Selectable.h"
 
 #include "Animation/AnimationConfig.h"
 #include "Components/Attack/AttackComponent.h"
@@ -61,7 +62,8 @@ class LORDS_FRONTIERS_API AUnit : public APawn,
                                   public IEntity,
                                   public IAttacker,
                                   public IControlledByTree,
-                                  public IAudioEventSource
+                                  public IAudioEventSource,
+                                  public ISelectable
 {
 	GENERATED_BODY()
 
@@ -197,6 +199,11 @@ public:
 	bool PlayAnimationIdle();
 	bool PlayAnimationAttack();
 	bool PlayAnimationSpawnAbility();
+
+	UFUNCTION()
+	void OnUnitClicked( UPrimitiveComponent* TouchedComponent, FKey ButtonPressed );
+
+	virtual bool CanBeSelected_Implementation() const override;
 
 protected:
 	virtual void Tick( float deltaSeconds ) override;

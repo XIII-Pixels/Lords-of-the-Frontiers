@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Lords_Frontiers/Public/UI/GameHUD.h"
 
 #include "DebugPlayerController.generated.h"
 
@@ -24,6 +25,7 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	USelectionManagerComponent* GetSelectionManager() const;
+	void OnPossess( APawn* pawn );
 
 	UFUNCTION( Exec )
 	void Card_ToggleDebug();
@@ -40,12 +42,27 @@ public:
 	UFUNCTION( Exec )
 	void Card_ResetUnlocks();
 
+	UPROPERTY()
+	TObjectPtr<UGameHUDWidget> GameHUDWidget_ = nullptr;
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|HUD" )
+	UGameHUDWidget* GetGameHUDWidget() const
+	{
+		return GameHUDWidget_;
+	}
+	ABuildManager* GetBuildManager() const
+	{
+		return BuildManager_;
+	}
+
 protected:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Selection|Components" )
 	TObjectPtr<USelectionManagerComponent> SelectionManagerComponent_ = nullptr;
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Cards" )
 	TObjectPtr<UCardSelectionHUDComponent> CardSelectionHUDComponent_ = nullptr;
+
+	virtual void Tick( float deltaSeconds ) override;
 
 	virtual void SetupInputComponent() override;
 

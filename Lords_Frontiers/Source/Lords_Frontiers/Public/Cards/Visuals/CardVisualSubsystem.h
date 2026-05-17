@@ -52,6 +52,9 @@ struct FCardStickyRecord
 
 	UPROPERTY()
 	int32 Id = INDEX_NONE;
+
+	UPROPERTY()
+	TArray<FTimerHandle> PendingTimers;
 };
 
 USTRUCT()
@@ -101,6 +104,9 @@ public:
 	FCardVisualHandle BeginSticky( const FCardVisualConfig& config, AActor* owner, AActor* target );
 
 	void EndSticky( FCardVisualHandle handle );
+
+	UFUNCTION( BlueprintCallable, Category = "Card|Visuals" )
+	void EndAllSticky();
 
 	UFUNCTION( BlueprintCallable, Category = "Card|Visuals" )
 	void SetPopupClassOverride( TSubclassOf<ACardFeedbackPopup> popupClass );
@@ -158,6 +164,9 @@ private:
 
 	UPROPERTY()
 	TArray<FTimerHandle> PendingTimers_;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<UNiagaraComponent>> AllSpawnedNiagaras_;
 
 	int32 NextStickyId_ = 1;
 };

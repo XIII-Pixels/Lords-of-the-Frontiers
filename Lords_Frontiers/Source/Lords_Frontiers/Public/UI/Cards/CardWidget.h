@@ -129,6 +129,22 @@ protected:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UImage> FeatureIconImage;
 
+	/** Effect frame badge: shows Fire/Slow/Fire+Slow icon based on UCardDataAsset::EffectFrames. */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> EffectFrameIconImage;
+
+	/** Texture shown when the card has only the Fire effect frame. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Card|Appearance|EffectFrame" )
+	TObjectPtr<UTexture2D> EffectFrameFireTexture = nullptr;
+
+	/** Texture shown when the card has only the Slow effect frame. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Card|Appearance|EffectFrame" )
+	TObjectPtr<UTexture2D> EffectFrameSlowTexture = nullptr;
+
+	/** Texture shown when the card has both the Fire and Slow effect frames. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadOnly, Category = "Card|Appearance|EffectFrame" )
+	TObjectPtr<UTexture2D> EffectFrameSlowFireTexture = nullptr;
+
 	/** Card name (rich text — supports inline decorators/styles) */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<URichTextBlock> CardNameText;

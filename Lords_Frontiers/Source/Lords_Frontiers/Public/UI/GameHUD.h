@@ -13,6 +13,7 @@
 #include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
+#include "UI/Widgets/EnemyTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -255,6 +256,23 @@ public:
 	UFUNCTION()
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
+	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
+	void ShowTooltipForBuilding( const ABuilding* BuildingInstance );
+
+private:
+	UBuildingTooltipWidget* EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck );
+
+public:
+
+	UFUNCTION( BlueprintCallable )
+	void HideTooltipForBuilding();
+
+	UFUNCTION( BlueprintCallable )
+	void HideTooltipForEnemy();
+
+	UPROPERTY()
+	TObjectPtr<UBuildingTooltipWidget> CurrentTooltip;
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -360,6 +378,11 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
 	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
 
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
+	TSubclassOf<UEnemyTooltipWidget> EnemyTooltipClass;
+
+	UPROPERTY() TObjectPtr<UEnemyTooltipWidget> ActiveEnemyTooltip;
+
 	FTimerHandle TooltipTimerHandle;
 
 	UPROPERTY()
@@ -370,8 +393,6 @@ protected:
 
 	bool bIsBuildingLocked = false;
 	UPROPERTY() TSubclassOf<ABuilding> LockedBuildingClass;
-
-	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 
 	void InitializeTooltipWidget(
 	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip

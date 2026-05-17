@@ -4,6 +4,7 @@
 #include "Building/Construction/BuildManager.h"
 #include "Cards/CardSubsystem.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "WavesMesh/WaveMeshManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
 #include "Grid/GridManager.h"
 #include "Grid/GridVisualizer.h"
@@ -50,6 +51,13 @@ UCoreManager* UCoreManager::Get( const UObject* worldContextObject )
 void UCoreManager::Initialize( FSubsystemCollectionBase& collection )
 {
 	Super::Initialize( collection );
+
+	if ( UWorld* World = GetWorld() )
+	{
+		WavePortalManager_ =
+		    Cast<AWavePortalManager>( UGameplayStatics::GetActorOfClass( World, AWavePortalManager::StaticClass() ) );
+	}
+
 	UE_LOG( LogCoreManager, Log, TEXT( "CoreManager initialized" ) );
 }
 
@@ -77,7 +85,11 @@ void UCoreManager::InitializeSystems()
 	}
 
 	UE_LOG( LogCoreManager, Log, TEXT( "=== CoreManager: Initializing Systems ===" ) );
-
+	if ( UWorld* World = GetWorld() )
+	{
+		WavePortalManager_ =
+		    Cast<AWavePortalManager>( UGameplayStatics::GetActorOfClass( World, AWavePortalManager::StaticClass() ) );
+	}
 	FindWorldActors();
 	FindPlayerControllerComponents();
 	CreateInternalManagers();
@@ -108,7 +120,11 @@ void UCoreManager::RefreshSystemReferences()
 	CachedPlayerIndex_ = -1;
 
 	bool bWasCriticalReady = AreCriticalSystemsReady();
-
+	if ( UWorld* World = GetWorld() )
+	{
+		WavePortalManager_ =
+		    Cast<AWavePortalManager>( UGameplayStatics::GetActorOfClass( World, AWavePortalManager::StaticClass() ) );
+	}
 	FindWorldActors();
 	FindPlayerControllerComponents();
 	UpdateGameLoopDependencies();

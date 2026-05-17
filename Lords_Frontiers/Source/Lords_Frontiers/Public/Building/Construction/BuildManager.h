@@ -99,6 +99,11 @@ public:
 
 	bool RemoveExistingBuilding( ABuilding* buildingToRemove );
 
+	void HideBuildingTooltip();
+
+	void HideAllDefensiveRanges();
+
+
 	virtual FOnAudioEvent& GetOnAudioEvent() override
 	{
 		return OnAudioEvent_;
@@ -183,10 +188,6 @@ private:
 	void UpdateHoveredCell();
 
 	void UpdatePreviewVisual( const FVector& worldLocation, bool bCanBuild );
-
-	void ShowAllDefensiveRanges();
-
-	void HideAllDefensiveRanges();
 
 	void PlayPlacementAnimation( AActor* building );
 

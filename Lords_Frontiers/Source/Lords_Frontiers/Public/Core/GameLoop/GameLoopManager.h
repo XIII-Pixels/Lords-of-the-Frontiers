@@ -185,6 +185,8 @@ public:
 		return false;
 	}
 
+	void ClearSelectionForPhaseChange();
+
 protected:
 	void SetPhase( EGameLoopPhase newPhase );
 	void EnterBuildingPhase();

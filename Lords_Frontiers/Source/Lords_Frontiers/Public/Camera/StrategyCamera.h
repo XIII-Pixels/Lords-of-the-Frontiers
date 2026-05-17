@@ -29,6 +29,9 @@ public:
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Components" )
+	TObjectPtr<USceneComponent> AudioListener;
+
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Input" )
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
