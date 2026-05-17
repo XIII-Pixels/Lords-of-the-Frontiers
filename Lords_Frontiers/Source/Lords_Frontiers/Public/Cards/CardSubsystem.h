@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Lords_Frontiers/Public/EntityStats.h"
 
 #include "CardSubsystem.generated.h"
 
@@ -17,6 +18,25 @@ enum class EGameLoopPhase : uint8;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardSelectionRequired, const FCardChoice&, Choice );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardsApplied, const TArray<UCardDataAsset*>&, AppliedCards );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnEconomyBonusesChanged, const FEconomyBonuses&, NewBonuses );
+
+USTRUCT( BlueprintType )
+struct LORDS_FRONTIERS_API FBuildingTooltipPreview
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY( BlueprintReadOnly, Category = "Preview" )
+	FEntityStats Stats;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Preview" )
+	FResourceProduction BuildingCost;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Preview" )
+	FResourceProduction MaintenanceCost;
+
+	UPROPERTY( BlueprintReadOnly, Category = "Preview" )
+	bool bIsValid = false;
+};
 
 UCLASS()
 class LORDS_FRONTIERS_API UCardSubsystem : public UGameInstanceSubsystem
@@ -164,6 +184,15 @@ public:
 	UPROPERTY( BlueprintAssignable, Category = "Cards|Events" )
 	FOnEconomyBonusesChanged OnEconomyBonusesChanged;
 
+	UPROPERTY( Transient )
+	TMap<TSubclassOf<ABuilding>, FBuildingTooltipPreview> BuildingTooltipPreviewCache_;
+
+	UFUNCTION( BlueprintCallable, Category = "Cards|Buildings" )
+	void InvalidateBuildingTooltipPreviewCache();
+
+	UFUNCTION( BlueprintPure, Category = "Cards|Buildings" )
+	bool GetBuildingTooltipPreview( TSubclassOf<ABuilding> buildingClass, FBuildingTooltipPreview& OutPreview );
+
 protected:
 	void ApplySingleCardOnce( UCardDataAsset* card, int32 waveNumber, const TArray<ABuilding*>& buildings );
 
@@ -173,8 +202,8 @@ protected:
 		const TArray<ABuilding*>& buildings );
 
 	FCardEffectContext MakeContext(
-		UCardDataAsset* card, int32 eventIndex, int32 stackCount,
-		int32 waveNumber, ABuilding* building );
+	    UCardDataAsset* card, int32 eventIndex, int32 stackCount, int32 waveNumber, ABuilding* building
+	) const;
 
 	bool EvaluateConditions( const FCardEvent& event, const FCardEffectContext& context ) const;
 
@@ -221,4 +250,6 @@ private:
 	bool bIsBoundToGameLoop_ = false;
 
 	TWeakObjectPtr<UGameLoopManager> CachedGameLoop_;
+
+	bool BuildBuildingTooltipPreview( TSubclassOf<ABuilding> buildingClass, FBuildingTooltipPreview& OutPreview ) const;
 };
