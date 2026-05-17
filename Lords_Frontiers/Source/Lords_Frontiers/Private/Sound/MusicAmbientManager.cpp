@@ -119,9 +119,13 @@ void UMusicAmbientManager::PlayCurrentLevelAmbient()
 	{
 		const FAmbientForLevel* ambientForLevel =
 		    AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) );
-		for ( const FLoopingSoundConfig& ambient : ambientForLevel->AmbientEntries )
+
+		if ( ambientForLevel )
 		{
-			PlayAmbient( &ambient );
+			for ( const FLoopingSoundConfig& ambient : ambientForLevel->AmbientEntries )
+			{
+				PlayAmbient( &ambient );
+			}
 		}
 	}
 }
@@ -152,27 +156,59 @@ void UMusicAmbientManager::StopAmbient( ULoopingSound* ambient )
 	AmbientSounds_.Remove( ambient );
 }
 
-void UMusicAmbientManager::StopMusic()
+void UMusicAmbientManager::StopMusic( bool instant )
 {
 	if ( Music_ )
 	{
-		Music_->Stop();
+		Music_->Stop( instant );
 		Music_ = nullptr;
 	}
 }
 
-void UMusicAmbientManager::StopAllAmbient()
+void UMusicAmbientManager::StopAllAmbient( bool instant )
 {
 	for ( ULoopingSound* audio : AmbientSounds_ )
 	{
 		if ( IsValid( audio ) )
 		{
-			audio->Stop();
+			audio->Stop( instant );
 		}
 	}
 	AmbientSounds_.Empty();
 
 	UE_LOG( LogTemp, Log, TEXT( "UMusicAmbientManager: All ambient is stopped" ) );
+}
+
+void UMusicAmbientManager::AdjustAmbientVolume( float volumeLevel )
+{
+	volumeLevel = FMath::Clamp( volumeLevel, 0.001f, 1.0f );
+
+	const FAmbientForLevel* ambientForLevel = AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr( GetWorld() ) );
+
+	float min = 0.0f;
+	float adjustVolumeDuration = 0.0f;
+	EAudioFaderCurve faderCurve = EAudioFaderCurve::Linear;
+	if ( ambientForLevel )
+	{
+		min = FMath::Clamp( ambientForLevel->ZoomMinVolume, 0.001f, 1.0f );
+		adjustVolumeDuration = ambientForLevel->AdjustVolumeDuration;
+		faderCurve = ambientForLevel->ZoomVolumeFaderCurve;
+	}
+
+	for ( ULoopingSound* audio : AmbientSounds_ )
+	{
+		float audioVolume = 1.0f;
+		if ( IsValid( audio ) && audio->GetConfig() )
+		{
+			audioVolume = FMath::Max( audio->GetConfig()->Volume, min );
+		}
+		audioVolume *= volumeLevel;
+
+		if ( IsValid( audio ) && audio != WindAmbientPlaying_.Get() )
+		{
+			audio->GetAudioComponent()->AdjustVolume( adjustVolumeDuration, audioVolume, faderCurve );
+		}
+	}
 }
 
 void UMusicAmbientManager::Initialize( FSubsystemCollectionBase& collection )

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Components/AudioComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Sound/Data/LoopingSoundConfig.h"
@@ -17,6 +18,18 @@ struct FAmbientForLevel
 
 	UPROPERTY( EditAnywhere )
 	TArray<FLoopingSoundConfig> AmbientEntries;
+
+	UPROPERTY(
+	    EditAnywhere,
+	    meta = ( ClampMin = 0.0f, ClampMax = 1.0f, ToolTip = "Volume on min camera zoom. Does not affect wind" )
+	)
+	float ZoomMinVolume = 0.0f;
+
+	UPROPERTY( EditAnywhere )
+	EAudioFaderCurve ZoomVolumeFaderCurve;
+
+	UPROPERTY( EditAnywhere )
+	float AdjustVolumeDuration = 0.0f;
 };
 
 /** (Gregory-hub)

@@ -194,6 +194,8 @@ private:
 	void HandleEdgeScrolling();
 	void TogglePause( const FInputActionValue& value );
 
+	void HandleAudioChangesOnZoom();
+
 	float TargetZoom_;
 	float TargetYaw_;
 	float CurrentYaw_;

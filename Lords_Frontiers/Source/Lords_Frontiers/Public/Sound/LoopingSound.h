@@ -20,7 +20,7 @@ class LORDS_FRONTIERS_API ULoopingSound : public UObject
 public:
 	void Initialize( const FLoopingSoundConfig* soundConfig );
 	void Play();
-	void Stop();
+	void Stop( bool instant = false );
 
 	UAudioComponent* GetAudioComponent()
 	{
