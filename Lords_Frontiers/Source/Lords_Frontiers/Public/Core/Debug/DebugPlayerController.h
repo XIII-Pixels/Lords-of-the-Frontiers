@@ -25,6 +25,7 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "Settings|Selection" )
 	USelectionManagerComponent* GetSelectionManager() const;
+	void OnPossess( APawn* pawn );
 
 	UFUNCTION( Exec )
 	void Card_ToggleDebug();
@@ -60,6 +61,8 @@ protected:
 
 	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "Settings|Cards" )
 	TObjectPtr<UCardSelectionHUDComponent> CardSelectionHUDComponent_ = nullptr;
+
+	virtual void Tick( float deltaSeconds ) override;
 
 	virtual void SetupInputComponent() override;
 
