@@ -8,6 +8,7 @@
 #include "MainMenuWidget.generated.h"
 
 class UButton;
+class UAudioSettingsWidget;
 
 /** (Gregory-hub)
  * Main menu */
@@ -22,4 +23,22 @@ public:
 
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UButton> ExitGameButton;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> SettingsButton;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Audio" )
+	TSubclassOf<UAudioSettingsWidget> AudioSettingsWidgetClass;
+
+protected:
+	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	void OnSettingsClicked();
+
+	UFUNCTION()
+	void OnAudioSettingsClosed();
+
+	UPROPERTY()
+	TObjectPtr<UAudioSettingsWidget> ActiveAudioSettings_;
 };

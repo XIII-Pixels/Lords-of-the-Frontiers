@@ -36,8 +36,8 @@ private:
 
 	void OnSoundFinished( TWeakObjectPtr<UAudioComponent> component );
 
-	void Play2D( const FSoundEntry& entry );
-	void Play3D( const FSoundEntry& entry, const FVector& worldLocation );
+	void Play2D( const FSoundEntry& entry, const FGameplayTag& tag );
+	void Play3D( const FSoundEntry& entry, const FGameplayTag& tag, const FVector& worldLocation );
 
 	UPROPERTY()
 	TObjectPtr<USoundDataAsset> SoundData_;
