@@ -69,6 +69,11 @@ void AStrategyCamera::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if ( IsValid( DefaultCameraConfig ) )
+	{
+		ApplyCameraConfig( DefaultCameraConfig );
+	}
+
 	Camera->SetProjectionMode( ProjectionMode_ );
 
 	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
@@ -357,5 +362,30 @@ void AStrategyCamera::TogglePause( const FInputActionValue& value )
 		{
 			HUD->TogglePauseMenu();
 		}
+	}
+}
+
+void AStrategyCamera::ApplyCameraConfig( UStrategyCameraConfig* newConfig )
+{
+	if ( !IsValid( newConfig ) )
+	{
+		return;
+	}
+
+	MinZoom_ = newConfig->MinZoom;
+	MaxZoom_ = newConfig->MaxZoom;
+	InitialOrthoWidth_ = newConfig->InitialOrthoWidth;
+	InitialTargetArmLength_ = newConfig->InitialTargetArmLength;
+	WindyZoomPart_ = newConfig->WindyZoomPart;
+
+	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
+	{
+		Camera->OrthoWidth = InitialOrthoWidth_;
+		TargetZoom_ = InitialOrthoWidth_;
+	}
+	else
+	{
+		SpringArm->TargetArmLength = InitialTargetArmLength_;
+		TargetZoom_ = InitialTargetArmLength_;
 	}
 }

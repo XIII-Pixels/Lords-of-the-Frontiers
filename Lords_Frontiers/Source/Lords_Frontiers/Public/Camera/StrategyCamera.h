@@ -6,6 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Engine/DataAsset.h"
 
 #include "StrategyCamera.generated.h"
 
@@ -14,6 +15,28 @@ class UCameraComponent;
 class UInputComponent;
 class UInputMappingContext;
 class UInputAction;
+
+UCLASS( BlueprintType )
+class LORDS_FRONTIERS_API UStrategyCameraConfig : public UDataAsset
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
+	float MinZoom = 500.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
+	float MaxZoom = 5000.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
+	float InitialOrthoWidth = 2048.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Zoom" )
+	float InitialTargetArmLength = 8000.0f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Sound" )
+	float WindyZoomPart = 0.3f;
+};
 
 UCLASS()
 class LORDS_FRONTIERS_API AStrategyCamera : public APawn
@@ -95,6 +118,9 @@ public:
 	{
 		return MaxZoom_;
 	}
+
+	UFUNCTION( BlueprintCallable, Category = "Settings|Profile" )
+	void ApplyCameraConfig( UStrategyCameraConfig* newConfig );
 
 protected:
 	virtual void BeginPlay() override;
@@ -182,6 +208,9 @@ protected:
 	    meta = ( ClampMin = 0.0f, ClampMax = 1.0f, Tooltip = "When camera exeeds a threshold there is wind sound" )
 	)
 	float WindyZoomPart_ = 0.3f;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Profile" )
+	TObjectPtr<UStrategyCameraConfig> DefaultCameraConfig;
 
 public:
 	virtual void Tick( float deltaTime ) override;
