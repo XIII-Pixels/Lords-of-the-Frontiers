@@ -12,6 +12,7 @@
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
+#include "UI/Widgets/HUDResourcePanelWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 #include "UI/Widgets/EnemyTooltipWidget.h"
 
@@ -119,47 +120,12 @@ public:
 	// ==== text ====
 	UPROPERTY( meta = ( BindWidget ) )
 	UTextBlock* TextDay;
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* Text_Citizens;
 
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* Text_Gold;
-
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* Text_Food;
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UHUDResourcePanelWidget> ResourcePanel;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UCombatTimerWidget> CombatTimerPanel;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> Text_GoldIncome;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> Text_FoodIncome;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UImage> Arrow_Gold;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UImage> Arrow_Food;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
-	float IncomeAnimationDuration = 1.0f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
-	float ArrowDisplayDuration = 2.0f;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
-	FSlateColor PositiveIncomeColor = FSlateColor( FLinearColor( 0.0f, 0.8f, 0.0f, 1.0f ) );
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
-	FSlateColor NegativeIncomeColor = FSlateColor( FLinearColor( 0.9f, 0.1f, 0.1f, 1.0f ) );
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
-	TObjectPtr<UTexture2D> ArrowUpTexture;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Income" )
-	TObjectPtr<UTexture2D> ArrowDownTexture;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> WoodenHouseClass;
@@ -285,7 +251,6 @@ protected:
 	void OnPlacingCancelled();
 
 	bool bShowingEconomyBuildings_ = true;
-	bool bIsEconomySubscribed_ = false;
 	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
@@ -311,14 +276,13 @@ protected:
 	UFUNCTION()
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
 
-	UFUNCTION()
-	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
-
 	// Update methods
 	void UpdateDayText();
 	void UpdateStatusText();
-	void UpdateResources();
 	void UpdateButtonVisibility();
+
+	UFUNCTION()
+	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
 
 	UFUNCTION()
 	void OnBuildWoodenHouseClicked();
@@ -504,30 +468,6 @@ protected:
 
 	void PlayOnBuildingButtonClickedSound( const UButton* button ) const;
 	void PlayOnBuildingButtonHoveredSound( const UButton* button ) const;
-
-	struct FIncomeAnimState
-	{
-		int32 StartValue = 0;
-		int32 TargetValue = 0;
-		int32 DisplayedValue = 0;
-		float Elapsed = 0.0f;
-		bool bAnimating = false;
-		float ArrowTimer = 0.0f;
-	};
-
-	FIncomeAnimState GoldIncomeAnim_;
-	FIncomeAnimState FoodIncomeAnim_;
-
-	UFUNCTION()
-	void HandleNetIncomeChanged( const FResourceProduction& netIncome );
-
-	void StartIncomeAnimation( UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, int32 newValue );
-
-	void TickIncomeAnimation( UTextBlock* textBlock, UImage* arrow, FIncomeAnimState& state, float deltaTime );
-
-	void ApplyIncomeText( UTextBlock* textBlock, int32 value );
-
-	void InitIncomeDisplay();
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;
