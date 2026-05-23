@@ -9,6 +9,7 @@
 #include "Engine/GameInstance.h"
 #include "EntityStats.h"
 #include "Kismet/GameplayStatics.h"
+#include "Localization/GameLocalization.h"
 #include "Lords_Frontiers/Public/Match/LeaderboardSubsystem.h"
 #include "Lords_Frontiers/Public/Resources/ResourceManager.h"
 #include "Lords_Frontiers/Public/Units/UnitEvents.h"
@@ -302,7 +303,8 @@ FLeaderboardEntry UMatchStatsTracker::BuildEntry( const FString& playerName ) co
 	FString name = playerName;
 	if ( name.IsEmpty() )
 	{
-		name = ( Config && !Config->PlayerEntryName.IsEmpty() ) ? Config->PlayerEntryName : TEXT( "Ты" );
+		name = ( Config && !Config->PlayerEntryName.IsEmpty() ) ? Config->PlayerEntryName
+		                                                       : LF_LOC( "Player.Self" ).ToString();
 	}
 
 	FLeaderboardEntry entry;

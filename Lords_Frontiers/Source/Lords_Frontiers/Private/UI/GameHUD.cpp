@@ -6,9 +6,9 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Debug/DebugPlayerController.h"
+#include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
 #include "UI/HealthBar/HealthBarWidget.h"
-#include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 
@@ -27,14 +27,6 @@ void UGameHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-	{
-		if ( UResourceManager* rM = core->GetResourceManager() )
-		{
-			rM->OnResourceChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleResourceChanged );
-		}
-	}
-
 	if ( ButtonRelocateBuilding )
 	{
 		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
@@ -45,97 +37,16 @@ void UGameHUDWidget::NativeConstruct()
 		ButtonRemoveBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
 		ButtonRemoveBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverRemoveBuilding );
 	}
-	if ( ButtonDefensiveBuildings )
-	{
-		ButtonDefensiveBuildings->OnClicked.AddDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
-		ButtonDefensiveBuildings->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverDefensiveBuildings );
-	}
-	if ( ButtonEconomyBuilding )
-	{
-		ButtonEconomyBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
-		ButtonEconomyBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEconomyBuilding );
-	}
 	if ( ButtonEndTurn )
 	{
 		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
 		ButtonEndTurn->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
 	}
 
-	if ( ButtonBuildingWoodenHouse )
-	{
-		ButtonBuildingWoodenHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
-		ButtonBuildingWoodenHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWoodenHouse );
-		ButtonBuildingWoodenHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingStrawHouse )
-	{
-		ButtonBuildingStrawHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
-		ButtonBuildingStrawHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverStrawHouse );
-		ButtonBuildingStrawHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingFarm )
-	{
-		ButtonBuildingFarm->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
-		ButtonBuildingFarm->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverFarm );
-		ButtonBuildingFarm->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingLawnHouse )
-	{
-		ButtonBuildingLawnHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
-		ButtonBuildingLawnHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverLawnHouse );
-		ButtonBuildingLawnHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingMagicHouse )
-	{
-		ButtonBuildingMagicHouse->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
-		ButtonBuildingMagicHouse->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverMagicHouse );
-		ButtonBuildingMagicHouse->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-
-	if ( ButtonBuildingWoodWall )
-	{
-		ButtonBuildingWoodWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
-		ButtonBuildingWoodWall->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWoodWall );
-		ButtonBuildingWoodWall->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingStoneWall )
-	{
-		ButtonBuildingStoneWall->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
-		ButtonBuildingStoneWall->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverStoneWall );
-		ButtonBuildingStoneWall->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingTowerT0 )
-	{
-		ButtonBuildingTowerT0->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
-		ButtonBuildingTowerT0->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT0 );
-		ButtonBuildingTowerT0->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingTowerT1 )
-	{
-		ButtonBuildingTowerT1->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
-		ButtonBuildingTowerT1->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT1 );
-		ButtonBuildingTowerT1->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingTowerT2 )
-	{
-		ButtonBuildingTowerT2->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
-		ButtonBuildingTowerT2->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
-		ButtonBuildingTowerT2->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-
-	if ( ButtonBuildingMortira )
-	{
-		ButtonBuildingMortira->OnClicked.AddDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
-		ButtonBuildingMortira->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
-		ButtonBuildingMortira->OnUnhovered.AddDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-
-	ABuildManager* buildManager =
-	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
-	if ( buildManager )
+	if ( ABuildManager* buildManager =
+	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
 		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
-		buildManager->OnPlacingCancelled.AddDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -169,9 +80,6 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
-	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
-	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
-
 	if ( IsValid( EnemyTooltipClass ) && !IsValid( ActiveEnemyTooltip ) )
 	{
 		ActiveEnemyTooltip = CreateWidget<UEnemyTooltipWidget>( this, EnemyTooltipClass );
@@ -185,11 +93,7 @@ void UGameHUDWidget::NativeConstruct()
 	UpdateDayText();
 	UpdateStatusText();
 	UpdateButtonVisibility();
-	UpdateBuildingUIVisibility();
 
-	ShowEconomyBuildings();
-
-	UpdateAllBuildingButtons();
 	if ( IsValid( WavePanelClass ) && !IsValid( ActiveWavePanel ) )
 	{
 		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
@@ -213,89 +117,11 @@ void UGameHUDWidget::NativeDestruct()
 		ButtonRemoveBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
 		ButtonRemoveBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverRemoveBuilding );
 	}
-	if ( ButtonDefensiveBuildings )
-	{
-		ButtonDefensiveBuildings->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnDefensiveBuildingsClicked );
-		ButtonDefensiveBuildings->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverDefensiveBuildings );
-	}
-	if ( ButtonEconomyBuilding )
-	{
-		ButtonEconomyBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEconomyBuildingClicked );
-		ButtonEconomyBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEconomyBuilding );
-	}
 
 	if ( ButtonEndTurn )
 	{
 		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
 		ButtonEndTurn->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
-	}
-
-	if ( ButtonBuildingWoodenHouse )
-	{
-		ButtonBuildingWoodenHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodenHouseClicked );
-		ButtonBuildingWoodenHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWoodenHouse );
-		ButtonBuildingWoodenHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingStrawHouse )
-	{
-		ButtonBuildingStrawHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStrawHouseClicked );
-		ButtonBuildingStrawHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverStrawHouse );
-		ButtonBuildingStrawHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingFarm )
-	{
-		ButtonBuildingFarm->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildFarmClicked );
-		ButtonBuildingFarm->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverFarm );
-		ButtonBuildingFarm->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingLawnHouse )
-	{
-		ButtonBuildingLawnHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildLawnHouseClicked );
-		ButtonBuildingLawnHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverLawnHouse );
-		ButtonBuildingLawnHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingMagicHouse )
-	{
-		ButtonBuildingMagicHouse->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildMagicHouseClicked );
-		ButtonBuildingMagicHouse->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverMagicHouse );
-		ButtonBuildingMagicHouse->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-
-	if ( ButtonBuildingWoodWall )
-	{
-		ButtonBuildingWoodWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildWoodWallClicked );
-		ButtonBuildingWoodWall->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWoodWall );
-		ButtonBuildingWoodWall->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingStoneWall )
-	{
-		ButtonBuildingStoneWall->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildStoneWallClicked );
-		ButtonBuildingStoneWall->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverStoneWall );
-		ButtonBuildingStoneWall->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingTowerT0 )
-	{
-		ButtonBuildingTowerT0->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT0Clicked );
-		ButtonBuildingTowerT0->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerT0 );
-		ButtonBuildingTowerT0->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingTowerT1 )
-	{
-		ButtonBuildingTowerT1->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT1Clicked );
-		ButtonBuildingTowerT1->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerT1 );
-		ButtonBuildingTowerT1->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingTowerT2 )
-	{
-		ButtonBuildingTowerT2->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerT2Clicked );
-		ButtonBuildingTowerT2->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerT2 );
-		ButtonBuildingTowerT2->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
-	}
-	if ( ButtonBuildingMortira )
-	{
-		ButtonBuildingMortira->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnBuildTowerMortiraClicked );
-		ButtonBuildingMortira->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverTowerMortira );
-		ButtonBuildingMortira->OnUnhovered.RemoveDynamic( this, &UGameHUDWidget::OnBuildingUnhovered );
 	}
 
 	if ( BtnToggleWaveInfo )
@@ -304,12 +130,10 @@ void UGameHUDWidget::NativeDestruct()
 		BtnToggleWaveInfo->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWaveInfoButton );
 	}
 
-	ABuildManager* buildManager =
-	    Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) );
-	if ( buildManager )
+	if ( ABuildManager* buildManager =
+	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
 		buildManager->OnBonusPreviewUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
-		buildManager->OnPlacingCancelled.RemoveDynamic( this, &UGameHUDWidget::OnPlacingCancelled );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -323,14 +147,8 @@ void UGameHUDWidget::NativeDestruct()
 				session->OnGameEndDelegate.RemoveDynamic( this, &UGameHUDWidget::HandleGameEnded );
 			}
 		}
-
-		if ( UResourceManager* rM = core->GetResourceManager() )
-		{
-			rM->OnResourceChanged.RemoveDynamic( this, &UGameHUDWidget::HandleResourceChanged );
-		}
 	}
 
-	// Sound
 	if ( const UWorld* world = GetWorld() )
 	{
 		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
@@ -356,61 +174,11 @@ void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 	}
 }
 
-void UGameHUDWidget::HandleResourceChanged( EResourceType Type, int32 NewAmount )
-{
-	UpdateAllBuildingButtons();
-
-	if ( ActiveEconomyTooltip && ActiveEconomyTooltip->GetVisibility() != ESlateVisibility::Hidden )
-	{
-		ActiveEconomyTooltip->UpdateContent();
-	}
-	if ( ActiveDefensiveTooltip && ActiveDefensiveTooltip->GetVisibility() != ESlateVisibility::Hidden )
-	{
-		ActiveDefensiveTooltip->UpdateContent();
-	}
-	if ( bIsBuildingLocked && LockedBuildingClass )
-	{
-		UCoreManager* core = UCoreManager::Get( this );
-		UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
-		if ( rM )
-		{
-			const ABuilding* buildingCDO = LockedBuildingClass->GetDefaultObject<ABuilding>();
-			if ( buildingCDO && !rM->CanAfford( buildingCDO->GetBuildingCost() ) )
-			{
-				if ( ABuildManager* bM = core->GetBuildManager() )
-				{
-					bM->CancelPlacing();
-				}
-
-				bIsBuildingLocked = false;
-				LockedBuildingClass = nullptr;
-
-				if ( ActiveEconomyTooltip )
-				{
-					ActiveEconomyTooltip->SetLocked( false );
-					ActiveEconomyTooltip->StartAutoHideTimer();
-				}
-				if ( ActiveDefensiveTooltip )
-				{
-					ActiveDefensiveTooltip->SetLocked( false );
-					ActiveDefensiveTooltip->StartAutoHideTimer();
-				}
-			}
-		}
-	}
-}
-
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
 {
 	UpdateDayText();
 	UpdateStatusText();
 	UpdateButtonVisibility();
-	UpdateBuildingUIVisibility();
-
-	if ( NewPhase == EGameLoopPhase::Combat )
-	{
-		CancelCurrentBuilding();
-	}
 
 	if ( StageProgressBar )
 	{
@@ -613,7 +381,7 @@ void UGameHUDWidget::UpdateDayText()
 	}
 
 	int32 wave = gL->GetCurrentWave();
-	TextDay->SetText( FText::FromString( FString::Printf( TEXT( "День %d" ), wave ) ) );
+	TextDay->SetText( FText::Format( LF_LOC( "HUD.Day" ), FText::AsNumber( wave ) ) );
 }
 
 void UGameHUDWidget::UpdateStatusText()
@@ -785,369 +553,6 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 	HandleSelectionChanged();
 	UpdateExtraButtonsVisibility();
 }
-void UGameHUDWidget::OnDefensiveBuildingsClicked()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_CLICKED } );
-
-	ShowDefensiveBuildings();
-}
-
-void UGameHUDWidget::OnEconomyBuildingClicked()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_CLICKED } );
-
-	ShowEconomyBuildings();
-}
-
-void UGameHUDWidget::ShowEconomyBuildings()
-{
-	bShowingEconomyBuildings_ = true;
-
-	if ( EconomyCardBox )
-	{
-		EconomyCardBox->SetVisibility( ESlateVisibility::Visible );
-	}
-
-	if ( DefensiveCardBox )
-	{
-		DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
-	}
-
-	UpdateCategoryButtonsVisual();
-}
-
-void UGameHUDWidget::ShowDefensiveBuildings()
-{
-	bShowingEconomyBuildings_ = false;
-
-	if ( EconomyCardBox )
-	{
-		EconomyCardBox->SetVisibility( ESlateVisibility::Collapsed );
-	}
-
-	if ( DefensiveCardBox )
-	{
-		DefensiveCardBox->SetVisibility( ESlateVisibility::Visible );
-	}
-
-	UpdateCategoryButtonsVisual();
-}
-
-void UGameHUDWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
-{
-	if ( !BuildingClass )
-	{
-		return;
-	}
-
-	UCoreManager* core = UCoreManager::Get( this );
-	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
-	if ( !bM )
-	{
-		return;
-	}
-
-	if ( UResourceManager* rM = core->GetResourceManager() )
-	{
-		const ABuilding* buildingCDO = BuildingClass->GetDefaultObject<ABuilding>();
-		if ( buildingCDO && !rM->CanAfford( buildingCDO->GetBuildingCost() ) )
-		{
-			if ( GEngine )
-			{
-				GEngine->AddOnScreenDebugMessage( -1, 2.f, FColor::Red, TEXT( "Not enough resources!" ) );
-			}
-			return;
-		}
-	}
-
-	bM->StartPlacingBuilding( BuildingClass );
-
-	bIsBuildingLocked = true;
-	LockedBuildingClass = BuildingClass;
-}
-
-void UGameHUDWidget::OnBuildWoodenHouseClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingWoodenHouse );
-
-	StartBuilding( WoodenHouseClass );
-}
-
-void UGameHUDWidget::OnBuildStrawHouseClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingStrawHouse );
-
-	StartBuilding( StrawHouseClass );
-}
-
-void UGameHUDWidget::OnBuildFarmClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingFarm );
-
-	StartBuilding( FarmClass );
-}
-
-void UGameHUDWidget::OnBuildLawnHouseClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingLawnHouse );
-
-	StartBuilding( LawnHouseClass );
-}
-
-void UGameHUDWidget::OnBuildMagicHouseClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingMagicHouse );
-
-	StartBuilding( MagicHouseClass );
-}
-
-void UGameHUDWidget::OnBuildWoodWallClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingWoodWall );
-
-	StartBuilding( WoodWallClass );
-}
-
-void UGameHUDWidget::OnBuildStoneWallClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingStoneWall );
-
-	StartBuilding( StoneWallClass );
-}
-
-void UGameHUDWidget::OnBuildTowerT0Clicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT0 );
-
-	StartBuilding( TowerT0Class );
-}
-
-void UGameHUDWidget::OnBuildTowerT1Clicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT1 );
-
-	StartBuilding( TowerT1Class );
-}
-
-void UGameHUDWidget::OnBuildTowerT2Clicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingTowerT2 );
-
-	StartBuilding( TowerT2Class );
-}
-
-void UGameHUDWidget::OnBuildTowerMortiraClicked()
-{
-	PlayOnBuildingButtonClickedSound( ButtonBuildingMortira );
-
-	StartBuilding( TowerMortiraClass );
-}
-
-void UGameHUDWidget::UpdateBuildingUIVisibility()
-{
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	};
-
-	UGameLoopManager* gL = core->GetGameLoop();
-	if ( !gL )
-	{
-		return;
-	};
-
-	EGameLoopPhase phase = gL->GetCurrentPhase();
-	bool bShowBuildingUI = ( phase == EGameLoopPhase::Building );
-
-	ESlateVisibility newVisibility = bShowBuildingUI ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
-
-	if ( BackForButton )
-	{
-		BackForButton->SetVisibility( newVisibility );
-	}
-
-	if ( ButtonEconomyBuilding )
-	{
-		ButtonEconomyBuilding->SetVisibility( newVisibility );
-	}
-	if ( ButtonDefensiveBuildings )
-	{
-		ButtonDefensiveBuildings->SetVisibility( newVisibility );
-	}
-
-	if ( ButtonRelocateBuilding )
-	{
-		ButtonRelocateBuilding->SetVisibility( newVisibility );
-	}
-	if ( ButtonRemoveBuilding )
-	{
-		ButtonRemoveBuilding->SetVisibility( newVisibility );
-	}
-
-	if ( bShowBuildingUI )
-	{
-		if ( bShowingEconomyBuildings_ )
-		{
-			ShowEconomyBuildings();
-		}
-		else
-		{
-			ShowDefensiveBuildings();
-		}
-	}
-	else
-	{
-		if ( EconomyCardBox )
-		{
-			EconomyCardBox->SetVisibility( ESlateVisibility::Collapsed );
-		}
-		if ( DefensiveCardBox )
-		{
-			DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
-		}
-	}
-}
-
-void UGameHUDWidget::CancelCurrentBuilding()
-{
-	UCoreManager* core = UCoreManager::Get( this );
-	ABuildManager* bM = core ? core->GetBuildManager() : nullptr;
-
-	if ( bM && bM->IsPlacing() )
-	{
-		bM->CancelPlacing();
-	}
-
-	bIsBuildingLocked = false;
-	LockedBuildingClass = nullptr;
-
-	if ( ActiveEconomyTooltip )
-	{
-		ActiveEconomyTooltip->SetLocked( false );
-	}
-	if ( ActiveDefensiveTooltip )
-	{
-		ActiveDefensiveTooltip->SetLocked( false );
-	}
-}
-
-void UGameHUDWidget::OnPlacingCancelled()
-{
-	bIsBuildingLocked = false;
-	LockedBuildingClass = nullptr;
-
-	if ( ActiveEconomyTooltip )
-	{
-		ActiveEconomyTooltip->SetLocked( false );
-		ActiveEconomyTooltip->HideTooltip();
-	}
-	if ( ActiveDefensiveTooltip )
-	{
-		ActiveDefensiveTooltip->SetLocked( false );
-		ActiveDefensiveTooltip->HideTooltip();
-	}
-}
-
-void UGameHUDWidget::UpdateCategoryButtonsVisual()
-{
-	if ( ButtonEconomyBuilding )
-	{
-		float OffsetY = bShowingEconomyBuildings_ ? ActiveButtonLiftOffset : 0.0f;
-		ButtonEconomyBuilding->SetRenderTranslation( FVector2D( 0.0f, OffsetY ) );
-	}
-
-	if ( ButtonDefensiveBuildings )
-	{
-		float OffsetY = bShowingEconomyBuildings_ ? 0.0f : ActiveButtonLiftOffset;
-		ButtonDefensiveBuildings->SetRenderTranslation( FVector2D( 0.0f, OffsetY ) );
-	}
-}
-
-void UGameHUDWidget::UpdateAllBuildingButtons()
-{
-	UpdateButtonAvailability( ButtonBuildingWoodenHouse, WoodenHouseClass );
-	UpdateButtonAvailability( ButtonBuildingStrawHouse, StrawHouseClass );
-	UpdateButtonAvailability( ButtonBuildingFarm, FarmClass );
-	UpdateButtonAvailability( ButtonBuildingLawnHouse, LawnHouseClass );
-	UpdateButtonAvailability( ButtonBuildingMagicHouse, MagicHouseClass );
-
-	UpdateButtonAvailability( ButtonBuildingWoodWall, WoodWallClass );
-	UpdateButtonAvailability( ButtonBuildingStoneWall, StoneWallClass );
-	UpdateButtonAvailability( ButtonBuildingTowerT0, TowerT0Class );
-	UpdateButtonAvailability( ButtonBuildingTowerT1, TowerT1Class );
-	UpdateButtonAvailability( ButtonBuildingTowerT2, TowerT2Class );
-	UpdateButtonAvailability( ButtonBuildingMortira, TowerMortiraClass );
-}
-
-void UGameHUDWidget::UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass )
-{
-	if ( !button || !buildingClass )
-	{
-		return;
-	}
-
-	UCoreManager* core = UCoreManager::Get( this );
-	UResourceManager* rM = core ? core->GetResourceManager() : nullptr;
-
-	if ( !rM )
-	{
-		return;
-	}
-
-	const ABuilding* buildingCDO = buildingClass->GetDefaultObject<ABuilding>();
-	bool bCanAfford = rM->CanAfford( buildingCDO->GetBuildingCost() );
-
-	button->SetRenderOpacity( bCanAfford ? 1.0f : 0.4f );
-	button->SetBackgroundColor( bCanAfford ? AffordableColor : TooExpensiveColor );
-}
-
-void UGameHUDWidget::OnBuildingUnhovered()
-{
-	if ( bIsBuildingLocked && LockedBuildingClass )
-	{
-		ShowTooltipForBuilding( LockedBuildingClass );
-	}
-	else
-	{
-		if ( ActiveEconomyTooltip )
-		{
-			ActiveEconomyTooltip->HideTooltip();
-		}
-		if ( ActiveDefensiveTooltip )
-		{
-			ActiveDefensiveTooltip->HideTooltip();
-		}
-	}
-	HideTooltipForBuilding();
-}
-
-void UGameHUDWidget::PlayOnBuildingButtonClickedSound( const UButton* button ) const
-{
-	if ( button && button->GetBackgroundColor() == AffordableColor )
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_CLICKED } );
-	}
-	else
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_CLICKED } );
-	}
-}
-
-void UGameHUDWidget::PlayOnBuildingButtonHoveredSound( const UButton* button ) const
-{
-	if ( button && button->GetBackgroundColor() == AffordableColor )
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_HOVERED } );
-	}
-	else
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDING_UNAFFORDABLE_HOVERED } );
-	}
-
-
-}
-
 void UGameHUDWidget::ToggleWaveInfoPanel()
 {
 	if ( IsValid( ActiveWavePanel ) )
@@ -1297,76 +702,6 @@ void UGameHUDWidget::TogglePauseMenu()
 	}
 }
 
-UBuildingTooltipWidget* UGameHUDWidget::EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck )
-{
-	if ( !buildingForTypeCheck )
-	{
-		HideTooltipForBuilding();
-		return nullptr;
-	}
-
-	TSubclassOf<UBuildingTooltipWidget> tooltipClass =
-	    buildingForTypeCheck->IsA<ADefensiveBuilding>() ? DefensiveTooltipClass : EconomyTooltipClass;
-
-	if ( !tooltipClass )
-	{
-		HideTooltipForBuilding();
-		return nullptr;
-	}
-
-	if ( !CurrentTooltip || !CurrentTooltip->IsA( tooltipClass ) )
-	{
-		if ( CurrentTooltip )
-		{
-			CurrentTooltip->RemoveFromParent();
-			CurrentTooltip = nullptr;
-		}
-
-		CurrentTooltip = CreateWidget<UBuildingTooltipWidget>( GetWorld(), tooltipClass );
-		if ( !CurrentTooltip )
-		{
-			return nullptr;
-		}
-
-		CurrentTooltip->AddToViewport( 99 );
-	}
-
-	CurrentTooltip->SetVisibility( ESlateVisibility::HitTestInvisible );
-	return CurrentTooltip;
-}
-
-void UGameHUDWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
-{
-	const ABuilding* cdo = buildingClass ? buildingClass->GetDefaultObject<ABuilding>() : nullptr;
-	if ( UBuildingTooltipWidget* tooltip = EnsureTooltipForBuilding( cdo ) )
-	{
-		tooltip->ShowTooltip( buildingClass );
-	}
-}
-
-void UGameHUDWidget::ShowTooltipForBuilding( const ABuilding* building )
-{
-	if ( UBuildingTooltipWidget* tooltip = EnsureTooltipForBuilding( building ) )
-	{
-		tooltip->ShowTooltipForBuildingInstance( building );
-	}
-}
-
-void UGameHUDWidget::InitializeTooltipWidget(
-    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
-)
-{
-	if ( TooltipClass && !OutTooltip )
-	{
-		OutTooltip = CreateWidget<UBuildingTooltipWidget>( this, TooltipClass );
-		if ( OutTooltip )
-		{
-			OutTooltip->AddToViewport( 99 );
-			OutTooltip->ForceHide();
-		}
-	}
-}
-
 bool UGameHUDWidget::AddBossBar( UHealthBarWidget* bar )
 {
 	if ( !bar )
@@ -1426,7 +761,10 @@ void UGameHUDWidget::HandleSelectionChanged()
 	if ( IsValid( selectedBuilding ) )
 	{
 		HideTooltipForEnemy();
-		ShowTooltipForBuilding( selectedBuilding );
+		if ( BuildingPanel )
+		{
+			BuildingPanel->ShowTooltipForBuilding( selectedBuilding );
+		}
 
 		if ( ADefensiveBuilding* defensive = Cast<ADefensiveBuilding>( selectedBuilding ) )
 		{
@@ -1435,7 +773,10 @@ void UGameHUDWidget::HandleSelectionChanged()
 	}
 	else if ( IsValid( selectedUnit ) )
 	{
-		HideTooltipForBuilding();
+		if ( BuildingPanel )
+		{
+			BuildingPanel->HideTooltipForBuilding();
+		}
 
 		if ( IsValid( ActiveEnemyTooltip ) )
 		{
@@ -1444,7 +785,10 @@ void UGameHUDWidget::HandleSelectionChanged()
 	}
 	else
 	{
-		HideTooltipForBuilding();
+		if ( BuildingPanel )
+		{
+			BuildingPanel->HideTooltipForBuilding();
+		}
 		HideTooltipForEnemy();
 	}
 }
@@ -1520,7 +864,10 @@ void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 	if ( !SelectionManager )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "InitSelectionManager: SelectionManager is null" ) );
-		HideTooltipForBuilding();
+		if ( BuildingPanel )
+		{
+			BuildingPanel->HideTooltipForBuilding();
+		}
 		return;
 	}
 
@@ -1533,11 +880,12 @@ void UGameHUDWidget::InitSelectionManager( USelectionManagerComponent* InSelecti
 
 void UGameHUDWidget::HideTooltipForBuilding()
 {
-	if ( CurrentTooltip )
+	if ( BuildingPanel )
 	{
-		CurrentTooltip->HideTooltip();
+		BuildingPanel->HideTooltipForBuilding();
 	}
 }
+
 void UGameHUDWidget::HideTooltipForEnemy()
 {
 	if ( IsValid( ActiveEnemyTooltip ) )

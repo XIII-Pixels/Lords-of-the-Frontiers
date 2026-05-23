@@ -53,6 +53,7 @@ public:
 protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_HealthIcon;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_HealthValue;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_HealthLabel;
 };
 
 // str stats

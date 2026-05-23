@@ -13,6 +13,7 @@
 #include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
 #include "EntityStats.h"
+#include "Localization/GameLocalization.h"
 #include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
 #include "Lords_Frontiers/Public/Match/MatchStatsTracker.h"
 #include "Lords_Frontiers/Public/Units/Unit.h"
@@ -168,7 +169,7 @@ void UGameSessionController::EndGame( EGameResult result )
 			{
 				const FString playerName = ( tracker->GetConfig() && !tracker->GetConfig()->PlayerEntryName.IsEmpty() )
 												? tracker->GetConfig()->PlayerEntryName
-												: TEXT( "Ты" );
+												: LF_LOC( "Player.Self" ).ToString();
 				tracker->FinalizeAndPush( playerName );
 			}
 		}

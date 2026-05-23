@@ -10,6 +10,7 @@
 #include "Engine/GameInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Localization/GameLocalization.h"
 #include "Lords_Frontiers/Public/Match/LeaderboardSubsystem.h"
 #include "Lords_Frontiers/Public/Match/MatchResultsLeaderboardRowWidget.h"
 #include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
@@ -303,10 +304,10 @@ void UMatchResultsWidget::ApplyTextsToBoundWidgets()
 		FText title;
 		switch ( SessionResult )
 		{
-		case EGameResult::Win: title = FText::FromString( TEXT( "Победа" ) ); break;
-		case EGameResult::Lose: title = FText::FromString( TEXT( "Поражение" ) ); break;
-		case EGameResult::EndlessRun: title = FText::FromString( TEXT( "Бесконечный режим" ) ); break;
-		case EGameResult::Abandoned: title = FText::FromString( TEXT( "Прервано" ) ); break;
+		case EGameResult::Win: title = LF_LOC( "MatchResult.Win" ); break;
+		case EGameResult::Lose: title = LF_LOC( "MatchResult.Lose" ); break;
+		case EGameResult::EndlessRun: title = LF_LOC( "MatchResult.Endless" ); break;
+		case EGameResult::Abandoned: title = LF_LOC( "MatchResult.Abandoned" ); break;
 		default: title = FText::GetEmpty(); break;
 		}
 		ResultTitleText->SetText( title );

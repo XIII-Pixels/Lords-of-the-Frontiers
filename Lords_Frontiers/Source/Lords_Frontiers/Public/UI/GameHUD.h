@@ -12,6 +12,7 @@
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
+#include "UI/Widgets/HUDBuildingPanelWidget.h"
 #include "UI/Widgets/HUDResourcePanelWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
 #include "UI/Widgets/EnemyTooltipWidget.h"
@@ -38,8 +39,8 @@ class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget, public IAudioEven
 	GENERATED_BODY()
 
 public:
-	UPROPERTY( meta = ( BindWidget ) )
-	UImage* BackForButton;
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UHUDBuildingPanelWidget> BuildingPanel;
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonRelocateBuilding;
@@ -49,64 +50,6 @@ public:
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonEndTurn;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonEconomyBuilding;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonDefensiveBuildings;
-
-	// ==== economic buildings ====
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingWoodenHouse;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingStrawHouse;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingFarm;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingLawnHouse;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingMagicHouse;
-
-	// ==== defensive buildings ====
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingWoodWall;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingStoneWall;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingTowerT0;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingTowerT1;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingTowerT2;
-
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonBuildingMortira;
-
-	// Panels where we will add building cards
-	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UPanelWidget> BuildingClassGrid;
-
-	UPROPERTY( meta = ( BindWidget ) )
-	UHorizontalBox* EconomyCardBox;
-
-	UPROPERTY( meta = ( BindWidget ) )
-	UHorizontalBox* DefensiveCardBox;
-
-	// Editable arrays of widget classes (card widgets) per category
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings|CardClasses" )
-	TArray<TSubclassOf<UUserWidget>> EconomyBuildingCardClasses;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings|CardClasses" )
-	TArray<TSubclassOf<UUserWidget>> DefensiveBuildingCardClasses;
 
 	UPROPERTY( meta = ( BindWidget ) )
 	UImage* Strokestatus;
@@ -126,42 +69,6 @@ public:
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UCombatTimerWidget> CombatTimerPanel;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> WoodenHouseClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> StrawHouseClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> FarmClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> LawnHouseClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> MagicHouseClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> WoodWallClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> StoneWallClass;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> TowerT0Class;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> TowerT1Class;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> TowerT2Class;
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
-	TSubclassOf<ABuilding> TowerMortiraClass;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Buttons" )
-	float ActiveButtonLiftOffset = -10.0f;
 
 	UPROPERTY( meta = ( BindWidget ) )
 	TObjectPtr<UCanvasPanel> BonusIconCanvas;
@@ -222,36 +129,17 @@ public:
 	UFUNCTION()
 	void InitSelectionManager( USelectionManagerComponent* InSelectionManager );
 
-	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
-	void ShowTooltipForBuilding( const ABuilding* BuildingInstance );
-
-private:
-	UBuildingTooltipWidget* EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck );
-
-public:
-
-	UFUNCTION( BlueprintCallable )
-	void HideTooltipForBuilding();
-
 	UFUNCTION( BlueprintCallable )
 	void HideTooltipForEnemy();
 
-	UPROPERTY()
-	TObjectPtr<UBuildingTooltipWidget> CurrentTooltip;
+	UFUNCTION( BlueprintCallable )
+	void HideTooltipForBuilding();
 
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
 
-	void UpdateBuildingUIVisibility();
-	void CancelCurrentBuilding();
-
-	UFUNCTION()
-	void OnPlacingCancelled();
-
-	bool bShowingEconomyBuildings_ = true;
-	// Button handlers
 	UFUNCTION()
 	void OnRelocateBuildingClicked();
 
@@ -259,174 +147,27 @@ protected:
 	void OnRemoveBuildingClicked();
 
 	UFUNCTION()
-	void OnDefensiveBuildingsClicked();
-
-	UFUNCTION()
-	void OnEconomyBuildingClicked();
-
-	UFUNCTION()
 	void OnEndTurnClicked();
 
-	void ShowEconomyBuildings();
-	void ShowDefensiveBuildings();
-	// GameLoop handlers
 	UFUNCTION()
 	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
 
 	UFUNCTION()
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
 
-	// Update methods
 	void UpdateDayText();
 	void UpdateStatusText();
 	void UpdateButtonVisibility();
-
-	UFUNCTION()
-	void HandleResourceChanged( EResourceType Type, int32 NewAmount );
-
-	UFUNCTION()
-	void OnBuildWoodenHouseClicked();
-
-	UFUNCTION()
-	void OnBuildStrawHouseClicked();
-
-	UFUNCTION()
-	void OnBuildFarmClicked();
-
-	UFUNCTION()
-	void OnBuildLawnHouseClicked();
-
-	UFUNCTION()
-	void OnBuildMagicHouseClicked();
-
-	UFUNCTION()
-	void OnBuildWoodWallClicked();
-
-	UFUNCTION()
-	void OnBuildStoneWallClicked();
-
-	UFUNCTION()
-	void OnBuildTowerT0Clicked();
-
-	UFUNCTION()
-	void OnBuildTowerT1Clicked();
-
-	UFUNCTION()
-	void OnBuildTowerT2Clicked();
-
-	UFUNCTION()
-	void OnBuildTowerMortiraClicked();
-
-	void UpdateCategoryButtonsVisual();
-
-	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
-
-	void UpdateAllBuildingButtons();
-
-	void UpdateButtonAvailability( UButton* button, TSubclassOf<ABuilding> buildingClass );
 
 	virtual FOnAudioEvent& GetOnAudioEvent() override
 	{
 		return OnAudioEvent_;
 	}
 
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
-	FLinearColor AffordableColor = FLinearColor::White;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Visuals" )
-	FLinearColor TooExpensiveColor = FLinearColor( 0.3f, 0.3f, 0.3f, 1.0f );
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
-	TSubclassOf<UBuildingTooltipWidget> EconomyTooltipClass;
-
-	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
-	TSubclassOf<UBuildingTooltipWidget> DefensiveTooltipClass;
-
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Tooltip" )
 	TSubclassOf<UEnemyTooltipWidget> EnemyTooltipClass;
 
 	UPROPERTY() TObjectPtr<UEnemyTooltipWidget> ActiveEnemyTooltip;
-
-	FTimerHandle TooltipTimerHandle;
-
-	UPROPERTY()
-	TSubclassOf<ABuilding> PendingBuildingClass;
-
-	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveEconomyTooltip;
-	UPROPERTY() TObjectPtr<UBuildingTooltipWidget> ActiveDefensiveTooltip;
-
-	bool bIsBuildingLocked = false;
-	UPROPERTY() TSubclassOf<ABuilding> LockedBuildingClass;
-
-	void InitializeTooltipWidget(
-	    TSubclassOf<UBuildingTooltipWidget> TooltipClass, TObjectPtr<UBuildingTooltipWidget>& OutTooltip
-	);
-
-	UFUNCTION() void OnHoverWoodenHouse()
-	{
-		ShowTooltipForBuilding( WoodenHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingWoodenHouse );
-	}
-
-	UFUNCTION() void OnHoverStrawHouse()
-	{
-		ShowTooltipForBuilding( StrawHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingStrawHouse );
-	}
-
-	UFUNCTION() void OnHoverFarm()
-	{
-		ShowTooltipForBuilding( FarmClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingFarm );
-	}
-
-	UFUNCTION() void OnHoverLawnHouse()
-	{
-		ShowTooltipForBuilding( LawnHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingLawnHouse );
-	}
-
-	UFUNCTION() void OnHoverMagicHouse()
-	{
-		ShowTooltipForBuilding( MagicHouseClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingMagicHouse );
-	}
-
-	UFUNCTION() void OnHoverWoodWall()
-	{
-		ShowTooltipForBuilding( WoodWallClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingWoodWall );
-	}
-
-	UFUNCTION() void OnHoverStoneWall()
-	{
-		ShowTooltipForBuilding( StoneWallClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingStoneWall );
-	}
-
-	UFUNCTION() void OnHoverTowerT0()
-	{
-		ShowTooltipForBuilding( TowerT0Class );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT0 );
-	}
-
-	UFUNCTION() void OnHoverTowerT1()
-	{
-		ShowTooltipForBuilding( TowerT1Class );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT1 );
-	}
-
-	UFUNCTION() void OnHoverTowerT2()
-	{
-		ShowTooltipForBuilding( TowerT2Class );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingTowerT2 );
-	}
-
-	UFUNCTION() void OnHoverTowerMortira()
-	{
-		ShowTooltipForBuilding( TowerMortiraClass );
-		PlayOnBuildingButtonHoveredSound( ButtonBuildingMortira );
-	}
 
 	UFUNCTION()
 	void OnHoverEndTurn()
@@ -447,27 +188,10 @@ protected:
 	}
 
 	UFUNCTION()
-	void OnHoverEconomyBuilding()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverDefensiveBuildings()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_BUILDINGCATEGORY_HOVERED } );
-	}
-
-	UFUNCTION()
 	void OnHoverWaveInfoButton()
 	{
 		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED } );
 	}
-
-	UFUNCTION() void OnBuildingUnhovered();
-
-	void PlayOnBuildingButtonClickedSound( const UButton* button ) const;
-	void PlayOnBuildingButtonHoveredSound( const UButton* button ) const;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;

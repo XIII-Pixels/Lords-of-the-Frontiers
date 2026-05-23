@@ -8,6 +8,7 @@
 #include "Cards/CardSubsystem.h"
 #include "Building/ResourceBuilding.h"
 #include "Core/CoreManager.h"
+#include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/BuildingUIConfig.h"
 
@@ -34,7 +35,7 @@ void UBuildingTooltipResourceRow::Setup(
 	}
 	if ( IsValid( Text_Suffix ) )
 	{
-		Text_Suffix->SetText( FText::FromString( TEXT( "/ход  " ) ) );
+		Text_Suffix->SetText( LF_LOC( "Tooltip.PerTurn" ) );
 		Text_Suffix->SetVisibility(
 		    bShowTurnSuffix ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
 		);
@@ -62,6 +63,10 @@ void UBuildingTooltipHealthRow::Setup( UTexture2D* icon, const FString& healthVa
 	if ( IsValid( Img_HealthIcon ) && IsValid( icon ) )
 	{
 		Img_HealthIcon->SetBrushFromTexture( icon );
+	}
+	if ( IsValid( Text_HealthLabel ) )
+	{
+		Text_HealthLabel->SetText( LF_LOC( "Stats.Health" ) );
 	}
 	if ( IsValid( Text_HealthValue ) )
 	{
@@ -480,7 +485,7 @@ void UBuildingTooltipWidget::UpdateHeader( const ABuilding* cdo )
 	else
 	{
 		Text_Name->SetText( FText::FromString( const_cast<ABuilding*>( cdo )->GetNameBuild() ) );
-		Text_Description->SetText( FText::FromString( TEXT( "Нет описания" ) ) );
+		Text_Description->SetText( LF_LOC( "Tooltip.NoDescription" ) );
 	}
 }
 
@@ -636,13 +641,20 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* building )
 			}
 		};
 
-		addStatRow( EStatsType::AttackDamage, TEXT( "Урон" ), FString::FromInt( stats.AttackDamage() ) );
 		addStatRow(
-		    EStatsType::AttackCooldown, TEXT( "Скорость" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
+		    EStatsType::AttackDamage, LF_LOC( "Stats.Damage" ).ToString(), FString::FromInt( stats.AttackDamage() )
 		);
-		addStatRow( EStatsType::AttackRange, TEXT( "Радиус" ), FString::Printf( TEXT( "%.0f" ), stats.AttackRange() ) );
 		addStatRow(
-		    EStatsType::SplashRadius, TEXT( "Область" ), ( stats.SplashRadius() > 0.0f ) ? TEXT( "Да" ) : TEXT( "Нет" )
+		    EStatsType::AttackCooldown, LF_LOC( "Stats.Speed" ).ToString(),
+		    FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
+		);
+		addStatRow(
+		    EStatsType::AttackRange, LF_LOC( "Stats.Range" ).ToString(),
+		    FString::Printf( TEXT( "%.0f" ), stats.AttackRange() )
+		);
+		addStatRow(
+		    EStatsType::SplashRadius, LF_LOC( "Stats.SplashArea" ).ToString(),
+		    ( stats.SplashRadius() > 0.0f ) ? LF_LOC( "Stats.Yes" ).ToString() : LF_LOC( "Stats.No" ).ToString()
 		);
 	}
 }
