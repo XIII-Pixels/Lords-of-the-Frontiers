@@ -89,17 +89,8 @@ public:
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
 	TArray<FVector> ActiveBonusWorldPositions_;
 
-	UFUNCTION( BlueprintCallable, Category = "UI|WaveInfo" )
-	void ToggleWaveInfoPanel();
-
 	UFUNCTION()
 	void UpdateWaveInfo();
-
-	UPROPERTY( meta = ( BindWidget ) )
-	TObjectPtr<UButton> BtnToggleWaveInfo;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> Text_TotalEnemies;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UStageProgressWidget> StageProgressBar;
@@ -187,20 +178,14 @@ protected:
 		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_DEMOLISHBUILDING_HOVERED } );
 	}
 
-	UFUNCTION()
-	void OnHoverWaveInfoButton()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_NEXTWAVEINFO_HOVERED } );
-	}
-
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;
 
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UWaveInfoPanelWidget> WaveInfoPanel;
+
 	UPROPERTY()
 	TObjectPtr<UWaveInfoPanelWidget> ActiveWavePanel;
-
-	UFUNCTION()
-	void OnWaveInfoButtonClicked();
 
 	UFUNCTION()
 	void HandleGameEnded( EGameResult Result );

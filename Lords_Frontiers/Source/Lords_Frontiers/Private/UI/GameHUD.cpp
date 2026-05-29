@@ -62,12 +62,6 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
-	if ( BtnToggleWaveInfo )
-	{
-		BtnToggleWaveInfo->OnClicked.AddDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
-		BtnToggleWaveInfo->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverWaveInfoButton );
-	}
-
 	// Sound
 	if ( const UWorld* world = GetWorld() )
 	{
@@ -94,7 +88,11 @@ void UGameHUDWidget::NativeConstruct()
 	UpdateStatusText();
 	UpdateButtonVisibility();
 
-	if ( IsValid( WavePanelClass ) && !IsValid( ActiveWavePanel ) )
+	if ( IsValid( WaveInfoPanel ) )
+	{
+		ActiveWavePanel = WaveInfoPanel;
+	}
+	else if ( IsValid( WavePanelClass ) && !IsValid( ActiveWavePanel ) )
 	{
 		ActiveWavePanel = CreateWidget<UWaveInfoPanelWidget>( this, WavePanelClass );
 		if ( IsValid( ActiveWavePanel ) )
@@ -122,12 +120,6 @@ void UGameHUDWidget::NativeDestruct()
 	{
 		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
 		ButtonEndTurn->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
-	}
-
-	if ( BtnToggleWaveInfo )
-	{
-		BtnToggleWaveInfo->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnWaveInfoButtonClicked );
-		BtnToggleWaveInfo->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverWaveInfoButton );
 	}
 
 	if ( ABuildManager* buildManager =
@@ -553,18 +545,14 @@ void UGameHUDWidget::OnRemoveBuildingClicked()
 	HandleSelectionChanged();
 	UpdateExtraButtonsVisibility();
 }
-void UGameHUDWidget::ToggleWaveInfoPanel()
-{
-	if ( IsValid( ActiveWavePanel ) )
-	{
-		ActiveWavePanel->TogglePanel();
-	}
-}
-
 void UGameHUDWidget::UpdateWaveInfo()
 {
 	if ( !IsValid( ActiveWavePanel ) )
 	{
+		UE_LOG( LogTemp, Warning,
+		        TEXT( "GameHUD::UpdateWaveInfo skipped — ActiveWavePanel null (WaveInfoPanel bound=%s, WavePanelClass=%s)" ),
+		        IsValid( WaveInfoPanel ) ? TEXT( "yes" ) : TEXT( "no" ),
+		        IsValid( WavePanelClass ) ? TEXT( "yes" ) : TEXT( "no" ) );
 		return;
 	}
 
@@ -592,24 +580,8 @@ void UGameHUDWidget::UpdateWaveInfo()
 			waveData = waveManager->GetNextWaveComposition( waveIndex );
 		}
 
-		int32 totalEnemies = 0;
-		for ( const TPair<TSubclassOf<AUnit>, int32>& pair : waveData )
-		{
-			totalEnemies += pair.Value;
-		}
-
-		if ( IsValid( Text_TotalEnemies ) )
-		{
-			Text_TotalEnemies->SetText( FText::AsNumber( totalEnemies ) );
-		}
-
 		ActiveWavePanel->PopulatePanel( waveData );
 	}
-}
-
-void UGameHUDWidget::OnWaveInfoButtonClicked()
-{
-	ToggleWaveInfoPanel();
 }
 
 void UGameHUDWidget::HandleGameEnded( EGameResult Result )
