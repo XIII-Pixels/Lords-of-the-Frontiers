@@ -38,7 +38,7 @@ void UAlphaHitImage::StopTicker()
 	TickHandle_.Reset();
 }
 
-bool UAlphaHitImage::TickUpdate( float /*deltaTime*/ )
+bool UAlphaHitImage::TickUpdate( float  )
 {
 	if ( !IsValid( this ) )
 	{

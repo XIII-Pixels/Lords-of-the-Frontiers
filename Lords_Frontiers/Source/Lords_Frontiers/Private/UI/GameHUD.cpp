@@ -8,6 +8,8 @@
 #include "Core/Debug/DebugPlayerController.h"
 #include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
+#include "UI/CursorAnim/CursorAnimationConfig.h"
+#include "UI/CursorAnim/CursorAnimationSubsystem.h"
 #include "UI/HealthBar/HealthBarWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/StageProgressWidget.h"
@@ -26,6 +28,11 @@
 void UGameHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if ( UCursorAnimationSubsystem* cursorAnimSubsystem = UCursorAnimationSubsystem::Get( this ) )
+	{
+		cursorAnimSubsystem->SetConfig( CursorAnimConfig );
+	}
 
 	if ( ButtonRelocateBuilding )
 	{

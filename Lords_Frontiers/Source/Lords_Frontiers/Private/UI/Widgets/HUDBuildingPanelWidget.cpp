@@ -355,7 +355,7 @@ void UHUDBuildingPanelWidget::ShowEconomyBuildings()
 
 	if ( EconomyCardBox )
 	{
-		EconomyCardBox->SetVisibility( ESlateVisibility::Visible );
+		EconomyCardBox->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
 	}
 	if ( DefensiveCardBox )
 	{
@@ -375,7 +375,7 @@ void UHUDBuildingPanelWidget::ShowDefensiveBuildings()
 	}
 	if ( DefensiveCardBox )
 	{
-		DefensiveCardBox->SetVisibility( ESlateVisibility::Visible );
+		DefensiveCardBox->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
 	}
 
 	UpdateCategoryButtonsVisual();

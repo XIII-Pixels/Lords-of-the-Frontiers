@@ -33,6 +33,7 @@ class ABuilding;
 class UStageProgressWidget;
 class UGameStateOverlayWidget;
 class UHealthBarWidget;
+class UCursorAnimationConfig;
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget, public IAudioEventSource
 {
@@ -84,6 +85,9 @@ public:
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Bonus" )
 	TSubclassOf<UBonusIconWidget> BonusIconWidgetClass;
+
+	UPROPERTY( EditAnywhere, Category = "Settings|UI|CursorAnim" )
+	TObjectPtr<UCursorAnimationConfig> CursorAnimConfig;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UBonusIconWidget>> ActiveBonusIcons_;
