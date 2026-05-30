@@ -12,14 +12,12 @@
 #include "UI/CursorAnim/CursorAnimationSubsystem.h"
 #include "UI/HealthBar/HealthBarWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
-#include "UI/Widgets/StageProgressWidget.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraZoomUtils.h"
 #include "Camera/StrategyCamera.h"
 #include "Components/GridPanel.h"
 #include "Components/HorizontalBox.h"
-#include "Components/TextBlock.h"
 #include "GameFramework/GameStateBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/AudioTags.h"
@@ -91,7 +89,6 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
-	UpdateDayText();
 	UpdateStatusText();
 	UpdateButtonVisibility();
 
@@ -165,31 +162,12 @@ void UGameHUDWidget::NativeDestruct()
 void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 {
 	UpdateStatusText();
-
-	if ( StageProgressBar && MaxTurns > 0 )
-	{
-		float progress = static_cast<float>( CurrentTurn - 1 ) / static_cast<float>( MaxTurns );
-		StageProgressBar->SetTargetProgress( FMath::Clamp( progress, 0.0f, 1.0f ) );
-	}
 }
 
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
 {
-	UpdateDayText();
 	UpdateStatusText();
 	UpdateButtonVisibility();
-
-	if ( StageProgressBar )
-	{
-		if ( NewPhase == EGameLoopPhase::Combat )
-		{
-			StageProgressBar->SetTargetProgress( 1.0f );
-		}
-		else if ( NewPhase != EGameLoopPhase::Building )
-		{
-			StageProgressBar->ResetProgressImmediate();
-		}
-	}
 
 	UpdateExtraButtonsVisibility();
 
@@ -358,29 +336,6 @@ void UGameHUDWidget::ClearBonusIcons()
 	}
 	ActiveBonusIcons_.Empty();
 	ActiveBonusWorldPositions_.Empty();
-}
-
-void UGameHUDWidget::UpdateDayText()
-{
-	if ( !TextDay )
-	{
-		return;
-	}
-
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	}
-
-	UGameLoopManager* gL = core->GetGameLoop();
-	if ( !gL )
-	{
-		return;
-	}
-
-	int32 wave = gL->GetCurrentWave();
-	TextDay->SetText( FText::Format( LF_LOC( "HUD.Day" ), FText::AsNumber( wave ) ) );
 }
 
 void UGameHUDWidget::UpdateStatusText()

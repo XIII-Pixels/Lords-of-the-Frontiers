@@ -14,7 +14,7 @@
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/HUDBuildingPanelWidget.h"
 #include "UI/Widgets/HUDResourcePanelWidget.h"
-#include "UI/Widgets/StageProgressWidget.h"
+#include "UI/Widgets/PhasePanelWidget.h"
 #include "UI/Widgets/EnemyTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
@@ -30,7 +30,6 @@
 #include "GameHUD.generated.h"
 
 class ABuilding;
-class UStageProgressWidget;
 class UGameStateOverlayWidget;
 class UHealthBarWidget;
 class UCursorAnimationConfig;
@@ -61,9 +60,8 @@ public:
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|Status" )
 	UTexture2D* BackEveningTexture;
 
-	// ==== text ====
-	UPROPERTY( meta = ( BindWidget ) )
-	UTextBlock* TextDay;
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UPhasePanelWidget> PhasePanel;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UHUDResourcePanelWidget> ResourcePanel;
@@ -95,9 +93,6 @@ public:
 
 	UFUNCTION()
 	void UpdateWaveInfo();
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UStageProgressWidget> StageProgressBar;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|UI|Overlay" )
 	TSubclassOf<UGameStateOverlayWidget> WinWidgetClass;
@@ -150,7 +145,6 @@ protected:
 	UFUNCTION()
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
 
-	void UpdateDayText();
 	void UpdateStatusText();
 	void UpdateButtonVisibility();
 

@@ -437,6 +437,24 @@ void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 {
 	const ESlateVisibility hiddenVisibility = ESlateVisibility::Collapsed;
 
+	// A KeepState book animation keeps re-applying its last keyframe (including the art's
+	// Visibility track) even after it finishes, which overrides the SetVisibility calls
+	// below and leaves BookImage / PagesImage on screen while the non-animated grids hide.
+	// Stop both book animations so the collapse actually sticks. This also runs from
+	// BookCloseAnim's own finished callback, so guard against re-entering that callback.
+	if ( !bVisible && !bApplyingBookVisuals_ )
+	{
+		TGuardValue<bool> reentryGuard( bApplyingBookVisuals_, true );
+		if ( BookOpenAnim )
+		{
+			StopAnimation( BookOpenAnim );
+		}
+		if ( BookCloseAnim )
+		{
+			StopAnimation( BookCloseAnim );
+		}
+	}
+
 	// BookRoot is decorative — let children handle hit-testing on their own.
 	if ( BookRoot )
 	{
@@ -472,6 +490,17 @@ void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 	if ( BackdropButton )
 	{
 		BackdropButton->SetVisibility( bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+
+	// The decorative book frame/pages often live outside the optional BookRoot / BookImage /
+	// PagesImage bindings (they are BindWidgetOptional and frequently left unbound), so
+	// collapsing only those leaves the frame on screen after close while just the bound grids
+	// hide. When the open trigger is external — this overlay has no internal OpenBookButton —
+	// collapse the whole widget as a guaranteed hide; OpenBook (called from the external
+	// trigger) restores it. SelfHitTestInvisible keeps the backdrop/cards clickable while open.
+	if ( !OpenBookButton )
+	{
+		SetVisibility( bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed );
 	}
 }
 

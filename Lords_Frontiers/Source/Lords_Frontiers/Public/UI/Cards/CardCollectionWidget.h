@@ -284,6 +284,7 @@ private:
 	TArray<FIntPoint> CellGridPositions_;
 
 	bool bIsOpen_ = false;
+	bool bApplyingBookVisuals_ = false;
 	FVector2D LastAppliedCellSize_ = FVector2D::ZeroVector;
 	FVector2D LastAppliedPageSize_ = FVector2D::ZeroVector;
 
