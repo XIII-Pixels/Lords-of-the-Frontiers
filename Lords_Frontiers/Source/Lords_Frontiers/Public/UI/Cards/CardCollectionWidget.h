@@ -4,6 +4,9 @@
 
 #include "Blueprint/UserWidget.h"
 #include "CoreMinimal.h"
+#include "Styling/SlateBrush.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateTypes.h"
 #include "sound/AudioEvent.h"
 #include "sound/AudioEventSource.h"
 
@@ -14,7 +17,10 @@ class UCanvasPanel;
 class UCardDataAsset;
 class UCardSubsystem;
 class UCardWidget;
+class UCursorAnimFrameImage;
 class UImage;
+class UTextBlock;
+class UTexture2D;
 class UWidget;
 class UWidgetAnimation;
 
@@ -42,6 +48,20 @@ class UWidgetAnimation;
  * Cards in the book reuse the same UCardWidget hierarchy as the reward
  * selection screen so that visuals stay consistent across the two flows.
  *
+ * Pagination:
+ *   - The acquisition order is kept in full; only one spread (TotalCells
+ *     cards across both pages) is shown at a time.
+ *   - When there are more cards than fit on the current spread, the
+ *     PrevPageButton / NextPageButton arrows are revealed on the side the
+ *     player can flip towards. Clicking one swaps every card on both pages
+ *     for the previous / next batch.
+ *
+ * Toggle button:
+ *   - OpenBookButton acts as a toggle: clicking it opens the book when it is
+ *     closed and closes it when it is open.
+ *   - When bSwapOpenButtonImage is true the button shows OpenButtonClosedBrush
+ *     while the book is closed and OpenButtonOpenedBrush while it is open.
+ *
  * Sizing:
  *   - bUseManualCardSize = false: every cell is wrapped in a SizeBox sized
  *     from the page grid's rendered geometry. Width  = pageW / CardsPerRow,
@@ -55,8 +75,12 @@ class UWidgetAnimation;
  *     to ManualCardSize.
  *
  * Animations:
- *   - BookOpenAnim     plays when the book is shown.
- *   - BookCloseAnim    plays when the book is hidden (waited on before remove).
+ *   - ShowAnim / HideAnim drive the open / close transition exactly like
+ *     UHUDBuildingPanelWidget and UConstructionPanelWidget: ShowAnim plays
+ *     forward (or HideAnim in reverse) to open, HideAnim plays forward (or
+ *     ShowAnim in reverse) to close, and the book is collapsed once the
+ *     closing animation finishes. With neither bound the book toggles
+ *     instantly.
  *   - OpenButtonAnim   plays on the open button (intro / pulse / etc).
  *   These are bound by name from the widget BP via meta = ( BindWidgetAnim ).
  */
@@ -116,6 +140,7 @@ public:
 	}
 
 protected:
+	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick( const FGeometry& myGeometry, float deltaTime ) override;
@@ -145,9 +170,33 @@ protected:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> OpenBookButton;
 
+	/**
+	 * Optional text block (typically a child of OpenBookButton) showing how many
+	 * upgrade cards the player has taken so far. Recoloured between the closed and
+	 * open states via OpenButtonCountColorClosed / OpenButtonCountColorOpened.
+	 */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> OpenButtonCountText;
+
+	/**
+	 * Optional image widget placed inside OpenBookButton. When bound, the open/closed icon is applied
+	 * to THIS image (via its texture/brush) and the button's own style is left untouched. This is the
+	 * recommended setup — it avoids swapping the button's WidgetStyle entirely.
+	 */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UImage> OpenButtonImage;
+
 	/** Optional close button inside the book. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> CloseBookButton;
+
+	/** Optional arrow that flips to the previous spread. Shown only when there is a previous spread. */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> PrevPageButton;
+
+	/** Optional arrow that flips to the next spread. Shown only when there are more cards to show. */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> NextPageButton;
 
 	/**
 	 * Full-screen invisible button placed behind the book.
@@ -162,19 +211,19 @@ protected:
 
 	/** Book cover/background image — hidden until OpenBook is called. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UImage> BookImage;
+	TObjectPtr<UCursorAnimFrameImage> BookImage;
 
 	/** Open-pages image (the paper sheets) — hidden until OpenBook is called. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
-	TObjectPtr<UImage> PagesImage;
+	TObjectPtr<UCursorAnimFrameImage> PagesImage;
 
-	/** Plays when the book opens. Bind in the widget BP. */
+	/** Plays forward when the book opens (or in reverse to close). Bind in the widget BP. */
 	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
-	TObjectPtr<UWidgetAnimation> BookOpenAnim;
+	TObjectPtr<UWidgetAnimation> ShowAnim;
 
-	/** Plays when the book closes. Bind in the widget BP. */
+	/** Plays forward when the book closes (or in reverse to open). Bind in the widget BP. */
 	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
-	TObjectPtr<UWidgetAnimation> BookCloseAnim;
+	TObjectPtr<UWidgetAnimation> HideAnim;
 
 	/** Plays on the open-book button (e.g. intro / idle pulse). Bind in the widget BP. */
 	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
@@ -253,6 +302,44 @@ protected:
 	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Behavior" )
 	bool bPlayButtonAnimOnConstruct = true;
 
+	/**
+	 * If true, OpenBookButton swaps between OpenButtonClosedBrush and OpenButtonOpenedBrush
+	 * depending on whether the book is currently open.
+	 */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button" )
+	bool bSwapOpenButtonImage = true;
+
+	/** Image shown on OpenBookButton while the book is closed. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button",
+		meta = ( EditCondition = "bSwapOpenButtonImage" ) )
+	FSlateBrush OpenButtonClosedBrush;
+
+	/** Image shown on OpenBookButton while the book is open. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button",
+		meta = ( EditCondition = "bSwapOpenButtonImage" ) )
+	FSlateBrush OpenButtonOpenedBrush;
+
+	/**
+	 * Texture shown on OpenBookButton while the book is closed. Takes priority over
+	 * OpenButtonClosedBrush — assigning a texture is the simplest, most reliable way to set the icon.
+	 */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button",
+		meta = ( EditCondition = "bSwapOpenButtonImage" ) )
+	TObjectPtr<UTexture2D> OpenButtonClosedTexture;
+
+	/** Texture shown on OpenBookButton while the book is open. Takes priority over OpenButtonOpenedBrush. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button",
+		meta = ( EditCondition = "bSwapOpenButtonImage" ) )
+	TObjectPtr<UTexture2D> OpenButtonOpenedTexture;
+
+	/** Colour of OpenButtonCountText while the book is closed. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button" )
+	FSlateColor OpenButtonCountColorClosed = FSlateColor( FLinearColor::White );
+
+	/** Colour of OpenButtonCountText while the book is open. */
+	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Toggle Button" )
+	FSlateColor OpenButtonCountColorOpened = FSlateColor( FLinearColor( 1.0f, 0.84f, 0.4f, 1.0f ) );
+
 	/** Allow the player to click a card in the book to zoom it in. */
 	UPROPERTY( EditDefaultsOnly, BlueprintReadWrite, Category = "Card Collection|Interaction" )
 	bool bAllowCardClickZoom = true;
@@ -284,9 +371,20 @@ private:
 	TArray<FIntPoint> CellGridPositions_;
 
 	bool bIsOpen_ = false;
-	bool bApplyingBookVisuals_ = false;
+	bool bWantsVisible_ = false;
+
+	/** OpenBookButton's original BP style, captured before we ever override it (toggle fallback). */
+	FButtonStyle DefaultButtonStyle_;
+	bool bCapturedDefaultStyle_ = false;
 	FVector2D LastAppliedCellSize_ = FVector2D::ZeroVector;
 	FVector2D LastAppliedPageSize_ = FVector2D::ZeroVector;
+
+	/** Full acquisition display order, of which only the current spread is shown at a time. */
+	UPROPERTY()
+	TArray<TObjectPtr<UCardDataAsset>> FullDisplayOrder_;
+
+	/** Zero-based index of the spread (pair of pages) currently shown. */
+	int32 CurrentSpread_ = 0;
 
 	TWeakObjectPtr<UCardSubsystem> CachedCardSubsystem_;
 
@@ -294,6 +392,27 @@ private:
 
 	/** Produces the final display order: first-occurrence order, with duplicates grouped. */
 	static TArray<UCardDataAsset*> BuildDisplayOrder( const TArray<UCardDataAsset*>& acquisitionLog );
+
+	/** Stores the full order, clamps the current spread and rebuilds the visible cards. */
+	void ApplyDisplayOrder( const TArray<UCardDataAsset*>& displayOrder );
+
+	/** Rebuilds the cells for CurrentSpread_ and refreshes the page-flip arrows. */
+	void ShowCurrentSpread();
+
+	/** Number of spreads needed to show every acquired card (always at least 1). */
+	int32 GetSpreadCount() const;
+
+	/** Shows / hides PrevPageButton and NextPageButton based on the current spread. */
+	void UpdatePageNavVisual();
+
+	/** Applies the open/closed brush to OpenBookButton when bSwapOpenButtonImage is set. */
+	void UpdateToggleButtonVisual();
+
+	/** Number of upgrade cards the player has taken (acquisition log size, duplicates included). */
+	int32 GetAcquiredCardCount();
+
+	/** Refreshes OpenButtonCountText with the acquired count and the colour for the current state. */
+	void UpdateAcquiredCountText();
 
 	void RebuildCells( const TArray<UCardDataAsset*>& displayOrder );
 	void ClearCells();
@@ -306,6 +425,9 @@ private:
 
 	void AddCellToPage( UCanvasPanel* page, UWidget* cell, int32 row, int32 column );
 	void SetBookVisualsVisible( bool bVisible );
+
+	/** Plays the show/hide animation, matching UHUDBuildingPanelWidget / UConstructionPanelWidget. */
+	void PlayVisibilityAnim( bool bVisible );
 
 	/** Reads page geometry and updates every cell's SizeBox dimensions and canvas slot position. */
 	void UpdateCellLayout();
@@ -329,7 +451,16 @@ private:
 	void HandleBackdropClicked();
 
 	UFUNCTION()
-	void HandleCloseAnimFinished();
+	void HandleNextPageClicked();
+
+	UFUNCTION()
+	void HandlePrevPageClicked();
+
+	UFUNCTION()
+	void HandlePageButtonHovered();
+
+	UFUNCTION()
+	void OnVisibilityAnimFinished();
 
 	UFUNCTION()
 	void HandleCardsApplied( const TArray<UCardDataAsset*>& appliedCards );
@@ -346,7 +477,7 @@ private:
 	TWeakObjectPtr<UCardWidget> ZoomedCard_;
 	TWeakObjectPtr<class USizeBox> ZoomedSizeBox_;
 
-	FWidgetAnimationDynamicEvent CloseAnimDelegate_;
+	FWidgetAnimationDynamicEvent VisibilityAnimDelegate_;
 
 	FOnAudioEvent OnAudioEvent_;
 };

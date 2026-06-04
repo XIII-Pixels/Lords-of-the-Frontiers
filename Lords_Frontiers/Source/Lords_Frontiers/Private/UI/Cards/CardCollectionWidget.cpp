@@ -5,6 +5,7 @@
 #include "Cards/CardTypes.h"
 #include "Framework/Application/SlateApplication.h"
 #include "UI/Cards/CardWidget.h"
+#include "UI/CursorAnim/CursorAnimFrameImage.h"
 
 #include "Animation/WidgetAnimation.h"
 #include "Blueprint/WidgetTree.h"
@@ -14,9 +15,21 @@
 #include "Components/Image.h"
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
+#include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/AudioTags.h"
 #include "sound/SoundEffectManager.h"
+
+void UCardCollectionWidget::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+
+	// Runs in the UMG designer as well as at runtime, so the configured toggle-button brush
+	// and count colour are visible while editing instead of the default white button.
+	UpdateToggleButtonVisual();
+	UpdateAcquiredCountText();
+}
 
 void UCardCollectionWidget::NativeConstruct()
 {
@@ -39,14 +52,36 @@ void UCardCollectionWidget::NativeConstruct()
 		BackdropButton->OnClicked.AddDynamic( this, &UCardCollectionWidget::HandleBackdropClicked );
 	}
 
-	CloseAnimDelegate_.BindDynamic( this, &UCardCollectionWidget::HandleCloseAnimFinished );
-	if ( BookCloseAnim )
+	if ( NextPageButton )
 	{
-		BindToAnimationFinished( BookCloseAnim, CloseAnimDelegate_ );
+		NextPageButton->OnClicked.AddDynamic( this, &UCardCollectionWidget::HandleNextPageClicked );
+		NextPageButton->OnHovered.AddDynamic( this, &UCardCollectionWidget::HandlePageButtonHovered );
+	}
+
+	if ( PrevPageButton )
+	{
+		PrevPageButton->OnClicked.AddDynamic( this, &UCardCollectionWidget::HandlePrevPageClicked );
+		PrevPageButton->OnHovered.AddDynamic( this, &UCardCollectionWidget::HandlePageButtonHovered );
+	}
+
+	// Open/close animations follow the same forward/reverse contract as the building and
+	// construction panels: the same finished callback is bound to both animations.
+	VisibilityAnimDelegate_.BindDynamic( this, &UCardCollectionWidget::OnVisibilityAnimFinished );
+	if ( ShowAnim )
+	{
+		BindToAnimationFinished( ShowAnim, VisibilityAnimDelegate_ );
+	}
+	if ( HideAnim )
+	{
+		BindToAnimationFinished( HideAnim, VisibilityAnimDelegate_ );
 	}
 
 	SetBookVisualsVisible( false );
 	bIsOpen_ = false;
+	bWantsVisible_ = false;
+	UpdateToggleButtonVisual();
+	UpdateAcquiredCountText();
+	UpdatePageNavVisual();
 
 	if ( bPlayButtonAnimOnConstruct && OpenButtonAnim )
 	{
@@ -93,14 +128,30 @@ void UCardCollectionWidget::NativeDestruct()
 		BackdropButton->OnClicked.RemoveDynamic( this, &UCardCollectionWidget::HandleBackdropClicked );
 	}
 
+	if ( IsValid( NextPageButton ) )
+	{
+		NextPageButton->OnClicked.RemoveDynamic( this, &UCardCollectionWidget::HandleNextPageClicked );
+		NextPageButton->OnHovered.RemoveDynamic( this, &UCardCollectionWidget::HandlePageButtonHovered );
+	}
+
+	if ( IsValid( PrevPageButton ) )
+	{
+		PrevPageButton->OnClicked.RemoveDynamic( this, &UCardCollectionWidget::HandlePrevPageClicked );
+		PrevPageButton->OnHovered.RemoveDynamic( this, &UCardCollectionWidget::HandlePageButtonHovered );
+	}
+
 	if ( UCardSubsystem* subsystem = CachedCardSubsystem_.Get() )
 	{
 		subsystem->OnCardsApplied.RemoveDynamic( this, &UCardCollectionWidget::HandleCardsApplied );
 	}
 
-	if ( BookCloseAnim )
+	if ( ShowAnim )
 	{
-		UnbindFromAnimationFinished( BookCloseAnim, CloseAnimDelegate_ );
+		UnbindFromAnimationFinished( ShowAnim, VisibilityAnimDelegate_ );
+	}
+	if ( HideAnim )
+	{
+		UnbindFromAnimationFinished( HideAnim, VisibilityAnimDelegate_ );
 	}
 
 	ClearCells();
@@ -125,17 +176,17 @@ void UCardCollectionWidget::RefreshFromSubsystem()
 	UCardSubsystem* subsystem = GetCardSubsystem();
 	if ( !subsystem )
 	{
-		RebuildCells( {} );
+		ApplyDisplayOrder( {} );
 		return;
 	}
 
 	const TArray<UCardDataAsset*>& log = subsystem->GetAcquisitionLog();
-	RebuildCells( BuildDisplayOrder( log ) );
+	ApplyDisplayOrder( BuildDisplayOrder( log ) );
 }
 
 void UCardCollectionWidget::SetCards( const TArray<UCardDataAsset*>& cards )
 {
-	RebuildCells( BuildDisplayOrder( cards ) );
+	ApplyDisplayOrder( BuildDisplayOrder( cards ) );
 }
 
 void UCardCollectionWidget::OpenBook()
@@ -146,6 +197,7 @@ void UCardCollectionWidget::OpenBook()
 	}
 
 	bIsOpen_ = true;
+	bWantsVisible_ = true;
 
 	if ( bAutoRefreshOnOpen )
 	{
@@ -153,11 +205,10 @@ void UCardCollectionWidget::OpenBook()
 	}
 
 	SetBookVisualsVisible( true );
-
-	if ( BookOpenAnim )
-	{
-		PlayAnimation( BookOpenAnim );
-	}
+	PlayVisibilityAnim( true );
+	UpdateToggleButtonVisual();
+	UpdateAcquiredCountText();
+	UpdatePageNavVisual();
 
 	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED } );
 
@@ -172,20 +223,22 @@ void UCardCollectionWidget::CloseBook()
 	}
 
 	bIsOpen_ = false;
+	bWantsVisible_ = false;
 	ClearZoomedCard();
-
-	if ( BookCloseAnim )
-	{
-		PlayAnimation( BookCloseAnim );
-		// Final hide happens in HandleCloseAnimFinished.
-		return;
-	}
-
-	SetBookVisualsVisible( false );
+	UpdateToggleButtonVisual();
+	UpdateAcquiredCountText();
+	UpdatePageNavVisual();
 
 	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED } );
 
-	OnBookClosed();
+	PlayVisibilityAnim( false );
+
+	// No animation to wait on — collapse immediately and fire the closed hook now.
+	if ( !HideAnim && !ShowAnim )
+	{
+		SetBookVisualsVisible( false );
+		OnBookClosed();
+	}
 }
 
 TArray<UCardDataAsset*> UCardCollectionWidget::BuildDisplayOrder( const TArray<UCardDataAsset*>& acquisitionLog )
@@ -228,6 +281,70 @@ TArray<UCardDataAsset*> UCardCollectionWidget::BuildDisplayOrder( const TArray<U
 	}
 
 	return result;
+}
+
+void UCardCollectionWidget::ApplyDisplayOrder( const TArray<UCardDataAsset*>& displayOrder )
+{
+	FullDisplayOrder_.Reset( displayOrder.Num() );
+	for ( UCardDataAsset* card : displayOrder )
+	{
+		FullDisplayOrder_.Add( card );
+	}
+
+	// Keep the player on a valid spread (e.g. after cards were removed/refreshed).
+	CurrentSpread_ = FMath::Clamp( CurrentSpread_, 0, GetSpreadCount() - 1 );
+
+	ShowCurrentSpread();
+}
+
+void UCardCollectionWidget::ShowCurrentSpread()
+{
+	const int32 perSpread = GetTotalCells();
+	const int32 start = CurrentSpread_ * perSpread;
+
+	TArray<UCardDataAsset*> spreadCards;
+	spreadCards.Reserve( perSpread );
+	for ( int32 i = 0; i < perSpread; ++i )
+	{
+		const int32 index = start + i;
+		if ( FullDisplayOrder_.IsValidIndex( index ) )
+		{
+			spreadCards.Add( FullDisplayOrder_[index] );
+		}
+	}
+
+	RebuildCells( spreadCards );
+	UpdatePageNavVisual();
+}
+
+int32 UCardCollectionWidget::GetSpreadCount() const
+{
+	const int32 perSpread = GetTotalCells();
+	if ( perSpread <= 0 || FullDisplayOrder_.Num() <= 0 )
+	{
+		return 1;
+	}
+
+	return FMath::DivideAndRoundUp( FullDisplayOrder_.Num(), perSpread );
+}
+
+void UCardCollectionWidget::UpdatePageNavVisual()
+{
+	const int32 spreadCount = GetSpreadCount();
+
+	// Arrows only ever make sense while the book is open; keep them hidden when it is closed so they
+	// don't linger on the HUD at startup (before the book has been opened for the first time).
+	const bool bHasPrev = bIsOpen_ && CurrentSpread_ > 0;
+	const bool bHasNext = bIsOpen_ && CurrentSpread_ < spreadCount - 1;
+
+	if ( PrevPageButton )
+	{
+		PrevPageButton->SetVisibility( bHasPrev ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+	if ( NextPageButton )
+	{
+		NextPageButton->SetVisibility( bHasNext ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
 }
 
 void UCardCollectionWidget::RebuildCells( const TArray<UCardDataAsset*>& displayOrder )
@@ -285,7 +402,9 @@ void UCardCollectionWidget::RebuildCells( const TArray<UCardDataAsset*>& display
 	LastAppliedPageSize_ = FVector2D::ZeroVector;
 	UpdateCellLayout();
 
-	OnCollectionRebuilt( displayOrder.Num(), totalCells );
+	// Report the total acquired count across every spread, not just the cards on this spread.
+	const int32 acquiredCount = FMath::Max( FullDisplayOrder_.Num(), displayOrder.Num() );
+	OnCollectionRebuilt( acquiredCount, totalCells );
 }
 
 void UCardCollectionWidget::ClearCells()
@@ -436,24 +555,6 @@ void UCardCollectionWidget::AddCellToPage( UCanvasPanel* page, UWidget* cell, in
 void UCardCollectionWidget::SetBookVisualsVisible( bool bVisible )
 {
 	const ESlateVisibility hiddenVisibility = ESlateVisibility::Collapsed;
-
-	// A KeepState book animation keeps re-applying its last keyframe (including the art's
-	// Visibility track) even after it finishes, which overrides the SetVisibility calls
-	// below and leaves BookImage / PagesImage on screen while the non-animated grids hide.
-	// Stop both book animations so the collapse actually sticks. This also runs from
-	// BookCloseAnim's own finished callback, so guard against re-entering that callback.
-	if ( !bVisible && !bApplyingBookVisuals_ )
-	{
-		TGuardValue<bool> reentryGuard( bApplyingBookVisuals_, true );
-		if ( BookOpenAnim )
-		{
-			StopAnimation( BookOpenAnim );
-		}
-		if ( BookCloseAnim )
-		{
-			StopAnimation( BookCloseAnim );
-		}
-	}
 
 	// BookRoot is decorative — let children handle hit-testing on their own.
 	if ( BookRoot )
@@ -632,7 +733,15 @@ FVector2D UCardCollectionWidget::ComputeAutoCellSize( const FVector2D& pageSize 
 
 void UCardCollectionWidget::HandleOpenButtonClicked()
 {
-	OpenBook();
+	// OpenBookButton is a toggle: open the book when it is closed, close it when it is open.
+	if ( bIsOpen_ )
+	{
+		CloseBook();
+	}
+	else
+	{
+		OpenBook();
+	}
 }
 
 void UCardCollectionWidget::HandleCloseButtonClicked()
@@ -690,16 +799,195 @@ void UCardCollectionWidget::HandleBackdropClicked()
 	CloseBook();
 }
 
-void UCardCollectionWidget::HandleCloseAnimFinished()
+void UCardCollectionWidget::HandleNextPageClicked()
 {
-	if ( bIsOpen_ )
+	if ( CurrentSpread_ >= GetSpreadCount() - 1 )
 	{
-		// A new OpenBook came in mid-close — keep it visible.
 		return;
 	}
 
-	SetBookVisualsVisible( false );
-	OnBookClosed();
+	++CurrentSpread_;
+	ShowCurrentSpread();
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED } );
+}
+
+void UCardCollectionWidget::HandlePrevPageClicked()
+{
+	if ( CurrentSpread_ <= 0 )
+	{
+		return;
+	}
+
+	--CurrentSpread_;
+	ShowCurrentSpread();
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_CLICKED } );
+}
+
+void UCardCollectionWidget::HandlePageButtonHovered()
+{
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_TOGGLECARDBOOK_HOVERED } );
+}
+
+void UCardCollectionWidget::PlayVisibilityAnim( bool bVisible )
+{
+	if ( bVisible )
+	{
+		if ( ShowAnim )
+		{
+			PlayAnimationForward( ShowAnim );
+		}
+		else if ( HideAnim )
+		{
+			PlayAnimationReverse( HideAnim );
+		}
+	}
+	else
+	{
+		if ( HideAnim )
+		{
+			PlayAnimationForward( HideAnim );
+		}
+		else if ( ShowAnim )
+		{
+			PlayAnimationReverse( ShowAnim );
+		}
+	}
+}
+
+void UCardCollectionWidget::OnVisibilityAnimFinished()
+{
+	// The close transition just finished — collapse the book art (unless a new OpenBook came in
+	// mid-close and flipped bWantsVisible_ back on).
+	if ( !bWantsVisible_ )
+	{
+		SetBookVisualsVisible( false );
+		OnBookClosed();
+	}
+}
+
+void UCardCollectionWidget::UpdateToggleButtonVisual()
+{
+	if ( !bSwapOpenButtonImage )
+	{
+		return;
+	}
+
+	const TCHAR* stateName = bIsOpen_ ? TEXT( "opened" ) : TEXT( "closed" );
+
+	// Resolve the icon for this state. A directly-assigned texture wins over the brush because
+	// UTexture2D references serialize reliably from the Blueprint, whereas a hand-built FSlateBrush
+	// occasionally round-trips with an empty ResourceObject.
+	UTexture2D* stateTexture = bIsOpen_ ? OpenButtonOpenedTexture : OpenButtonClosedTexture;
+	const FSlateBrush& stateBrush = bIsOpen_ ? OpenButtonOpenedBrush : OpenButtonClosedBrush;
+
+	// Preferred path: a dedicated image widget inside the button. We only touch this image, so the
+	// button keeps its own style intact (no WidgetStyle swapping).
+	if ( OpenButtonImage )
+	{
+		if ( stateTexture )
+		{
+			OpenButtonImage->SetBrushFromTexture( stateTexture );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "CardCollectionWidget: set %s icon texture '%s' on OpenButtonImage" ), stateName,
+			    *GetNameSafe( stateTexture )
+			);
+		}
+		else if ( stateBrush.GetResourceObject() != nullptr )
+		{
+			OpenButtonImage->SetBrush( stateBrush );
+			UE_LOG(
+			    LogTemp, Log, TEXT( "CardCollectionWidget: set %s icon brush '%s' on OpenButtonImage" ), stateName,
+			    *GetNameSafe( stateBrush.GetResourceObject() )
+			);
+		}
+		else
+		{
+			UE_LOG( LogTemp, Log, TEXT( "CardCollectionWidget: no %s texture/brush set for OpenButtonImage" ), stateName );
+		}
+		return;
+	}
+
+	// Legacy fallback (no OpenButtonImage bound): swap the button's WidgetStyle instead.
+	if ( !OpenBookButton )
+	{
+		return;
+	}
+
+	// Capture the BP-authored style once, before we ever overwrite it, so an unset icon restores the
+	// designer's button look instead of stamping an empty white brush over it.
+	if ( !bCapturedDefaultStyle_ )
+	{
+		DefaultButtonStyle_ = OpenBookButton->GetStyle();
+		bCapturedDefaultStyle_ = true;
+	}
+
+	FSlateBrush iconBrush;
+	bool bHasIcon = false;
+
+	if ( stateTexture )
+	{
+		iconBrush.SetResourceObject( stateTexture );
+		iconBrush.DrawAs = ESlateBrushDrawType::Image;
+		iconBrush.ImageSize =
+		    FVector2D( static_cast<float>( stateTexture->GetSizeX() ), static_cast<float>( stateTexture->GetSizeY() ) );
+		bHasIcon = true;
+	}
+	else if ( stateBrush.GetResourceObject() != nullptr )
+	{
+		iconBrush = stateBrush;
+		bHasIcon = true;
+	}
+
+	if ( !bHasIcon )
+	{
+		OpenBookButton->SetStyle( DefaultButtonStyle_ );
+		return;
+	}
+
+	FButtonStyle style = DefaultButtonStyle_;
+	style.SetNormal( iconBrush );
+	style.SetHovered( iconBrush );
+	style.SetPressed( iconBrush );
+	style.SetDisabled( iconBrush );
+	OpenBookButton->SetStyle( style );
+}
+
+int32 UCardCollectionWidget::GetAcquiredCardCount()
+{
+	if ( UCardSubsystem* subsystem = GetCardSubsystem() )
+	{
+		int32 count = 0;
+		for ( const UCardDataAsset* card : subsystem->GetAcquisitionLog() )
+		{
+			if ( card )
+			{
+				++count;
+			}
+		}
+		return count;
+	}
+
+	// No subsystem available — fall back to whatever was last applied to the book.
+	return FullDisplayOrder_.Num();
+}
+
+void UCardCollectionWidget::UpdateAcquiredCountText()
+{
+	if ( !OpenButtonCountText )
+	{
+		return;
+	}
+
+	// In the designer there is no CardSubsystem, so keep whatever placeholder number the
+	// designer typed; only drive the real count at runtime.
+	if ( !IsDesignTime() )
+	{
+		OpenButtonCountText->SetText( FText::AsNumber( GetAcquiredCardCount() ) );
+	}
+
+	OpenButtonCountText->SetColorAndOpacity( bIsOpen_ ? OpenButtonCountColorOpened : OpenButtonCountColorClosed );
 }
 
 void UCardCollectionWidget::HandleCardsApplied( const TArray<UCardDataAsset*>& appliedCards )
@@ -708,6 +996,9 @@ void UCardCollectionWidget::HandleCardsApplied( const TArray<UCardDataAsset*>& a
 	{
 		RefreshFromSubsystem();
 	}
+
+	// Keep the taken-cards counter current even while the book is closed.
+	UpdateAcquiredCountText();
 }
 
 void UCardCollectionWidget::HandleBookCardClicked( UCardWidget* cardWidget )
