@@ -18,6 +18,7 @@
 class ABuilding;
 class UBuildingButtonWidget;
 class UBuildingTooltipWidget;
+class UWidgetAnimation;
 
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UHUDBuildingPanelWidget : public UUserWidget, public IAudioEventSource
@@ -78,6 +79,12 @@ public:
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UHorizontalBox> DefensiveCardBox;
+
+	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
+	TObjectPtr<UWidgetAnimation> ShowAnim;
+
+	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
+	TObjectPtr<UWidgetAnimation> HideAnim;
 
 	// ====== Building classes ======
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
@@ -155,6 +162,8 @@ protected:
 private:
 	bool bShowingEconomyBuildings_ = true;
 	bool bIsBuildingLocked = false;
+	bool bIsPlacingActive_ = false;
+	bool bWantsVisible_ = true;
 
 	UPROPERTY()
 	TSubclassOf<ABuilding> LockedBuildingClass;
@@ -266,7 +275,10 @@ private:
 
 	UFUNCTION() void OnBuildingUnhovered();
 
+	UFUNCTION() void OnPlacingStarted();
 	UFUNCTION() void OnPlacingCancelled();
+
+	UFUNCTION() void OnVisibilityAnimFinished();
 
 	UFUNCTION() void HandleResourceChanged( EResourceType Type, int32 NewAmount );
 
@@ -279,6 +291,8 @@ private:
 	void UpdateAllBuildingButtons();
 	void UpdateButtonAvailability( UBuildingButtonWidget* button, TSubclassOf<ABuilding> buildingClass );
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
+
+	void PlayVisibilityAnim( bool bVisible );
 
 	UBuildingTooltipWidget* EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck );
 	void InitializeTooltipWidget(

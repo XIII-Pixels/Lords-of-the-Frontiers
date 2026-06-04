@@ -11,6 +11,7 @@
 #include "UI/InfoWaves/WaveInfoPanelWidget.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/CombatTimerWidget.h"
+#include "UI/Widgets/ConstructionPanelWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/HUDBuildingPanelWidget.h"
 #include "UI/Widgets/HUDResourcePanelWidget.h"
@@ -41,6 +42,9 @@ class LORDS_FRONTIERS_API UGameHUDWidget : public UUserWidget, public IAudioEven
 public:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UHUDBuildingPanelWidget> BuildingPanel;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UConstructionPanelWidget> ConstructionPanel;
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonRelocateBuilding;
@@ -141,6 +145,12 @@ protected:
 
 	UFUNCTION()
 	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
+
+	UFUNCTION()
+	void HandlePlacingStarted();
+
+	UFUNCTION()
+	void HandlePlacingEnded();
 
 	UFUNCTION()
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );

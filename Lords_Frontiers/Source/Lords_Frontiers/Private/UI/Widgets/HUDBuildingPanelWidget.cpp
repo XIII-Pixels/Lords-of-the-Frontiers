@@ -10,6 +10,7 @@
 #include "UI/Widgets/BuildingButtonWidget.h"
 #include "UI/Widgets/BuildingTooltipWidget.h"
 
+#include "Animation/WidgetAnimation.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
 #include "sound/SoundEffectManager.h"
@@ -110,6 +111,17 @@ void UHUDBuildingPanelWidget::NativeConstruct()
 
 	InitializeTooltipWidget( EconomyTooltipClass, ActiveEconomyTooltip );
 	InitializeTooltipWidget( DefensiveTooltipClass, ActiveDefensiveTooltip );
+
+	FWidgetAnimationDynamicEvent animFinished;
+	animFinished.BindDynamic( this, &UHUDBuildingPanelWidget::OnVisibilityAnimFinished );
+	if ( ShowAnim )
+	{
+		BindToAnimationFinished( ShowAnim, animFinished );
+	}
+	if ( HideAnim )
+	{
+		BindToAnimationFinished( HideAnim, animFinished );
+	}
 
 	TrySubscribeManagers();
 
@@ -248,6 +260,7 @@ bool UHUDBuildingPanelWidget::TrySubscribeManagers()
 	if ( ABuildManager* bM =
 	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
+		bM->OnPlacingStarted.AddUniqueDynamic( this, &UHUDBuildingPanelWidget::OnPlacingStarted );
 		bM->OnPlacingCancelled.AddUniqueDynamic( this, &UHUDBuildingPanelWidget::OnPlacingCancelled );
 	}
 
@@ -272,6 +285,7 @@ void UHUDBuildingPanelWidget::UnsubscribeManagers()
 	if ( ABuildManager* bM =
 	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
+		bM->OnPlacingStarted.RemoveDynamic( this, &UHUDBuildingPanelWidget::OnPlacingStarted );
 		bM->OnPlacingCancelled.RemoveDynamic( this, &UHUDBuildingPanelWidget::OnPlacingCancelled );
 	}
 
@@ -484,23 +498,23 @@ void UHUDBuildingPanelWidget::OnBuildTowerMortiraClicked()
 
 void UHUDBuildingPanelWidget::SetBuildingUIVisible( bool bVisible )
 {
-	const ESlateVisibility newVisibility = bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
-
-	if ( BackForButton )
-	{
-		BackForButton->SetVisibility( newVisibility );
-	}
-	if ( ButtonEconomyBuilding )
-	{
-		ButtonEconomyBuilding->SetVisibility( newVisibility );
-	}
-	if ( ButtonDefensiveBuildings )
-	{
-		ButtonDefensiveBuildings->SetVisibility( newVisibility );
-	}
+	bWantsVisible_ = bVisible;
 
 	if ( bVisible )
 	{
+		if ( BackForButton )
+		{
+			BackForButton->SetVisibility( ESlateVisibility::Visible );
+		}
+		if ( ButtonEconomyBuilding )
+		{
+			ButtonEconomyBuilding->SetVisibility( ESlateVisibility::Visible );
+		}
+		if ( ButtonDefensiveBuildings )
+		{
+			ButtonDefensiveBuildings->SetVisibility( ESlateVisibility::Visible );
+		}
+
 		if ( bShowingEconomyBuildings_ )
 		{
 			ShowEconomyBuildings();
@@ -509,17 +523,48 @@ void UHUDBuildingPanelWidget::SetBuildingUIVisible( bool bVisible )
 		{
 			ShowDefensiveBuildings();
 		}
+
+		SetVisibility( ESlateVisibility::Visible );
+	}
+
+	PlayVisibilityAnim( bVisible );
+}
+
+void UHUDBuildingPanelWidget::PlayVisibilityAnim( bool bVisible )
+{
+	if ( bVisible )
+	{
+		if ( ShowAnim )
+		{
+			PlayAnimationForward( ShowAnim );
+		}
+		else if ( HideAnim )
+		{
+			PlayAnimationReverse( HideAnim );
+		}
 	}
 	else
 	{
-		if ( EconomyCardBox )
+		if ( HideAnim )
 		{
-			EconomyCardBox->SetVisibility( ESlateVisibility::Collapsed );
+			PlayAnimationForward( HideAnim );
 		}
-		if ( DefensiveCardBox )
+		else if ( ShowAnim )
 		{
-			DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
+			PlayAnimationReverse( ShowAnim );
 		}
+		else
+		{
+			SetVisibility( ESlateVisibility::Collapsed );
+		}
+	}
+}
+
+void UHUDBuildingPanelWidget::OnVisibilityAnimFinished()
+{
+	if ( !bWantsVisible_ )
+	{
+		SetVisibility( ESlateVisibility::Collapsed );
 	}
 }
 
@@ -546,10 +591,28 @@ void UHUDBuildingPanelWidget::CancelCurrentBuilding()
 	}
 }
 
+void UHUDBuildingPanelWidget::OnPlacingStarted()
+{
+	bIsPlacingActive_ = true;
+	SetBuildingUIVisible( false );
+}
+
 void UHUDBuildingPanelWidget::OnPlacingCancelled()
 {
+	bIsPlacingActive_ = false;
 	bIsBuildingLocked = false;
 	LockedBuildingClass = nullptr;
+
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			if ( gL->GetCurrentPhase() == EGameLoopPhase::Building )
+			{
+				SetBuildingUIVisible( true );
+			}
+		}
+	}
 
 	if ( ActiveEconomyTooltip )
 	{

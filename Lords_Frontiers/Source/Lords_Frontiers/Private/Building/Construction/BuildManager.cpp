@@ -237,6 +237,8 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 	CurrentBuildingClass_ = buildingClass;
 
 	ShowBonusHighlightForBuilding( buildingClass );
+
+	OnPlacingStarted.Broadcast();
 }
 
 void ABuildManager::CancelPlacing()

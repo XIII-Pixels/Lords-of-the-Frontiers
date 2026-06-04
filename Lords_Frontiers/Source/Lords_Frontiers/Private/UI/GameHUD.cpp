@@ -52,6 +52,13 @@ void UGameHUDWidget::NativeConstruct()
 	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
 		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnPlacingStarted.AddUniqueDynamic( this, &UGameHUDWidget::HandlePlacingStarted );
+		buildManager->OnPlacingCancelled.AddUniqueDynamic( this, &UGameHUDWidget::HandlePlacingEnded );
+	}
+
+	if ( ConstructionPanel )
+	{
+		ConstructionPanel->SetVisibility( ESlateVisibility::Collapsed );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -130,6 +137,8 @@ void UGameHUDWidget::NativeDestruct()
 	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
 		buildManager->OnBonusPreviewUpdated.RemoveDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnPlacingStarted.RemoveDynamic( this, &UGameHUDWidget::HandlePlacingStarted );
+		buildManager->OnPlacingCancelled.RemoveDynamic( this, &UGameHUDWidget::HandlePlacingEnded );
 	}
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
@@ -186,6 +195,22 @@ void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase
 				UpdateWaveInfo();
 			}
 		}
+	}
+}
+
+void UGameHUDWidget::HandlePlacingStarted()
+{
+	if ( ConstructionPanel )
+	{
+		ConstructionPanel->SetPanelVisible( true );
+	}
+}
+
+void UGameHUDWidget::HandlePlacingEnded()
+{
+	if ( ConstructionPanel )
+	{
+		ConstructionPanel->SetPanelVisible( false );
 	}
 }
 
