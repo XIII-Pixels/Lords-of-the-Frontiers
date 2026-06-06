@@ -5,6 +5,7 @@
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 #include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/BuildingButtonWidget.h"
@@ -624,6 +625,8 @@ void UHUDBuildingPanelWidget::OnPlacingCancelled()
 		ActiveDefensiveTooltip->SetLocked( false );
 		ActiveDefensiveTooltip->HideTooltip();
 	}
+
+	HideTooltipForBuilding();
 }
 
 void UHUDBuildingPanelWidget::UpdateCategoryButtonsVisual()
@@ -686,19 +689,12 @@ void UHUDBuildingPanelWidget::OnBuildingUnhovered()
 	if ( bIsBuildingLocked && LockedBuildingClass )
 	{
 		ShowTooltipForBuilding( LockedBuildingClass );
+		return;
 	}
-	else
-	{
-		if ( ActiveEconomyTooltip )
-		{
-			ActiveEconomyTooltip->HideTooltip();
-		}
-		if ( ActiveDefensiveTooltip )
-		{
-			ActiveDefensiveTooltip->HideTooltip();
-		}
-	}
-	HideTooltipForBuilding();
+
+	// When an object is selected, dismiss the build tooltip instantly (no
+	// hide-out animation) as the mouse leaves the button.
+	HideTooltipForBuilding( !IsBuildingSelected() );
 }
 
 void UHUDBuildingPanelWidget::PlayOnBuildingButtonClickedSound( const UBuildingButtonWidget* button ) const
@@ -765,11 +761,29 @@ UBuildingTooltipWidget* UHUDBuildingPanelWidget::EnsureTooltipForBuilding( const
 
 void UHUDBuildingPanelWidget::ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass )
 {
+	OnBuildingButtonHovered.Broadcast();
+
+	// If a building is already selected (its info window is shown), skip the
+	// tooltip's intro animation so hovering build buttons doesn't replay it.
+	const bool bAnimate = !IsBuildingSelected();
+
 	const ABuilding* cdo = buildingClass ? buildingClass->GetDefaultObject<ABuilding>() : nullptr;
 	if ( UBuildingTooltipWidget* tooltip = EnsureTooltipForBuilding( cdo ) )
 	{
-		tooltip->ShowTooltip( buildingClass );
+		tooltip->ShowTooltip( buildingClass, bAnimate );
 	}
+}
+
+bool UHUDBuildingPanelWidget::IsBuildingSelected() const
+{
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( USelectionManagerComponent* selection = core->GetSelectionManager() )
+		{
+			return IsValid( selection->GetPrimarySelectedBuilding() );
+		}
+	}
+	return false;
 }
 
 void UHUDBuildingPanelWidget::ShowTooltipForBuilding( const ABuilding* building )
@@ -780,11 +794,18 @@ void UHUDBuildingPanelWidget::ShowTooltipForBuilding( const ABuilding* building 
 	}
 }
 
-void UHUDBuildingPanelWidget::HideTooltipForBuilding()
+void UHUDBuildingPanelWidget::HideTooltipForBuilding( bool bAnimate )
 {
 	if ( CurrentTooltip )
 	{
-		CurrentTooltip->HideTooltip();
+		if ( bAnimate )
+		{
+			CurrentTooltip->HideTooltip();
+		}
+		else
+		{
+			CurrentTooltip->ForceHide();
+		}
 	}
 }
 

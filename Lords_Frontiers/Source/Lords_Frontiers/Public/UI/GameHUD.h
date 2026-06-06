@@ -16,6 +16,7 @@
 #include "UI/Widgets/HUDBuildingPanelWidget.h"
 #include "UI/Widgets/HUDResourcePanelWidget.h"
 #include "UI/Widgets/PhasePanelWidget.h"
+#include "UI/Widgets/SelectedBuildingPanelWidget.h"
 #include "UI/Widgets/EnemyTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
@@ -25,6 +26,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
+#include "Components/TextBlock.h"
 #include "CoreMinimal.h"
 #include "Sound/AudioTags.h"
 
@@ -46,14 +48,17 @@ public:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UConstructionPanelWidget> ConstructionPanel;
 
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonRelocateBuilding;
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<USelectedBuildingPanelWidget> EconomySelectedPanel;
 
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonRemoveBuilding;
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<USelectedBuildingPanelWidget> DefensiveSelectedPanel;
 
 	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ButtonEndTurn;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> EndTurnText;
 
 	UPROPERTY( meta = ( BindWidget ) )
 	UImage* Strokestatus;
@@ -135,12 +140,6 @@ protected:
 	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
 
 	UFUNCTION()
-	void OnRelocateBuildingClicked();
-
-	UFUNCTION()
-	void OnRemoveBuildingClicked();
-
-	UFUNCTION()
 	void OnEndTurnClicked();
 
 	UFUNCTION()
@@ -151,6 +150,9 @@ protected:
 
 	UFUNCTION()
 	void HandlePlacingEnded();
+
+	UFUNCTION()
+	void HandleBuildingButtonHovered();
 
 	UFUNCTION()
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
@@ -172,18 +174,6 @@ protected:
 	void OnHoverEndTurn()
 	{
 		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverRelocateBuilding()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_MOVEBUILDING_HOVERED } );
-	}
-
-	UFUNCTION()
-	void OnHoverRemoveBuilding()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_DEMOLISHBUILDING_HOVERED } );
 	}
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )

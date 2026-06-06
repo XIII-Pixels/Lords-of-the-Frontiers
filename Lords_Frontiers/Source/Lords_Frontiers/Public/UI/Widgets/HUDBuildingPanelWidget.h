@@ -20,6 +20,8 @@ class UBuildingButtonWidget;
 class UBuildingTooltipWidget;
 class UWidgetAnimation;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnHUDBuildingButtonHovered );
+
 UCLASS( Abstract, Blueprintable )
 class LORDS_FRONTIERS_API UHUDBuildingPanelWidget : public UUserWidget, public IAudioEventSource
 {
@@ -141,8 +143,21 @@ public:
 	void ShowTooltipForBuilding( TSubclassOf<ABuilding> buildingClass );
 	void ShowTooltipForBuilding( const ABuilding* BuildingInstance );
 
+	TSubclassOf<UBuildingTooltipWidget> GetEconomyTooltipClass() const
+	{
+		return EconomyTooltipClass;
+	}
+
+	TSubclassOf<UBuildingTooltipWidget> GetDefensiveTooltipClass() const
+	{
+		return DefensiveTooltipClass;
+	}
+
+	UPROPERTY( BlueprintAssignable )
+	FOnHUDBuildingButtonHovered OnBuildingButtonHovered;
+
 	UFUNCTION( BlueprintCallable )
-	void HideTooltipForBuilding();
+	void HideTooltipForBuilding( bool bAnimate = true );
 
 	void CancelCurrentBuilding();
 
@@ -293,6 +308,9 @@ private:
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
 
 	void PlayVisibilityAnim( bool bVisible );
+
+	// True when a building is currently selected (its info window is shown).
+	bool IsBuildingSelected() const;
 
 	UBuildingTooltipWidget* EnsureTooltipForBuilding( const ABuilding* buildingForTypeCheck );
 	void InitializeTooltipWidget(

@@ -32,20 +32,14 @@ void UGameHUDWidget::NativeConstruct()
 		cursorAnimSubsystem->SetConfig( CursorAnimConfig );
 	}
 
-	if ( ButtonRelocateBuilding )
-	{
-		ButtonRelocateBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
-		ButtonRelocateBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverRelocateBuilding );
-	}
-	if ( ButtonRemoveBuilding )
-	{
-		ButtonRemoveBuilding->OnClicked.AddDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
-		ButtonRemoveBuilding->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverRemoveBuilding );
-	}
 	if ( ButtonEndTurn )
 	{
 		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
 		ButtonEndTurn->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
+	}
+	if ( EndTurnText )
+	{
+		EndTurnText->SetText( LF_LOC( "HUD.EndTurn" ) );
 	}
 
 	if ( ABuildManager* buildManager =
@@ -61,6 +55,26 @@ void UGameHUDWidget::NativeConstruct()
 		ConstructionPanel->SetVisibility( ESlateVisibility::Collapsed );
 	}
 
+	if ( BuildingPanel )
+	{
+		if ( EconomySelectedPanel )
+		{
+			if ( TSubclassOf<UBuildingTooltipWidget> tooltipClass = BuildingPanel->GetEconomyTooltipClass() )
+			{
+				EconomySelectedPanel->CopyInfoConfigFrom( tooltipClass->GetDefaultObject<UBuildingTooltipWidget>() );
+			}
+		}
+		if ( DefensiveSelectedPanel )
+		{
+			if ( TSubclassOf<UBuildingTooltipWidget> tooltipClass = BuildingPanel->GetDefensiveTooltipClass() )
+			{
+				DefensiveSelectedPanel->CopyInfoConfigFrom( tooltipClass->GetDefaultObject<UBuildingTooltipWidget>() );
+			}
+		}
+
+		BuildingPanel->OnBuildingButtonHovered.AddUniqueDynamic( this, &UGameHUDWidget::HandleBuildingButtonHovered );
+	}
+
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		if ( UGameLoopManager* gL = core->GetGameLoop() )
@@ -74,7 +88,6 @@ void UGameHUDWidget::NativeConstruct()
 		}
 	}
 
-	// Sound
 	if ( const UWorld* world = GetWorld() )
 	{
 		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
@@ -116,21 +129,15 @@ void UGameHUDWidget::NativeConstruct()
 
 void UGameHUDWidget::NativeDestruct()
 {
-	if ( ButtonRelocateBuilding )
-	{
-		ButtonRelocateBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRelocateBuildingClicked );
-		ButtonRelocateBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverRelocateBuilding );
-	}
-	if ( ButtonRemoveBuilding )
-	{
-		ButtonRemoveBuilding->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnRemoveBuildingClicked );
-		ButtonRemoveBuilding->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverRemoveBuilding );
-	}
-
 	if ( ButtonEndTurn )
 	{
 		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
 		ButtonEndTurn->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
+	}
+
+	if ( BuildingPanel )
+	{
+		BuildingPanel->OnBuildingButtonHovered.RemoveDynamic( this, &UGameHUDWidget::HandleBuildingButtonHovered );
 	}
 
 	if ( ABuildManager* buildManager =
@@ -211,6 +218,20 @@ void UGameHUDWidget::HandlePlacingEnded()
 	if ( ConstructionPanel )
 	{
 		ConstructionPanel->SetPanelVisible( false );
+	}
+}
+
+void UGameHUDWidget::HandleBuildingButtonHovered()
+{
+	// Hovering a build button hides the selected-building info window instantly
+	// (no hide-out animation) to make room for the build tooltip.
+	if ( EconomySelectedPanel )
+	{
+		EconomySelectedPanel->HidePanel( false );
+	}
+	if ( DefensiveSelectedPanel )
+	{
+		DefensiveSelectedPanel->HidePanel( false );
 	}
 }
 
@@ -429,109 +450,6 @@ void UGameHUDWidget::OnEndTurnClicked()
 	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_CLICKED } );
 }
 
-void UGameHUDWidget::OnRelocateBuildingClicked()
-{
-	UE_LOG( LogTemp, Log, TEXT( "Relocate building clicked" ) );
-
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_MOVEBUILDING_CLICKED } );
-
-	UCoreManager* coreManager = UCoreManager::Get( this );
-	if ( !coreManager )
-	{
-		return;
-	}
-
-	if ( UGameLoopManager* gL = coreManager->GetGameLoop() )
-	{
-		if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
-		{
-			UE_LOG( LogTemp, Warning, TEXT( "Relocate: blocked during combat phase" ) );
-			return;
-		}
-	}
-
-	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
-	ABuildManager* buildManager = coreManager->GetBuildManager();
-	UResourceManager* resourceManager = coreManager->GetResourceManager();
-
-	if ( !selectionManager || !buildManager || !resourceManager )
-	{
-		return;
-	}
-
-	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
-	if ( !selectedBuilding || !selectedBuilding->CanBeRelocated() )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "Relocate: building invalid" ) );
-		return;
-	}
-
-	const int32 cost = selectedBuilding->GetRelocationGoldCost();
-
-	if ( !resourceManager->HasEnoughResource( EResourceType::Gold, cost ) )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "Relocate: not enough gold" ) );
-		return;
-	}
-
-	buildManager->StartRelocatingBuilding( selectedBuilding );
-
-	selectionManager->ClearSelection();
-	HandleSelectionChanged();
-	UpdateExtraButtonsVisibility();
-}
-
-void UGameHUDWidget::OnRemoveBuildingClicked()
-{
-	UE_LOG( LogTemp, Log, TEXT( "Remove building clicked" ) );
-
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_DEMOLISHBUILDING_CLICKED } );
-
-	UCoreManager* coreManager = UCoreManager::Get( this );
-	if ( !coreManager )
-	{
-		return;
-	}
-
-	if ( UGameLoopManager* gL = coreManager->GetGameLoop() )
-	{
-		if ( gL->GetCurrentPhase() == EGameLoopPhase::Combat )
-		{
-			UE_LOG( LogTemp, Warning, TEXT( "Remove: blocked during combat phase" ) );
-			return;
-		}
-	}
-
-	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
-	ABuildManager* buildManager = coreManager->GetBuildManager();
-	UResourceManager* resourceManager = coreManager->GetResourceManager();
-
-	if ( !selectionManager || !buildManager || !resourceManager )
-	{
-		return;
-	}
-
-	ABuilding* selectedBuilding = selectionManager->GetPrimarySelectedBuilding();
-	if ( !selectedBuilding || !selectedBuilding->CanBeRemoved() )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "Remove: building invalid" ) );
-		return;
-	}
-
-	const FResourceProduction refund = selectedBuilding->GetDemolitionRefund();
-
-	if ( !buildManager->RemoveExistingBuilding( selectedBuilding ) )
-	{
-		UE_LOG( LogTemp, Warning, TEXT( "Remove: demolition failed, no refund granted" ) );
-		return;
-	}
-
-	resourceManager->AddResources( refund );
-
-	selectionManager->ClearSelection();
-	HandleSelectionChanged();
-	UpdateExtraButtonsVisibility();
-}
 void UGameHUDWidget::UpdateWaveInfo()
 {
 	if ( !IsValid( ActiveWavePanel ) )
@@ -579,8 +497,6 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 		ActiveOverlay = nullptr;
 	}
 
-	// Endless и Abandoned не имеют классических баннеров победы/поражения;
-	// финал бесконечного режима показывается MatchResultsWidget'ом.
 	if ( Result == EGameResult::EndlessRun || Result == EGameResult::Abandoned )
 	{
 		return;
@@ -722,7 +638,7 @@ void UGameHUDWidget::HandleSelectionChanged()
 		HideTooltipForEnemy();
 		if ( BuildingPanel )
 		{
-			BuildingPanel->ShowTooltipForBuilding( selectedBuilding );
+			BuildingPanel->HideTooltipForBuilding();
 		}
 
 		if ( ADefensiveBuilding* defensive = Cast<ADefensiveBuilding>( selectedBuilding ) )
@@ -754,52 +670,41 @@ void UGameHUDWidget::HandleSelectionChanged()
 void UGameHUDWidget::UpdateExtraButtonsVisibility()
 {
 	UCoreManager* coreManager = UCoreManager::Get( this );
-	if ( !coreManager )
-	{
-		if ( ButtonRelocateBuilding )
-		{
-			ButtonRelocateBuilding->SetVisibility( ESlateVisibility::Collapsed );
-		}
-
-		if ( ButtonRemoveBuilding )
-		{
-			ButtonRemoveBuilding->SetVisibility( ESlateVisibility::Collapsed );
-		}
-
-		return;
-	}
-
-	USelectionManagerComponent* selectionManager = coreManager->GetSelectionManager();
-	ABuildManager* buildManager = coreManager->GetBuildManager();
-	UGameLoopManager* gL = coreManager->GetGameLoop();
+	USelectionManagerComponent* selectionManager = coreManager ? coreManager->GetSelectionManager() : nullptr;
+	ABuildManager* buildManager = coreManager ? coreManager->GetBuildManager() : nullptr;
 
 	ABuilding* selectedBuilding = selectionManager ? selectionManager->GetPrimarySelectedBuilding() : nullptr;
-	const bool bHasSelectedBuilding = IsValid( selectedBuilding );
-
 	const bool bIsPlacing = buildManager && buildManager->IsPlacing();
 
-	const bool bIsCombatPhase = gL && gL->GetCurrentPhase() == EGameLoopPhase::Combat;
+	const bool bShow = IsValid( selectedBuilding ) && !bIsPlacing;
+	const bool bDefensive = bShow && selectedBuilding->IsA<ADefensiveBuilding>();
 
-	const bool bShowRelocateButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRelocated();
+	// When a build is starting, the info window is dismissed instantly (no
+	// hide-out animation); a normal deselect keeps the animated hide.
+	const bool bAnimateHide = !bIsPlacing;
 
-	const bool bShowRemoveButton = bHasSelectedBuilding && !bIsPlacing && selectedBuilding->CanBeRemoved();
-
-	if ( ButtonRelocateBuilding )
+	if ( EconomySelectedPanel )
 	{
-		ButtonRelocateBuilding->SetVisibility(
-		    bShowRelocateButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
-		);
-		ButtonRelocateBuilding->SetIsEnabled( bShowRelocateButton && !bIsCombatPhase );
-		ButtonRelocateBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
+		if ( bShow && !bDefensive )
+		{
+			EconomySelectedPanel->ShowForBuilding( selectedBuilding );
+		}
+		else
+		{
+			EconomySelectedPanel->HidePanel( bAnimateHide );
+		}
 	}
 
-	if ( ButtonRemoveBuilding )
+	if ( DefensiveSelectedPanel )
 	{
-		ButtonRemoveBuilding->SetVisibility(
-		    bShowRemoveButton ? ESlateVisibility::Visible : ESlateVisibility::Collapsed
-		);
-		ButtonRemoveBuilding->SetIsEnabled( bShowRemoveButton && !bIsCombatPhase );
-		ButtonRemoveBuilding->SetRenderOpacity( bIsCombatPhase ? 0.4f : 1.0f );
+		if ( bShow && bDefensive )
+		{
+			DefensiveSelectedPanel->ShowForBuilding( selectedBuilding );
+		}
+		else
+		{
+			DefensiveSelectedPanel->HidePanel( bAnimateHide );
+		}
 	}
 }
 
