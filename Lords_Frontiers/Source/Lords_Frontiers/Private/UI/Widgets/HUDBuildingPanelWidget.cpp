@@ -366,34 +366,45 @@ void UHUDBuildingPanelWidget::OnEconomyBuildingClicked()
 
 void UHUDBuildingPanelWidget::ShowEconomyBuildings()
 {
+	const bool bChanged = !bShowingEconomyBuildings_;
 	bShowingEconomyBuildings_ = true;
 
-	if ( EconomyCardBox )
-	{
-		EconomyCardBox->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
-	}
-	if ( DefensiveCardBox )
-	{
-		DefensiveCardBox->SetVisibility( ESlateVisibility::Collapsed );
-	}
-
+	ApplyCategoryVisibility();
 	UpdateCategoryButtonsVisual();
+
+	if ( bChanged && SwitchAnim )
+	{
+		PlayCategorySwitchAnim();
+	}
 }
 
 void UHUDBuildingPanelWidget::ShowDefensiveBuildings()
 {
+	const bool bChanged = bShowingEconomyBuildings_;
 	bShowingEconomyBuildings_ = false;
+
+	ApplyCategoryVisibility();
+	UpdateCategoryButtonsVisual();
+
+	if ( bChanged && SwitchAnim )
+	{
+		PlayCategorySwitchAnim();
+	}
+}
+
+void UHUDBuildingPanelWidget::ApplyCategoryVisibility()
+{
+	const ESlateVisibility activeVis = ESlateVisibility::SelfHitTestInvisible;
+	const ESlateVisibility inactiveVis = ESlateVisibility::Collapsed;
 
 	if ( EconomyCardBox )
 	{
-		EconomyCardBox->SetVisibility( ESlateVisibility::Collapsed );
+		EconomyCardBox->SetVisibility( bShowingEconomyBuildings_ ? activeVis : inactiveVis );
 	}
 	if ( DefensiveCardBox )
 	{
-		DefensiveCardBox->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
+		DefensiveCardBox->SetVisibility( bShowingEconomyBuildings_ ? inactiveVis : activeVis );
 	}
-
-	UpdateCategoryButtonsVisual();
 }
 
 void UHUDBuildingPanelWidget::StartBuilding( TSubclassOf<ABuilding> BuildingClass )
@@ -566,6 +577,29 @@ void UHUDBuildingPanelWidget::OnVisibilityAnimFinished()
 	if ( !bWantsVisible_ )
 	{
 		SetVisibility( ESlateVisibility::Collapsed );
+	}
+}
+
+void UHUDBuildingPanelWidget::PlayCategorySwitchAnim()
+{
+	if ( !SwitchAnim )
+	{
+		return;
+	}
+
+	if ( IsAnimationPlaying( SwitchAnim ) )
+	{
+		ReverseAnimation( SwitchAnim );
+		return;
+	}
+
+	if ( bShowingEconomyBuildings_ )
+	{
+		PlayAnimationReverse( SwitchAnim );
+	}
+	else
+	{
+		PlayAnimationForward( SwitchAnim );
 	}
 }
 

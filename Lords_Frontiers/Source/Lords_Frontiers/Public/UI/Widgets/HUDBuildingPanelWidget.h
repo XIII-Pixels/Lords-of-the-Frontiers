@@ -88,6 +88,9 @@ public:
 	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
 	TObjectPtr<UWidgetAnimation> HideAnim;
 
+	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
+	TObjectPtr<UWidgetAnimation> SwitchAnim;
+
 	// ====== Building classes ======
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Buildings" )
 	TSubclassOf<ABuilding> WoodenHouseClass;
@@ -303,11 +306,13 @@ private:
 	void ShowEconomyBuildings();
 	void ShowDefensiveBuildings();
 	void UpdateCategoryButtonsVisual();
+	void ApplyCategoryVisibility();
 	void UpdateAllBuildingButtons();
 	void UpdateButtonAvailability( UBuildingButtonWidget* button, TSubclassOf<ABuilding> buildingClass );
 	void StartBuilding( TSubclassOf<ABuilding> BuildingClass );
 
 	void PlayVisibilityAnim( bool bVisible );
+	void PlayCategorySwitchAnim();
 
 	// True when a building is currently selected (its info window is shown).
 	bool IsBuildingSelected() const;
