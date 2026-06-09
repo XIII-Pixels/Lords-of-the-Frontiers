@@ -201,6 +201,8 @@ private:
 		float AttackRange = 0.0f;
 		float AttackCooldown = 0.0f;
 		float SplashRadius = 0.0f;
+		int32 CritChance = 0;
+		int32 CritDamageBonus = 0;
 		int32 CostGold = 0;
 		int32 CostFood = 0;
 		int32 CostPopulation = 0;

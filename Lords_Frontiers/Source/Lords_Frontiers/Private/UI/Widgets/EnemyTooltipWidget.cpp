@@ -3,6 +3,7 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "UI/InfoWaves/EnemyInfoDataAsset.h"
 #include "UI/Widgets/BuildingUIConfig.h"
+#include "Localization/GameLocalization.h"
 #include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -277,6 +278,16 @@ void UEnemyTooltipWidget::UpdateContent()
 		    CachedCooldownRow, EStatsType::AttackCooldown, TEXT( "Interval" ),
 		    FString::Printf( TEXT( "%.1f" ), LastSnapshot_.AttackCooldown )
 		);
+
+		UpdateOrAddStatRow(
+		    CachedCritChanceRow, EStatsType::CritChance, LF_LOC( "Stats.CritChance" ).ToString(),
+		    FString::Printf( TEXT( "%d%%" ), LastSnapshot_.CritChance )
+		);
+
+		UpdateOrAddStatRow(
+		    CachedCritDamageRow, EStatsType::CritDamage, LF_LOC( "Stats.CritDamage" ).ToString(),
+		    FString::Printf( TEXT( "+%d%%" ), LastSnapshot_.CritDamageBonus )
+		);
 	}
 }
 
@@ -300,7 +311,8 @@ bool UEnemyTooltipWidget::FEnemySnapshot::Equals( const FEnemySnapshot& other ) 
 	return ( bValid == other.bValid ) && ( Health == other.Health ) && ( MaxHealth == other.MaxHealth ) &&
 	       ( AttackDamage == other.AttackDamage ) && FMath::IsNearlyEqual( AttackRange, other.AttackRange ) &&
 	       FMath::IsNearlyEqual( AttackCooldown, other.AttackCooldown ) &&
-	       FMath::IsNearlyEqual( MaxSpeed, other.MaxSpeed );
+	       FMath::IsNearlyEqual( MaxSpeed, other.MaxSpeed ) && ( CritChance == other.CritChance ) &&
+	       ( CritDamageBonus == other.CritDamageBonus );
 }
 
 UEnemyTooltipWidget::FEnemySnapshot UEnemyTooltipWidget::CaptureSnapshot( const AUnit* enemy ) const
@@ -318,6 +330,8 @@ UEnemyTooltipWidget::FEnemySnapshot UEnemyTooltipWidget::CaptureSnapshot( const 
 	snapshot.AttackRange = stats.AttackRange();
 	snapshot.AttackCooldown = stats.AttackCooldown();
 	snapshot.MaxSpeed = stats.MaxSpeed();
+	snapshot.CritChance = stats.CritChance();
+	snapshot.CritDamageBonus = stats.CritDamageBonus();
 
 	return snapshot;
 }

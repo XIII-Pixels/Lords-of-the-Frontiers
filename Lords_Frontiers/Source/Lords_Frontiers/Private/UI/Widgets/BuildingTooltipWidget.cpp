@@ -503,7 +503,8 @@ bool UBuildingTooltipWidget::FInstanceSnapshot::Equals( const FInstanceSnapshot&
 	return bValid == other.bValid && Health == other.Health && MaxHealth == other.MaxHealth &&
 	       AttackDamage == other.AttackDamage && FMath::IsNearlyEqual( AttackRange, other.AttackRange ) &&
 	       FMath::IsNearlyEqual( AttackCooldown, other.AttackCooldown ) &&
-	       FMath::IsNearlyEqual( SplashRadius, other.SplashRadius ) && CostGold == other.CostGold &&
+	       FMath::IsNearlyEqual( SplashRadius, other.SplashRadius ) && CritChance == other.CritChance &&
+	       CritDamageBonus == other.CritDamageBonus && CostGold == other.CostGold &&
 	       CostFood == other.CostFood && CostPopulation == other.CostPopulation && MaintGold == other.MaintGold &&
 	       MaintFood == other.MaintFood && MaintPopulation == other.MaintPopulation &&
 	       PlayerGold == other.PlayerGold && PlayerFood == other.PlayerFood &&
@@ -529,6 +530,8 @@ UBuildingTooltipWidget::FInstanceSnapshot UBuildingTooltipWidget::CaptureInstanc
 	snapshot.AttackRange = stats.AttackRange();
 	snapshot.AttackCooldown = stats.AttackCooldown();
 	snapshot.SplashRadius = stats.SplashRadius();
+	snapshot.CritChance = stats.CritChance();
+	snapshot.CritDamageBonus = stats.CritDamageBonus();
 
 	const FResourceProduction cost = building->GetBuildingCost();
 	snapshot.CostGold = cost.Gold;
@@ -773,6 +776,14 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* building )
 		addStatRow(
 		    EStatsType::SplashRadius, LF_LOC( "Stats.SplashArea" ).ToString(),
 		    ( stats.SplashRadius() > 0.0f ) ? LF_LOC( "Stats.Yes" ).ToString() : LF_LOC( "Stats.No" ).ToString()
+		);
+		addStatRow(
+		    EStatsType::CritChance, LF_LOC( "Stats.CritChance" ).ToString(),
+		    FString::Printf( TEXT( "%d%%" ), stats.CritChance() )
+		);
+		addStatRow(
+		    EStatsType::CritDamage, LF_LOC( "Stats.CritDamage" ).ToString(),
+		    FString::Printf( TEXT( "+%d%%" ), stats.CritDamageBonus() )
 		);
 	}
 }
