@@ -51,3 +51,207 @@ Settings.Volume.Ambient,"Громкость фоновых звуков","Ambien
 Settings.Volume.UI,"Громкость интерфейса","UI Volume"
 Settings.Language,"Язык","Language"
 Common.OK,"OK","OK"
+Card.Name.1_RapidTower_Fire_Sneeze,"Огненный чих","Fire sneeze"
+Card.Description.1_RapidTower_Fire_Sneeze,"Каждый <Style.Shot>3 Выстрел</> <img id=""Icon.Shot""/> накладывает <Style.Burn>Поджог</> <img id=""Icon.Burn""/> на 4 сек.
+(<Style.Damage>2 Урона</> / сек).
+Сбрасывается если цель не Атакуется.","Every <Style.Shot>3 Shot</> <img id=""Icon.Shot""/> applies <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 4 sec.
+(<Style.Damage>2 Damage</> / sec).
+Resets if the target is not attacked."
+Card.Name.1_RapidTower_Whack-whack,"Вжик-вжик","Whizz-Whizz"
+Card.Description.1_RapidTower_Whack-whack,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/>,
+повышает <Style.AttackSpeed>Скорость Атаки на +5%</> <img id=""Icon.AttackSpeed""/>.
+(макс. <Style.AttackSpeed>25%</>). 
+Сбрасывается при смене цели.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/>,
+increases <Style.AttackSpeed>Attack Speed by +5%</> <img id=""Icon.AttackSpeed""/>.
+(max. <Style.AttackSpeed>25%</>). 
+Resets when changing target."
+Card.Name.1_RapidTower_SplitClaw,"Раздвоенный коготь","Split claw"
+Card.Description.1_RapidTower_SplitClaw,"Каждый <Style.Shot>3 Выстрел</> <img id=""Icon.Shot""/>,
+выпускает
+<Style.ExtraProjectile>доп. Снаряд</> <img id=""Icon.ExtraProjectile""/>.","Every <Style.Shot>3 Shot</> <img id=""Icon.Shot""/>,
+fires
+<Style.ExtraProjectile>an extra projectile</> <img id=""Icon.ExtraProjectile""/>."
+Card.Name.1_RapidTower_WallVampire,"Стеночный вампир","Wall vampire"
+Card.Description.1_RapidTower_WallVampire,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/> Башни по Врагу, восстанавливает 
+<Style.Health>5 Здоровья</> <img id=""Icon.Health""/>
+Стенам в Области 1 клетки вокруг Башни.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/> from the Tower to an enemy restores 
+<Style.Health>5 Health</> <img id=""Icon.Health""/>
+to Walls within 1-tile area around the Tower."
+Card.Name.1_RapidTower_BurningEyes,"Горящие глазки","Burning eyes"
+Card.Description.1_RapidTower_BurningEyes,"Приоритет цели по Врагам 
+с <Style.Health>Низким Здоровьем</> <img id=""Icon.Health""/>.","Target priorities for Enemies 
+with <Style.Health>Low Health</> <img id=""Icon.Health""/>."
+Card.Name.1_SniperTower_Bestial_Anger,"Звериный гнев","Bestial anger"
+Card.Description.1_SniperTower_Bestial_Anger,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/>,
+повышает <Style.Damage>Урон на +5%</> <img id=""Icon.Damage""/>
+(макс. <Style.Damage>25%</>). 
+Сбрасывается при смене цели.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/>,
+increases <Style.Damage>Damage by +5%</> <img id=""Icon.Damage""/>
+(max. <Style.Damage>25%</>). 
+Resets when changing target."
+Card.Name.1_SniperTower_PredatorsInstinct,"Инстинкт хищника","Predator instinct"
+Card.Description.1_SniperTower_PredatorsInstinct,"Враги со
+<Style.Health>Здоровьем ниже 40%</> <img id=""Icon.Health""/>, получают на
+<Style.Damage>+35% Урона</> <img id=""Icon.Damage""/>
+больше.","Enemies with
+<Style.Health>Health below 40%</> <img id=""Icon.Health""/>, take
+<Style.Damage>+35% more Damage</> <img id=""Icon.Damage""/>."
+Card.Name.1_SniperTower_Signature_Punch,"Фирменный удар","Signature punch"
+Card.Description.1_SniperTower_Signature_Punch,"Каждый <Style.Shot>5 Выстрел</> <img id=""Icon.Shot""/>, повышает
+<Style.Damage>Урон Башни на +200%</> <img id=""Icon.Damage""/>.
+После <Style.Shot>Выстрела</> <img id=""Icon.Shot""/> эффект сбрасывается.","Every <Style.Shot>5 Shot</> <img id=""Icon.Shot""/>, increases
+<Style.Damage>Tower Damage by +200%</> <img id=""Icon.Damage""/>.
+The effect resets after <Style.Shot>Shot</> <img id=""Icon.Shot""/>."
+Card.Name.1_SniperTower_FireExcitement,"Огненный азарт","Fire excitement"
+Card.Description.1_SniperTower_FireExcitement,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/> по <Style.Burn>Горящему</> <img id=""Icon.Burn""/> Врагу, повышает <Style.AttackSpeed>Скорость Атаки на +5%</> <img id=""Icon.AttackSpeed""/> (макс. <Style.AttackSpeed>25%</>). 
+Сбрасывается при смене цели.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/> against a <Style.Burn>Burning</> <img id=""Icon.Burn""/> Enemy increases <Style.AttackSpeed>Attack Speed by +5%</> <img id=""Icon.AttackSpeed""/> (max. <Style.AttackSpeed>25%</>). 
+Resets when changing target."
+Card.Name.1_MagicalTower_CatCold,"Кошачий холод","Cat cold"
+Card.Description.1_MagicalTower_CatCold,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/>, накладывает <Style.Slow>Замедление на 5%</> <img id=""Icon.Slow""/>.
+(макс. <Style.Slow>20%</>).
+Сбрасывается через 7 сек.
+Если цель не Атакуется.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/>, applies <Style.Slow>Slow by 5%</> <img id=""Icon.Slow""/>.
+(max. <Style.Slow>20%</>).
+Resets after 7 sec.
+If the target is not Attacked."
+Card.Name.1_MagicalTower_WizardRhythm,"Колдовской ритм","Meowgical rhythm"
+Card.Description.1_MagicalTower_WizardRhythm,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/>,
+повышает <Style.Damage>Урон на +5%</> <img id=""Icon.Damage""/>
+(макс. <Style.Damage>25%</>).
+Сбрасывается при смене цели.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/>,
+increases <Style.Damage>Damage by +5%</> <img id=""Icon.Damage""/>
+(max. <Style.Damage>25%</>).
+Resets when changing target."
+Card.Name.1_MagicalTower_StickySleep,"Вязкий сон","Sticky sleep"
+Card.Description.1_MagicalTower_StickySleep,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/> по <Style.Slow>Замедленному</> <img id=""Icon.Slow""/> Врагу, повышает <Style.Damage>Урон на +2%</> <img id=""Icon.Damage""/>
+(макс. <Style.Damage>12%</>).
+Сбрасывается при смене цели.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/> against a <Style.Slow>Slowed</> <img id=""Icon.Slow""/> Enemy, increases <Style.Damage>Damage by +2%</> <img id=""Icon.Damage""/>
+(max. <Style.Damage>12%</>).
+Resets when changing target."
+Card.Name.1_MortarTower_BloatedLump,"Раздутый ком","Bulging clump"
+Card.Description.1_MortarTower_BloatedLump,"Каждый <Style.Shot>3 Выстрел</> <img id=""Icon.Shot""/> увеличивает
+<Style.Shot>Область урона на +65%</>.
+После <Style.Shot>Выстрела</> <img id=""Icon.Shot""/> эффект сбрасывается.","Every <Style.Shot>3 Shot</> <img id=""Icon.Shot""/> increases
+<Style.Shot>Damage area by +65%</>.
+The effect resets after <Style.Shot>Shot</> <img id=""Icon.Shot""/>."
+Card.Name.1_MortarTower_Shrapnel,"Осколочная шерсть","Fur shrapnel"
+Card.Description.1_MortarTower_Shrapnel,"Стены отражают
+<Style.Damage>25% Урона</> <img id=""Icon.Damage""/>,
+который нанёс <Style.Damage>Атакующий</>.","Walls reflect
+<Style.Damage>25% of Damage</> <img id=""Icon.Damage""/>,
+dealt by the <Style.Damage>Attacker</>."
+Card.Name.1_MortarTower_SulkyKitty,"Обидчивый котик","Sulk Kitty"
+Card.Description.1_MortarTower_SulkyKitty,"Каждый <Style.Shot>Промах</> Мортиры,
+повышает <Style.Damage>Урон на +5%</> <img id=""Icon.Damage""/>
+(макс. <Style.Damage>25%</>).
+Сбрасывается при попадании.","Every <Style.Shot>Miss</> of the Mortar,
+increases <Style.Damage>Damage by +5%</> <img id=""Icon.Damage""/>
+(max. <Style.Damage>25%</>).
+Resets on hit."
+Card.Name.1_Ruins_Walls_CatRevenge,"Кошачья мстя","Cat revenge"
+Card.Description.1_Ruins_Walls_CatRevenge,"При <Style.Shot>Разрушении</>, любая постройка <Style.Explosion>Взрывается</> <img id=""Icon.Explosion""/> и наносит <Style.Damage>10 Урона</> <img id=""Icon.Damage""/>.","Upon <Style.Shot>Destruction</>, any building <Style.Explosion>Explodes</> <img id=""Icon.Explosion""/> and deals <Style.Damage>10 Damage</> <img id=""Icon.Damage""/>."
+Card.Name.1_Ruins_SharpRuins,"Острые руины","Sharp ruins"
+Card.Description.1_Ruins_SharpRuins,"<Style.Ruins>Руины</> наносят
+<Style.Damage>1 Урон</> <img id=""Icon.Damage""/> / сек.","<Style.Ruins>Ruins</> deal
+<Style.Damage>1 Damage</> <img id=""Icon.Damage""/> / sec."
+Card.Name.1_Ruins_Walls_StoneReflect,"Камень я не дам!","Mine! Stone Mine!"
+Card.Description.1_Ruins_Walls_StoneReflect,"Стены отражают
+<Style.Damage>25% Урона</> <img id=""Icon.Damage""/>,
+который нанёс <Style.Damage>Атакующий</>.","Walls reflect
+<Style.Damage>25% of Damage</> <img id=""Icon.Damage""/>,
+dealt by the <Style.Damage>Attacker</>."
+Card.Name.1_Ruins_Walls_TiredHorde,"Уставшая стая","Tired pack"
+Card.Description.1_Ruins_Walls_TiredHorde,"Каждый Удар по Стенам снижает <Style.AttackSpeed>Скорость Атаки</> Врага на <Style.AttackSpeed>2%</> <img id=""Icon.AttackSpeed""/>
+(макс. <Style.AttackSpeed>16%</>).
+Сбрасывается при смене цели.","Every Hit against Walls reduces <Style.AttackSpeed>Attack Speed</> of an Enemy by <Style.AttackSpeed>2%</> <img id=""Icon.AttackSpeed""/>
+(max. <Style.AttackSpeed>16%</>).
+Resets when changing target."
+Card.Name.1_Ruins_Walls_BurnAttacker,"Горячий характер","Hot temper"
+Card.Description.1_Ruins_Walls_BurnAttacker,"Каждый Удар по Стене, <Style.Burn>Поджигает</> <img id=""Icon.Burn""/> Атакующего на 4 сек. 
+(<Style.Damage>1 Урон</> / сек).","Every Hit against Walls, <Style.Burn>Burns</> <img id=""Icon.Burn""/> the Attacker for 4 sec. 
+(<Style.Damage>1 Damage</> / sec)."
+Card.Name.1_Ruins_Walls_SlowAttacker,"Ледяное Сердце","Frozen heart"
+Card.Description.1_Ruins_Walls_SlowAttacker,"Каждый Удар по Стене, накладывает <Style.Slow>Замедление 50%</> <img id=""Icon.Slow""/> на атакующего.
+Сбрасывается через 5 сек.","Every Hit against Walls, applies <Style.Slow>50% Slow</> <img id=""Icon.Slow""/> to the attacker.
+Resets after 5 sec."
+Card.Name.1_MagicalTower_KillIgnite,"Кошачья Удача","Cat Luck"
+Card.Description.1_MagicalTower_KillIgnite,"После <Style.Kill>Убийства</> <img id=""Icon.Kill""/> Врага, создает <Style.Explosion>Взрыв</> <img id=""Icon.Explosion""/> и Накладывает <Style.Burn>Поджог</> <img id=""Icon.Burn""/> на 8 сек.
+(<Style.Damage>1 Урон</> / сек).","After <Style.Kill>Killing</> <img id=""Icon.Kill""/> an Enemy, creates <Style.Explosion>Explosion</> <img id=""Icon.Explosion""/> and applies <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 8 sec.
+(<Style.Damage>1 Damage</> / sec)."
+Card.Name.1_RapidTower_RapidFire,"Мяускорость","Meow velocity"
+Card.Description.1_RapidTower_RapidFire,"Каждый Враг, в
+<Style.Shot>Радиусе Атаки</> с
+<Style.Slow>Замедлением</> <img id=""Icon.Slow""/>, 
+повышает <Style.AttackSpeed>Скорость Атаки на +5%</> <img id=""Icon.AttackSpeed""/>.
+(макс. <Style.AttackSpeed>25%</>).","Every Enemy, in
+<Style.Shot>Attack Range</> with
+<Style.Slow>Slow</> <img id=""Icon.Slow""/>, 
+increases <Style.AttackSpeed>Attack Speed by +5%</> <img id=""Icon.AttackSpeed""/>.
+(max. <Style.AttackSpeed>25%</>)."
+Card.Name.1_SniperTower_DeathFireworks,"Фейерверк смерти","Boom of Death"
+Card.Description.1_SniperTower_DeathFireworks,"После <Style.Kill>Убийства</> <img id=""Icon.Kill""/> Врага, создает <Style.Explosion>Взрыв</> <img id=""Icon.Explosion""/> в <Style.Shot>Области 1 клетки</>, наносящий <Style.Damage>+65% Урона</> <img id=""Icon.Damage""/> и <Style.Slow>Замедляет</> на <Style.Slow>32%</> <img id=""Icon.Slow""/>. Сбрасывается через 2 сек.","After <Style.Kill>Killing</> <img id=""Icon.Kill""/> an Enemy, creates <Style.Explosion>Explosion</> <img id=""Icon.Explosion""/> in <Style.Shot>a 1-tile area</>, dealing <Style.Damage>+65% of Damage</> <img id=""Icon.Damage""/> and applying <Style.Slow>Slow</> by <Style.Slow>32%</> <img id=""Icon.Slow""/>. Resets after 2 sec."
+Card.Name.1_SniperTower_SlowDeath,"Тихоходная смерть","Lazy Death"
+Card.Description.1_SniperTower_SlowDeath,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/> по <Style.Slow>Замедленному</> <img id=""Icon.Slow""/> Врагу,
+наносит на <Style.Damage>+30% Урона</> <img id=""Icon.Damage""/>
+больше.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/> against <Style.Slow>Slowed</> <img id=""Icon.Slow""/> Enemy,
+applies <Style.Damage>+30% more Damage</> <img id=""Icon.Damage""/>."
+Card.Name.1_MagicalTower_Muurfect,"Эффектный Мурфект","Purrfect effect"
+Card.Description.1_MagicalTower_Muurfect,"Каждый Враг в 
+<Style.Shot>Радиусе Атаки</> с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/> или <Style.Slow>Замедлением</> <img id=""Icon.Slow""/>, повышает <Style.AttackSpeed>Скорость Атаки на +6%</> <img id=""Icon.AttackSpeed""/> (макс. <Style.AttackSpeed>36%</>).","Every Enemy in 
+<Style.Shot>Attack Range</> with <Style.Burn>Burn</> <img id=""Icon.Burn""/> or <Style.Slow>Slow</> <img id=""Icon.Slow""/>, increases <Style.AttackSpeed>Attack Speed by +6%</> <img id=""Icon.AttackSpeed""/> (max. <Style.AttackSpeed>36%</>)."
+Card.Name.1_MagicalTower_Pyromania,"Пиромания стаи","Pyromaniac spread"
+Card.Description.1_MagicalTower_Pyromania,"После <Style.Kill>Убийства</> <img id=""Icon.Kill""/> Врага с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/>, все Враги в <Style.Shot>Области Атаки</> получают <Style.Burn>Поджог</> <img id=""Icon.Burn""/> на 3 сек.
+(<Style.Damage>1 Урон</> / сек).","After <Style.Kill>Killing</> <img id=""Icon.Kill""/> an Enemy with <Style.Burn>Burn</> <img id=""Icon.Burn""/>, all Enemies in <Style.Shot>Attack Range</> get <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 3 sec.
+(<Style.Damage>1 Damage</> / sec)."
+Card.Name.1_MagicalTower_SlowDeath,"Медленная смерть","Chill Kill Spread"
+Card.Description.1_MagicalTower_SlowDeath,"После <Style.Kill>Убийства</> <img id=""Icon.Kill""/> Врага с <Style.Slow>Замедлением</> <img id=""Icon.Slow""/>, все Враги в <Style.Shot>Области Атаки</> получают
+<Style.Slow>Замедление на 15%</> <img id=""Icon.Slow""/>.
+Сбрасывается через 5 сек.","After <Style.Kill>Killing</> <img id=""Icon.Kill""/> an Enemy with <Style.Slow>Slow</> <img id=""Icon.Slow""/>, all Enemies in <Style.Shot>Attack Range</> get
+<Style.Slow>Slow by 15%</> <img id=""Icon.Slow""/>.
+Resets after 5 sec."
+Card.Name.1_MortarTower_FireTrail,"Огненный след","Fire trail"
+Card.Description.1_MortarTower_FireTrail,"<Style.Explosion>Взрыв</> <img id=""Icon.Explosion""/> оставляет лужу с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/> на 5 сек.
+(<Style.Damage>1 Урон</> / сек).
+Открывает секретную карту.","<Style.Explosion>Explosion</> <img id=""Icon.Explosion""/> leaves a puddle of <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 5 sec.
+(<Style.Damage>1 Damage</> / sec).
+Unlocks a secret card."
+Card.Name.1_MortarTower_FireChains,"Огненные оковы","Fire chains"
+Card.Description.1_MortarTower_FireChains,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/>,
+по <Style.Burn>Горящему</> <img id=""Icon.Burn""/> Врагу, накладывает <Style.Slow>Замедление на 45%</> <img id=""Icon.Slow""/>.
+Сбрасывается через 4 сек.","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/>,
+against a <Style.Burn>Burning</> <img id=""Icon.Burn""/> Enemy, applies <Style.Slow>Slow by 45%</> <img id=""Icon.Slow""/>.
+Resets after 4 sec."
+Card.Name.1_MortarTower_EveningLight,"Вечерний огонек","Quiet ember"
+Card.Description.1_MortarTower_EveningLight,"Каждый <Style.Shot>Выстрел</> <img id=""Icon.Shot""/>,
+по <Style.Slow>Замедленному</> <img id=""Icon.Slow""/> Врагу накладывает <Style.Burn>Поджог</> <img id=""Icon.Burn""/> на 6 сек.
+(<Style.Damage>3 Урона</> / сек).","Every <Style.Shot>Shot</> <img id=""Icon.Shot""/>,
+against a <Style.Slow>Slowed</> <img id=""Icon.Slow""/> Enemy applies <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 6 sec.
+(<Style.Damage>3 Damage</> / sec)."
+Card.Name.1_MortarTower_MoreFaster,"Чем больше, тем быстрее","The More, The Faster"
+Card.Description.1_MortarTower_MoreFaster,"Каждый Враг в <Style.Shot>Радиусе Атаки</> с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/> или <Style.Slow>Замедлением</> <img id=""Icon.Slow""/>, 
+повышает <Style.AttackSpeed>Скорость Атаки на +5%</> <img id=""Icon.AttackSpeed""/>.
+(макс. <Style.AttackSpeed>50%</>).","Every Enemy in <Style.Shot>Attack Range</> with <Style.Burn>Burn</> <img id=""Icon.Burn""/> or <Style.Slow>Slow</> <img id=""Icon.Slow""/>, 
+increases <Style.AttackSpeed>Attack Speed by +5%</> <img id=""Icon.AttackSpeed""/>.
+(max. <Style.AttackSpeed>50%</>)."
+Card.Name.1_Ruins_PartingSpark,"Прощальная искра","Final spark"
+Card.Description.1_Ruins_PartingSpark,"<Style.Ruins>Руины</> накладывают
+<Style.Burn>Поджог</> <img id=""Icon.Burn""/> на 5 сек.
+(<Style.Damage>1 Урон</> / сек).","<Style.Ruins>Ruins</> apply
+<Style.Burn>Burn</> <img id=""Icon.Burn""/> for 5 sec.
+(<Style.Damage>1 Damage</> / sec)."
+Card.Name.1_Ruins_FrostRemains,"Морозные обломки","Frozen ruins"
+Card.Description.1_Ruins_FrostRemains,"<Style.Ruins>Руины</> <Style.Slow>Замедляют</> Врагов
+на <Style.Slow>75%</> <img id=""Icon.Slow""/>.","<Style.Ruins>Ruins</> <Style.Slow>Slow</> Enemies
+by <Style.Slow>75%</> <img id=""Icon.Slow""/>."
+Card.Name.1_RapidTower_Speed_KillExplosion,"Горящая Вечеринка","Burning party"
+Card.Description.1_RapidTower_Speed_KillExplosion,"После <Style.Kill>Убийства</> <img id=""Icon.Kill""/> Врага создает <Style.Explosion>Взрыв</> <img id=""Icon.Explosion""/> в области 1 клетки создающий лужу с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/> на 6 сек.
+(<Style.Damage>4 Урона</> / сек).","After <Style.Kill>Killing</> <img id=""Icon.Kill""/> an Enemy creates <Style.Explosion>Explosion</> <img id=""Icon.Explosion""/> in a 1-tile area creating a puddle of <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 6 sec.
+(<Style.Damage>4 Damage</> / sec)."
+Card.Name.1_SniperTower_KillExplosion,"Барбекю по Кошачьему","Purrbecue"
+Card.Description.1_SniperTower_KillExplosion,"После <Style.Kill>Убийства</> <img id=""Icon.Kill""/> Врага, создает <Style.Explosion>Взрыв</> <img id=""Icon.Explosion""/> в области 1 клетки, наносящий <Style.Damage>+45% Урона</> <img id=""Icon.Damage""/> с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/> на 5 сек.
+(<Style.Damage>4 Урона</> / сек).","After <Style.Kill>Killing</> <img id=""Icon.Kill""/> an Enemy, creates <Style.Explosion>Explosion</> <img id=""Icon.Explosion""/> in a 1-tile area, dealing <Style.Damage>+45% of Damage</> <img id=""Icon.Damage""/> with <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 5 sec.
+(<Style.Damage>4 Damage</> / sec)."
+Card.Name.1_MortarTower_Cores,"Секретный Ядмаузер","Toxic Meowser"
+Card.Description.1_MortarTower_Cores,"<Style.Damage>+160 к Урону</> <img id=""Icon.Damage""/>, <Style.Shot>+115% к Области Урона</>, <Style.AttackSpeed>+8.8 сек к Скорости Атаки</> <img id=""Icon.AttackSpeed""/>, улучшает <Style.Shot>Точность</>. Попадание создает лужу с <Style.Burn>Поджогом</> <img id=""Icon.Burn""/> на 10 сек. (<Style.Damage>6 Урон</> / сек).","<Style.Damage>+160 Damage</> <img id=""Icon.Damage""/>, <Style.Shot>+115% Damage Area</>, <Style.AttackSpeed>+8.8 sec Attack Speed</> <img id=""Icon.AttackSpeed""/>, improves <Style.Shot>Accuracy</>. On hit creates a puddle of <Style.Burn>Burn</> <img id=""Icon.Burn""/> for 10 sec. (<Style.Damage>6 Damage</> / sec)."
+Card.Name.1_Global_TowerAttack,"Мур Сила",""
+Card.Description.1_Global_TowerAttack,"Все <Style.Shot>Башни</> получают <Style.Damage>+2 к Урону</> <img id=""Icon.Damage""/>",""
