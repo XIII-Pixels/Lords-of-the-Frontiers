@@ -14,8 +14,17 @@ namespace LordsFrontiersLoc
 		return Id;
 	}
 
-	// Force-loads the StringTable asset at module startup so its keys become
-	// resolvable before any widget initializes. Call once from StartupModule().
+	// Native culture of the ST_GameStrings source strings.
+	inline const TCHAR* GetNativeCulture()
+	{
+		return TEXT( "ru" );
+	}
+
+	// Force-loads the StringTable asset at module startup so its keys become resolvable
+	// before any widget initializes, then registers the culture columns of
+	// Content/Localization/ST_GameStrings.csv (Key,SourceString,en,...) as polyglot text
+	// data — no Localization Dashboard / .locres step is needed for those translations.
+	// Call once from StartupModule().
 	void Initialize();
 
 	// No-op kept for symmetry; the engine handles asset/registry teardown.
