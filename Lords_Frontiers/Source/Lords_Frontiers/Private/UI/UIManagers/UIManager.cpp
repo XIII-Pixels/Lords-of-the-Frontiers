@@ -3,12 +3,22 @@
 #include "UI/UIManagers/UIManager.h"
 
 #include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerController.h"
 
 void UUIManager::OnStartPlay()
 {
 	if ( Widget_ )
 	{
 		Widget_->AddToViewport();
+
+		if ( APlayerController* controller = Widget_->GetOwningPlayer() )
+		{
+			FInputModeUIOnly inputMode;
+			inputMode.SetWidgetToFocus( Widget_->TakeWidget() );
+			inputMode.SetLockMouseToViewportBehavior( EMouseLockMode::DoNotLock );
+			controller->SetInputMode( inputMode );
+			controller->SetShowMouseCursor( true );
+		}
 	}
 	else
 	{
