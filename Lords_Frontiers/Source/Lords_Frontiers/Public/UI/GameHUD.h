@@ -54,12 +54,6 @@ public:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<USelectedBuildingPanelWidget> DefensiveSelectedPanel;
 
-	UPROPERTY( EditAnywhere, meta = ( BindWidget ) )
-	TObjectPtr<UButton> ButtonEndTurn;
-
-	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UTextBlock> EndTurnText;
-
 	UPROPERTY( meta = ( BindWidget ) )
 	UImage* Strokestatus;
 
@@ -140,9 +134,6 @@ protected:
 	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
 
 	UFUNCTION()
-	void OnEndTurnClicked();
-
-	UFUNCTION()
 	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
 
 	UFUNCTION()
@@ -158,7 +149,6 @@ protected:
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
 
 	void UpdateStatusText();
-	void UpdateButtonVisibility();
 
 	virtual FOnAudioEvent& GetOnAudioEvent() override
 	{
@@ -169,12 +159,6 @@ protected:
 	TSubclassOf<UEnemyTooltipWidget> EnemyTooltipClass;
 
 	UPROPERTY() TObjectPtr<UEnemyTooltipWidget> ActiveEnemyTooltip;
-
-	UFUNCTION()
-	void OnHoverEndTurn()
-	{
-		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_HOVERED } );
-	}
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;

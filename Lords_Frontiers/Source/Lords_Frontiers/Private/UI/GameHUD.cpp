@@ -6,7 +6,6 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Debug/DebugPlayerController.h"
-#include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
 #include "UI/CursorAnim/CursorAnimationConfig.h"
 #include "UI/CursorAnim/CursorAnimationSubsystem.h"
@@ -30,16 +29,6 @@ void UGameHUDWidget::NativeConstruct()
 	if ( UCursorAnimationSubsystem* cursorAnimSubsystem = UCursorAnimationSubsystem::Get( this ) )
 	{
 		cursorAnimSubsystem->SetConfig( CursorAnimConfig );
-	}
-
-	if ( ButtonEndTurn )
-	{
-		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
-		ButtonEndTurn->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
-	}
-	if ( EndTurnText )
-	{
-		EndTurnText->SetText( LF_LOC( "HUD.EndTurn" ) );
 	}
 
 	if ( ABuildManager* buildManager =
@@ -110,7 +99,6 @@ void UGameHUDWidget::NativeConstruct()
 	}
 
 	UpdateStatusText();
-	UpdateButtonVisibility();
 
 	if ( IsValid( WaveInfoPanel ) )
 	{
@@ -129,12 +117,6 @@ void UGameHUDWidget::NativeConstruct()
 
 void UGameHUDWidget::NativeDestruct()
 {
-	if ( ButtonEndTurn )
-	{
-		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
-		ButtonEndTurn->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
-	}
-
 	if ( BuildingPanel )
 	{
 		BuildingPanel->OnBuildingButtonHovered.RemoveDynamic( this, &UGameHUDWidget::HandleBuildingButtonHovered );
@@ -183,7 +165,6 @@ void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
 {
 	UpdateStatusText();
-	UpdateButtonVisibility();
 
 	UpdateExtraButtonsVisibility();
 
@@ -413,41 +394,6 @@ void UGameHUDWidget::UpdateStatusText()
 			}
 		}
 	}
-}
-
-void UGameHUDWidget::UpdateButtonVisibility()
-{
-	UCoreManager* core = UCoreManager::Get( this );
-	if ( !core )
-	{
-		return;
-	}
-	UGameLoopManager* gL = core->GetGameLoop();
-	if ( !gL )
-	{
-		return;
-	}
-
-	EGameLoopPhase phase = gL->GetCurrentPhase();
-
-	if ( ButtonEndTurn )
-	{
-		bool bShow = ( phase == EGameLoopPhase::Building );
-		ButtonEndTurn->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
-	}
-}
-
-void UGameHUDWidget::OnEndTurnClicked()
-{
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
-	{
-		if ( UGameLoopManager* gL = core->GetGameLoop() )
-		{
-			gL->EndBuildTurn();
-		}
-	}
-
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_CLICKED } );
 }
 
 void UGameHUDWidget::UpdateWaveInfo()

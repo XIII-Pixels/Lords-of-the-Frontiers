@@ -1,7 +1,6 @@
 #include "Lords_Frontiers/Public/Match/MatchResultsWidget.h"
 
 #include "Blueprint/WidgetTree.h"
-#include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/PanelWidget.h"
@@ -15,6 +14,8 @@
 #include "Lords_Frontiers/Public/Match/MatchResultsLeaderboardRowWidget.h"
 #include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
 #include "Lords_Frontiers/Public/Match/MatchStatsTracker.h"
+#include "Sound/AudioTags.h"
+#include "sound/SoundEffectManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogMatchResults, Log, All );
 
@@ -29,18 +30,60 @@ void UMatchResultsWidget::NativeConstruct()
 	Super::NativeConstruct();
 	UpdateView();
 
-	if ( RestartButton && !RestartButton->OnClicked.IsAlreadyBound( this, &UMatchResultsWidget::HandleRestartClicked ) )
+	if ( RestartButton )
 	{
-		RestartButton->OnClicked.AddDynamic( this, &UMatchResultsWidget::HandleRestartClicked );
+		RestartButton->OnClicked.AddUniqueDynamic( this, &UMatchResultsWidget::HandleRestartClicked );
+		RestartButton->OnHovered.AddUniqueDynamic( this, &UMatchResultsWidget::HandleResultsButtonHovered );
 	}
-	if ( MainMenuButton && !MainMenuButton->OnClicked.IsAlreadyBound( this, &UMatchResultsWidget::HandleMainMenuClicked ) )
+	if ( MainMenuButton )
 	{
-		MainMenuButton->OnClicked.AddDynamic( this, &UMatchResultsWidget::HandleMainMenuClicked );
+		MainMenuButton->OnClicked.AddUniqueDynamic( this, &UMatchResultsWidget::HandleMainMenuClicked );
+		MainMenuButton->OnHovered.AddUniqueDynamic( this, &UMatchResultsWidget::HandleResultsButtonHovered );
+	}
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->RegisterObject( this );
+			}
+		}
 	}
 }
 
-void UMatchResultsWidget::HandleRestartClicked()
+void UMatchResultsWidget::NativeDestruct()
 {
+	if ( RestartButton )
+	{
+		RestartButton->OnClicked.RemoveDynamic( this, &UMatchResultsWidget::HandleRestartClicked );
+		RestartButton->OnHovered.RemoveDynamic( this, &UMatchResultsWidget::HandleResultsButtonHovered );
+	}
+	if ( MainMenuButton )
+	{
+		MainMenuButton->OnClicked.RemoveDynamic( this, &UMatchResultsWidget::HandleMainMenuClicked );
+		MainMenuButton->OnHovered.RemoveDynamic( this, &UMatchResultsWidget::HandleResultsButtonHovered );
+	}
+
+	if ( const UWorld* world = GetWorld() )
+	{
+		if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( world ) )
+		{
+			if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+			{
+				sfxManager->UnregisterObject( this );
+			}
+		}
+	}
+
+	Super::NativeDestruct();
+}
+
+void UMatchResultsWidget::HandleRestartClicked( EMainMenuButtonAction action )
+{
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_MAINMENU_BUTTONS_CLICKED } );
+
 	if ( UGameInstance* gi = GetGameInstance() )
 	{
 		if ( UGameSessionController* session = gi->GetSubsystem<UGameSessionController>() )
@@ -51,8 +94,10 @@ void UMatchResultsWidget::HandleRestartClicked()
 	RemoveFromParent();
 }
 
-void UMatchResultsWidget::HandleMainMenuClicked()
+void UMatchResultsWidget::HandleMainMenuClicked( EMainMenuButtonAction action )
 {
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_MAINMENU_BUTTONS_CLICKED } );
+
 	if ( UGameInstance* gi = GetGameInstance() )
 	{
 		if ( const ULevelSubsystem* levels = gi->GetSubsystem<ULevelSubsystem>() )
@@ -61,6 +106,11 @@ void UMatchResultsWidget::HandleMainMenuClicked()
 		}
 	}
 	RemoveFromParent();
+}
+
+void UMatchResultsWidget::HandleResultsButtonHovered( EMainMenuButtonAction action )
+{
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_MAINMENU_BUTTONS_HOVERED } );
 }
 
 UMatchStatsTracker* UMatchResultsWidget::GetTracker() const
@@ -311,6 +361,41 @@ void UMatchResultsWidget::ApplyTextsToBoundWidgets()
 		default: title = FText::GetEmpty(); break;
 		}
 		ResultTitleText->SetText( title );
+	}
+
+	// Static labels follow the active culture; values below are formatted numbers.
+	SetIfBound( BestScoreLabel, LF_LOC( "MatchResult.BestScore" ) );
+
+	SetIfBound( WavesSurvivedLabel, LF_LOC( "MatchResult.WavesSurvived" ) );
+	SetIfBound( EnemiesKilledLabel, LF_LOC( "MatchResult.EnemiesKilled" ) );
+	SetIfBound( BossesKilledLabel, LF_LOC( "MatchResult.BossesKilled" ) );
+	SetIfBound( DamageDealtLabel, LF_LOC( "MatchResult.DamageDealt" ) );
+
+	SetIfBound( Tower_Speed_Label, LF_LOC( "MatchResult.Tower.Speed" ) );
+	SetIfBound( Tower_Sniper_Label, LF_LOC( "MatchResult.Tower.Sniper" ) );
+	SetIfBound( Tower_Magic_Label, LF_LOC( "MatchResult.Tower.Magic" ) );
+	SetIfBound( Tower_Mortar_Label, LF_LOC( "MatchResult.Tower.Mortar" ) );
+	SetIfBound( TowersTotalLabel, LF_LOC( "MatchResult.Tower.Total" ) );
+
+	SetIfBound( Resource_Mint_Label, LF_LOC( "MatchResult.Resource.Mint" ) );
+	SetIfBound( Resource_Fish_Label, LF_LOC( "MatchResult.Resource.Fish" ) );
+	SetIfBound( Resource_Population_Label, LF_LOC( "MatchResult.Resource.Population" ) );
+
+	SetIfBound( Section_Enemies_Title, LF_LOC( "MatchResult.Section.Enemies" ) );
+	SetIfBound( Section_Towers_Title, LF_LOC( "MatchResult.Section.Towers" ) );
+	SetIfBound( Section_Resources_Title, LF_LOC( "MatchResult.Section.Resources" ) );
+	SetIfBound( Section_TotalScore_Title, LF_LOC( "MatchResult.Section.TotalScore" ) );
+	SetIfBound( Section_Leaderboard_Title, LF_LOC( "MatchResult.Section.Leaderboard" ) );
+
+	// Buttons localize themselves via LabelKey; assign the defaults when the
+	// WBP instance didn't set its own key.
+	if ( MainMenuButton && MainMenuButton->LabelKey.IsNone() )
+	{
+		MainMenuButton->SetLabelKey( TEXT( "MatchResult.MainMenu" ) );
+	}
+	if ( RestartButton && RestartButton->LabelKey.IsNone() )
+	{
+		RestartButton->SetLabelKey( TEXT( "MatchResult.Restart" ) );
 	}
 
 	SetIfBound( WavesSurvivedValue, FormatCount( CachedStats.WavesSurvived ) );
