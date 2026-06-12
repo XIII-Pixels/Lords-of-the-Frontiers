@@ -23,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardClicked, UCardWidget*, CardW
  * Minimal card visual:
  * - BuildingIconImage  (Постройка) — UCardDataAsset::BuildingIcon
  * - FeatureIconImage   (Особенность) — UCardDataAsset::FeatureIcon
- * - CardNameText       (URichTextBlock) — UCardDataAsset::CardName
+ * - CardNameText       (URichTextBlock) — UCardDataAsset::GetCardName()
  * - DescriptionText    (URichTextBlock) — UCardDataAsset::BuildDescription()
  * Plus a click button. Selection visuals are handled in Blueprint via
  * OnSelectionChanged.

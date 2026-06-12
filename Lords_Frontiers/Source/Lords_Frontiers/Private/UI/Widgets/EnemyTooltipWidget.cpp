@@ -216,9 +216,9 @@ void UEnemyTooltipWidget::UpdateContent()
 	{
 		const FEnemyUIData& data = EnemyDataAsset->EnemyDataMap[enemyClass];
 		if ( IsValid( Text_Name ) )
-			Text_Name->SetText( data.EnemyName );
+			Text_Name->SetText( EnemyDataAsset->GetEnemyName( enemyClass ) );
 		if ( IsValid( Text_Description ) )
-			Text_Description->SetText( data.EnemyDescription );
+			Text_Description->SetText( EnemyDataAsset->GetEnemyDescription( enemyClass ) );
 		if ( IsValid( Img_Icon ) )
 			Img_Icon->SetBrushFromTexture( data.EnemyIcon );
 	}

@@ -13,10 +13,7 @@ void ULanguageOptionWidget::Setup( const FLanguageOption& option, const FText& r
 		NameText->SetText( resolvedName );
 	}
 
-	if ( FlagImage && option.FlagBrush.GetResourceObject() )
-	{
-		FlagImage->SetBrush( option.FlagBrush );
-	}
+	ULanguageSwitchWidget::ApplyFlagBrush( FlagImage, option );
 }
 
 void ULanguageOptionWidget::NativeConstruct()

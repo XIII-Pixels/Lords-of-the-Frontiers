@@ -53,7 +53,7 @@ protected:
 	virtual void Initialize( FSubsystemCollectionBase& collection ) override;
 	virtual void Deinitialize() override;
 
-	ULoopingSound* PlayMusic( const FLoopingSoundConfig* sound );
+	ULoopingSound* PlayMusic( const FLoopingSoundConfig* sound, float volumeScale = 1.0f );
 	ULoopingSound* PlayAmbient( const FLoopingSoundConfig* sound );
 
 private:
@@ -63,7 +63,7 @@ private:
 		Ambient,
 	};
 
-	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind );
+	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind, float volumeScale = 1.0f );
 
 	// Only one music track can play at a time
 	UPROPERTY()

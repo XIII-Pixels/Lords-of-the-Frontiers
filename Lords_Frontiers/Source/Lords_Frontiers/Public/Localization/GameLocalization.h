@@ -14,16 +14,25 @@ namespace LordsFrontiersLoc
 		return Id;
 	}
 
-	// Native culture of the ST_GameStrings source strings.
+	// Object path of the ST_Cards UStringTable asset: card names/descriptions
+	// (Card.Name.* / Card.Description.*), bound on UCardDataAsset FText fields.
+	// See Doc/CardLocalization.md.
+	inline FName GetCardsTableId()
+	{
+		static const FName Id( TEXT( "/Game/Localization/ST_Cards.ST_Cards" ) );
+		return Id;
+	}
+
+	// Native culture of the source strings in all game string tables.
 	inline const TCHAR* GetNativeCulture()
 	{
 		return TEXT( "ru" );
 	}
 
-	// Force-loads the StringTable asset at module startup so its keys become resolvable
-	// before any widget initializes, then registers the culture columns of
-	// Content/Localization/ST_GameStrings.csv (Key,SourceString,en,...) as polyglot text
-	// data — no Localization Dashboard / .locres step is needed for those translations.
+	// Force-loads the StringTable assets (ST_GameStrings, ST_Cards) at module startup so
+	// their keys become resolvable before any widget initializes, then registers the
+	// culture columns of each table's companion CSV (Key,SourceString,en,...) as polyglot
+	// text data — no Localization Dashboard / .locres step is needed for those translations.
 	// Call once from StartupModule().
 	void Initialize();
 

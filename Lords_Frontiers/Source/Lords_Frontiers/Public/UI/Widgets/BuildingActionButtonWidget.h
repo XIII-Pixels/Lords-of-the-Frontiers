@@ -35,6 +35,10 @@ public:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UTextBlock> CostText;
 
+	/** Optional action label; C++ fills it from ST_GameStrings (Building.Action.Relocate/Remove). */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> LabelText;
+
 	UPROPERTY( EditAnywhere, Category = "Settings|UI" )
 	float DisabledOpacity = 0.4f;
 

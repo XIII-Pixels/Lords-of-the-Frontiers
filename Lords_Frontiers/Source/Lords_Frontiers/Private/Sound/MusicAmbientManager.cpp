@@ -11,7 +11,7 @@
 #include "Sound/Data/MusicDataAsset.h"
 #include "Sound/LoopingSound.h"
 
-ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound )
+ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound, float volumeScale )
 {
 	if ( Music_ )
 	{
@@ -24,7 +24,7 @@ ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound
 
 	if ( sound )
 	{
-		Music_ = CreateAndPlay( sound, EMusicAmbientKind::Music );
+		Music_ = CreateAndPlay( sound, EMusicAmbientKind::Music, volumeScale );
 	}
 	return Music_;
 }
@@ -44,7 +44,7 @@ ULoopingSound* UMusicAmbientManager::PlayAmbient( const FLoopingSoundConfig* sou
 	return nullptr;
 }
 
-ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind )
+ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind, float volumeScale )
 {
 	if ( !sound )
 	{
@@ -55,7 +55,7 @@ ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* s
 	{
 		const EAudioCategory category =
 		    kind == EMusicAmbientKind::Music ? EAudioCategory::Music : EAudioCategory::Ambient;
-		audio->Initialize( sound, category );
+		audio->Initialize( sound, category, volumeScale );
 		audio->Play();
 
 		return audio;
@@ -108,7 +108,7 @@ void UMusicAmbientManager::PlayCurrentLevelCombatMusic()
 		if ( const FMusicForLevel* musicForLevel =
 		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
 		{
-			PlayMusic( &musicForLevel->Battle );
+			PlayMusic( &musicForLevel->Battle, MusicDataAsset_->BattleMusicVolumeScale() );
 			return;
 		}
 	}

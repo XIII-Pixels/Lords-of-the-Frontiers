@@ -162,6 +162,12 @@ void ULanguageSwitchWidget::RebuildOptions()
 
 	for ( int32 index = 0; index < Languages.Num(); ++index )
 	{
+		// The current language already sits on the switch button — list only the alternatives.
+		if ( index == CurrentIndex_ )
+		{
+			continue;
+		}
+
 		ULanguageOptionWidget* option = CreateWidget<ULanguageOptionWidget>( this, OptionWidgetClass );
 		if ( !option )
 		{
@@ -172,6 +178,36 @@ void ULanguageSwitchWidget::RebuildOptions()
 		option->OnPicked.AddDynamic( this, &ULanguageSwitchWidget::HandleOptionPicked );
 		OptionsPanel->AddChild( option );
 		OptionWidgets_.Add( option );
+	}
+}
+
+void ULanguageSwitchWidget::ApplyFlagBrush( UImage* flagImage, const FLanguageOption& option )
+{
+	if ( !flagImage )
+	{
+		return;
+	}
+
+	if ( option.FlagBrush.GetResourceObject() )
+	{
+		flagImage->SetBrush( option.FlagBrush );
+		// Undo a collapse from a previously missing brush.
+		if ( flagImage->GetVisibility() == ESlateVisibility::Collapsed )
+		{
+			flagImage->SetVisibility( ESlateVisibility::SelfHitTestInvisible );
+		}
+	}
+	else
+	{
+		// Keeping the designer-default texture would show the wrong language's flag.
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "LanguageSwitchWidget: no FlagBrush set for culture '%s' — hiding the flag image. "
+		          "Assign the flag textures in the Languages array on the WBP "
+		          "(Doc/SettingsMenu_Setup.md, step 2.3)." ),
+		    *option.Culture
+		);
+		flagImage->SetVisibility( ESlateVisibility::Collapsed );
 	}
 }
 
@@ -198,7 +234,23 @@ void ULanguageSwitchWidget::ApplyOption( int32 index )
 		}
 		else
 		{
+			// Enable alone does not store the culture: FindCurrentCultureIndex reads the
+			// configured preview language back when the menu is reopened, so keep it in sync
+			// or the flag resets to the native language while the preview stays on.
+			textManager.ConfigureGameLocalizationPreviewLanguage( culture );
 			textManager.EnableGameLocalizationPreview( culture );
+			if ( !textManager.IsGameLocalizationPreviewEnabled() )
+			{
+				// EnableGameLocalizationPreview is a silent no-op when the engine does not know
+				// the native game culture — i.e. no game translations were registered at startup.
+				UE_LOG(
+				    LogTemp, Warning,
+				    TEXT( "LanguageSwitchWidget: game localization preview did not enable for '%s' — "
+				          "game text stays on the native language. Check the GameLocalization lines "
+				          "in the startup log: were the CSV translations registered?" ),
+				    *culture
+				);
+			}
 		}
 	}
 	else
@@ -210,6 +262,7 @@ void ULanguageSwitchWidget::ApplyOption( int32 index )
 	}
 
 	UpdateCurrentDisplay();
+	RebuildOptions();
 	OnLanguageChanged.Broadcast( culture );
 }
 
@@ -217,6 +270,7 @@ void ULanguageSwitchWidget::HandleCultureChanged()
 {
 	CurrentIndex_ = FindCurrentCultureIndex();
 	UpdateCurrentDisplay();
+	RebuildOptions();
 }
 
 int32 ULanguageSwitchWidget::FindCurrentCultureIndex() const
@@ -263,10 +317,7 @@ void ULanguageSwitchWidget::UpdateCurrentDisplay()
 		LanguageText->SetText( ResolveDisplayName( option ) );
 	}
 
-	if ( CurrentFlagImage && option.FlagBrush.GetResourceObject() )
-	{
-		CurrentFlagImage->SetBrush( option.FlagBrush );
-	}
+	ApplyFlagBrush( CurrentFlagImage, option );
 }
 
 FText ULanguageSwitchWidget::ResolveDisplayName( const FLanguageOption& option ) const

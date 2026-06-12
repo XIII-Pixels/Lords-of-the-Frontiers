@@ -99,6 +99,29 @@ void UBuildingTooltipBonusRow::Setup(
 }
 
 
+void UBuildingTooltipWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	// Static section headers: a string-table FText set once keeps re-resolving on culture switches.
+	if ( IsValid( Text_CostLabel ) )
+	{
+		Text_CostLabel->SetText( LF_LOC( "Tooltip.Cost" ) );
+	}
+	if ( IsValid( Text_MaintenanceLabel ) )
+	{
+		Text_MaintenanceLabel->SetText( LF_LOC( "Tooltip.Maintenance" ) );
+	}
+	if ( IsValid( Text_ProductionLabel ) )
+	{
+		Text_ProductionLabel->SetText( LF_LOC( "Tooltip.Production" ) );
+	}
+	if ( IsValid( Text_BonusLabel ) )
+	{
+		Text_BonusLabel->SetText( LF_LOC( "Tooltip.Bonus" ) );
+	}
+}
+
 void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDeltaTime )
 {
 	Super::NativeTick( myGeometry, inDeltaTime );
@@ -591,13 +614,12 @@ void UBuildingTooltipWidget::UpdateHeader( const ABuilding* cdo )
 {
 	if ( IsValid( UIConfig ) && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
 	{
-		const FBuildingUIData& data = UIConfig->BuildingsData[CurrentBuildingClass];
-		Text_Name->SetText( data.Name );
-		Text_Description->SetText( data.Description );
+		Text_Name->SetText( UIConfig->GetBuildingName( CurrentBuildingClass ) );
+		Text_Description->SetText( UIConfig->GetBuildingDescription( CurrentBuildingClass ) );
 
 		if ( IsValid( Img_Icon ) )
 		{
-			Img_Icon->SetBrushFromTexture( data.Icon );
+			Img_Icon->SetBrushFromTexture( UIConfig->BuildingsData[CurrentBuildingClass].Icon );
 		}
 	}
 	else

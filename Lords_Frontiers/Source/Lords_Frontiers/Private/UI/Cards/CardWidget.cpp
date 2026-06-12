@@ -123,7 +123,7 @@ void UCardWidget::UpdateCardVisuals()
 
 	if ( CardNameText )
 	{
-		CardNameText->SetText( CardData_->CardName );
+		CardNameText->SetText( CardData_->GetCardName() );
 	}
 
 	if ( DescriptionText )

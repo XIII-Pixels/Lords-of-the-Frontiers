@@ -30,6 +30,20 @@ float UAudioSettingsSubsystem::GetVolume( EAudioCategory category ) const
 	return DefaultCategoryVolume;
 }
 
+float UAudioSettingsSubsystem::GetEffectiveVolume( EAudioCategory category ) const
+{
+	return PositionToAmplitude( GetVolume( category ) );
+}
+
+float UAudioSettingsSubsystem::PositionToAmplitude( float position )
+{
+	// Hearing is logarithmic: feeding the slider position into the amplitude directly puts
+	// almost the whole audible change into the first percents of the slider. Squaring the
+	// position spreads the perceived steps roughly evenly along the slider travel.
+	position = FMath::Clamp( position, 0.0f, 1.0f );
+	return position * position;
+}
+
 void UAudioSettingsSubsystem::SetVolume( EAudioCategory category, float volume )
 {
 	volume = FMath::Clamp( volume, 0.0f, 1.0f );

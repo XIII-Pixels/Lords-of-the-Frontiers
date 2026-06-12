@@ -4,6 +4,7 @@
 #include "Cards/CardPoolConfig.h"
 #include "Cards/CardSubsystem.h"
 #include "Cards/CardTypes.h"
+#include "Localization/GameLocalization.h"
 #include "UI/Cards/CardWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -327,6 +328,11 @@ void UCardSelectionWidget::UpdateSelectionUI()
 		ConfirmButton->SetIsEnabled( currentCount >= requiredCount );
 	}
 
+	if ( ConfirmButtonText )
+	{
+		ConfirmButtonText->SetText( LF_LOC( "CardSelection.Confirm" ) );
+	}
+
 	if ( SelectionCountText )
 	{
 		FText countText = FText::Format(
@@ -359,11 +365,16 @@ void UCardSelectionWidget::UpdateRerollUI()
 		RerollButton->SetIsEnabled( bCanAfford );
 	}
 
+	if ( RerollButtonText )
+	{
+		RerollButtonText->SetText( LF_LOC( "CardSelection.Reroll" ) );
+	}
+
 	if ( RerollCostText )
 	{
 		if ( bRerollEnabled && poolConfig )
 		{
-			RerollCostText->SetText( FText::Format( RerollCostFormat, FText::AsNumber( cost ) ) );
+			RerollCostText->SetText( FText::AsNumber( cost ) );
 			RerollCostText->SetVisibility( ESlateVisibility::Visible );
 		}
 		else
@@ -379,14 +390,14 @@ void UCardSelectionWidget::UpdateTitleText()
 {
 	if ( TitleText )
 	{
-		FText title = FText::Format( TitleFormat, FText::AsNumber( CardsToSelect_ ) );
+		// The pattern has no {0} today («Выбери улучшение»), but keeps supporting one in the CSV.
+		FText title = FText::Format( LF_LOC( "CardSelection.Title" ), FText::AsNumber( CardsToSelect_ ) );
 		TitleText->SetText( title );
 	}
 
 	if ( WaveText )
 	{
-		FText waveTextValue = FText::FromString( FString::Printf( TEXT( "Wave %d" ), CurrentWaveNumber_ ) );
-		WaveText->SetText( waveTextValue );
+		WaveText->SetText( FText::Format( LF_LOC( "CardSelection.Wave" ), FText::AsNumber( CurrentWaveNumber_ ) ) );
 	}
 }
 

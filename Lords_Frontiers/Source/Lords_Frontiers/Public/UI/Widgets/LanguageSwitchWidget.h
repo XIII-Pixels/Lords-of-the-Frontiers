@@ -36,9 +36,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnLanguageChanged, const FString&,
 
 /**
  * Flag-style language selector: the button shows the current language's flag; clicking it
- * unfolds a dropdown with one flag row per entry of Languages, clicking a row applies that
- * culture and folds the list. Without a bound list (OptionsPanel/OptionWidgetClass) the
- * button falls back to cycling through Languages directly.
+ * unfolds a dropdown listing the OTHER languages of Languages (the current one stays on
+ * the button), clicking a row applies that culture and folds the list. Without a bound
+ * list (OptionsPanel/OptionWidgetClass) the button falls back to cycling through Languages.
  * In game builds it sets the process culture and persists it to GameUserSettings.ini;
  * in the editor it drives the game localization preview instead, so only game text is
  * translated and the editor UI keeps its own language.
@@ -50,6 +50,13 @@ class LORDS_FRONTIERS_API ULanguageSwitchWidget : public UUserWidget
 
 public:
 	ULanguageSwitchWidget( const FObjectInitializer& objectInitializer );
+
+	/**
+	 * Shows the option's flag on the image, or collapses the image (with a log warning)
+	 * when the option has no FlagBrush — a stale texture would show the wrong language.
+	 * Shared by the switch button and the dropdown rows.
+	 */
+	static void ApplyFlagBrush( UImage* flagImage, const FLanguageOption& option );
 
 	/** Flag button: toggles the dropdown (or cycles languages when no list is bound). */
 	UPROPERTY( BlueprintReadOnly, Category = "LanguageSwitch", meta = ( BindWidget ) )

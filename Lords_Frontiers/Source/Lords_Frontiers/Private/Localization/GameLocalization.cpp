@@ -87,8 +87,8 @@ namespace
 			{
 				UE_LOG(
 				    LogTemp, Warning,
-				    TEXT( "GameLocalization: %s: key '%s' is missing in ST_GameStrings — reimport the CSV "
-				          "into the asset" ),
+				    TEXT( "GameLocalization: %s: key '%s' is missing in the string table asset — "
+				          "reimport the CSV into it" ),
 				    *fileName, *key
 				);
 				continue;
@@ -103,8 +103,8 @@ namespace
 			{
 				UE_LOG(
 				    LogTemp, Warning,
-				    TEXT( "GameLocalization: %s: source string for '%s' differs from ST_GameStrings — reimport "
-				          "the CSV into the asset" ),
+				    TEXT( "GameLocalization: %s: source string for '%s' differs from the string table "
+				          "asset — reimport the CSV into it" ),
 				    *fileName, *key
 				);
 			}
@@ -140,19 +140,42 @@ namespace
 		return result;
 	}
 
-	// Registers the culture columns of Content/Localization/ST_GameStrings.csv as runtime
-	// translations, so the Localization Dashboard / .locres pipeline is not required for them.
-	void RegisterCsvTranslations( const UStringTable& table )
+	// Force-loads a StringTable asset and registers the culture columns of its companion
+	// CSV as runtime translations, so the Localization Dashboard / .locres pipeline is not
+	// required for them.
+	void RegisterTableTranslations( const TCHAR* assetPath, const TCHAR* csvRelativePath )
 	{
-		const FString csvPath = FPaths::ProjectContentDir() / TEXT( "Localization/ST_GameStrings.csv" );
-
-		TArray<FPolyglotTextData> translations = LoadCsvTranslations( csvPath, table.GetStringTable() );
-		if ( !translations.IsEmpty() )
+		UStringTable* table = LoadObject<UStringTable>( nullptr, assetPath );
+		if ( !table )
 		{
-			FTextLocalizationManager::Get().RegisterPolyglotTextData( translations );
+			UE_LOG(
+			    LogTemp, Error,
+			    TEXT( "GameLocalization: StringTable asset %s not found. Texts bound to it will "
+			          "render as <MISSING STRING TABLE ENTRY>. See Doc/Localization.md." ),
+			    assetPath
+			);
+			return;
 		}
+
+		const FString csvPath = FPaths::ProjectContentDir() / csvRelativePath;
+
+		TArray<FPolyglotTextData> translations = LoadCsvTranslations( csvPath, table->GetStringTable() );
+		if ( translations.IsEmpty() )
+		{
+			UE_LOG(
+			    LogTemp, Warning,
+			    TEXT( "GameLocalization: %s: no translations registered — texts of this table will "
+			          "not switch languages. Check that the CSV was imported into %s (Import from "
+			          "CSV) and that its culture columns are filled." ),
+			    *FPaths::GetCleanFilename( csvPath ), assetPath
+			);
+			return;
+		}
+
+		FTextLocalizationManager::Get().RegisterPolyglotTextData( translations );
 		UE_LOG(
-		    LogTemp, Log, TEXT( "GameLocalization: registered CSV translations for %d keys" ), translations.Num()
+		    LogTemp, Log, TEXT( "GameLocalization: %s: registered CSV translations for %d keys" ),
+		    *FPaths::GetCleanFilename( csvPath ), translations.Num()
 		);
 	}
 } // namespace
@@ -161,18 +184,15 @@ namespace LordsFrontiersLoc
 {
 	void Initialize()
 	{
-		UStringTable* table = LoadObject<UStringTable>(
-		    nullptr, TEXT( "/Game/Localization/ST_GameStrings.ST_GameStrings" ) );
-		if ( !table )
-		{
-			UE_LOG( LogTemp, Error,
-			    TEXT( "GameLocalization: ST_GameStrings asset not found at "
-			          "/Game/Localization/. UI text will render as "
-			          "<MISSING STRING TABLE ENTRY>. See Doc/Localization.md." ) );
-			return;
-		}
+		// UI strings: LF_LOC call sites and WBP bindings.
+		RegisterTableTranslations(
+		    TEXT( "/Game/Localization/ST_GameStrings.ST_GameStrings" ),
+		    TEXT( "Localization/ST_GameStrings.csv" ) );
 
-		RegisterCsvTranslations( *table );
+		// Card names/descriptions (Card.Name.* / Card.Description.*), bound on
+		// UCardDataAsset FText fields — see Doc/CardLocalization.md.
+		RegisterTableTranslations(
+		    TEXT( "/Game/Localization/ST_Cards.ST_Cards" ), TEXT( "Localization/ST_Cards.csv" ) );
 	}
 
 	void Shutdown()

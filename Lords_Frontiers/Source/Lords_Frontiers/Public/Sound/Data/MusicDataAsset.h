@@ -48,7 +48,16 @@ public:
 
 	const FMusicForLevel* MusicForLevel( TSoftObjectPtr<UWorld> level ) const;
 
+	float BattleMusicVolumeScale() const
+	{
+		return BattleMusicVolumeScale_;
+	}
+
 private:
+	/** Extra multiplier applied on top of the per-track Volume for battle music only. */
+	UPROPERTY( EditAnywhere, Category = "Settings", meta = ( ClampMin = 0.0f, ClampMax = 1.0f ) )
+	float BattleMusicVolumeScale_ = 0.5f;
+
 	UPROPERTY( EditAnywhere, Category = "Settings" )
 	FLoopingSoundConfig MainMenuMusic_;
 

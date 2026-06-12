@@ -294,7 +294,11 @@ void UWaveInfoPanelWidget::PopulatePanel( const TMap<TSubclassOf<AUnit>, int32>&
 				}
 			}
 
-			const FEnemyUIData& uiData = EnemyDataAsset->EnemyDataMap[entries[i].Key];
+			// Localized copy: SetupRow keeps taking the struct, but the texts must come
+		// from the string table resolution, not the inline fallbacks.
+		FEnemyUIData uiData = EnemyDataAsset->EnemyDataMap[entries[i].Key];
+		uiData.EnemyName = EnemyDataAsset->GetEnemyName( entries[i].Key );
+		uiData.EnemyDescription = EnemyDataAsset->GetEnemyDescription( entries[i].Key );
 
 			UEnemyRowWidget* rowWidget = CreateWidget<UEnemyRowWidget>( this, EnemyRowClass );
 			if ( !IsValid( rowWidget ) || !IsValid( currentRow ) )

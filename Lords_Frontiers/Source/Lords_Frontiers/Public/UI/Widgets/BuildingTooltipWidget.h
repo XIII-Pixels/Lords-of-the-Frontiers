@@ -163,6 +163,14 @@ protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Name;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Description;
 
+	// Section header labels; when bound, C++ fills them from ST_GameStrings so they localize.
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_CostLabel;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_MaintenanceLabel;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_ProductionLabel;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_BonusLabel;
+
+	virtual void NativeConstruct() override;
+
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Health;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Stats;

@@ -2,6 +2,7 @@
 
 #include "Building/Building.h"
 #include "Building/Construction/BuildManager.h"
+#include "Localization/GameLocalization.h"
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Selection/SelectionManagerComponent.h"
@@ -95,6 +96,13 @@ void UBuildingActionButtonWidget::RefreshFor( ABuilding* building )
 	{
 		Button->SetIsEnabled( !bCombat );
 		Button->SetRenderOpacity( bCombat ? DisabledOpacity : 1.0f );
+	}
+
+	if ( LabelText )
+	{
+		LabelText->SetText(
+		    Action == EBuildingActionType::Relocate ? LF_LOC( "Building.Action.Relocate" )
+		                                            : LF_LOC( "Building.Action.Remove" ) );
 	}
 
 	ApplyCostText( building );
