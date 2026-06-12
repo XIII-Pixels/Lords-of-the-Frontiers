@@ -8,7 +8,7 @@
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
-void ULoopingSound::Initialize( const FLoopingSoundConfig* soundConfig, EAudioCategory category )
+void ULoopingSound::Initialize( const FLoopingSoundConfig* soundConfig, EAudioCategory category, float extraVolumeScale )
 {
 	if ( !soundConfig || !IsValid( soundConfig->Sound ) )
 	{
@@ -16,6 +16,7 @@ void ULoopingSound::Initialize( const FLoopingSoundConfig* soundConfig, EAudioCa
 	}
 
 	Category_ = category;
+	ExtraVolumeScale_ = FMath::Max( 0.0f, extraVolumeScale );
 
 	AudioComponent_ = UGameplayStatics::CreateSound2D(
 	    GetWorld(), soundConfig->Sound, soundConfig->Volume, soundConfig->Pitch, 0.0f, nullptr, true, false
@@ -51,16 +52,16 @@ void ULoopingSound::ApplyCategoryVolume()
 		return;
 	}
 
-	float categoryVolume = UAudioSettingsSubsystem::DefaultCategoryVolume;
+	float categoryVolume = UAudioSettingsSubsystem::PositionToAmplitude( UAudioSettingsSubsystem::DefaultCategoryVolume );
 	if ( UGameInstance* gi = UGameplayStatics::GetGameInstance( this ) )
 	{
 		if ( const UAudioSettingsSubsystem* settings = gi->GetSubsystem<UAudioSettingsSubsystem>() )
 		{
-			categoryVolume = settings->GetVolume( Category_ );
+			categoryVolume = settings->GetEffectiveVolume( Category_ );
 		}
 	}
 
-	AudioComponent_->SetVolumeMultiplier( SoundConfig_->Volume * categoryVolume );
+	AudioComponent_->SetVolumeMultiplier( SoundConfig_->Volume * ExtraVolumeScale_ * categoryVolume );
 }
 
 void ULoopingSound::Play()

@@ -93,6 +93,8 @@ private:
 		float AttackRange = 0.0f;
 		float AttackCooldown = 0.0f;
 		float MaxSpeed = 0.0f;
+		int32 CritChance = 0;
+		int32 CritDamageBonus = 0;
 
 		bool Equals( const FEnemySnapshot& other ) const;
 	};
@@ -105,6 +107,8 @@ private:
 	UPROPERTY() TObjectPtr<UBuildingTooltipStatRow> CachedSpeedRow;
 	UPROPERTY() TObjectPtr<UBuildingTooltipStatRow> CachedRangeRow;
 	UPROPERTY() TObjectPtr<UBuildingTooltipStatRow> CachedCooldownRow;
+	UPROPERTY() TObjectPtr<UBuildingTooltipStatRow> CachedCritChanceRow;
+	UPROPERTY() TObjectPtr<UBuildingTooltipStatRow> CachedCritDamageRow;
 
 	UPROPERTY( Transient )
 	TObjectPtr<UDecalComponent> SpawnedRangeDecal;

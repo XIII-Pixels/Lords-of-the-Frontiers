@@ -14,6 +14,7 @@ class UOverlay;
 class UPanelWidget;
 class UBuildingUIConfig;
 class ABuilding;
+class UWidgetAnimation;
 
 UENUM()
 enum class ETooltipState : uint8
@@ -28,7 +29,6 @@ enum class ETooltipState : uint8
 	AnimatingOut
 };
 
-// str economy
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipResourceRow : public UUserWidget
 {
@@ -42,7 +42,6 @@ public:
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_Suffix;
 };
 
-// str health
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipHealthRow : public UUserWidget
 {
@@ -53,9 +52,9 @@ public:
 protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_HealthIcon;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_HealthValue;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_HealthLabel;
 };
 
-// str stats
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipStatRow : public UUserWidget
 {
@@ -69,7 +68,6 @@ protected:
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Value;
 };
 
-// str bonus
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipBonusRow : public UUserWidget
 {
@@ -84,7 +82,6 @@ protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UImage> Img_ResourceIcon;
 };
 
-// main widgeth tooltip
 UCLASS( Abstract )
 class LORDS_FRONTIERS_API UBuildingTooltipWidget : public UUserWidget
 {
@@ -94,7 +91,7 @@ public:
 	virtual void NativeTick( const FGeometry& myGeometry, float inDeltaTime ) override;
 
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
-	void ShowTooltip( TSubclassOf<ABuilding> buildingClass );
+	void ShowTooltip( TSubclassOf<ABuilding> buildingClass, bool bAnimate = true );
 
 	void ShowTooltipForBuildingInstance( const ABuilding* BuildingInstance );
 
@@ -118,6 +115,8 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Tooltip" )
 	void StartAutoHideTimer();
 
+	void CopyInfoConfigFrom( const UBuildingTooltipWidget* source );
+
 protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float ShowDelay = 0.2f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float HideDelay = 0.1f;
@@ -129,6 +128,12 @@ protected:
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) float SlideOffsetX = -50.0f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Animation" ) TObjectPtr<UCurveFloat> AnimationCurve;
 
+	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
+	TObjectPtr<UWidgetAnimation> ShowAnim;
+
+	UPROPERTY( Transient, meta = ( BindWidgetAnimOptional ) )
+	TObjectPtr<UWidgetAnimation> HideAnim;
+
 	UPROPERTY(
 	    EditAnywhere, Category = "Settings|Animation",
 	    meta = ( Tooltip = "How long to show red tooltip before auto-hiding" )
@@ -136,7 +141,6 @@ protected:
 	float AutoHideDelay = 3.0f;
 	UPROPERTY( EditAnywhere, Category = "Settings|Config" ) TObjectPtr<UBuildingUIConfig> UIConfig;
 
-	// color numbers
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
 	FSlateColor IncomeColor = FSlateColor( FLinearColor::Green );
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" ) FSlateColor ExpenseColor = FSlateColor( FLinearColor::Red );
@@ -147,21 +151,26 @@ protected:
 	FSlateColor AffordableCostColor = FSlateColor( FLinearColor::White );
 	UPROPERTY( EditAnywhere, Category = "Settings|Colors" )
 	FSlateColor TooExpensiveCostColor = FSlateColor( FLinearColor::Red );
-	// class sample
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" )
 	TSubclassOf<UBuildingTooltipResourceRow> ResourceRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipStatRow> StatRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipBonusRow> BonusRowClass;
 	UPROPERTY( EditAnywhere, Category = "Settings|SubWidgets" ) TSubclassOf<UBuildingTooltipHealthRow> HealthRowClass;
 
-	// elem main widgeth
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UOverlay> AnimationContainer;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> WhiteFlash;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UImage> Img_Icon;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Name;
 	UPROPERTY( meta = ( BindWidget ) ) TObjectPtr<UTextBlock> Text_Description;
 
-	// containers
+	// Section header labels; when bound, C++ fills them from ST_GameStrings so they localize.
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_CostLabel;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_MaintenanceLabel;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_ProductionLabel;
+	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UTextBlock> Text_BonusLabel;
+
+	virtual void NativeConstruct() override;
+
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Health;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Stats;
@@ -171,6 +180,13 @@ protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) ) TObjectPtr<UPanelWidget> Box_Bonus;
 
 	bool bUsePreviewCache_ = false;
+
+	bool bShowBuildCost_ = true;
+
+	virtual ESlateVisibility GetShownVisibility() const
+	{
+		return ESlateVisibility::HitTestInvisible;
+	}
 
 private:
 	ETooltipState CurrentState = ETooltipState::Hidden;
@@ -193,6 +209,8 @@ private:
 		float AttackRange = 0.0f;
 		float AttackCooldown = 0.0f;
 		float SplashRadius = 0.0f;
+		int32 CritChance = 0;
+		int32 CritDamageBonus = 0;
 		int32 CostGold = 0;
 		int32 CostFood = 0;
 		int32 CostPopulation = 0;
@@ -211,6 +229,11 @@ private:
 	FInstanceSnapshot CaptureInstanceSnapshot( const ABuilding* building ) const;
 
 	void ApplyAnimation();
+	void PlayShowHideAnim( bool bShow );
+
+	// Shows the tooltip immediately in its final visible state, skipping the
+	// flash/slide intro animation.
+	void ShowInstant();
 
 	void ClearContainers();
 	void UpdateHeader( const ABuilding* cDO );

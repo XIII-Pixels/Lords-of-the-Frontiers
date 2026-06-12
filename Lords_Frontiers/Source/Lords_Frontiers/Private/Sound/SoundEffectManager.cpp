@@ -31,10 +31,10 @@ namespace
 		{
 			if ( const UAudioSettingsSubsystem* settings = gi->GetSubsystem<UAudioSettingsSubsystem>() )
 			{
-				return settings->GetVolume( category );
+				return settings->GetEffectiveVolume( category );
 			}
 		}
-		return UAudioSettingsSubsystem::DefaultCategoryVolume;
+		return UAudioSettingsSubsystem::PositionToAmplitude( UAudioSettingsSubsystem::DefaultCategoryVolume );
 	}
 } // namespace
 

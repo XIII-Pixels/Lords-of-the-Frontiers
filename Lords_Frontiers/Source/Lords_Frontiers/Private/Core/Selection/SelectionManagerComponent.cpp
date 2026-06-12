@@ -42,7 +42,28 @@ void USelectionManagerComponent::SelectSingle( AActor* actor )
 		return;
 	}
 
-	ClearSelection();
+	// Re-selecting the already-selected actor changes nothing — don't re-fire
+	// selection effects (sound, overlay) or replay the info-window animation.
+	if ( ( SelectedActors_.Num() == 1 ) && ( SelectedActors_[0].Get() == actor ) )
+	{
+		return;
+	}
+
+	// Deselect the previous selection without broadcasting; the single
+	// OnSelectionChanged below gives listeners one clean transition, so the
+	// info window animates for the newly selected object instead of being
+	// hidden and re-shown in the same frame.
+	for ( const TWeakObjectPtr<AActor>& weakActor : SelectedActors_ )
+	{
+		if ( AActor* previous = weakActor.Get() )
+		{
+			if ( previous->Implements<USelectable>() )
+			{
+				ISelectable::Execute_OnDeselected( previous );
+			}
+		}
+	}
+	SelectedActors_.Reset();
 
 	SelectedActors_.Add( actor );
 

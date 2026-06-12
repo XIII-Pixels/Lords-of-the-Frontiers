@@ -6,7 +6,6 @@
 #include "UI/MainMenuWidget.h"
 
 #include "Blueprint/UserWidget.h"
-#include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Sound/AudioTags.h"
@@ -17,16 +16,10 @@ void UMainMenuUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass )
 	Super::SetupWidget( widgetClass );
 
 	auto widget = Cast<UMainMenuWidget>( Widget_ );
-	if ( widget && widget->NewGameButton )
+	if ( widget )
 	{
-		widget->NewGameButton->OnClicked.AddDynamic( this, &UMainMenuUIManager::OnNewGameButtonClicked );
-		widget->NewGameButton->OnHovered.AddDynamic( this, &UMainMenuUIManager::OnNewGameButtonHovered );
-	}
-
-	if ( widget && widget->ExitGameButton )
-	{
-		widget->ExitGameButton->OnClicked.AddDynamic( this, &UMainMenuUIManager::OnExitGameButtonClicked );
-		widget->ExitGameButton->OnHovered.AddDynamic( this, &UMainMenuUIManager::OnExitGameButtonHovered );
+		widget->OnActionRequested.AddDynamic( this, &UMainMenuUIManager::OnMenuActionRequested );
+		widget->OnButtonHovered.AddDynamic( this, &UMainMenuUIManager::OnMenuButtonHovered );
 	}
 }
 
@@ -62,24 +55,24 @@ void UMainMenuUIManager::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UMainMenuUIManager::OnNewGameButtonClicked()
+void UMainMenuUIManager::OnMenuActionRequested( EMainMenuButtonAction action )
 {
 	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_MAINMENU_BUTTONS_CLICKED } );
-	UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadLevelChoosingLevel();
+
+	switch ( action )
+	{
+	case EMainMenuButtonAction::NewGame:
+		UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<ULevelSubsystem>()->LoadLevelChoosingLevel();
+		break;
+	case EMainMenuButtonAction::ExitGame:
+		UKismetSystemLibrary::QuitGame( GetWorld(), nullptr, EQuitPreference::Quit, false );
+		break;
+	default:
+		break;
+	}
 }
 
-void UMainMenuUIManager::OnNewGameButtonHovered()
-{
-	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_MAINMENU_BUTTONS_HOVERED } );
-}
-
-void UMainMenuUIManager::OnExitGameButtonClicked()
-{
-	OnAudioEvent_.Broadcast({ AudioTags::SFX_UI_MAINMENU_BUTTONS_CLICKED } );
-	UKismetSystemLibrary::QuitGame( GetWorld(), nullptr, EQuitPreference::Quit, false );
-}
-
-void UMainMenuUIManager::OnExitGameButtonHovered()
+void UMainMenuUIManager::OnMenuButtonHovered( EMainMenuButtonAction action )
 {
 	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_MAINMENU_BUTTONS_HOVERED } );
 }

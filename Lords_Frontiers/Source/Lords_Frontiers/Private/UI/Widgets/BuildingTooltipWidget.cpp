@@ -8,15 +8,15 @@
 #include "Cards/CardSubsystem.h"
 #include "Building/ResourceBuilding.h"
 #include "Core/CoreManager.h"
+#include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
 #include "UI/Widgets/BuildingUIConfig.h"
 
+#include "Animation/WidgetAnimation.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
-
-// logic mini-widgeth
 void UBuildingTooltipResourceRow::Setup(
     int32 amount, UTexture2D* icon, FSlateColor textColor, bool bShowTurnSuffix, bool bShowPlusSign
 )
@@ -34,7 +34,7 @@ void UBuildingTooltipResourceRow::Setup(
 	}
 	if ( IsValid( Text_Suffix ) )
 	{
-		Text_Suffix->SetText( FText::FromString( TEXT( "/ход  " ) ) );
+		Text_Suffix->SetText( LF_LOC( "Tooltip.PerTurn" ) );
 		Text_Suffix->SetVisibility(
 		    bShowTurnSuffix ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed
 		);
@@ -62,6 +62,10 @@ void UBuildingTooltipHealthRow::Setup( UTexture2D* icon, const FString& healthVa
 	if ( IsValid( Img_HealthIcon ) && IsValid( icon ) )
 	{
 		Img_HealthIcon->SetBrushFromTexture( icon );
+	}
+	if ( IsValid( Text_HealthLabel ) )
+	{
+		Text_HealthLabel->SetText( LF_LOC( "Stats.Health" ) );
 	}
 	if ( IsValid( Text_HealthValue ) )
 	{
@@ -94,7 +98,29 @@ void UBuildingTooltipBonusRow::Setup(
 	}
 }
 
-// logic main widgeth
+
+void UBuildingTooltipWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	// Static section headers: a string-table FText set once keeps re-resolving on culture switches.
+	if ( IsValid( Text_CostLabel ) )
+	{
+		Text_CostLabel->SetText( LF_LOC( "Tooltip.Cost" ) );
+	}
+	if ( IsValid( Text_MaintenanceLabel ) )
+	{
+		Text_MaintenanceLabel->SetText( LF_LOC( "Tooltip.Maintenance" ) );
+	}
+	if ( IsValid( Text_ProductionLabel ) )
+	{
+		Text_ProductionLabel->SetText( LF_LOC( "Tooltip.Production" ) );
+	}
+	if ( IsValid( Text_BonusLabel ) )
+	{
+		Text_BonusLabel->SetText( LF_LOC( "Tooltip.Bonus" ) );
+	}
+}
 
 void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDeltaTime )
 {
@@ -123,7 +149,7 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 		if ( StateTimer <= 0.0f )
 		{
 			CurrentState = ETooltipState::AnimatingIn;
-			SetVisibility( ESlateVisibility::HitTestInvisible );
+			SetVisibility( GetShownVisibility() );
 		}
 		break;
 
@@ -195,7 +221,36 @@ void UBuildingTooltipWidget::NativeTick( const FGeometry& myGeometry, float inDe
 	}
 }
 
-void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
+void UBuildingTooltipWidget::CopyInfoConfigFrom( const UBuildingTooltipWidget* source )
+{
+	if ( !source )
+	{
+		return;
+	}
+
+	if ( !UIConfig )
+	{
+		UIConfig = source->UIConfig;
+	}
+	if ( !ResourceRowClass )
+	{
+		ResourceRowClass = source->ResourceRowClass;
+	}
+	if ( !StatRowClass )
+	{
+		StatRowClass = source->StatRowClass;
+	}
+	if ( !BonusRowClass )
+	{
+		BonusRowClass = source->BonusRowClass;
+	}
+	if ( !HealthRowClass )
+	{
+		HealthRowClass = source->HealthRowClass;
+	}
+}
+
+void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass, bool bAnimate )
 {
 	if ( !buildingClass )
 	{
@@ -207,6 +262,17 @@ void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 	if ( !cdo )
 	{
 		ForceHide();
+		return;
+	}
+
+	const bool bSameBuilding = bUsePreviewCache_ && ( CurrentBuildingClass == buildingClass );
+	const bool bStillShowing = ( CurrentState != ETooltipState::Hidden ) &&
+	                           ( CurrentState != ETooltipState::AnimatingOut ) &&
+	                           ( CurrentState != ETooltipState::DelayHide );
+	if ( bSameBuilding && bStillShowing )
+	{
+		bIsAutoHiding = false;
+		SetVisibility( GetShownVisibility() );
 		return;
 	}
 
@@ -222,14 +288,23 @@ void UBuildingTooltipWidget::ShowTooltip( TSubclassOf<ABuilding> buildingClass )
 	UpdateStats( cdo );
 	UpdateBonuses();
 
-	// restart show animation every time
-	CurrentState = ETooltipState::DelayShow;
-	StateTimer = ShowDelay;
-	SetRenderOpacity( 0.0f );
 	bIsLocked = false;
 	bIsAutoHiding = false;
 
-	SetVisibility( ESlateVisibility::HitTestInvisible );
+	if ( bAnimate )
+	{
+		CurrentState = ETooltipState::DelayShow;
+		StateTimer = ShowDelay;
+		AnimProgress = 0.0f;
+		SetRenderOpacity( 0.0f );
+
+		SetVisibility( GetShownVisibility() );
+		PlayShowHideAnim( true );
+	}
+	else
+	{
+		ShowInstant();
+	}
 }
 
 void UBuildingTooltipWidget::ShowTooltipForBuildingInstance( const ABuilding* building )
@@ -257,11 +332,13 @@ void UBuildingTooltipWidget::ShowTooltipForBuildingInstance( const ABuilding* bu
 
 	CurrentState = ETooltipState::DelayShow;
 	StateTimer = ShowDelay;
+	AnimProgress = 0.0f;
 	SetRenderOpacity( 0.0f );
 	bIsLocked = false;
 	bIsAutoHiding = false;
 
-	SetVisibility( ESlateVisibility::HitTestInvisible );
+	SetVisibility( GetShownVisibility() );
+	PlayShowHideAnim( true );
 }
 
 void UBuildingTooltipWidget::HideTooltip()
@@ -271,6 +348,7 @@ void UBuildingTooltipWidget::HideTooltip()
 	{
 		CurrentState = ETooltipState::DelayHide;
 		StateTimer = HideDelay;
+		PlayShowHideAnim( false );
 	}
 }
 
@@ -288,7 +366,72 @@ void UBuildingTooltipWidget::ForceHide()
 	InstanceRefreshAccumulator_ = 0.0f;
 	LastInstanceSnapshot_ = FInstanceSnapshot{};
 
+	if ( ShowAnim )
+	{
+		StopAnimation( ShowAnim );
+	}
+	if ( HideAnim )
+	{
+		StopAnimation( HideAnim );
+	}
+
 	SetVisibility( ESlateVisibility::Hidden );
+}
+
+void UBuildingTooltipWidget::PlayShowHideAnim( bool bShow )
+{
+	if ( bShow )
+	{
+		if ( HideAnim )
+		{
+			StopAnimation( HideAnim );
+		}
+		if ( ShowAnim )
+		{
+			PlayAnimationForward( ShowAnim );
+		}
+	}
+	else
+	{
+		if ( ShowAnim )
+		{
+			StopAnimation( ShowAnim );
+		}
+		if ( HideAnim )
+		{
+			PlayAnimationForward( HideAnim );
+		}
+	}
+}
+
+void UBuildingTooltipWidget::ShowInstant()
+{
+	if ( ShowAnim )
+	{
+		StopAnimation( ShowAnim );
+	}
+	if ( HideAnim )
+	{
+		StopAnimation( HideAnim );
+	}
+
+	CurrentState = ETooltipState::Visible;
+	StateTimer = 0.0f;
+	AnimProgress = 1.0f;
+	FlashProgress = 0.0f;
+
+	SetRenderOpacity( 1.0f );
+
+	if ( IsValid( AnimationContainer ) )
+	{
+		AnimationContainer->SetRenderTranslation( FVector2D::ZeroVector );
+	}
+	if ( IsValid( WhiteFlash ) )
+	{
+		WhiteFlash->SetRenderOpacity( 0.0f );
+	}
+
+	SetVisibility( GetShownVisibility() );
 }
 
 void UBuildingTooltipWidget::ApplyAnimation()
@@ -383,7 +526,8 @@ bool UBuildingTooltipWidget::FInstanceSnapshot::Equals( const FInstanceSnapshot&
 	return bValid == other.bValid && Health == other.Health && MaxHealth == other.MaxHealth &&
 	       AttackDamage == other.AttackDamage && FMath::IsNearlyEqual( AttackRange, other.AttackRange ) &&
 	       FMath::IsNearlyEqual( AttackCooldown, other.AttackCooldown ) &&
-	       FMath::IsNearlyEqual( SplashRadius, other.SplashRadius ) && CostGold == other.CostGold &&
+	       FMath::IsNearlyEqual( SplashRadius, other.SplashRadius ) && CritChance == other.CritChance &&
+	       CritDamageBonus == other.CritDamageBonus && CostGold == other.CostGold &&
 	       CostFood == other.CostFood && CostPopulation == other.CostPopulation && MaintGold == other.MaintGold &&
 	       MaintFood == other.MaintFood && MaintPopulation == other.MaintPopulation &&
 	       PlayerGold == other.PlayerGold && PlayerFood == other.PlayerFood &&
@@ -409,6 +553,8 @@ UBuildingTooltipWidget::FInstanceSnapshot UBuildingTooltipWidget::CaptureInstanc
 	snapshot.AttackRange = stats.AttackRange();
 	snapshot.AttackCooldown = stats.AttackCooldown();
 	snapshot.SplashRadius = stats.SplashRadius();
+	snapshot.CritChance = stats.CritChance();
+	snapshot.CritDamageBonus = stats.CritDamageBonus();
 
 	const FResourceProduction cost = building->GetBuildingCost();
 	snapshot.CostGold = cost.Gold;
@@ -468,19 +614,18 @@ void UBuildingTooltipWidget::UpdateHeader( const ABuilding* cdo )
 {
 	if ( IsValid( UIConfig ) && UIConfig->BuildingsData.Contains( CurrentBuildingClass ) )
 	{
-		const FBuildingUIData& data = UIConfig->BuildingsData[CurrentBuildingClass];
-		Text_Name->SetText( data.Name );
-		Text_Description->SetText( data.Description );
+		Text_Name->SetText( UIConfig->GetBuildingName( CurrentBuildingClass ) );
+		Text_Description->SetText( UIConfig->GetBuildingDescription( CurrentBuildingClass ) );
 
 		if ( IsValid( Img_Icon ) )
 		{
-			Img_Icon->SetBrushFromTexture( data.Icon );
+			Img_Icon->SetBrushFromTexture( UIConfig->BuildingsData[CurrentBuildingClass].Icon );
 		}
 	}
 	else
 	{
 		Text_Name->SetText( FText::FromString( const_cast<ABuilding*>( cdo )->GetNameBuild() ) );
-		Text_Description->SetText( FText::FromString( TEXT( "Нет описания" ) ) );
+		Text_Description->SetText( LF_LOC( "Tooltip.NoDescription" ) );
 	}
 }
 
@@ -575,9 +720,12 @@ void UBuildingTooltipWidget::UpdateEconomy( const ABuilding* building )
 	FSlateColor colorF = ( playerFood >= costF ) ? AffordableCostColor : TooExpensiveCostColor;
 	FSlateColor colorP = ( playerPop >= costP ) ? AffordableCostColor : TooExpensiveCostColor;
 
-	addResRow( Box_Cost, costG, EResourceType::Gold, colorG, false, false );
-	addResRow( Box_Cost, costF, EResourceType::Food, colorF, false, false );
-	addResRow( Box_Cost, costP, EResourceType::Population, colorP, false, false );
+	if ( bShowBuildCost_ )
+	{
+		addResRow( Box_Cost, costG, EResourceType::Gold, colorG, false, false );
+		addResRow( Box_Cost, costF, EResourceType::Food, colorF, false, false );
+		addResRow( Box_Cost, costP, EResourceType::Population, colorP, false, false );
+	}
 
 	addResRow( Box_Maintenance, -maintG, EResourceType::Gold, ExpenseColor, true, false );
 	addResRow( Box_Maintenance, -maintF, EResourceType::Food, ExpenseColor, true, false );
@@ -636,13 +784,28 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* building )
 			}
 		};
 
-		addStatRow( EStatsType::AttackDamage, TEXT( "Урон" ), FString::FromInt( stats.AttackDamage() ) );
 		addStatRow(
-		    EStatsType::AttackCooldown, TEXT( "Скорость" ), FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
+		    EStatsType::AttackDamage, LF_LOC( "Stats.Damage" ).ToString(), FString::FromInt( stats.AttackDamage() )
 		);
-		addStatRow( EStatsType::AttackRange, TEXT( "Радиус" ), FString::Printf( TEXT( "%.0f" ), stats.AttackRange() ) );
 		addStatRow(
-		    EStatsType::SplashRadius, TEXT( "Область" ), ( stats.SplashRadius() > 0.0f ) ? TEXT( "Да" ) : TEXT( "Нет" )
+		    EStatsType::AttackCooldown, LF_LOC( "Stats.Speed" ).ToString(),
+		    FString::Printf( TEXT( "%.1f" ), stats.AttackCooldown() )
+		);
+		addStatRow(
+		    EStatsType::AttackRange, LF_LOC( "Stats.Range" ).ToString(),
+		    FString::Printf( TEXT( "%.0f" ), stats.AttackRange() )
+		);
+		addStatRow(
+		    EStatsType::SplashRadius, LF_LOC( "Stats.SplashArea" ).ToString(),
+		    ( stats.SplashRadius() > 0.0f ) ? LF_LOC( "Stats.Yes" ).ToString() : LF_LOC( "Stats.No" ).ToString()
+		);
+		addStatRow(
+		    EStatsType::CritChance, LF_LOC( "Stats.CritChance" ).ToString(),
+		    FString::Printf( TEXT( "%d%%" ), stats.CritChance() )
+		);
+		addStatRow(
+		    EStatsType::CritDamage, LF_LOC( "Stats.CritDamage" ).ToString(),
+		    FString::Printf( TEXT( "+%d%%" ), stats.CritDamageBonus() )
 		);
 	}
 }

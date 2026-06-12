@@ -2,6 +2,10 @@
 
 #include "Cards/CardCondition.h"
 #include "Cards/CardEffect.h"
+#include "Localization/GameLocalization.h"
+
+#include "Internationalization/StringTableCore.h"
+#include "Internationalization/StringTableRegistry.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -31,11 +35,31 @@ FLinearColor UCardDataAsset::GetRarityColor() const
 	}
 }
 
+FText UCardDataAsset::GetCardName() const
+{
+	return ResolveLocalizedText( TEXT( "Card.Name." ), CardName );
+}
+
+FText UCardDataAsset::ResolveLocalizedText( const TCHAR* keyPrefix, const FText& inlineText ) const
+{
+	const FName id = LocalizationId.IsNone() ? GetFName() : LocalizationId;
+	const FString key = FString( keyPrefix ) + id.ToString();
+
+	const FStringTableConstPtr table =
+	    FStringTableRegistry::Get().FindStringTable( LordsFrontiersLoc::GetCardsTableId() );
+	if ( table.IsValid() && table->FindEntry( key ).IsValid() )
+	{
+		return FText::FromStringTable( LordsFrontiersLoc::GetCardsTableId(), key );
+	}
+	return inlineText;
+}
+
 FText UCardDataAsset::BuildDescription() const
 {
-	if ( !Description.IsEmpty() )
+	const FText description = ResolveLocalizedText( TEXT( "Card.Description." ), Description );
+	if ( !description.IsEmpty() )
 	{
-		return Description;
+		return description;
 	}
 
 	TArray<FString> parts;
@@ -92,9 +116,11 @@ EDataValidationResult UCardDataAsset::IsDataValid( FDataValidationContext& conte
 		result = EDataValidationResult::Invalid;
 	}
 
-	if ( CardName.IsEmpty() )
+	if ( GetCardName().IsEmpty() )
 	{
-		context.AddError( FText::FromString( TEXT( "CardName must be set" ) ) );
+		context.AddError( FText::FromString(
+			TEXT( "Card has no name: add Card.Name.<Id> to ST_Cards (Id = LocalizationId or the "
+			      "asset name) or set the fallback CardName" ) ) );
 		result = EDataValidationResult::Invalid;
 	}
 

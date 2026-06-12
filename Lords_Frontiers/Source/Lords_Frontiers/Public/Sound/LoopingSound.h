@@ -19,7 +19,13 @@ class LORDS_FRONTIERS_API ULoopingSound : public UObject
 	GENERATED_BODY()
 
 public:
-	void Initialize( const FLoopingSoundConfig* soundConfig, EAudioCategory category = EAudioCategory::Effects );
+	/**
+	 * @param extraVolumeScale - Additional multiplier on top of the config volume and the
+	 *        category volume; used e.g. to play battle music quieter than its track volume.
+	 */
+	void Initialize(
+	    const FLoopingSoundConfig* soundConfig, EAudioCategory category = EAudioCategory::Effects,
+	    float extraVolumeScale = 1.0f );
 	void Play();
 	void Stop( bool instant = false );
 
@@ -57,6 +63,8 @@ private:
 	void ApplyCategoryVolume();
 
 	EAudioCategory Category_ = EAudioCategory::Effects;
+
+	float ExtraVolumeScale_ = 1.0f;
 
 	FTimerHandle ReplayTimerHandle_;
 	FTimerHandle FadeTimerHandle_;

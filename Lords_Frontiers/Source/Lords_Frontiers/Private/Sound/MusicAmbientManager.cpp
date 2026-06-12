@@ -11,7 +11,7 @@
 #include "Sound/Data/MusicDataAsset.h"
 #include "Sound/LoopingSound.h"
 
-ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound )
+ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound, float volumeScale )
 {
 	if ( Music_ )
 	{
@@ -24,7 +24,7 @@ ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound
 
 	if ( sound )
 	{
-		Music_ = CreateAndPlay( sound, EMusicAmbientKind::Music );
+		Music_ = CreateAndPlay( sound, EMusicAmbientKind::Music, volumeScale );
 	}
 	return Music_;
 }
@@ -44,7 +44,7 @@ ULoopingSound* UMusicAmbientManager::PlayAmbient( const FLoopingSoundConfig* sou
 	return nullptr;
 }
 
-ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind )
+ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind, float volumeScale )
 {
 	if ( !sound )
 	{
@@ -55,7 +55,7 @@ ULoopingSound* UMusicAmbientManager::CreateAndPlay( const FLoopingSoundConfig* s
 	{
 		const EAudioCategory category =
 		    kind == EMusicAmbientKind::Music ? EAudioCategory::Music : EAudioCategory::Ambient;
-		audio->Initialize( sound, category );
+		audio->Initialize( sound, category, volumeScale );
 		audio->Play();
 
 		return audio;
@@ -108,7 +108,7 @@ void UMusicAmbientManager::PlayCurrentLevelCombatMusic()
 		if ( const FMusicForLevel* musicForLevel =
 		         MusicDataAsset_->MusicForLevel( TSoftObjectPtr<UWorld>( GetWorld() ) ) )
 		{
-			PlayMusic( &musicForLevel->Battle );
+			PlayMusic( &musicForLevel->Battle, MusicDataAsset_->BattleMusicVolumeScale() );
 			return;
 		}
 	}
@@ -186,30 +186,31 @@ void UMusicAmbientManager::AdjustAmbientVolume( float volumeLevel )
 {
 	volumeLevel = FMath::Clamp( volumeLevel, 0.001f, 1.0f );
 
-	const FAmbientForLevel* ambientForLevel = AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr( GetWorld() ) );
-
 	float min = 0.0f;
 	float adjustVolumeDuration = 0.0f;
 	EAudioFaderCurve faderCurve = EAudioFaderCurve::Linear;
-	if ( ambientForLevel )
+	if ( AmbientDataAsset_.IsValid() )
 	{
-		min = FMath::Clamp( ambientForLevel->ZoomMinVolume, 0.001f, 1.0f );
-		adjustVolumeDuration = ambientForLevel->AdjustVolumeDuration;
-		faderCurve = ambientForLevel->ZoomVolumeFaderCurve;
+		if ( const FAmbientForLevel* ambientForLevel =
+		         AmbientDataAsset_->AmbientForLevel( TSoftObjectPtr( GetWorld() ) ) )
+		{
+			min = FMath::Clamp( ambientForLevel->ZoomMinVolume, 0.001f, 1.0f );
+			adjustVolumeDuration = ambientForLevel->AdjustVolumeDuration;
+			faderCurve = ambientForLevel->ZoomVolumeFaderCurve;
+		}
 	}
+
+	// Only the zoom factor goes into the component's fade volume. The per-sound config volume
+	// and the Ambient category volume from the settings are already applied through
+	// SetVolumeMultiplier in ULoopingSound; multiplying them in here applied them twice and
+	// fought with the volume slider.
+	const float zoomVolume = FMath::Max( volumeLevel, min );
 
 	for ( ULoopingSound* audio : AmbientSounds_ )
 	{
-		float audioVolume = 1.0f;
-		if ( IsValid( audio ) && audio->GetConfig() )
+		if ( IsValid( audio ) && audio != WindAmbientPlaying_.Get() && IsValid( audio->GetAudioComponent() ) )
 		{
-			audioVolume = FMath::Max( audio->GetConfig()->Volume, min );
-		}
-		audioVolume *= volumeLevel;
-
-		if ( IsValid( audio ) && audio != WindAmbientPlaying_.Get() )
-		{
-			audio->GetAudioComponent()->AdjustVolume( adjustVolumeDuration, audioVolume, faderCurve );
+			audio->GetAudioComponent()->AdjustVolume( adjustVolumeDuration, zoomVolume, faderCurve );
 		}
 	}
 }

@@ -37,6 +37,17 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Audio|Settings" )
 	void SetVolume( EAudioCategory category, float volume );
 
+	/**
+	 * Volume to actually apply to sounds: the stored slider position run through a
+	 * perceptual (x²) taper, so every slider step changes loudness about equally.
+	 * GetVolume keeps returning the raw position — that is what the UI shows and saves.
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Audio|Settings" )
+	float GetEffectiveVolume( EAudioCategory category ) const;
+
+	/** Maps a 0..1 slider position to playback amplitude (x² audio taper). */
+	static float PositionToAmplitude( float position );
+
 	UFUNCTION( BlueprintCallable, Category = "Audio|Settings" )
 	void SaveSettings() const;
 

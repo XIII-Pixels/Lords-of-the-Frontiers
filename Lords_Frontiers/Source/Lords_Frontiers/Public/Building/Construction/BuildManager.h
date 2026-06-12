@@ -20,6 +20,7 @@ enum class EGameLoopPhase : uint8;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnBuildingConfirmed, ABuilding*, Building, FIntPoint, CellCoords );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnBonusPreviewUpdated, const TArray<FBonusIconData>&, BonusIcons );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnPlacingStarted );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnPlacingCancelled );
 
 UCLASS()
@@ -72,6 +73,9 @@ public:
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
 	FOnBuildingConfirmed OnBuildingConfirmed;
+
+	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
+	FOnPlacingStarted OnPlacingStarted;
 
 	UPROPERTY( BlueprintAssignable, Category = "Settings|Building" )
 	FOnPlacingCancelled OnPlacingCancelled;
