@@ -28,7 +28,7 @@ public class Lords_Frontiers : ModuleRules
 	        "GameplayTags"
         });
 
-		PrivateDependencyModuleNames.AddRange( new string[] { "ProceduralMeshComponent" } );
+		PrivateDependencyModuleNames.AddRange( new string[] { "ProceduralMeshComponent", "NiagaraUIRenderer" } );
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
 

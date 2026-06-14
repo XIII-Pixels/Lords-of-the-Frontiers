@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "UI/Widgets/BuildingUIConfig.h"
 
 #include "Building/Building.h"
@@ -12,7 +11,7 @@
 namespace
 {
 	// "BP_Wooden_House_C" -> "WoodenHouse", matching the Building.Name.* key suffixes.
-	FString LocalizationIdForClass( const UClass& buildingClass )
+	FString BuildingLocalizationIdForClass( const UClass& buildingClass )
 	{
 		FString id = buildingClass.GetName();
 		id.RemoveFromEnd( TEXT( "_C" ) );
@@ -22,9 +21,11 @@ namespace
 	}
 
 	FText ResolveBuildingText(
-	    const TCHAR* keyPrefix, const FName explicitId, const UClass& buildingClass, const FText& inlineText )
+	    const TCHAR* keyPrefix, const FName explicitId, const UClass& buildingClass, const FText& inlineText
+	)
 	{
-		const FString id = explicitId.IsNone() ? LocalizationIdForClass( buildingClass ) : explicitId.ToString();
+		const FString id =
+		    explicitId.IsNone() ? BuildingLocalizationIdForClass( buildingClass ) : explicitId.ToString();
 		const FString key = FString( keyPrefix ) + id;
 
 		const FStringTableConstPtr table =
@@ -55,5 +56,6 @@ FText UBuildingUIConfig::GetBuildingDescription( TSubclassOf<ABuilding> building
 		return FText::GetEmpty();
 	}
 	return ResolveBuildingText(
-	    TEXT( "Building.Description." ), data->LocalizationId, **buildingClass, data->Description );
+	    TEXT( "Building.Description." ), data->LocalizationId, **buildingClass, data->Description
+	);
 }

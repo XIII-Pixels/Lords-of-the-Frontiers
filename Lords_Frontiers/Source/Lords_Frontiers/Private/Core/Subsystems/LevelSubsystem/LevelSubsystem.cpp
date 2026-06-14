@@ -4,7 +4,9 @@
 
 #include "Core/Saving/GameSaveData.h"
 #include "Core/Saving/GameSaver.h"
+#include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
 void ULevelSubsystem::LoadMainMenu() const
@@ -19,7 +21,8 @@ void ULevelSubsystem::LoadLevelChoosingLevel() const
 {
 	if ( Levels_ )
 	{
-		LoadLevel( Levels_->LevelChoosingLevel, "level choosing level" );
+		// Menu -> level select is plain UI navigation: open it instantly, no transition wipe.
+		LoadLevel( Levels_->LevelChoosingLevel, "level choosing level", /*bUseTransition*/ false );
 	}
 }
 
@@ -120,14 +123,25 @@ void ULevelSubsystem::UnlockNextLevel() const
 	}
 }
 
-void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName ) const
+void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName, bool bUseTransition ) const
 {
-	if ( !level.IsNull() )
-	{
-		UGameplayStatics::OpenLevelBySoftObjectPtr( GetWorld(), level );
-	}
-	else
+	if ( level.IsNull() )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Failed to load %s" ), *levelName );
+		return;
 	}
+
+	if ( bUseTransition )
+	{
+		if ( const UGameInstance* gameInstance = GetGameInstance() )
+		{
+			if ( UTransitionSubsystem* transition = gameInstance->GetSubsystem<UTransitionSubsystem>() )
+			{
+				transition->TransitionToSoftLevel( level );
+				return;
+			}
+		}
+	}
+
+	UGameplayStatics::OpenLevelBySoftObjectPtr( GetWorld(), level );
 }

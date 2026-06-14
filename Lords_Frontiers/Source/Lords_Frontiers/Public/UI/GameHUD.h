@@ -12,12 +12,12 @@
 #include "UI/Widgets/BuildingTooltipWidget.h"
 #include "UI/Widgets/CombatTimerWidget.h"
 #include "UI/Widgets/ConstructionPanelWidget.h"
+#include "UI/Widgets/EnemyTooltipWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
 #include "UI/Widgets/HUDBuildingPanelWidget.h"
 #include "UI/Widgets/HUDResourcePanelWidget.h"
 #include "UI/Widgets/PhasePanelWidget.h"
 #include "UI/Widgets/SelectedBuildingPanelWidget.h"
-#include "UI/Widgets/EnemyTooltipWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -53,6 +53,19 @@ public:
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<USelectedBuildingPanelWidget> DefensiveSelectedPanel;
+
+	// Optional: a plain Button named "ButtonEndTurn" placed directly in the HUD.
+	// Leave it out when the End Turn control is a separate widget (use EndTurnWidget).
+	UPROPERTY( EditAnywhere, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UButton> ButtonEndTurn;
+
+	// Optional: a separate End Turn widget. Its visibility is driven by the build phase
+	// (shown only while building); wire its own click to RequestEndBuildTurn().
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UUserWidget> EndTurnWidget;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> EndTurnText;
 
 	UPROPERTY( meta = ( BindWidget ) )
 	UImage* Strokestatus;
@@ -112,6 +125,11 @@ public:
 	UFUNCTION( BlueprintCallable )
 	void TogglePauseMenu();
 
+	/** Ends the current build turn (same action as the built-in End Turn button).
+	 *  Call this from a separate End Turn widget's click handler. */
+	UFUNCTION( BlueprintCallable, Category = "Settings|UI|EndTurn" )
+	void RequestEndBuildTurn();
+
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UHorizontalBox> BossBarsContainer;
 
@@ -134,6 +152,9 @@ protected:
 	virtual void NativeTick( const FGeometry& MyGeometry, float InDeltaTime ) override;
 
 	UFUNCTION()
+	void OnEndTurnClicked();
+
+	UFUNCTION()
 	void HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase );
 
 	UFUNCTION()
@@ -149,6 +170,7 @@ protected:
 	void HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns );
 
 	void UpdateStatusText();
+	void UpdateButtonVisibility();
 
 	virtual FOnAudioEvent& GetOnAudioEvent() override
 	{
@@ -159,6 +181,12 @@ protected:
 	TSubclassOf<UEnemyTooltipWidget> EnemyTooltipClass;
 
 	UPROPERTY() TObjectPtr<UEnemyTooltipWidget> ActiveEnemyTooltip;
+
+	UFUNCTION()
+	void OnHoverEndTurn()
+	{
+		OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_HOVERED } );
+	}
 
 	UPROPERTY( EditAnywhere, Category = "Settings|UI|WaveInfo" )
 	TSubclassOf<UWaveInfoPanelWidget> WavePanelClass;

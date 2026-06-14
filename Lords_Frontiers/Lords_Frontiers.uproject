@@ -38,6 +38,14 @@
 		{
 			"Name": "MetaHumanSDK",
 			"Enabled": false
+		},
+		{
+			"Name": "NiagaraUIRenderer",
+			"Enabled": true,
+			"SupportedTargetPlatforms": [
+				"Win64",
+				"Android"
+			]
 		}
 	],
 	"TargetPlatforms": [

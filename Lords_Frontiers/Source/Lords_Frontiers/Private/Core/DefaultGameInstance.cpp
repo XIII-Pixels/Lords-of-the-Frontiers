@@ -5,6 +5,7 @@
 #include "Core/Saving/GameSaver.h"
 #include "Core/Saving/GameSaverConfig.h"
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
+#include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 
 void UDefaultGameInstance::Init()
 {
@@ -31,6 +32,11 @@ void UDefaultGameInstance::Init()
 	if ( levelSubsystem )
 	{
 		levelSubsystem->SetLevels( Levels );
+	}
+
+	if ( UTransitionSubsystem* transitionSubsystem = GetSubsystem<UTransitionSubsystem>() )
+	{
+		transitionSubsystem->SetConfig( TransitionConfig );
 	}
 
 	if ( gameSaver && !gameSaver->HasLaunchedBefore() )

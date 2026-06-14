@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "UI/InfoWaves/EnemyInfoDataAsset.h"
 
 #include "Localization/GameLocalization.h"
@@ -12,7 +11,7 @@
 namespace
 {
 	// "BP_Goblin_Wolf_C" -> "GoblinWolf", matching the Enemy.Name.* key suffixes.
-	FString LocalizationIdForClass( const UClass& enemyClass )
+	FString EnemyLocalizationIdForClass( const UClass& enemyClass )
 	{
 		FString id = enemyClass.GetName();
 		id.RemoveFromEnd( TEXT( "_C" ) );
@@ -22,9 +21,10 @@ namespace
 	}
 
 	FText ResolveEnemyText(
-	    const TCHAR* keyPrefix, const FName explicitId, const UClass& enemyClass, const FText& inlineText )
+	    const TCHAR* keyPrefix, const FName explicitId, const UClass& enemyClass, const FText& inlineText
+	)
 	{
-		const FString id = explicitId.IsNone() ? LocalizationIdForClass( enemyClass ) : explicitId.ToString();
+		const FString id = explicitId.IsNone() ? EnemyLocalizationIdForClass( enemyClass ) : explicitId.ToString();
 		const FString key = FString( keyPrefix ) + id;
 
 		const FStringTableConstPtr table =
@@ -54,6 +54,5 @@ FText UEnemyInfoDataAsset::GetEnemyDescription( TSubclassOf<AUnit> enemyClass ) 
 	{
 		return FText::GetEmpty();
 	}
-	return ResolveEnemyText(
-	    TEXT( "Enemy.Description." ), data->LocalizationId, **enemyClass, data->EnemyDescription );
+	return ResolveEnemyText( TEXT( "Enemy.Description." ), data->LocalizationId, **enemyClass, data->EnemyDescription );
 }

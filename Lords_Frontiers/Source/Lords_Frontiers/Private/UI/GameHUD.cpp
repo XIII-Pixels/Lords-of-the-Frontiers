@@ -4,8 +4,9 @@
 #include "Building/Construction/BuildManager.h"
 #include "Building/DefensiveBuilding.h"
 #include "Core/CoreManager.h"
-#include "Core/GameLoop/GameLoopManager.h"
 #include "Core/Debug/DebugPlayerController.h"
+#include "Core/GameLoop/GameLoopManager.h"
+#include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
 #include "UI/CursorAnim/CursorAnimationConfig.h"
 #include "UI/CursorAnim/CursorAnimationSubsystem.h"
@@ -29,6 +30,16 @@ void UGameHUDWidget::NativeConstruct()
 	if ( UCursorAnimationSubsystem* cursorAnimSubsystem = UCursorAnimationSubsystem::Get( this ) )
 	{
 		cursorAnimSubsystem->SetConfig( CursorAnimConfig );
+	}
+
+	if ( ButtonEndTurn )
+	{
+		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+		ButtonEndTurn->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
+	}
+	if ( EndTurnText )
+	{
+		EndTurnText->SetText( LF_LOC( "HUD.EndTurn" ) );
 	}
 
 	if ( ABuildManager* buildManager =
@@ -99,6 +110,7 @@ void UGameHUDWidget::NativeConstruct()
 	}
 
 	UpdateStatusText();
+	UpdateButtonVisibility();
 
 	if ( IsValid( WaveInfoPanel ) )
 	{
@@ -117,6 +129,12 @@ void UGameHUDWidget::NativeConstruct()
 
 void UGameHUDWidget::NativeDestruct()
 {
+	if ( ButtonEndTurn )
+	{
+		ButtonEndTurn->OnClicked.RemoveDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+		ButtonEndTurn->OnHovered.RemoveDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
+	}
+
 	if ( BuildingPanel )
 	{
 		BuildingPanel->OnBuildingButtonHovered.RemoveDynamic( this, &UGameHUDWidget::HandleBuildingButtonHovered );
@@ -165,6 +183,7 @@ void UGameHUDWidget::HandleTurnChanged( int32 CurrentTurn, int32 MaxTurns )
 void UGameHUDWidget::HandlePhaseChanged( EGameLoopPhase OldPhase, EGameLoopPhase NewPhase )
 {
 	UpdateStatusText();
+	UpdateButtonVisibility();
 
 	UpdateExtraButtonsVisibility();
 
@@ -396,14 +415,61 @@ void UGameHUDWidget::UpdateStatusText()
 	}
 }
 
+void UGameHUDWidget::UpdateButtonVisibility()
+{
+	UCoreManager* core = UCoreManager::Get( this );
+	if ( !core )
+	{
+		return;
+	}
+	UGameLoopManager* gL = core->GetGameLoop();
+	if ( !gL )
+	{
+		return;
+	}
+
+	EGameLoopPhase phase = gL->GetCurrentPhase();
+	const bool bShow = ( phase == EGameLoopPhase::Building );
+
+	if ( ButtonEndTurn )
+	{
+		ButtonEndTurn->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+	if ( EndTurnWidget )
+	{
+		EndTurnWidget->SetVisibility( bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed );
+	}
+}
+
+void UGameHUDWidget::OnEndTurnClicked()
+{
+	RequestEndBuildTurn();
+}
+
+void UGameHUDWidget::RequestEndBuildTurn()
+{
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( UGameLoopManager* gL = core->GetGameLoop() )
+		{
+			gL->EndBuildTurn();
+		}
+	}
+
+	OnAudioEvent_.Broadcast( { AudioTags::SFX_UI_BUTTON_ENDTURN_CLICKED } );
+}
+
 void UGameHUDWidget::UpdateWaveInfo()
 {
 	if ( !IsValid( ActiveWavePanel ) )
 	{
-		UE_LOG( LogTemp, Warning,
-		        TEXT( "GameHUD::UpdateWaveInfo skipped — ActiveWavePanel null (WaveInfoPanel bound=%s, WavePanelClass=%s)" ),
-		        IsValid( WaveInfoPanel ) ? TEXT( "yes" ) : TEXT( "no" ),
-		        IsValid( WavePanelClass ) ? TEXT( "yes" ) : TEXT( "no" ) );
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "GameHUD::UpdateWaveInfo skipped — ActiveWavePanel null (WaveInfoPanel bound=%s, WavePanelClass=%s)"
+		    ),
+		    IsValid( WaveInfoPanel ) ? TEXT( "yes" ) : TEXT( "no" ),
+		    IsValid( WavePanelClass ) ? TEXT( "yes" ) : TEXT( "no" )
+		);
 		return;
 	}
 
