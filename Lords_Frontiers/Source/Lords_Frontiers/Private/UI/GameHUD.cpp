@@ -575,7 +575,8 @@ void UGameHUDWidget::TogglePauseMenu()
 		ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, PauseWidgetClass );
 		if ( ActiveOverlay )
 		{
-			ActiveOverlay->AddToViewport( 100 );
+			constexpr int32 PauseMenuZOrder = 2000;
+			ActiveOverlay->AddToViewport( PauseMenuZOrder );
 			ActiveOverlay->OnResumeRequested.AddDynamic( this, &UGameHUDWidget::TogglePauseMenu );
 		}
 

@@ -23,6 +23,12 @@ namespace LordsFrontiersLoc
 		return Id;
 	}
 
+	inline FName GetTutorialTableId()
+	{
+		static const FName Id( TEXT( "/Game/Localization/ST_Tutorial.ST_Tutorial" ) );
+		return Id;
+	}
+
 	// Native culture of the source strings in all game string tables.
 	inline const TCHAR* GetNativeCulture()
 	{
@@ -38,7 +44,7 @@ namespace LordsFrontiersLoc
 
 	// No-op kept for symmetry; the engine handles asset/registry teardown.
 	void Shutdown();
-}
+} // namespace LordsFrontiersLoc
 
 // Convenience macro for C++ call sites:
 //   FText t = LF_LOC( "HUD.Day" );

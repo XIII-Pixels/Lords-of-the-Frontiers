@@ -1,0 +1,32 @@
+Key,SourceString,en
+Tutorial.Cutscene.Intro,"В Муррвуде вспыхивает древний конфликт! Коты и собаки сходятся в битве за Древо Судьбы - источник силы и равновесия...","Deep in Murrwood, an ancient conflict awakens... Cats and dogs now clash over the Tree of Fate - the source of power and balance..."
+Tutorial.Cutscene.SkipPrompt,"Нажми любую клавишу, чтобы пропустить. Пжмяу.","Press any key to skip. Purr-click."
+Tutorial.Speaker.SirCat,"Сэр Кот","Sir Cat"
+Tutorial.Bubble.1,"Привет, Человек, готов проходить котмурное обучение?","Hello, Human. Ready for some pawsome training?"
+Tutorial.Hint,"двигать камерой - WASD
+вращать камерой - QE
+выход из режима строительства - ПКМ","Move camera - WASD
+Rotate camera - Q / E
+Exit build mode - RMB"
+Tutorial.Bubble.2,"<Style.Blue>Великое Древо</> - сердце нашего мира!
+Собаки уже рвутся из <Style.Red>порталов!</>
+Защитишь Древо, и мы выживем. Проиграешь - конец всему!","<Style.Blue>The Great Tree</> is the heart of our world!
+Dogs are already breaking through <Style.Red>portals!</>
+Defend the Tree, and we survive. Fail... and all is lost!"
+Tutorial.Bubble.3,"Каждый день которазведчики собирают информацию о врагах и их количестве.
+Отчёт можно посмотреть здесь!","Every day, cat scouts gather information about enemies and their numbers.
+You can check the report here!"
+Tutorial.Bubble.4,"День делится на этапы: <Style.Blue>два хода строительства</> и потом - <Style.Red>бой</>. Готовь коготки!","Each day is split into phases: <Style.Blue>two build turns</>, then <Style.Red>battle</>. Sharpen your claws!"
+Tutorial.Bubble.5,"Есть здания для ресурсов, а есть - для защиты наших хвостов.
+Сначала лучше прокачать экономику: без ресурсов не построишь оборону, а без обороны - мяу... сам понимаешь.","Some buildings produce resources, others defend our tails. Focus on the economy first: no resources means no defense, and without defense - well, meow. You get the idea."
+Tutorial.Bubble.6,"Деревянные домики увеличивает наше <Style.Blue>котоселение</><img id=""Icon.Cat""/>","Wooden houses increase our <Style.Blue>cat population</><img id=""Icon.Cat""/>."
+Tutorial.Bubble.7,"Каменные домики приносят нам <Style.Mint>листочки мяты</><img id=""Icon.Mint""/> - нашу валюту!","Stone houses bring us <Style.Mint>mint leaves</><img id=""Icon.Mint""/> - our currency!"
+Tutorial.Bubble.8,"Полянка и ферма кормят нас <Style.Fish>рыбками</><img id=""Icon.Fish""/>. А котики, знаешь ли... ооочень любят кушац, мяу!","Meadow and farm feed us <Style.Fish>fish</><img id=""Icon.Fish""/>. And cats, as you know... really love to eat. Meow!"
+Tutorial.Bubble.9,"Для получения ресурсов заверши ход!","End the turn to collect resources!"
+Tutorial.Bubble.10,"Вот так котики живут - <Style.Blue>РЕСУРСЫ</> текут!","That's how cats live - <Style.Blue>resources</> they give!"
+Tutorial.Bubble.11,"Теперь пробуй сам! Больше <Style.Blue>домов</> - больше <Style.Blue>ресурсов</>. Больше <Style.Blue>башен</> - меньше проблем.
+Когда будешь готов, не забудь завершить ход.","Now try it yourself! More <Style.Blue>houses</> - more <Style.Blue>resources</>. More <Style.Blue>towers</> - fewer problems. When you're ready, don't forget to end your turn."
+Tutorial.Bubble.12,"Ты сражался как истинный Кот! Забирай <Style.Blue>награду</>!","You fought like a true Cat! Claim your <Style.Blue>reward!</>"
+Tutorial.Bubble.13,"Уцелевшие постройки приносят <Style.Fish>ресурсы</>. Разрушенные - нет, да ещё и требуют ухода. Котикам же надо подмести после этих гавкающих варваров.","Surviving buildings provide <Style.Fish>resources</>. Destroyed ones do not - and they even require upkeep. The cats have to clean up after those barking barbarians."
+Tutorial.Bubble.14,"Все разрушенные постройки восстановлены и снова дают ресурсы. Настоящая мяугия, не иначе!","All destroyed buildings have been restored and are giving resources again. True meow-gic, no doubt about it!"
+Tutorial.Bubble.15,"Курс молодого Котмяура был пройден! Теперь защищай Древо, как будто это твоя любимая коробка. Увидимся на полях сражений!","The Young Meow-warrior's training is complete! Now defend the Tree like it's your favorite box. See you on the battlefields!"

@@ -186,16 +186,21 @@ namespace LordsFrontiersLoc
 	{
 		// UI strings: LF_LOC call sites and WBP bindings.
 		RegisterTableTranslations(
-		    TEXT( "/Game/Localization/ST_GameStrings.ST_GameStrings" ),
-		    TEXT( "Localization/ST_GameStrings.csv" ) );
+		    TEXT( "/Game/Localization/ST_GameStrings.ST_GameStrings" ), TEXT( "Localization/ST_GameStrings.csv" )
+		);
 
 		// Card names/descriptions (Card.Name.* / Card.Description.*), bound on
 		// UCardDataAsset FText fields — see Doc/CardLocalization.md.
 		RegisterTableTranslations(
-		    TEXT( "/Game/Localization/ST_Cards.ST_Cards" ), TEXT( "Localization/ST_Cards.csv" ) );
+		    TEXT( "/Game/Localization/ST_Cards.ST_Cards" ), TEXT( "Localization/ST_Cards.csv" )
+		);
+
+		RegisterTableTranslations(
+		    TEXT( "/Game/Localization/ST_Tutorial.ST_Tutorial" ), TEXT( "Localization/ST_Tutorial.csv" )
+		);
 	}
 
 	void Shutdown()
 	{
 	}
-}
+} // namespace LordsFrontiersLoc

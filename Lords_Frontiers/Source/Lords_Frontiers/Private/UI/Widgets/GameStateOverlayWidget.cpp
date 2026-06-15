@@ -89,7 +89,8 @@ void UGameStateOverlayWidget::OnSettingsClicked()
 	}
 
 	ActiveAudioSettings_->OnClosed.AddDynamic( this, &UGameStateOverlayWidget::OnAudioSettingsClosed );
-	ActiveAudioSettings_->AddToViewport( 100 );
+	constexpr int32 SettingsZOrder = 3000;
+	ActiveAudioSettings_->AddToViewport( SettingsZOrder );
 }
 
 void UGameStateOverlayWidget::OnAudioSettingsClosed()
