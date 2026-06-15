@@ -35,7 +35,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<ULevelsDataAsset> Levels_;
 
-	void LoadLevel( TSoftObjectPtr<UWorld> level, const FString& errorMessage = "" ) const;
+	void LoadLevel( TSoftObjectPtr<UWorld> level, const FString& errorMessage = "", bool bUseTransition = true ) const;
 
 	int CurrentLevelIndex_ = -1;
 };

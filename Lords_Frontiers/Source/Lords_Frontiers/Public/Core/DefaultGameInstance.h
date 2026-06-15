@@ -15,6 +15,7 @@ class USoundDataAsset;
 class UGameSaverConfig;
 class ACardFeedbackPopup;
 class ACardIconStrip;
+class UTransitionConfig;
 
 /** (Gregory-hub) */
 UCLASS( Abstract )
@@ -27,6 +28,9 @@ public:
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
 	TObjectPtr<ULevelsDataAsset> Levels;
+
+	UPROPERTY( EditDefaultsOnly, Category = "Settings|Levels" )
+	TObjectPtr<UTransitionConfig> TransitionConfig;
 
 	UPROPERTY( EditDefaultsOnly, Category = "Settings|Saving" )
 	TObjectPtr<UGameSaverConfig> GameSaverConfig;

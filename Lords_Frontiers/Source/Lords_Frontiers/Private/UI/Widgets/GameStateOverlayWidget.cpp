@@ -1,10 +1,12 @@
 #include "UI/Widgets/GameStateOverlayWidget.h"
 
 #include "Core/GameSessionController.h"
+#include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 #include "UI/AudioSettingsWidget.h"
 
 #include "Camera/StrategyCamera.h"
 #include "Components/Button.h"
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
 void UGameStateOverlayWidget::NativeConstruct()
@@ -29,6 +31,12 @@ void UGameStateOverlayWidget::OnMainMenuClicked()
 	{
 		session->EndGame( EGameResult::Abandoned );
 	}
+
+	if ( UTransitionSubsystem* transition = GetGameInstance()->GetSubsystem<UTransitionSubsystem>() )
+	{
+		transition->TransitionToLevelByName( mainMenuLevelName );
+		return;
+	}
 	UGameplayStatics::OpenLevel( this, mainMenuLevelName );
 }
 
@@ -39,6 +47,11 @@ void UGameStateOverlayWidget::OnRestartClicked()
 		session->EndGame( EGameResult::Abandoned );
 	}
 	FString CurrentLevelName = GetWorld()->GetName();
+	if ( UTransitionSubsystem* transition = GetGameInstance()->GetSubsystem<UTransitionSubsystem>() )
+	{
+		transition->TransitionToLevelByName( FName( *CurrentLevelName ) );
+		return;
+	}
 	UGameplayStatics::OpenLevel( this, FName( *CurrentLevelName ) );
 }
 
@@ -49,6 +62,11 @@ void UGameStateOverlayWidget::OnNextLevelClicked()
 		session->EndGame( EGameResult::Abandoned );
 	}
 
+	if ( UTransitionSubsystem* transition = GetGameInstance()->GetSubsystem<UTransitionSubsystem>() )
+	{
+		transition->TransitionToLevelByName( nextLevelName );
+		return;
+	}
 	UGameplayStatics::OpenLevel( this, nextLevelName );
 }
 

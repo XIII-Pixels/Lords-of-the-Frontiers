@@ -9,9 +9,7 @@
 #include "Core/Saving/GameSaver.h"
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "Core/Subsystems/SessionLogger/SessionLoggerSubsystem.h"
-#include "Engine/World.h"
-#include "GameFramework/Controller.h"
-#include "Kismet/GameplayStatics.h"
+#include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 #include "EntityStats.h"
 #include "Localization/GameLocalization.h"
 #include "Lords_Frontiers/Public/Match/MatchScoringConfig.h"
@@ -19,6 +17,9 @@
 #include "Lords_Frontiers/Public/Units/Unit.h"
 #include "Lords_Frontiers/Public/Waves/WaveManager.h"
 
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "Kismet/GameplayStatics.h"
 #include "Sound/MusicAmbientManager.h"
 
 class UMusicAmbientManager;
@@ -72,6 +73,15 @@ void UGameSessionController::RestartGame()
 	const FString mapName = UWorld::RemovePIEPrefix( world->GetMapName() );
 	UE_LOG( LogTemp, Log, TEXT( "RestartGame: reloading level '%s' for a fresh run." ), *mapName );
 
+	if ( UGameInstance* gameInstance = GetGameInstance() )
+	{
+		if ( UTransitionSubsystem* transition = gameInstance->GetSubsystem<UTransitionSubsystem>() )
+		{
+			transition->TransitionRestart();
+			return;
+		}
+	}
+
 	UGameplayStatics::OpenLevel( world, FName( *mapName ) );
 }
 
@@ -106,10 +116,9 @@ bool UGameSessionController::IsInsideEndlessMode() const
 		const bool bByLatch = wm->IsEndlessRunActive();
 		const bool bByIndex = wm->HasInfiniteMode() && wm->IsInfiniteWaveIndex( wm->CurrentWaveIndex );
 		UE_LOG(
-			LogTemp, Log,
-			TEXT( "IsInsideEndlessMode: WaveManager '%s' hasInfinite=%d currentWave=%d latch=%d byIndex=%d" ),
-			*wm->GetName(), wm->HasInfiniteMode() ? 1 : 0, wm->CurrentWaveIndex,
-			bByLatch ? 1 : 0, bByIndex ? 1 : 0
+		    LogTemp, Log,
+		    TEXT( "IsInsideEndlessMode: WaveManager '%s' hasInfinite=%d currentWave=%d latch=%d byIndex=%d" ),
+		    *wm->GetName(), wm->HasInfiniteMode() ? 1 : 0, wm->CurrentWaveIndex, bByLatch ? 1 : 0, bByIndex ? 1 : 0
 		);
 		if ( bByLatch || bByIndex )
 		{
@@ -129,8 +138,8 @@ void UGameSessionController::EndGame( EGameResult result )
 		result = EGameResult::EndlessRun;
 	}
 	UE_LOG(
-		LogTemp, Log, TEXT( "GameSessionController::EndGame input=%d final=%d" ),
-		static_cast<int32>( inputResult ), static_cast<int32>( result )
+	    LogTemp, Log, TEXT( "GameSessionController::EndGame input=%d final=%d" ), static_cast<int32>( inputResult ),
+	    static_cast<int32>( result )
 	);
 	if ( UGameInstance* gi = GetGameInstance() )
 	{
@@ -168,8 +177,8 @@ void UGameSessionController::EndGame( EGameResult result )
 			if ( UMatchStatsTracker* tracker = gi->GetSubsystem<UMatchStatsTracker>() )
 			{
 				const FString playerName = ( tracker->GetConfig() && !tracker->GetConfig()->PlayerEntryName.IsEmpty() )
-												? tracker->GetConfig()->PlayerEntryName
-												: LF_LOC( "Player.Self" ).ToString();
+				                               ? tracker->GetConfig()->PlayerEntryName
+				                               : LF_LOC( "Player.Self" ).ToString();
 				tracker->FinalizeAndPush( playerName );
 			}
 		}
