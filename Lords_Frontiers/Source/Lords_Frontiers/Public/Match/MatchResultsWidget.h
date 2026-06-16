@@ -7,6 +7,9 @@
 #include "Lords_Frontiers/Public/Cards/CardTypes.h"
 #include "Lords_Frontiers/Public/Match/MatchStats.h"
 #include "Lords_Frontiers/Public/Resources/GameResource.h"
+#include "Sound/AudioEvent.h"
+#include "Sound/AudioEventSource.h"
+#include "UI/Widgets/MainMenuButtonWidget.h"
 
 #include "MatchResultsWidget.generated.h"
 
@@ -15,12 +18,11 @@ class ULeaderboardSubsystem;
 class UMatchScoringConfig;
 class UMatchResultsLeaderboardRowWidget;
 class APlayerController;
-class UButton;
 class UTextBlock;
 class UPanelWidget;
 
 UCLASS( BlueprintType, meta = ( DisplayName = "Виджет результатов боя" ) )
-class LORDS_FRONTIERS_API UMatchResultsWidget : public UUserWidget
+class LORDS_FRONTIERS_API UMatchResultsWidget : public UUserWidget, public IAudioEventSource
 {
 	GENERATED_BODY()
 
@@ -202,6 +204,7 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	void ApplyTextsToBoundWidgets();
 	void RebuildLeaderboardRows();
@@ -291,20 +294,94 @@ protected:
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> BestScoreValue = nullptr;
 
+	// ===== Static labels: localized from ST_GameStrings (MatchResult.* keys) =====
+	// Rename the plain "Text" blocks in WBP_MatchResults to these names and the
+	// texts start following the active culture (see Doc/MatchResults_Localization.md).
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> BestScoreLabel = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> WavesSurvivedLabel = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> EnemiesKilledLabel = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> BossesKilledLabel = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> DamageDealtLabel = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Tower_Speed_Label = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Tower_Sniper_Label = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Tower_Magic_Label = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Tower_Mortar_Label = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> TowersTotalLabel = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Resource_Mint_Label = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Resource_Fish_Label = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Resource_Population_Label = nullptr;
+
+	// Section titles (replacements for the Text_Image_* pictures with baked-in text).
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Section_Enemies_Title = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Section_Towers_Title = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Section_Resources_Title = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Section_TotalScore_Title = nullptr;
+
+	UPROPERTY( meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> Section_Leaderboard_Title = nullptr;
+
 	// Контейнер строк таблицы лидеров. Внутрь C++ кладёт по одной HorizontalBox-строке.
 	// Подойдёт ScrollBox (рекомендую — будет скроллиться) или VerticalBox.
 	UPROPERTY( meta = ( BindWidgetOptional ) )
 	TObjectPtr<UPanelWidget> LeaderboardContainer = nullptr;
 
+	// Bottom buttons: WBP_MainMenuButton instances (same widget as the main menu),
+	// named exactly RestartButton / MainMenuButton. C++ wires clicks, hover sounds
+	// and assigns MatchResult.Restart / MatchResult.MainMenu label keys when the
+	// instance has no LabelKey of its own. Plain UButton no longer binds here.
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> RestartButton = nullptr;
+	TObjectPtr<UMainMenuButtonWidget> RestartButton = nullptr;
 
 	UPROPERTY( meta = ( BindWidgetOptional ) )
-	TObjectPtr<UButton> MainMenuButton = nullptr;
+	TObjectPtr<UMainMenuButtonWidget> MainMenuButton = nullptr;
+
+	virtual FOnAudioEvent& GetOnAudioEvent() override
+	{
+		return OnAudioEvent_;
+	}
+
+	FOnAudioEvent OnAudioEvent_;
 
 	UFUNCTION()
-	void HandleRestartClicked();
+	void HandleRestartClicked( EMainMenuButtonAction action );
 
 	UFUNCTION()
-	void HandleMainMenuClicked();
+	void HandleMainMenuClicked( EMainMenuButtonAction action );
+
+	UFUNCTION()
+	void HandleResultsButtonHovered( EMainMenuButtonAction action );
 };
