@@ -5,6 +5,7 @@
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "UI/LevelChoosingMenu.h"
 #include "UI/Widgets/LevelButton.h"
+#include "UI/Widgets/TextButtonWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
@@ -38,28 +39,28 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 
 	for ( UWidget* widget : allWidgets )
 	{
-		if ( ULevelButton* levelButton = Cast<ULevelButton>( widget ) )
+		ULevelButton* levelButton = Cast<ULevelButton>( widget );
+		if ( !levelButton )
 		{
-			if ( levelButton->Butt != menuWidget->BackButton )
-			{
-				levelButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonClicked );
-				levelButton->Butt->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonHovered );
+			continue;
+		}
 
-				if ( levelSubsystem )
-				{
-					switch ( levelSubsystem->GetLevelStatus( levelButton->LevelIndex() ) )
-					{
-					case ELevelStatus::Unlocked:
-						levelButton->SetStateUnlocked();
-						break;
-					case ELevelStatus::Completed:
-						levelButton->SetStateCompleted();
-						break;
-					default:
-						levelButton->SetStateLocked();
-						break;
-					}
-				}
+		levelButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonClicked );
+		levelButton->Butt->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonHovered );
+
+		if ( levelSubsystem )
+		{
+			switch ( levelSubsystem->GetLevelStatus( levelButton->LevelIndex() ) )
+			{
+			case ELevelStatus::Unlocked:
+				levelButton->SetStateUnlocked();
+				break;
+			case ELevelStatus::Completed:
+				levelButton->SetStateCompleted();
+				break;
+			default:
+				levelButton->SetStateLocked();
+				break;
 			}
 		}
 	}
