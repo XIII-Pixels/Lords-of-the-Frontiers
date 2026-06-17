@@ -8,6 +8,14 @@
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 
+/** Shape of the central cloud-free zone. */
+UENUM()
+enum class ECloudClearShape : uint8
+{
+	Circle,
+	Square
+};
+
 USTRUCT()
 struct FCloudInstanceData
 {
@@ -43,9 +51,28 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Visuals" )
 	FRotator CloudFacingRotation = FRotator( -50.0f, 45.0f, 0.0f );
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Generation" )
+	/** Half-size of the central clear zone that stays free of clouds (the playable area). */
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Generation",
+	    meta = ( DisplayName = "Центральная свободная зона (полуразмер)" )
+	)
 	FVector2D MapExtents = FVector2D( 5000.0f, 5000.0f );
 
+	/** Shape of the central clear zone: ellipse/circle or square. */
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Generation",
+	    meta = ( DisplayName = "Форма свободной зоны" )
+	)
+	ECloudClearShape ClearZoneShape = ECloudClearShape::Square;
+
+	/** Half-size of the whole area filled with clouds. Set >= half the view at max zoom-out (plus camera pan). */
+	UPROPERTY(
+	    EditAnywhere, BlueprintReadWrite, Category = "Settings|Generation",
+	    meta = ( DisplayName = "Зона покрытия облаками (полуразмер)" )
+	)
+	FVector2D CoverageExtents = FVector2D( 12000.0f, 12000.0f );
+
+	/** Grid step between clouds. Smaller = denser (and many more instances). */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Settings|Generation" )
 	float CloudSpacing = 800.0f;
 
@@ -74,5 +101,6 @@ private:
 	TArray<FCloudInstanceData> CloudsData;
 
 	void GenerateClouds();
+	bool IsInsideClearZone( float x, float y ) const;
 	float CurrentZoomAlpha = 0.0f;
 };

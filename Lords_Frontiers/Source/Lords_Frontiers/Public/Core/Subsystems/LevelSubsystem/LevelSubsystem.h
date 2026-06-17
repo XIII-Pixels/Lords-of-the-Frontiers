@@ -31,6 +31,15 @@ public:
 
 	void UnlockNextLevel() const;
 
+	int GetCurrentLevelIndex() const
+	{
+		return CurrentLevelIndex_;
+	}
+
+	/** Fills outConfig with the camera config of the level that is currently loaded.
+	 * Returns false when no gameplay level is active (e.g. launched directly into a map). */
+	bool GetCurrentLevelCameraConfig( FLevelCameraConfig& outConfig ) const;
+
 protected:
 	UPROPERTY()
 	TObjectPtr<ULevelsDataAsset> Levels_;

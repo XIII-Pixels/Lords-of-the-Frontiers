@@ -69,12 +69,14 @@ void ULevelSubsystem::ResetSavedLevelStatuses() const
 	{
 		if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
 		{
-			for ( auto [level, unlocked] : Levels_->GameplayLevels )
+			for ( const FGameplayLevelData& levelData : Levels_->GameplayLevels )
 			{
-				if ( gameSaver->GetLevelStatus( level.ToSoftObjectPath().ToString() ) == ELevelStatus::Undefined )
+				if ( gameSaver->GetLevelStatus( levelData.Level.ToSoftObjectPath().ToString() ) ==
+				     ELevelStatus::Undefined )
 				{
 					gameSaver->UpdateLevelStatus(
-					    level.GetAssetName(), unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
+					    levelData.Level.GetAssetName(),
+					    levelData.Unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
 					);
 				}
 			}
@@ -95,6 +97,16 @@ ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 		}
 	}
 	return ELevelStatus::Undefined;
+}
+
+bool ULevelSubsystem::GetCurrentLevelCameraConfig( FLevelCameraConfig& outConfig ) const
+{
+	if ( Levels_ && CurrentLevelIndex_ >= 0 && CurrentLevelIndex_ < Levels_->GameplayLevels.Num() )
+	{
+		outConfig = Levels_->GameplayLevels[CurrentLevelIndex_].CameraConfig;
+		return true;
+	}
+	return false;
 }
 
 void ULevelSubsystem::UnlockNextLevel() const

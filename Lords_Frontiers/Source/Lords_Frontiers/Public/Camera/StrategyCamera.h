@@ -196,6 +196,10 @@ private:
 
 	void HandleAudioChangesOnZoom();
 
+	/** Applies the current level's camera config (max zoom-out height + starting height %) if it opts in.
+	 * Updates MaxZoom_ and returns the zoom the camera should start at, falling back to fallbackZoom. */
+	float ResolveInitialZoomFromLevelConfig( float fallbackZoom );
+
 	float TargetZoom_;
 	float TargetYaw_;
 	float CurrentYaw_;

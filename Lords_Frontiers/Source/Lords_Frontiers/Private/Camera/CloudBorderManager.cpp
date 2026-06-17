@@ -45,8 +45,6 @@ void ACloudBorderManager::GenerateClouds()
 		return;
 	}
 
-	FVector center = FVector::ZeroVector;
-
 	FRandomStream rng( 12345 );
 
 	auto spawnCloud = [&]( FVector position, FVector outwardDir )
@@ -72,29 +70,41 @@ void ACloudBorderManager::GenerateClouds()
 		CloudsData.Add( data );
 	};
 
-	int32 numLayers = 4;
-
-	for ( int32 layer = 0; layer < numLayers; ++layer )
+	// Fill the whole coverage area on a grid, skipping the central clear zone.
+	// Everything outside MapExtents (up to CoverageExtents) gets covered with clouds.
+	for ( float x = -CoverageExtents.X; x <= CoverageExtents.X; x += CloudSpacing )
 	{
-		float currentRx = MapExtents.X + ( layer * CloudSpacing * 0.8f );
-		float currentRy = MapExtents.Y + ( layer * CloudSpacing * 0.8f );
-
-		float perimeter = 2.0f * PI * FMath::Sqrt( ( currentRx * currentRx + currentRy * currentRy ) / 2.0f );
-		int32 cloudsInThisLayer = FMath::CeilToInt( perimeter / CloudSpacing );
-
-		for ( int32 i = 0; i < cloudsInThisLayer; ++i )
+		for ( float y = -CoverageExtents.Y; y <= CoverageExtents.Y; y += CloudSpacing )
 		{
-			float angle = ( (float) i / (float) cloudsInThisLayer ) * 2.0f * PI;
+			if ( IsInsideClearZone( x, y ) )
+			{
+				continue;
+			}
 
-			float x = currentRx * FMath::Cos( angle );
-			float y = currentRy * FMath::Sin( angle );
-
-			FVector spawnPos = center + FVector( x, y, 0.0f );
+			// Outward direction (from the center) keeps the zoom-in hide animation pushing clouds away.
 			FVector outwardDir = FVector( x, y, 0.0f ).GetSafeNormal();
 
-			spawnCloud( spawnPos, outwardDir );
+			spawnCloud( FVector( x, y, 0.0f ), outwardDir );
 		}
 	}
+}
+
+bool ACloudBorderManager::IsInsideClearZone( float x, float y ) const
+{
+	if ( ( MapExtents.X <= 0.0f ) || ( MapExtents.Y <= 0.0f ) )
+	{
+		return false;
+	}
+
+	if ( ClearZoneShape == ECloudClearShape::Square )
+	{
+		return ( FMath::Abs( x ) < MapExtents.X ) && ( FMath::Abs( y ) < MapExtents.Y );
+	}
+
+	// Ellipse/circle: normalized radial test.
+	const float nx = x / MapExtents.X;
+	const float ny = y / MapExtents.Y;
+	return ( ( nx * nx ) + ( ny * ny ) ) < 1.0f;
 }
 
 void ACloudBorderManager::Tick( float deltaTime )
