@@ -40,7 +40,11 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 	for ( UWidget* widget : allWidgets )
 	{
 		ULevelButton* levelButton = Cast<ULevelButton>( widget );
-		if ( !levelButton )
+
+		// Skip non-level-buttons and level buttons whose inner UButton failed to bind (a
+		// BindWidget can resolve to null). The back button is a UTextButtonWidget, so the
+		// Cast<ULevelButton> above already filters it out.
+		if ( !levelButton || !levelButton->Butt )
 		{
 			continue;
 		}
@@ -65,8 +69,20 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 		}
 	}
 
-	menuWidget->BackButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonClicked );
-	menuWidget->BackButton->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonHovered );
+	// BackButton is a BindWidget: if the Blueprint widget is missing it (or it failed to bind) the
+	// pointer is invalid, so guard the bind instead of dereferencing it blindly. This is the line
+	// the StartPlay access violation hit.
+	if ( menuWidget->BackButton )
+	{
+		menuWidget->BackButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonClicked );
+		menuWidget->BackButton->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonHovered );
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning,
+		    TEXT( "ULevelChoosingUIManager::SetupWidget: BackButton is not bound on '%s'." ),
+		    *menuWidget->GetName() );
+	}
 }
 
 void ULevelChoosingUIManager::PostInitProperties()

@@ -5,6 +5,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 
 #include "CoreMinimal.h"
+#include "Engine/StreamableManager.h"
 
 #include "TransitionSubsystem.generated.h"
 
@@ -17,8 +18,8 @@ class UTransitionOverlayWidget;
  * Lives on the GameInstance so it survives OpenLevel. The flow is:
  *   1. Create the overlay on the current level and play start_screen (covers the screen).
  *   2. When start_screen finishes, OpenLevel the target map (the old overlay is destroyed).
- *   3. On PostLoadMapWithWorld, recreate the overlay and loop idle_screen while loading
- *      settles; once it is done, the current idle cycle is allowed to finish.
+ *   3. On PostLoadMapWithWorld the new map is already loaded, so the idle hold is skipped and
+ *      end_screen plays straight away (idle_screen is reserved for an async-loading path).
  *   4. Play end_screen to reveal the new level, then remove the overlay.
  *
  * If no overlay class is configured, the target map is opened immediately with no effect,
@@ -67,9 +68,11 @@ private:
 	void FinishTransition();
 
 	void HandleStartFinished();
-	void HandleIdleFinished();
+	void HandleLevelPreloaded();
+	void HandleIdleSettledBeforeTravel();
 	void HandleEndFinished();
 
+	FSoftObjectPath ResolvePendingLevelAsset() const;
 	void OpenPendingLevelNow() const;
 	bool UseOverlayPath() const;
 	UTransitionOverlayWidget* EnsureOverlay();
@@ -88,4 +91,9 @@ private:
 	bool bPendingReveal_ = false;
 
 	FDelegateHandle PostLoadMapHandle_;
+
+	/** Streams the target level package in while idle_screen animates, so the final OpenLevel
+	 *  doesn't block the game thread on disk IO. */
+	FStreamableManager StreamableManager_;
+	TSharedPtr<FStreamableHandle> PreloadHandle_;
 };

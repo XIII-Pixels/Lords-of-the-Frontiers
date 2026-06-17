@@ -8,6 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/PackageName.h"
 #include "UObject/UObjectGlobals.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogTransition, Log, All );
@@ -113,7 +114,38 @@ void UTransitionSubsystem::BeginTransition()
 
 void UTransitionSubsystem::HandleStartFinished()
 {
-	PerformOpenLevel();
+	// Cover is up. Preload the target level asynchronously so the game thread keeps ticking and
+	// idle_screen animates instead of freezing on a blocking OpenLevel; travel once it is ready.
+	const FSoftObjectPath levelAsset = ResolvePendingLevelAsset();
+	UTransitionOverlayWidget* overlay = ActiveOverlay_.Get();
+	if ( !levelAsset.IsValid() || !overlay )
+	{
+		// Unresolved target (e.g. a short map name) or no overlay: travel straight away.
+		PerformOpenLevel();
+		return;
+	}
+
+	// Bind and start idle before kicking the load so a synchronous completion can't strand us.
+	overlay->OnIdleFinished.AddUObject( this, &UTransitionSubsystem::HandleIdleSettledBeforeTravel );
+	overlay->PlayIdleLoop();
+
+	TWeakObjectPtr<UTransitionSubsystem> weakThis( this );
+	PreloadHandle_ = StreamableManager_.RequestAsyncLoad(
+	    levelAsset,
+	    FStreamableDelegate::CreateLambda(
+	        [weakThis]()
+	        {
+		        if ( UTransitionSubsystem* self = weakThis.Get() )
+		        {
+			        self->HandleLevelPreloaded();
+		        }
+	        } ) );
+
+	if ( !PreloadHandle_.IsValid() )
+	{
+		// Couldn't start the async load: settle idle and travel now (synchronous fallback).
+		HandleLevelPreloaded();
+	}
 }
 
 void UTransitionSubsystem::PerformOpenLevel()
@@ -148,27 +180,30 @@ void UTransitionSubsystem::HandleNewLevelReady()
 		return;
 	}
 
-	overlay->OnIdleFinished.AddUObject( this, &UTransitionSubsystem::HandleIdleFinished );
 	overlay->OnEndFinished.AddUObject( this, &UTransitionSubsystem::HandleEndFinished );
 
-	overlay->PlayIdleLoop();
-
-	// The map is loaded by the time PostLoadMapWithWorld fires, so loading is "done":
-	// let the current idle cycle finish, then reveal. (Idle still plays at least one full
-	// loop before end_screen.)
-	overlay->StopIdleAfterCycle();
+	// The new map is already loaded and the screen is covered; reveal it. idle_screen already
+	// animated on the previous overlay while the package streamed in (see HandleStartFinished).
+	overlay->PlayEnd();
 }
 
-void UTransitionSubsystem::HandleIdleFinished()
+void UTransitionSubsystem::HandleLevelPreloaded()
 {
+	// The target package is in memory now: wind idle down to the nearest edge, then travel (which
+	// is fast — no disk IO). If the overlay vanished, travel straight away.
 	if ( UTransitionOverlayWidget* overlay = ActiveOverlay_.Get() )
 	{
-		overlay->PlayEnd();
+		overlay->StopIdleAtNearestEdge();
 	}
 	else
 	{
-		FinishTransition();
+		PerformOpenLevel();
 	}
+}
+
+void UTransitionSubsystem::HandleIdleSettledBeforeTravel()
+{
+	PerformOpenLevel();
 }
 
 void UTransitionSubsystem::HandleEndFinished()
@@ -188,6 +223,31 @@ void UTransitionSubsystem::FinishTransition()
 	PendingTarget_ = EPendingTarget::None;
 	PendingSoftLevel_.Reset();
 	PendingLevelName_ = NAME_None;
+
+	// Release the preloaded package; if we travelled, the new world is referenced by the engine.
+	PreloadHandle_.Reset();
+}
+
+FSoftObjectPath UTransitionSubsystem::ResolvePendingLevelAsset() const
+{
+	switch ( PendingTarget_ )
+	{
+	case EPendingTarget::BySoftPtr:
+		return PendingSoftLevel_.IsNull() ? FSoftObjectPath() : PendingSoftLevel_.ToSoftObjectPath();
+	case EPendingTarget::ByName:
+	{
+		// Only a full package path can be preloaded as an asset; short map names (and PIE worlds)
+		// fall back to a direct synchronous OpenLevel.
+		const FString name = PendingLevelName_.ToString();
+		if ( FPackageName::IsValidLongPackageName( name ) )
+		{
+			return FSoftObjectPath( name + TEXT( "." ) + FPackageName::GetShortName( name ) );
+		}
+		return FSoftObjectPath();
+	}
+	default:
+		return FSoftObjectPath();
+	}
 }
 
 void UTransitionSubsystem::OpenPendingLevelNow() const

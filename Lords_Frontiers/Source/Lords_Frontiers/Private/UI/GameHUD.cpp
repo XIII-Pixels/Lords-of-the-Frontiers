@@ -12,6 +12,7 @@
 #include "UI/CursorAnim/CursorAnimationSubsystem.h"
 #include "UI/HealthBar/HealthBarWidget.h"
 #include "UI/Widgets/GameStateOverlayWidget.h"
+#include "UI/Widgets/MatchOutcomeOverlayWidget.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraZoomUtils.h"
@@ -524,6 +525,12 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 	ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, ClassToUse );
 	if ( ActiveOverlay )
 	{
+		// Win/Lose WBPs derive from UMatchOutcomeOverlayWidget, which adds the localized title;
+		// the pause overlay is a plain UGameStateOverlayWidget, so this cast is null there.
+		if ( UMatchOutcomeOverlayWidget* outcome = Cast<UMatchOutcomeOverlayWidget>( ActiveOverlay ) )
+		{
+			outcome->SetResult( Result );
+		}
 		ActiveOverlay->AddToViewport( 100 );
 	}
 
