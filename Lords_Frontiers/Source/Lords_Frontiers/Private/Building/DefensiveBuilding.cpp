@@ -83,12 +83,35 @@ void ADefensiveBuilding::FullRestore()
 
 void ADefensiveBuilding::ShowAttackRange()
 {
-	if ( !RangeDecalComponent_ || !RangeIndicatorMaterial_ )
+	if ( !RangeDecalComponent_ )
 	{
 		return;
 	}
 
+	// The radius is silent when it is misconfigured per-Blueprint (e.g. Mage tower / Mortar with no
+	// indicator material or a zero range). Log it so the cause is visible instead of "nothing happens".
+	if ( !RangeIndicatorMaterial_ )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "ADefensiveBuilding::ShowAttackRange: '%s' has no RangeIndicatorMaterial_ set — assign it on "
+		          "the building Blueprint, otherwise the attack radius is not drawn." ),
+		    *GetName()
+		);
+		return;
+	}
+
 	const float range = Stats().AttackRange();
+	if ( range <= 0.0f )
+	{
+		UE_LOG(
+		    LogTemp, Warning,
+		    TEXT( "ADefensiveBuilding::ShowAttackRange: '%s' has AttackRange %.1f — the radius decal would be "
+		          "invisible. Check the building stats." ),
+		    *GetName(), range
+		);
+	}
+
 	RangeDecalComponent_->DecalSize = FVector( range, range, range );
 	RangeDecalComponent_->SetDecalMaterial( RangeIndicatorMaterial_ );
 	RangeDecalComponent_->SetVisibility( true );

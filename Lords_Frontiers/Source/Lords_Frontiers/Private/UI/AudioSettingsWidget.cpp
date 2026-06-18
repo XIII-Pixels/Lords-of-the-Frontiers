@@ -8,7 +8,10 @@
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Input/Events.h"
+#include "Layout/WidgetPath.h"
+#include "TimerManager.h"
 
 namespace
 {
@@ -196,6 +199,8 @@ void UAudioSettingsWidget::OnBackClicked()
 
 void UAudioSettingsWidget::HandleClose()
 {
+	bIsClosing_ = true;
+
 	if ( UGameInstance* gi = GetGameInstance() )
 	{
 		if ( UAudioSettingsSubsystem* settings = gi->GetSubsystem<UAudioSettingsSubsystem>() )
@@ -236,6 +241,55 @@ FReply UAudioSettingsWidget::NativeOnMouseButtonDown( const FGeometry& InGeometr
 		LanguageSwitch->CloseList();
 	}
 	return Super::NativeOnMouseButtonDown( InGeometry, InMouseEvent );
+}
+
+void UAudioSettingsWidget::NativeOnFocusChanging(
+    const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent
+)
+{
+	Super::NativeOnFocusChanging( PreviousFocusPath, NewWidgetPath, InFocusEvent );
+
+	// Escape is only delivered while this window holds keyboard focus. A click outside the window
+	// (e.g. on the game viewport) would move focus away and silently break Escape, so we reclaim it.
+	if ( bIsClosing_ )
+	{
+		return;
+	}
+
+	// Leave the language dropdown alone — it manages its own focus while open.
+	if ( LanguageSwitch && LanguageSwitch->IsListOpen() )
+	{
+		return;
+	}
+
+	// If focus is moving to one of our own controls (slider, OK button, dropdown), keep it there.
+	if ( const TSharedPtr<SWidget> self = GetCachedWidget() )
+	{
+		for ( int32 i = 0; i < NewWidgetPath.Widgets.Num(); ++i )
+		{
+			if ( &NewWidgetPath.Widgets[i].Widget.Get() == self.Get() )
+			{
+				return;
+			}
+		}
+	}
+
+	// Focus left the window entirely; pull it back next tick (doing it inline would be overridden
+	// by the focus change currently in flight).
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().SetTimerForNextTick(
+		    FTimerDelegate::CreateWeakLambda( this, [this]() { ReacquireKeyboardFocus(); } )
+		);
+	}
+}
+
+void UAudioSettingsWidget::ReacquireKeyboardFocus()
+{
+	if ( !bIsClosing_ && IsInViewport() )
+	{
+		SetKeyboardFocus();
+	}
 }
 
 void UAudioSettingsWidget::HandleEscape()

@@ -145,6 +145,12 @@ void AStrategyCamera::BeginPlay()
 	MapCenter_ = ( MinMapBounds_ + MaxMapBounds_ ) * 0.5f;
 	MaxMoveAreaExtents_ = ( MaxMapBounds_ - MinMapBounds_ ) * 0.5f;
 
+	// When the level overrides the camera, spawn it centered on the level instead of its placed position.
+	if ( bCameraOverridden_ )
+	{
+		SetActorLocation( FVector( MapCenter_.X, MapCenter_.Y, 0.0f ) );
+	}
+
 	FTimerHandle timerHandle;
 	GetWorldTimerManager().SetTimer(
 	    timerHandle,
@@ -180,6 +186,9 @@ float AStrategyCamera::ResolveInitialZoomFromLevelConfig( float fallbackZoom )
 	{
 		return fallbackZoom;
 	}
+
+	// The level opts into the camera override: remember it so BeginPlay can spawn the camera at the level center.
+	bCameraOverridden_ = true;
 
 	// "Maximum height" — how far the camera may zoom out. Keep it above the zoom-in limit.
 	MaxZoom_ = FMath::Max( config.MaxHeight, MinZoom_ );

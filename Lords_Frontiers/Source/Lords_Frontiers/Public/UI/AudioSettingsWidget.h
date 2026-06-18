@@ -35,6 +35,9 @@ protected:
 	virtual FReply NativeOnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual void NativeOnFocusChanging(
+	    const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent
+	) override;
 
 	void HandleClose();
 	void HandleEscape();
@@ -122,4 +125,10 @@ private:
 	float SnapVolume( float value ) const;
 	void UpdateValueText( UTextBlock* textBlock, float value ) const;
 	void ApplySliderValue( EAudioCategory category, USlider* slider, UTextBlock* valueText, float value );
+
+	/** Re-grabs keyboard focus so Escape keeps closing the window after a click lands outside it. */
+	void ReacquireKeyboardFocus();
+
+	/** Set while the window is tearing down so focus is not reclaimed mid-close. */
+	bool bIsClosing_ = false;
 };
