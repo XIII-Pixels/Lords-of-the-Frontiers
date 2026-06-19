@@ -12,6 +12,8 @@
 #include "Core/CoreManager.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Resources/ResourceManager.h"
+#include "Sound/AudioTags.h"
+#include "Sound/SoundEffectManager.h"
 #include "Tutorial/TutorialSubsystem.h"
 
 #include "Engine/GameInstance.h"
@@ -116,6 +118,16 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 	    choice.AvailableCards.Num(), choice.CardsToSelect, choice.WaveNumber,
 	    PoolConfig_->bDebugShowAllCards ? 1 : 0
 	);
+
+	// Reward cue: played every time the player is granted reward cards. Reuses the building
+	// "resurrected" sound at reduced volume so it reads as a soft reward chime, not a building effect.
+	if ( UGameInstance* gameInstance = GetGameInstance() )
+	{
+		if ( USoundEffectManager* sfxManager = gameInstance->GetSubsystem<USoundEffectManager>() )
+		{
+			sfxManager->PlaySound2D( AudioTags::SFX_BUILDING_DEFAULT_RESURRECTED, /*volumeScale*/ 0.5f );
+		}
+	}
 
 	OnCardSelectionRequired.Broadcast( choice );
 }

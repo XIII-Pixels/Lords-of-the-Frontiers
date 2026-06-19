@@ -65,6 +65,12 @@ private:
 
 	ULoopingSound* CreateAndPlay( const FLoopingSoundConfig* sound, EMusicAmbientKind kind, float volumeScale = 1.0f );
 
+	/** Stops music and ambient when a new level starts loading so the previous level's audio
+	 * does not bleed into the next one (looping sounds persist across level transitions). */
+	void HandlePreLoadMap( const FString& mapName );
+
+	FDelegateHandle PreLoadMapHandle_;
+
 	// Only one music track can play at a time
 	UPROPERTY()
 	TObjectPtr<ULoopingSound> Music_ = nullptr;

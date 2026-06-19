@@ -10,6 +10,7 @@
 #include "Sound/Data/AmbientDataAsset.h"
 #include "Sound/Data/MusicDataAsset.h"
 #include "Sound/LoopingSound.h"
+#include "UObject/UObjectGlobals.h"
 
 ULoopingSound* UMusicAmbientManager::PlayMusic( const FLoopingSoundConfig* sound, float volumeScale )
 {
@@ -75,7 +76,7 @@ void UMusicAmbientManager::PlayWinGameMusic()
 {
 	if ( MusicDataAsset_.IsValid() )
 	{
-		PlayMusic( &MusicDataAsset_->WinMusic() );
+		PlayMusic( &MusicDataAsset_->WinMusic(), MusicDataAsset_->WinLoseMusicVolumeScale() );
 	}
 }
 
@@ -83,7 +84,7 @@ void UMusicAmbientManager::PlayLoseGameMusic()
 {
 	if ( MusicDataAsset_.IsValid() )
 	{
-		PlayMusic( &MusicDataAsset_->LoseMusic() );
+		PlayMusic( &MusicDataAsset_->LoseMusic(), MusicDataAsset_->WinLoseMusicVolumeScale() );
 	}
 }
 
@@ -225,12 +226,29 @@ void UMusicAmbientManager::Initialize( FSubsystemCollectionBase& collection )
 		AmbientDataAsset_ = gameInstance->Ambient;
 		LevelsDataAsset_ = gameInstance->Levels;
 	}
+
+	PreLoadMapHandle_ = FCoreUObjectDelegates::PreLoadMap.AddUObject( this, &UMusicAmbientManager::HandlePreLoadMap );
 }
 
 void UMusicAmbientManager::Deinitialize()
 {
+	if ( PreLoadMapHandle_.IsValid() )
+	{
+		FCoreUObjectDelegates::PreLoadMap.Remove( PreLoadMapHandle_ );
+		PreLoadMapHandle_.Reset();
+	}
+
 	StopMusic();
 	StopAllAmbient();
 
 	Super::Deinitialize();
+}
+
+void UMusicAmbientManager::HandlePreLoadMap( const FString& /*mapName*/ )
+{
+	// Looping music/ambient are spawned with bPersistAcrossLevelTransition, so they keep playing
+	// when the world is swapped. Stop them the moment a new level begins loading; the level being
+	// loaded restarts whatever music/ambient it needs from its own GameMode / BeginPlay.
+	StopMusic( true );
+	StopAllAmbient( true );
 }

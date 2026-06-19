@@ -141,7 +141,9 @@ void ULevelChoosingUIManager::OnBackButtonClicked()
 	{
 		if ( ULevelSubsystem* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>() )
 		{
-			levelSubsystem->LoadMainMenu();
+			// Level select -> main menu is plain UI navigation: open it instantly, no transition
+			// wipe / loading animation (mirrors LoadLevelChoosingLevel for the reverse direction).
+			levelSubsystem->LoadMainMenu( /*bUseTransition*/ false );
 		}
 	}
 }

@@ -19,7 +19,7 @@ class LORDS_FRONTIERS_API ULevelSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	void LoadMainMenu() const;
+	void LoadMainMenu( bool bUseTransition = true ) const;
 	void LoadLevelChoosingLevel() const;
 	void LoadGameplayLevel( int index );
 	void LoadNextLevel();

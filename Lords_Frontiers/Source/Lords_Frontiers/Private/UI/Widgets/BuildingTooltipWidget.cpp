@@ -793,11 +793,12 @@ void UBuildingTooltipWidget::UpdateStats( const ABuilding* building )
 		);
 		addStatRow(
 		    EStatsType::AttackRange, LF_LOC( "Stats.Range" ).ToString(),
-		    FString::Printf( TEXT( "%.0f" ), stats.AttackRange() )
+		    FString::SanitizeFloat( stats.AttackRange(), 0 )
 		);
 		addStatRow(
 		    EStatsType::SplashRadius, LF_LOC( "Stats.SplashArea" ).ToString(),
-		    ( stats.SplashRadius() > 0.0f ) ? LF_LOC( "Stats.Yes" ).ToString() : LF_LOC( "Stats.No" ).ToString()
+		    ( stats.SplashRadius() > 0.0f ) ? FString::SanitizeFloat( stats.SplashRadius(), 0 )
+		                                    : LF_LOC( "Stats.No" ).ToString()
 		);
 		addStatRow(
 		    EStatsType::CritChance, LF_LOC( "Stats.CritChance" ).ToString(),

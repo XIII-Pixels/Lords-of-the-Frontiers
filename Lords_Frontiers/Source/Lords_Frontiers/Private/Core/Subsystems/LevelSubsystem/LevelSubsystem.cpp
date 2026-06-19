@@ -9,11 +9,11 @@
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
-void ULevelSubsystem::LoadMainMenu() const
+void ULevelSubsystem::LoadMainMenu( bool bUseTransition ) const
 {
 	if ( Levels_ )
 	{
-		LoadLevel( Levels_->MainMenuLevel, "main menu" );
+		LoadLevel( Levels_->MainMenuLevel, "main menu", bUseTransition );
 	}
 }
 

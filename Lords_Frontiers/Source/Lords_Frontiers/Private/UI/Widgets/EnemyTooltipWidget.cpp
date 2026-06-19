@@ -271,7 +271,13 @@ void UEnemyTooltipWidget::UpdateContent()
 
 		UpdateOrAddStatRow(
 		    CachedRangeRow, EStatsType::AttackRange, TEXT( "Radius" ),
-		    FString::FromInt( FMath::RoundToInt( LastSnapshot_.AttackRange ) )
+		    FString::SanitizeFloat( LastSnapshot_.AttackRange, 0 )
+		);
+
+		UpdateOrAddStatRow(
+		    CachedSplashRow, EStatsType::SplashRadius, LF_LOC( "Stats.SplashArea" ).ToString(),
+		    ( LastSnapshot_.SplashRadius > 0.0f ) ? FString::SanitizeFloat( LastSnapshot_.SplashRadius, 0 )
+		                                          : LF_LOC( "Stats.No" ).ToString()
 		);
 
 		UpdateOrAddStatRow(
@@ -311,7 +317,8 @@ bool UEnemyTooltipWidget::FEnemySnapshot::Equals( const FEnemySnapshot& other ) 
 	return ( bValid == other.bValid ) && ( Health == other.Health ) && ( MaxHealth == other.MaxHealth ) &&
 	       ( AttackDamage == other.AttackDamage ) && FMath::IsNearlyEqual( AttackRange, other.AttackRange ) &&
 	       FMath::IsNearlyEqual( AttackCooldown, other.AttackCooldown ) &&
-	       FMath::IsNearlyEqual( MaxSpeed, other.MaxSpeed ) && ( CritChance == other.CritChance ) &&
+	       FMath::IsNearlyEqual( MaxSpeed, other.MaxSpeed ) &&
+	       FMath::IsNearlyEqual( SplashRadius, other.SplashRadius ) && ( CritChance == other.CritChance ) &&
 	       ( CritDamageBonus == other.CritDamageBonus );
 }
 
@@ -330,6 +337,7 @@ UEnemyTooltipWidget::FEnemySnapshot UEnemyTooltipWidget::CaptureSnapshot( const 
 	snapshot.AttackRange = stats.AttackRange();
 	snapshot.AttackCooldown = stats.AttackCooldown();
 	snapshot.MaxSpeed = stats.MaxSpeed();
+	snapshot.SplashRadius = stats.SplashRadius();
 	snapshot.CritChance = stats.CritChance();
 	snapshot.CritDamageBonus = stats.CritDamageBonus();
 

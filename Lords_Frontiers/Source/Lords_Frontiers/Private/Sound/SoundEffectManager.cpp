@@ -145,6 +145,25 @@ void USoundEffectManager::HandleAudioEvent( FAudioEvent event )
 	}
 }
 
+void USoundEffectManager::PlaySound2D( const FGameplayTag& tag, float volumeScale )
+{
+	if ( !SoundData_ )
+	{
+		UE_LOG( LogTemp, Error, TEXT( "USoundEffectManager: SoundData asset is not set" ) );
+		return;
+	}
+
+	const FSoundEntry* entry = SoundData_->FindByTag( tag );
+	if ( !entry || !entry->Sound )
+	{
+		UE_LOG( LogTemp, Warning, TEXT( "USoundEffectManager: No entry found for tag '%s'" ), *tag.ToString() );
+		return;
+	}
+
+	// Always 2D: this is non-positional feedback (e.g. a reward cue), even if the entry is marked 3D.
+	Play2D( *entry, tag, volumeScale );
+}
+
 TWeakObjectPtr<UAudioComponent> USoundEffectManager::AcquireAudioComponent()
 {
 	UAudioComponent* component;
@@ -196,7 +215,7 @@ void USoundEffectManager::OnSoundFinished( TWeakObjectPtr<UAudioComponent> compo
 	ReleaseAudioComponent( component );
 }
 
-void USoundEffectManager::Play2D( const FSoundEntry& entry, const FGameplayTag& tag )
+void USoundEffectManager::Play2D( const FSoundEntry& entry, const FGameplayTag& tag, float volumeScale )
 {
 	if ( !entry.Sound )
 	{
@@ -204,7 +223,7 @@ void USoundEffectManager::Play2D( const FSoundEntry& entry, const FGameplayTag& 
 	}
 
 	const float categoryVolume = CategoryVolumeMultiplier( this, CategoryForTag( tag ) );
-	const float volume = FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) * categoryVolume;
+	const float volume = FMath::RandRange( entry.VolumeRange.X, entry.VolumeRange.Y ) * categoryVolume * volumeScale;
 	const float pitch  = FMath::RandRange( entry.PitchRange.X, entry.PitchRange.Y );
 
 	UAudioComponent* audio = UGameplayStatics::SpawnSound2D(
