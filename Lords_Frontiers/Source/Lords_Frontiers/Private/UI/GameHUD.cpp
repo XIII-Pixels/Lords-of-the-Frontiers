@@ -8,6 +8,7 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Localization/GameLocalization.h"
 #include "Resources/ResourceManager.h"
+#include "Tutorial/TutorialSubsystem.h"
 #include "UI/CursorAnim/CursorAnimationConfig.h"
 #include "UI/CursorAnim/CursorAnimationSubsystem.h"
 #include "UI/HealthBar/HealthBarWidget.h"
@@ -522,6 +523,15 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 		return;
 	}
 
+	// The match is over: tear the tutorial down so its bubble/dim (added at Z 1000, above the
+	// outcome overlay) can't stay on top and swallow clicks meant for the Restart / Main Menu
+	// buttons. Without this, losing while the location-1 tutorial is still running leaves those
+	// buttons unresponsive. No-op on levels without a running tutorial.
+	if ( UTutorialSubsystem* tutorial = UTutorialSubsystem::Get( this ) )
+	{
+		tutorial->StopTutorial();
+	}
+
 	ActiveOverlay = CreateWidget<UGameStateOverlayWidget>( this, ClassToUse );
 	if ( ActiveOverlay )
 	{
@@ -531,7 +541,21 @@ void UGameHUDWidget::HandleGameEnded( EGameResult Result )
 		{
 			outcome->SetResult( Result );
 		}
-		ActiveOverlay->AddToViewport( 100 );
+
+		// Above the tutorial layer (Z 1000) so the outcome screen is always the topmost, clickable UI.
+		constexpr int32 OutcomeZOrder = 2000;
+		ActiveOverlay->AddToViewport( OutcomeZOrder );
+
+		// Route input to the overlay so its buttons receive clicks regardless of the input mode the
+		// tutorial (FInputModeGameAndUI) or gameplay left behind.
+		if ( APlayerController* PC = GetOwningPlayer() )
+		{
+			FInputModeUIOnly inputMode;
+			inputMode.SetWidgetToFocus( ActiveOverlay->TakeWidget() );
+			inputMode.SetLockMouseToViewportBehavior( EMouseLockMode::DoNotLock );
+			PC->SetInputMode( inputMode );
+			PC->SetShowMouseCursor( true );
+		}
 	}
 
 	if ( APlayerController* PC = GetOwningPlayer() )

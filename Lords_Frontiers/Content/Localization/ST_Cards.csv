@@ -83,11 +83,12 @@ Card.Description.1_MortarTower_BloatedLump,"Каждый <Style.Shot>3 Выст�
 <Style.Shot>Damage area by +65%</>.
 The effect resets after <Style.Shot>Shot</> <img id=""Icon.Shot""/>."
 Card.Name.1_MortarTower_Shrapnel,"Осколочная шерсть","Fur shrapnel"
-Card.Description.1_MortarTower_Shrapnel,"Стены отражают
-<Style.Damage>25% Урона</> <img id=""Icon.Damage""/>,
-который нанёс <Style.Damage>Атакующий</>.","Walls reflect
-<Style.Damage>25% of Damage</> <img id=""Icon.Damage""/>,
-dealt by the <Style.Damage>Attacker</>."
+Card.Description.1_MortarTower_Shrapnel,"<Style.Explosion>Взрыв</> <img id=""Icon.Explosion""/> разделяется на
+<Style.ExtraProjectile>4 Снаряда</> <img id=""Icon.ExtraProjectile""/>.
+Каждый из которых наносит
+<Style.Damage>+35% от базового Урона</> <img id=""Icon.Damage""/> Башни.","<Style.Explosion>Explosion</> <img id=""Icon.Explosion""/> splits into <Style.ExtraProjectile>4 Projectiles</> <img id=""Icon.ExtraProjectile""/>.
+each of which deals
+<Style.Damage>+35% of base Damage </> <img id=""Icon.Damage""/> of the Tower."
 Card.Name.1_MortarTower_SulkyKitty,"Обидчивый котик","Sulk Kitty"
 Card.Description.1_MortarTower_SulkyKitty,"Каждый <Style.Shot>Промах</> Мортиры,
 повышает <Style.Damage>Урон на +5%</> <img id=""Icon.Damage""/>
