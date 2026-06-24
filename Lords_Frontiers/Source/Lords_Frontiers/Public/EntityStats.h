@@ -23,7 +23,9 @@ enum class EStatsType : uint8
 	MaxSpeed,
 	SplashRadius,
 	BurstCount,
-	BurstDelay
+	BurstDelay,
+	CritChance,
+	CritDamage
 };
 
 UENUM( BlueprintType )

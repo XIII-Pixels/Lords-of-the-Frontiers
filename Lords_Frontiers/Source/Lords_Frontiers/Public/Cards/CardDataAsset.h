@@ -18,7 +18,12 @@ public:
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Identity" )
 	FName CardID = NAME_None;
 
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display" )
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "Id of this card's texts in the ST_Cards string table: the card shows Card.Name.<Id> and Card.Description.<Id> when those keys exist. None = use this asset's name as the Id. CardName/Description below are only the fallback for missing keys." ) )
+	FName LocalizationId = NAME_None;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
+		meta = ( ToolTip = "Fallback name, shown only when ST_Cards has no Card.Name.<Id> entry. Localized cards keep their texts in Content/Localization/ST_Cards.csv." ) )
 	FText CardName;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Card|Display",
@@ -89,6 +94,10 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Card" )
 	FLinearColor GetRarityColor() const;
 
+	/** Card name for display: ST_Cards entry Card.Name.<Id> when present, otherwise CardName. */
+	UFUNCTION( BlueprintPure, Category = "Card" )
+	FText GetCardName() const;
+
 	UFUNCTION( BlueprintPure, Category = "Card" )
 	FText BuildDescription() const;
 
@@ -98,4 +107,8 @@ public:
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid( class FDataValidationContext& context ) const override;
 #endif
+
+private:
+	/** Looks up <keyPrefix><LocalizationId or asset name> in ST_Cards; falls back to inlineText. */
+	FText ResolveLocalizedText( const TCHAR* keyPrefix, const FText& inlineText ) const;
 };

@@ -644,7 +644,15 @@ void ABuilding::UpdateSelectionOverlay()
 	if ( meshToUse )
 	{
 		SelectionOverlayMesh_->SetStaticMesh( meshToUse );
-		SelectionOverlayMesh_->SetMaterial( 0, SelectionMaterial_ );
+
+		// Drive every material slot, not just slot 0. The overlay mesh is a full copy of the
+		// building mesh, so any slot left untouched keeps the building's real material — and the
+		// copy then reads as a second building sitting behind the highlight (the "duplicate tower").
+		const int32 numMaterialSlots = SelectionOverlayMesh_->GetNumMaterials();
+		for ( int32 slot = 0; slot < numMaterialSlots; ++slot )
+		{
+			SelectionOverlayMesh_->SetMaterial( slot, SelectionMaterial_ );
+		}
 	}
 }
 

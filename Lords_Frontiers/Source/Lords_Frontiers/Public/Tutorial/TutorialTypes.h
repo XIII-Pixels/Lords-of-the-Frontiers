@@ -25,6 +25,9 @@ struct FTutorialStep
 	TSubclassOf<UUserWidget> WidgetClass;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Tutorial" )
+	FName BubbleTextKey;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Tutorial" )
 	ETutorialAdvance Advance = ETutorialAdvance::ClickAnywhere;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Tutorial" )

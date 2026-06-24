@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UI/Widgets/MainMenuButtonWidget.h"
 #include "UIManager.h"
 
 #include "CoreMinimal.h"
@@ -12,8 +13,7 @@
 
 class UMainMenuWidget;
 
-/** (Gregory-hub)
- * Handles all UI/UX logic in main menu
+/** Handles all UI/UX logic in main menu
  * Should be part of GameMode
  * Configuration parameters are in corresponding GameMode */
 UCLASS()
@@ -35,16 +35,10 @@ public:
 
 protected:
 	UFUNCTION()
-	void OnNewGameButtonClicked();
+	void OnMenuActionRequested( EMainMenuButtonAction action );
 
 	UFUNCTION()
-	void OnNewGameButtonHovered();
-
-	UFUNCTION()
-	void OnExitGameButtonClicked();
-
-	UFUNCTION()
-	void OnExitGameButtonHovered();
+	void OnMenuButtonHovered( EMainMenuButtonAction action );
 
 	FOnAudioEvent OnAudioEvent_;
 };

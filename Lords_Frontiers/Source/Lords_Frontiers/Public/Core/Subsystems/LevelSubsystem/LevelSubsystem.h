@@ -19,7 +19,7 @@ class LORDS_FRONTIERS_API ULevelSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	void LoadMainMenu() const;
+	void LoadMainMenu( bool bUseTransition = true ) const;
 	void LoadLevelChoosingLevel() const;
 	void LoadGameplayLevel( int index );
 	void LoadNextLevel();
@@ -31,11 +31,20 @@ public:
 
 	void UnlockNextLevel() const;
 
+	int GetCurrentLevelIndex() const
+	{
+		return CurrentLevelIndex_;
+	}
+
+	/** Fills outConfig with the camera config of the level that is currently loaded.
+	 * Returns false when no gameplay level is active (e.g. launched directly into a map). */
+	bool GetCurrentLevelCameraConfig( FLevelCameraConfig& outConfig ) const;
+
 protected:
 	UPROPERTY()
 	TObjectPtr<ULevelsDataAsset> Levels_;
 
-	void LoadLevel( TSoftObjectPtr<UWorld> level, const FString& errorMessage = "" ) const;
+	void LoadLevel( TSoftObjectPtr<UWorld> level, const FString& errorMessage = "", bool bUseTransition = true ) const;
 
 	int CurrentLevelIndex_ = -1;
 };

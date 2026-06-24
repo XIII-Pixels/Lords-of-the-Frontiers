@@ -1,13 +1,17 @@
 #include "Tutorial/TutorialBubbleWidget.h"
 
-#include "Components/Image.h"
-#include "Engine/World.h"
 #include "Framework/Application/SlateApplication.h"
-#include "InputCoreTypes.h"
 #include "Layout/Geometry.h"
-#include "Materials/MaterialInstanceDynamic.h"
+#include "Localization/GameLocalization.h"
 #include "TimerManager.h"
 #include "Tutorial/TutorialSubsystem.h"
+
+#include "Components/Image.h"
+#include "Components/RichTextBlock.h"
+#include "Engine/World.h"
+#include "InputCoreTypes.h"
+#include "Internationalization/TextLocalizationManager.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogTutorialBubble, Log, All );
 
@@ -29,10 +33,83 @@ void UTutorialBubbleWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	ApplyAllText();
+
+	if ( !TextRevisionHandle_.IsValid() )
+	{
+		TextRevisionHandle_ = FTextLocalizationManager::Get().OnTextRevisionChangedEvent.AddUObject(
+		    this, &UTutorialBubbleWidget::HandleTextRevisionChanged
+		);
+	}
+
 	if ( UWorld* world = GetWorld() )
 	{
 		world->GetTimerManager().SetTimerForNextTick( this, &UTutorialBubbleWidget::SyncHoles );
 	}
+}
+
+void UTutorialBubbleWidget::NativeDestruct()
+{
+	if ( TextRevisionHandle_.IsValid() )
+	{
+		FTextLocalizationManager::Get().OnTextRevisionChangedEvent.Remove( TextRevisionHandle_ );
+		TextRevisionHandle_.Reset();
+	}
+
+	Super::NativeDestruct();
+}
+
+void UTutorialBubbleWidget::ApplyAllText()
+{
+	ApplyBubbleText();
+	ApplyHintText();
+	ApplyKeyedText( SpeakerText, FName( TEXT( "Tutorial.Speaker.SirCat" ) ) );
+	ApplyKeyedText( CutsceneIntroText, FName( TEXT( "Tutorial.Cutscene.Intro" ) ) );
+	ApplyKeyedText( CutsceneSkipText, FName( TEXT( "Tutorial.Cutscene.SkipPrompt" ) ) );
+}
+
+void UTutorialBubbleWidget::HandleTextRevisionChanged()
+{
+	ApplyAllText();
+}
+
+void UTutorialBubbleWidget::SetBubbleTextKey( FName key )
+{
+	BubbleTextKey_ = key;
+	ApplyBubbleText();
+}
+
+void UTutorialBubbleWidget::SetHintTextKey( FName key )
+{
+	HintTextKey_ = key;
+	ApplyHintText();
+}
+
+void UTutorialBubbleWidget::ApplyBubbleText()
+{
+	if ( !BubbleText || BubbleTextKey_.IsNone() )
+	{
+		return;
+	}
+
+	BubbleText->SetText( FText::FromStringTable( LordsFrontiersLoc::GetTutorialTableId(), BubbleTextKey_.ToString() ) );
+}
+
+void UTutorialBubbleWidget::ApplyHintText()
+{
+	const FName key = HintTextKey_.IsNone() ? FName( TEXT( "Tutorial.Hint" ) ) : HintTextKey_;
+	ApplyKeyedText( HintText, key );
+}
+
+void UTutorialBubbleWidget::ApplyKeyedText( URichTextBlock* block, FName key )
+{
+	if ( !block || key.IsNone() )
+	{
+		return;
+	}
+
+	block->SetText( FText::FromStringTable( LordsFrontiersLoc::GetTutorialTableId(), key.ToString() ) );
+	block->SetVisibility( ESlateVisibility::HitTestInvisible );
 }
 
 void UTutorialBubbleWidget::NativeTick( const FGeometry& myGeometry, float inDeltaTime )
@@ -84,9 +161,8 @@ void UTutorialBubbleWidget::UpdateDimHitTestability()
 		advance = sub->GetCurrentStepAdvance();
 	}
 
-	const ESlateVisibility desired = ( advance == ETutorialAdvance::ClickAnywhere )
-	    ? ESlateVisibility::Visible
-	    : ESlateVisibility::HitTestInvisible;
+	const ESlateVisibility desired =
+	    ( advance == ETutorialAdvance::ClickAnywhere ) ? ESlateVisibility::Visible : ESlateVisibility::HitTestInvisible;
 
 	if ( DimImage->GetVisibility() != desired )
 	{
@@ -101,7 +177,7 @@ void UTutorialBubbleWidget::SyncHoles()
 		return;
 	}
 
-	auto pushHole = [ this ]( const UWidget* zone, FName paramName )
+	auto pushHole = [this]( const UWidget* zone, FName paramName )
 	{
 		if ( zone && zone->IsVisible() )
 		{
@@ -126,8 +202,8 @@ bool UTutorialBubbleWidget::IsPointInWidget( const UWidget* widget, const FVecto
 	const FGeometry& geo = widget->GetCachedGeometry();
 	const FVector2D topLeft = geo.LocalToAbsolute( FVector2D::ZeroVector );
 	const FVector2D size = geo.GetAbsoluteSize();
-	return screenPosAbs.X >= topLeft.X && screenPosAbs.X < topLeft.X + size.X
-	       && screenPosAbs.Y >= topLeft.Y && screenPosAbs.Y < topLeft.Y + size.Y;
+	return screenPosAbs.X >= topLeft.X && screenPosAbs.X < topLeft.X + size.X && screenPosAbs.Y >= topLeft.Y &&
+	       screenPosAbs.Y < topLeft.Y + size.Y;
 }
 
 FLinearColor UTutorialBubbleWidget::ComputeHoleRectUV( const UWidget* targetWidget ) const

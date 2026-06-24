@@ -27,6 +27,10 @@ public:
 	void RegisterObject( UObject* object );
 	void UnregisterObject( UObject* object );
 
+	/** Plays a 2D (non-positional) sound by tag for systems that are not IAudioEventSource,
+	 *  e.g. a reward cue. volumeScale is an extra multiplier on top of the sound entry volume. */
+	void PlaySound2D( const FGameplayTag& tag, float volumeScale = 1.0f );
+
 private:
 	UFUNCTION()
 	void HandleAudioEvent( FAudioEvent event );
@@ -36,7 +40,7 @@ private:
 
 	void OnSoundFinished( TWeakObjectPtr<UAudioComponent> component );
 
-	void Play2D( const FSoundEntry& entry, const FGameplayTag& tag );
+	void Play2D( const FSoundEntry& entry, const FGameplayTag& tag, float volumeScale = 1.0f );
 	void Play3D( const FSoundEntry& entry, const FGameplayTag& tag, const FVector& worldLocation );
 
 	UPROPERTY()

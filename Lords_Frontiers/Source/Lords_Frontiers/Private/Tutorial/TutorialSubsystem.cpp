@@ -5,6 +5,7 @@
 #include "Core/GameLoop/GameLoopManager.h"
 #include "Core/GameSessionController.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Tutorial/TutorialBubbleWidget.h"
 #include "Tutorial/TutorialConfig.h"
 
 #include "Blueprint/UserWidget.h"
@@ -270,10 +271,21 @@ void UTutorialSubsystem::SpawnStepWidget( const FTutorialStep& step )
 		return;
 	}
 	CurrentWidget_ = CreateWidget<UUserWidget>( pc, step.WidgetClass );
-	if ( CurrentWidget_ )
+	if ( !CurrentWidget_ )
 	{
-		CurrentWidget_->AddToViewport( 1000 );
+		return;
 	}
+
+	if ( UTutorialBubbleWidget* bubble = Cast<UTutorialBubbleWidget>( CurrentWidget_ ) )
+	{
+		bubble->SetBubbleTextKey( step.BubbleTextKey );
+		if ( Config_ )
+		{
+			bubble->SetHintTextKey( Config_->HintTextKey );
+		}
+	}
+
+	CurrentWidget_->AddToViewport( 1000 );
 }
 
 void UTutorialSubsystem::DestroyStepWidget()

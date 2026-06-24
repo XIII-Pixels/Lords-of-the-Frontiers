@@ -84,9 +84,18 @@ protected:
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidget ) )
 	TObjectPtr<UButton> ConfirmButton;
 
+	/** Optional label inside ConfirmButton; C++ fills it from ST_GameStrings (CardSelection.Confirm). */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> ConfirmButtonText;
+
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UButton> RerollButton;
 
+	/** Optional label inside RerollButton («Обновить»); C++ fills it from ST_GameStrings (CardSelection.Reroll). */
+	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
+	TObjectPtr<UTextBlock> RerollButtonText;
+
+	/** Optional reroll cost value next to the label — just the number, the resource icon lives in the WBP. */
 	UPROPERTY( BlueprintReadOnly, meta = ( BindWidgetOptional ) )
 	TObjectPtr<UTextBlock> RerollCostText;
 
@@ -110,9 +119,6 @@ protected:
 	TMap<ECardRarity, TSubclassOf<UCardWidget>> RarityCardWidgetClasses;
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
-	FText TitleFormat = FText::FromString( TEXT( "Choose {0} Cards" ) );
-
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
 	FText SelectionCountFormat = FText::FromString( TEXT( "{0} / {1}" ) );
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
@@ -121,8 +127,6 @@ protected:
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
 	float CardSpacing = 20.0f;
 
-	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config" )
-	FText RerollCostFormat = FText::FromString( TEXT( "Reroll ({0})" ) );
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Card Selection|Config",
 		meta = ( ToolTip = "Z-order used when adding the widget to the viewport. Keep below HUD elements (e.g. ResourcesPanel) that should remain visible." ) )

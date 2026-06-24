@@ -32,6 +32,14 @@ public class Lords_Frontiers : ModuleRules
 
         AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib");
 
+        // Localization translations are read at runtime from the loose CSVs in Content/Localization
+        // (GameLocalization.cpp -> FFileHelper::LoadFileToString). Raw .csv files are NOT cooked, so
+        // without this they never reach a packaged build: FFileHelper fails, no translations get
+        // registered, and language switching silently does nothing in a build even though it works in
+        // the editor. Stage them explicitly (UFS / pak) so ProjectContentDir()/Localization/*.csv
+        // resolves at runtime in the build.
+        RuntimeDependencies.Add("$(ProjectDir)/Content/Localization/*.csv", StagedFileType.UFS);
+
         OptimizeCode = CodeOptimization.InShippingBuildsOnly;
 
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

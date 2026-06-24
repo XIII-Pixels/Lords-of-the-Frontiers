@@ -1,6 +1,7 @@
 #include "Camera/StrategyCamera.h"
 
 #include "Core/DefaultGameInstance.h"
+#include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "Grid/GridManager.h"
 #include "UI/GameHUD.h"
 
@@ -71,18 +72,15 @@ void AStrategyCamera::BeginPlay()
 
 	Camera->SetProjectionMode( ProjectionMode_ );
 
-	if ( ProjectionMode_ == ECameraProjectionMode::Orthographic )
-	{
-		Camera->OrthoWidth = InitialOrthoWidth_;
-		TargetZoom_ = InitialOrthoWidth_;
-		SpringArm->TargetArmLength = 3000.0f;
-	}
-	else
+	const bool bOrthographic = ( ProjectionMode_ == ECameraProjectionMode::Orthographic );
+	if ( !bOrthographic )
 	{
 		Camera->SetFieldOfView( FieldOfView_ );
-		SpringArm->TargetArmLength = InitialTargetArmLength_;
-		TargetZoom_ = InitialTargetArmLength_;
 	}
+
+	// The per-level camera config (max zoom-out height + starting height %) overrides these defaults.
+	const float fallbackZoom = bOrthographic ? InitialOrthoWidth_ : InitialTargetArmLength_;
+	TargetZoom_ = ResolveInitialZoomFromLevelConfig( fallbackZoom );
 
 	if ( APlayerController* pc = Cast<APlayerController>( GetController() ) )
 	{
@@ -147,6 +145,12 @@ void AStrategyCamera::BeginPlay()
 	MapCenter_ = ( MinMapBounds_ + MaxMapBounds_ ) * 0.5f;
 	MaxMoveAreaExtents_ = ( MaxMapBounds_ - MinMapBounds_ ) * 0.5f;
 
+	// When the level overrides the camera, spawn it centered on the level instead of its placed position.
+	if ( bCameraOverridden_ )
+	{
+		SetActorLocation( FVector( MapCenter_.X, MapCenter_.Y, 0.0f ) );
+	}
+
 	FTimerHandle timerHandle;
 	GetWorldTimerManager().SetTimer(
 	    timerHandle,
@@ -161,6 +165,37 @@ void AStrategyCamera::BeginPlay()
 	    },
 	    0.2f, false
 	);
+}
+
+float AStrategyCamera::ResolveInitialZoomFromLevelConfig( float fallbackZoom )
+{
+	const UGameInstance* gameInstance = GetGameInstance();
+	if ( !gameInstance )
+	{
+		return fallbackZoom;
+	}
+
+	const ULevelSubsystem* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>();
+	if ( !levelSubsystem )
+	{
+		return fallbackZoom;
+	}
+
+	FLevelCameraConfig config;
+	if ( !levelSubsystem->GetCurrentLevelCameraConfig( config ) || !config.bOverrideCamera )
+	{
+		return fallbackZoom;
+	}
+
+	// The level opts into the camera override: remember it so BeginPlay can spawn the camera at the level center.
+	bCameraOverridden_ = true;
+
+	// "Maximum height" — how far the camera may zoom out. Keep it above the zoom-in limit.
+	MaxZoom_ = FMath::Max( config.MaxHeight, MinZoom_ );
+
+	// "Starting height" is a percent of the [MinZoom_, MaxZoom_] range: 0% = fully zoomed in, 100% = fully out.
+	const float startAlpha = FMath::Clamp( config.StartHeightPercent / 100.0f, 0.0f, 1.0f );
+	return FMath::Lerp( MinZoom_, MaxZoom_, startAlpha );
 }
 
 void AStrategyCamera::SetZoomToMax()

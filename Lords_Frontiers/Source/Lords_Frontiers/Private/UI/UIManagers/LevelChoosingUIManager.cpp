@@ -5,6 +5,7 @@
 #include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "UI/LevelChoosingMenu.h"
 #include "UI/Widgets/LevelButton.h"
+#include "UI/Widgets/TextButtonWidget.h"
 
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
@@ -38,34 +39,50 @@ void ULevelChoosingUIManager::SetupWidget( TSubclassOf<UUserWidget> widgetClass 
 
 	for ( UWidget* widget : allWidgets )
 	{
-		if ( ULevelButton* levelButton = Cast<ULevelButton>( widget ) )
-		{
-			if ( levelButton->Butt != menuWidget->BackButton )
-			{
-				levelButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonClicked );
-				levelButton->Butt->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonHovered );
+		ULevelButton* levelButton = Cast<ULevelButton>( widget );
 
-				if ( levelSubsystem )
-				{
-					switch ( levelSubsystem->GetLevelStatus( levelButton->LevelIndex() ) )
-					{
-					case ELevelStatus::Unlocked:
-						levelButton->SetStateUnlocked();
-						break;
-					case ELevelStatus::Completed:
-						levelButton->SetStateCompleted();
-						break;
-					default:
-						levelButton->SetStateLocked();
-						break;
-					}
-				}
+		// Skip non-level-buttons and level buttons whose inner UButton failed to bind (a
+		// BindWidget can resolve to null). The back button is a UTextButtonWidget, so the
+		// Cast<ULevelButton> above already filters it out.
+		if ( !levelButton || !levelButton->Butt )
+		{
+			continue;
+		}
+
+		levelButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonClicked );
+		levelButton->Butt->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnLevelButtonHovered );
+
+		if ( levelSubsystem )
+		{
+			switch ( levelSubsystem->GetLevelStatus( levelButton->LevelIndex() ) )
+			{
+			case ELevelStatus::Unlocked:
+				levelButton->SetStateUnlocked();
+				break;
+			case ELevelStatus::Completed:
+				levelButton->SetStateCompleted();
+				break;
+			default:
+				levelButton->SetStateLocked();
+				break;
 			}
 		}
 	}
 
-	menuWidget->BackButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonClicked );
-	menuWidget->BackButton->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonHovered );
+	// BackButton is a BindWidget: if the Blueprint widget is missing it (or it failed to bind) the
+	// pointer is invalid, so guard the bind instead of dereferencing it blindly. This is the line
+	// the StartPlay access violation hit.
+	if ( menuWidget->BackButton )
+	{
+		menuWidget->BackButton->OnClicked.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonClicked );
+		menuWidget->BackButton->OnHovered.AddDynamic( this, &ULevelChoosingUIManager::OnBackButtonHovered );
+	}
+	else
+	{
+		UE_LOG( LogTemp, Warning,
+		    TEXT( "ULevelChoosingUIManager::SetupWidget: BackButton is not bound on '%s'." ),
+		    *menuWidget->GetName() );
+	}
 }
 
 void ULevelChoosingUIManager::PostInitProperties()
@@ -124,7 +141,9 @@ void ULevelChoosingUIManager::OnBackButtonClicked()
 	{
 		if ( ULevelSubsystem* levelSubsystem = gameInstance->GetSubsystem<ULevelSubsystem>() )
 		{
-			levelSubsystem->LoadMainMenu();
+			// Level select -> main menu is plain UI navigation: open it instantly, no transition
+			// wipe / loading animation (mirrors LoadLevelChoosingLevel for the reverse direction).
+			levelSubsystem->LoadMainMenu( /*bUseTransition*/ false );
 		}
 	}
 }

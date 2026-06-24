@@ -4,14 +4,16 @@
 
 #include "Core/Saving/GameSaveData.h"
 #include "Core/Saving/GameSaver.h"
+#include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
-void ULevelSubsystem::LoadMainMenu() const
+void ULevelSubsystem::LoadMainMenu( bool bUseTransition ) const
 {
 	if ( Levels_ )
 	{
-		LoadLevel( Levels_->MainMenuLevel, "main menu" );
+		LoadLevel( Levels_->MainMenuLevel, "main menu", bUseTransition );
 	}
 }
 
@@ -19,7 +21,8 @@ void ULevelSubsystem::LoadLevelChoosingLevel() const
 {
 	if ( Levels_ )
 	{
-		LoadLevel( Levels_->LevelChoosingLevel, "level choosing level" );
+		// Menu -> level select is plain UI navigation: open it instantly, no transition wipe.
+		LoadLevel( Levels_->LevelChoosingLevel, "level choosing level", /*bUseTransition*/ false );
 	}
 }
 
@@ -66,12 +69,14 @@ void ULevelSubsystem::ResetSavedLevelStatuses() const
 	{
 		if ( const auto* gameSaver = gameInstance->GetSubsystem<UGameSaver>() )
 		{
-			for ( auto [level, unlocked] : Levels_->GameplayLevels )
+			for ( const FGameplayLevelData& levelData : Levels_->GameplayLevels )
 			{
-				if ( gameSaver->GetLevelStatus( level.ToSoftObjectPath().ToString() ) == ELevelStatus::Undefined )
+				if ( gameSaver->GetLevelStatus( levelData.Level.ToSoftObjectPath().ToString() ) ==
+				     ELevelStatus::Undefined )
 				{
 					gameSaver->UpdateLevelStatus(
-					    level.GetAssetName(), unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
+					    levelData.Level.GetAssetName(),
+					    levelData.Unlocked ? ELevelStatus::Unlocked : ELevelStatus::Locked
 					);
 				}
 			}
@@ -92,6 +97,16 @@ ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 		}
 	}
 	return ELevelStatus::Undefined;
+}
+
+bool ULevelSubsystem::GetCurrentLevelCameraConfig( FLevelCameraConfig& outConfig ) const
+{
+	if ( Levels_ && CurrentLevelIndex_ >= 0 && CurrentLevelIndex_ < Levels_->GameplayLevels.Num() )
+	{
+		outConfig = Levels_->GameplayLevels[CurrentLevelIndex_].CameraConfig;
+		return true;
+	}
+	return false;
 }
 
 void ULevelSubsystem::UnlockNextLevel() const
@@ -120,14 +135,25 @@ void ULevelSubsystem::UnlockNextLevel() const
 	}
 }
 
-void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName ) const
+void ULevelSubsystem::LoadLevel( TSoftObjectPtr<UWorld> level, const FString& levelName, bool bUseTransition ) const
 {
-	if ( !level.IsNull() )
-	{
-		UGameplayStatics::OpenLevelBySoftObjectPtr( GetWorld(), level );
-	}
-	else
+	if ( level.IsNull() )
 	{
 		UE_LOG( LogTemp, Error, TEXT( "Failed to load %s" ), *levelName );
+		return;
 	}
+
+	if ( bUseTransition )
+	{
+		if ( const UGameInstance* gameInstance = GetGameInstance() )
+		{
+			if ( UTransitionSubsystem* transition = gameInstance->GetSubsystem<UTransitionSubsystem>() )
+			{
+				transition->TransitionToSoftLevel( level );
+				return;
+			}
+		}
+	}
+
+	UGameplayStatics::OpenLevelBySoftObjectPtr( GetWorld(), level );
 }

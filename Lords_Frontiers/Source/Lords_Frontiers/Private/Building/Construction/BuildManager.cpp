@@ -8,6 +8,7 @@
 #include "Building/DefensiveBuilding.h"
 #include "Core/GameModes/MainGameMode.h"
 #include "Core/CoreManager.h"
+#include "Core/Selection/SelectionManagerComponent.h"
 #include "Core/Debug/DebugPlayerController.h"
 #include "Core/GameLoop/GameLoopManager.h"
 #include "DrawDebugHelpers.h"
@@ -161,6 +162,16 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 	bHasValidCell_ = false;
 	bCanBuildHere_ = false;
 
+	// Starting to place a new building clears any current selection, so the
+	// previously selected object and its info window are deselected.
+	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	{
+		if ( USelectionManagerComponent* selection = core->GetSelectionManager() )
+		{
+			selection->ClearSelection();
+		}
+	}
+
 	PrimaryActorTick.SetTickFunctionEnable( true );
 
 	APlayerController* pc = GetWorld()->GetFirstPlayerController();
@@ -237,6 +248,8 @@ void ABuildManager::StartPlacingBuilding( TSubclassOf<ABuilding> buildingClass )
 	CurrentBuildingClass_ = buildingClass;
 
 	ShowBonusHighlightForBuilding( buildingClass );
+
+	OnPlacingStarted.Broadcast();
 }
 
 void ABuildManager::CancelPlacing()

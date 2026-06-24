@@ -212,6 +212,13 @@ void ADebugPlayerController::HandleRightClick()
 	if ( BuildManager_ && BuildManager_->IsPlacing() )
 	{
 		BuildManager_->CancelPlacing();
+		return;
+	}
+
+	// When not placing, RMB cancels the current object selection.
+	if ( USelectionManagerComponent* selection = GetSelectionManager() )
+	{
+		selection->ClearSelection();
 	}
 }
 

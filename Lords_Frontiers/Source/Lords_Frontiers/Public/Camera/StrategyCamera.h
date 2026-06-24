@@ -196,12 +196,20 @@ private:
 
 	void HandleAudioChangesOnZoom();
 
+	/** Applies the current level's camera config (max zoom-out height + starting height %) if it opts in.
+	 * Updates MaxZoom_ and bCameraOverridden_, and returns the zoom the camera should start at,
+	 * falling back to fallbackZoom. */
+	float ResolveInitialZoomFromLevelConfig( float fallbackZoom );
+
 	float TargetZoom_;
 	float TargetYaw_;
 	float CurrentYaw_;
 	bool bIsCameraInputDisabled_ = false;
 	bool bIsZoomDisabled_ = false;
 	bool bIgnoreZoomBoundsCurve_ = false;
+
+	/** True when the current level overrides the camera: BeginPlay then spawns it centered on the level. */
+	bool bCameraOverridden_ = false;
 
 	FVector2D MapCenter_;
 	FVector2D MaxMoveAreaExtents_;
