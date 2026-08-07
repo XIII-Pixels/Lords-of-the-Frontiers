@@ -1,4 +1,6 @@
-<h1 align="center">🌿 The Murrwood</h1>
+<h1 align="center"><a href="https://makintosh365.itch.io/the-murrwood">🌿 The Murrwood</a></h1>
+
+<p align="center"><a href="https://makintosh365.itch.io/the-murrwood"><img src="https://img.shields.io/badge/Play%20on-itch.io-fa5c5c?style=for-the-badge&logo=itch.io&logoColor=white" alt="Play on itch.io"></a></p>
 
 <p align="center">
 <img src="https://img.itch.zone/aW1nLzI4MDEyODkxLnBuZw==/original/1P7IKA.png" alt="Build and grow your village"><br>
