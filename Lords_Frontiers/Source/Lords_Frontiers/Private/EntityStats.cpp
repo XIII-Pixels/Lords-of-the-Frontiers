@@ -27,12 +27,18 @@ int FEntityStats::AttackDamage() const
 
 float FEntityStats::AttackCooldown() const
 {
+	return FMath::Max( AttackCooldown_, MinAttackCooldown );
+}
+
+float FEntityStats::AttackCooldownUnclamped() const
+{
 	return AttackCooldown_;
 }
 
 float FEntityStats::CooldownRemaining( float currentGameTime ) const
 {
-	return FMath::Clamp( AttackCooldown_ - ( currentGameTime - LastAttackGameTime_ ), 0, AttackCooldown_ );
+	const float cooldown = AttackCooldown();
+	return FMath::Clamp( cooldown - ( currentGameTime - LastAttackGameTime_ ), 0.0f, cooldown );
 }
 
 float FEntityStats::MaxSpeed() const
@@ -50,29 +56,31 @@ float FEntityStats::AttackRange() const
 	return AttackRange_;
 }
 
+// The getters below clamp, because card modifiers change the raw fields via reflection
+// (bypassing the setters) and must stay exactly revertible.
 float FEntityStats::SplashRadius() const
 {
-	return SplashRadius_;
+	return FMath::Max( SplashRadius_, 0.0f );
 }
 
 int32 FEntityStats::BurstCount() const
 {
-	return BurstCount_;
+	return FMath::Max( BurstCount_, 1 );
 }
 
 float FEntityStats::BurstDelay() const
 {
-	return BurstDelay_;
+	return FMath::Max( BurstDelay_, 0.05f );
 }
 
 int32 FEntityStats::CritChance() const
 {
-	return CritChance_;
+	return FMath::Clamp( CritChance_, 0, 100 );
 }
 
 int32 FEntityStats::CritDamageBonus() const
 {
-	return CritDamageBonus_;
+	return FMath::Max( CritDamageBonus_, 0 );
 }
 
 EBurstTargetMode FEntityStats::BurstTargetMode() const
@@ -174,6 +182,13 @@ void FEntityStats::AddStat( EStatsType statType, float value )
 		AddAttackCooldown( value );
 		break;
 	case EStatsType::MaxSpeed:
+		AddMaxSpeed( value );
+		break;
+	case EStatsType::CritChance:
+		CritChance_ += FMath::FloorToInt( value );
+		break;
+	case EStatsType::CritDamage:
+		CritDamageBonus_ += FMath::FloorToInt( value );
 		break;
 	case EStatsType::SplashRadius:
 		AddSplashRadius( value );
@@ -191,11 +206,16 @@ void FEntityStats::AddStat( EStatsType statType, float value )
 
 void FEntityStats::AddMaxHealth( int maxHealth )
 {
+	// Keeps the health percentage (see SetMaxHealth), so Apply/Revert pairs are symmetric.
+	// It used to heal to full on every positive change: each neighbour-bonus recalculation
+	// fully healed buildings and gave ruins positive health.
+	const bool bWasAlive = Health_ > 0;
+
 	SetMaxHealth( MaxHealth_ + maxHealth );
 
-	if ( maxHealth > 0 )
+	if ( bWasAlive && Health_ <= 0 )
 	{
-		SetHealth( MaxHealth_ );
+		SetHealth( 1 );
 	}
 }
 

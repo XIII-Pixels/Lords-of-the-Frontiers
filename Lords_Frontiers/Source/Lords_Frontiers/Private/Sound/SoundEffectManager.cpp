@@ -4,6 +4,7 @@
 #include "Core/DefaultGameInstance.h"
 
 #include "Components/AudioComponent.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/AudioSettingsSubsystem.h"
 #include "Sound/Data/SoundDataAsset.h"
@@ -46,10 +47,51 @@ void USoundEffectManager::Initialize( FSubsystemCollectionBase& collection )
 		DefaultAttenuation_ = gi->DefaultAttenuation;
 	}
 	Super::Initialize( collection );
+
+	WorldCleanupHandle_ = FWorldDelegates::OnWorldCleanup.AddUObject( this, &USoundEffectManager::HandleWorldCleanup );
+}
+
+void USoundEffectManager::HandleWorldCleanup( UWorld* world, bool /*bSessionEnded*/, bool /*bCleanupResources*/ )
+{
+	auto belongsToWorld = [world]( const UAudioComponent* audio )
+	{ return !IsValid( audio ) || audio->GetWorld() == world; };
+
+	TArray<UAudioComponent*> toDrop;
+	for ( const TObjectPtr<UAudioComponent>& audio : ComponentsInUsePool_ )
+	{
+		if ( belongsToWorld( audio ) )
+		{
+			toDrop.Add( audio );
+		}
+	}
+	for ( const TObjectPtr<UAudioComponent>& audio : FreeComponentsPool_ )
+	{
+		if ( belongsToWorld( audio ) )
+		{
+			toDrop.Add( audio );
+		}
+	}
+
+	for ( UAudioComponent* audio : toDrop )
+	{
+		if ( IsValid( audio ) )
+		{
+			audio->OnAudioFinishedNative.Clear();
+			audio->OnAudioFinished.Clear();
+			audio->Stop();
+		}
+		ComponentsInUsePool_.Remove( audio );
+		FreeComponentsPool_.Remove( audio );
+	}
 }
 
 void USoundEffectManager::Deinitialize()
 {
+	if ( WorldCleanupHandle_.IsValid() )
+	{
+		FWorldDelegates::OnWorldCleanup.Remove( WorldCleanupHandle_ );
+		WorldCleanupHandle_.Reset();
+	}
 	for ( TObjectPtr<UAudioComponent> audio : ComponentsInUsePool_ )
 	{
 		if ( IsValid( audio ) )
@@ -166,8 +208,22 @@ void USoundEffectManager::PlaySound2D( const FGameplayTag& tag, float volumeScal
 
 TWeakObjectPtr<UAudioComponent> USoundEffectManager::AcquireAudioComponent()
 {
-	UAudioComponent* component;
-	if ( FreeComponentsPool_.IsEmpty() )
+	UAudioComponent* component = nullptr;
+
+	// Never reuse a pooled component that belongs to another (old) world
+	while ( !FreeComponentsPool_.IsEmpty() )
+	{
+		auto it = FreeComponentsPool_.CreateIterator();
+		UAudioComponent* candidate = *it;
+		it.RemoveCurrent();
+		if ( IsValid( candidate ) && candidate->GetWorld() == GetWorld() )
+		{
+			component = candidate;
+			break;
+		}
+	}
+
+	if ( !component )
 	{
 		component = NewObject<UAudioComponent>( GetWorld() );
 		UE_LOG(
@@ -175,14 +231,6 @@ TWeakObjectPtr<UAudioComponent> USoundEffectManager::AcquireAudioComponent()
 		    ComponentsInUsePool_.Num()
 		);
 	}
-	else
-	{
-		auto it = FreeComponentsPool_.CreateIterator();
-		auto value = *it;
-		it.RemoveCurrent();
-		component = value;
-	}
-
 	if ( component )
 	{
 		ComponentsInUsePool_.Add( component );

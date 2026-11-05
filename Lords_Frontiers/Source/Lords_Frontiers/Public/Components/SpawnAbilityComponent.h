@@ -19,11 +19,16 @@ class LORDS_FRONTIERS_API USpawnAbilityComponent : public UActorComponent
 public:
 	float TimeUntilGroupSpawnStart() const;
 
+	// Stops all pending spawns (called when the owner dies)
+	void StopSpawning();
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay( const EEndPlayReason::Type endPlayReason ) override;
 
 	void GroupSpawnTick();
 	void UnitSpawnTick();
+	void SpawnWholeGroup();
 
 	void ProcessSpawn() const;
 
@@ -63,6 +68,9 @@ protected:
 	FTimerHandle GroupSpawnTimer_;
 	FTimerHandle UnitSpawnTimer_;
 	FTimerHandle MovementTimer_;
+
+	// Units left to spawn in the current group (per component, used to be a function-level static)
+	int32 RemainingInGroup_ = 0;
 
 	UPROPERTY()
 	TObjectPtr<UNiagaraSystem> ResolvedSpawnAbilityVFX_;

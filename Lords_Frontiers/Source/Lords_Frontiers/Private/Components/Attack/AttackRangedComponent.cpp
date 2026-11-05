@@ -147,6 +147,23 @@ bool UAttackRangedComponent::DidSeeTargetLastTick()
 	return bDidSeeTarget_;
 }
 
+void UAttackRangedComponent::SyncSightRadius()
+{
+	const IEntity* entity = GetOwner<IEntity>();
+	if ( !entity || !SightSphere_ )
+	{
+		return;
+	}
+
+	// The radius used to be set only in OnRegister, so range changes after spawn
+	// (enemy range buffs, neighbour bonuses, cards) only changed the drawn circle.
+	const float range = FMath::Max( entity->Stats().AttackRange(), 0.0f );
+	if ( !FMath::IsNearlyEqual( SightSphere_->GetUnscaledSphereRadius(), range ) )
+	{
+		SightSphere_->SetSphereRadius( range );
+	}
+}
+
 void UAttackRangedComponent::Look()
 {
 	IAttacker* ownerAttacker = GetOwner<IAttacker>();
@@ -156,6 +173,8 @@ void UAttackRangedComponent::Look()
 	}
 
 	ownerAttacker->SetAttackTarget( nullptr );
+
+	SyncSightRadius();
 
 	TArray<AActor*> overlappingActors;
 	SightSphere_->GetOverlappingActors( overlappingActors, AActor::StaticClass() );

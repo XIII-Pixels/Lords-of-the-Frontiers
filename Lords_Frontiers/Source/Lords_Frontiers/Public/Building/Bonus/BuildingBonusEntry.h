@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EntityStats.h"
+#include "Lords_Frontiers/Public/Resources/GameResource.h"
 
 #include "CoreMinimal.h"
 
@@ -43,10 +44,10 @@ struct FBonusIconData
 	float Value = 0.0f;
 
 	UPROPERTY()
-	EResourceType ResourceType;
+	EResourceType ResourceType = EResourceType::None;
 
 	UPROPERTY()
-	EStatsType StatType;
+	EStatsType StatType = EStatsType::MaxHealth;
 
 	UPROPERTY()
 	EBonusCategory Category = EBonusCategory::Production;
@@ -67,16 +68,16 @@ struct FBuildingBonusEntry
 	TSubclassOf<ABuilding> SourceBuildingClass;
 
 	UPROPERTY( EditAnywhere )
-	EBonusCategory Category;
+	EBonusCategory Category = EBonusCategory::Production;
 
 	UPROPERTY( EditAnywhere, meta = ( EditCondition = "Category != EBonusCategory::Stats" ) )
-	EResourceType ResourceType;
+	EResourceType ResourceType = EResourceType::None;
 
 	UPROPERTY( EditAnywhere, meta = ( EditCondition = "Category == EBonusCategory::Stats" ) )
-	EStatsType StatType;
+	EStatsType StatType = EStatsType::MaxHealth;
 
 	UPROPERTY( EditAnywhere )
-	float Value;
+	float Value = 0.0f;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Bonus" )
 	EBonusShape Shape = EBonusShape::Cross;

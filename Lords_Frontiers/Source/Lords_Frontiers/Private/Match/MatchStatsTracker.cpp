@@ -67,6 +67,7 @@ void UMatchStatsTracker::SubscribeToGameEvents()
 		if ( UGameLoopManager* gl = core->GetGameLoop() )
 		{
 			gl->OnWaveChanged.AddUniqueDynamic( this, &UMatchStatsTracker::HandleWaveChanged );
+			gl->OnLastWaveCompleted.AddUniqueDynamic( this, &UMatchStatsTracker::HandleLastWaveCompleted );
 			BoundGameLoop = gl;
 		}
 		if ( ABuildManager* bm = core->GetBuildManager() )
@@ -97,6 +98,7 @@ void UMatchStatsTracker::UnsubscribeFromGameEvents()
 	if ( UGameLoopManager* gl = BoundGameLoop.Get() )
 	{
 		gl->OnWaveChanged.RemoveDynamic( this, &UMatchStatsTracker::HandleWaveChanged );
+		gl->OnLastWaveCompleted.RemoveDynamic( this, &UMatchStatsTracker::HandleLastWaveCompleted );
 	}
 	BoundGameLoop.Reset();
 	if ( ABuildManager* bm = BoundBuildManager.Get() )
@@ -118,6 +120,17 @@ void UMatchStatsTracker::HandleResourceAdded( EResourceType type, int32 delta )
 
 void UMatchStatsTracker::HandleWaveChanged( int32 currentWave, int32 totalWaves )
 {
+	// OnWaveChanged( N ) means waves 1..N-1 are survived. It is also broadcast with N = 1 at the
+	// start of the match, which used to count one wave too many.
+	if ( currentWave > 1 )
+	{
+		OnWaveSurvived( currentWave - 2 );
+	}
+}
+
+void UMatchStatsTracker::HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave )
+{
+	// There is no OnWaveChanged after the last wave
 	if ( currentWave > 0 )
 	{
 		OnWaveSurvived( currentWave - 1 );
@@ -155,7 +168,13 @@ void UMatchStatsTracker::HandleDamageDealt( AActor* instigator, AActor* target, 
 	{
 		if ( enemy->Team() == ETeam::Dog )
 		{
-			OnDamageDealt( damage );
+			// The event is broadcast before the damage is applied: count only what the target
+			// can actually lose (no overkill damage)
+			const int32 effectiveDamage = FMath::Min( damage, enemy->Stats().Health() );
+			if ( effectiveDamage > 0 )
+			{
+				OnDamageDealt( effectiveDamage );
+			}
 		}
 	}
 }

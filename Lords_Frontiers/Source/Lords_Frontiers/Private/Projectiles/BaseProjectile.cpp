@@ -247,10 +247,24 @@ bool ABaseProjectile::InitializeDirectional(
 
 	SetActorLocationAndRotation( startLocation, dirNormalized.Rotation() );
 
+	bIsPendingReturn_ = false;
 	bIsActive_ = true;
 	SetActorHiddenInGame( false );
 	SetActorTickEnabled( true );
 	SetActorEnableCollision( true );
+
+	// Same as ActivateFromPool: pooled projectiles come back with their Niagara deactivated,
+	// so directional (shrapnel) shots from the pool had no trail VFX
+	TArray<UNiagaraComponent*> niagaraComps;
+	GetComponents<UNiagaraComponent>( niagaraComps );
+	for ( UNiagaraComponent* niagara : niagaraComps )
+	{
+		if ( niagara )
+		{
+			niagara->SetAutoDestroy( false );
+			niagara->Activate( true );
+		}
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(
 	    LifetimeTimerHandle, this, &ABaseProjectile::OnLifetimeExpired, MaxLifetime, false );

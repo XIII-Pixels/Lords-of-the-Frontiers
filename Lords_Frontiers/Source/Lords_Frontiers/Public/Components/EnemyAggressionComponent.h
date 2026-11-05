@@ -48,9 +48,9 @@ public:
 
 	void SetPath( UPath* path )
 	{
-		if ( Path_ )
+		if ( Path_ && Path_ != path )
 		{
-			Path_->ClearSpline();
+			Path_->DestroySpline();
 		}
 		Path_ = path;
 		PathPointIndex_ = 0;

@@ -38,7 +38,9 @@ void UPath::CalculateOrUpdate()
 
 void UPath::RebuildSpline()
 {
-	if ( Spline_ )
+	// Reuse the existing spline actor: a new ASplinePointConnector used to be spawned on every
+	// path calculation, the old ones were only cleared and stayed in the level (leak).
+	if ( IsValid( Spline_ ) )
 	{
 		ClearSpline();
 	}
@@ -57,17 +59,21 @@ void UPath::RebuildSpline()
 		grid = cm->GetGridManager();
 	}
 
-	if ( !splineClass )
-	{
-		UE_LOG( LogTemp, Error, TEXT( "UPath: no spline class found. Cannot build spline" ) );
-		Spline_ = nullptr;
-	}
-
-	Spline_ = GetWorld()->SpawnActor<ASplinePointConnector>( splineClass );
 	if ( !IsValid( Spline_ ) )
 	{
-		UE_LOG( LogTemp, Error, TEXT( "UPath: failed to create spline" ) );
-		return;
+		if ( !splineClass )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "UPath: no spline class found. Cannot build spline" ) );
+			Spline_ = nullptr;
+			return;
+		}
+
+		Spline_ = GetWorld()->SpawnActor<ASplinePointConnector>( splineClass );
+		if ( !IsValid( Spline_ ) )
+		{
+			UE_LOG( LogTemp, Error, TEXT( "UPath: failed to create spline" ) );
+			return;
+		}
 	}
 
 	for ( const FIntPoint& point : PathPoints_ )
@@ -96,8 +102,17 @@ void UPath::RemovePoint( int index )
 
 void UPath::ClearSpline()
 {
-	if ( Spline_ )
+	if ( IsValid( Spline_ ) )
 	{
 		Spline_->Clear();
 	}
+}
+
+void UPath::DestroySpline()
+{
+	if ( IsValid( Spline_ ) )
+	{
+		Spline_->Destroy();
+	}
+	Spline_ = nullptr;
 }

@@ -19,6 +19,7 @@ class UGameLoopManager;
 class UGameLoopConfig;
 class UWorld;
 class UEntityVFXConfig;
+class AWavePortalManager;
 /** Broadcast when all critical systems are initialized and ready. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnCoreSystemsReady );
 
@@ -253,7 +254,7 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Core" )
 	AWavePortalManager* GetWavePortalManager() const
 	{
-		return WavePortalManager_;
+		return WavePortalManager_.Get();
 	}
 
 protected:
@@ -307,8 +308,10 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<AUnitAIManager> UnitAIManager_;
 
+	// Weak like the other level actors: a strong reference from the GameInstance kept the
+	// previous level's actor alive after a level change
 	UPROPERTY()
-	TObjectPtr<AWavePortalManager> WavePortalManager_ = nullptr;
+	TWeakObjectPtr<AWavePortalManager> WavePortalManager_;
 
 	/**
 	 * Strong reference to GameLoopManager.

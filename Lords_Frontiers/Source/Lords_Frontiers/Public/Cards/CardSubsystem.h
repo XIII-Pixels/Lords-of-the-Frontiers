@@ -19,6 +19,18 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardSelectionRequired, const FCa
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCardsApplied, const TArray<UCardDataAsset*>&, AppliedCards );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnEconomyBonusesChanged, const FEconomyBonuses&, NewBonuses );
 
+// One application of a card event that was really performed (state and conditions matched).
+// RevertAppliedRecord reverts exactly these, instead of every building of a matching class.
+struct FAppliedCardEffectRecord
+{
+	TWeakObjectPtr<UCardDataAsset> Card;
+	TWeakObjectPtr<ABuilding> Building; // null for global effects
+	int32 EventIndex = 0;
+	int32 StackCount = 1;
+	int32 WaveNumber = 0;
+	bool bGlobal = false;
+};
+
 USTRUCT( BlueprintType )
 struct LORDS_FRONTIERS_API FBuildingTooltipPreview
 {
@@ -65,6 +77,13 @@ public:
 
 	UFUNCTION( BlueprintCallable, Category = "Cards|Selection" )
 	void RequestCardSelection( int32 waveNumber );
+
+	// True while a card choice was offered to the player and not yet applied
+	UFUNCTION( BlueprintPure, Category = "Cards|Selection" )
+	bool IsSelectionInProgress() const
+	{
+		return bSelectionInProgress_;
+	}
 
 	/**
 	 * Generates a fresh selection of cards without going through the card-selection event.
@@ -209,6 +228,10 @@ protected:
 
 	void RevertAppliedRecord( const FAppliedCardRecord& record );
 
+	void RecordAppliedEffect(
+		UCardDataAsset* card, ABuilding* building, int32 eventIndex, int32 stackCount, int32 waveNumber
+	);
+
 	class UCardEffectHostComponent* EnsureEffectHost( ABuilding* building ) const;
 
 	TArray<ABuilding*> GetAllBuildings() const;
@@ -248,6 +271,11 @@ private:
 	int32 CurrentWaveNumber_ = 0;
 
 	bool bIsBoundToGameLoop_ = false;
+
+	bool bSelectionInProgress_ = false;
+
+	// Not a UPROPERTY: weak references only, rebuilt as cards are applied
+	TArray<FAppliedCardEffectRecord> AppliedEffectRecords_;
 
 	TWeakObjectPtr<UGameLoopManager> CachedGameLoop_;
 

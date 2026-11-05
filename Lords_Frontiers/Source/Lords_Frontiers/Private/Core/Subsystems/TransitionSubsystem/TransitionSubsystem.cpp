@@ -6,6 +6,7 @@
 #include "Core/Subsystems/TransitionSubsystem/TransitionOverlayWidget.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/PackageName.h"
@@ -18,7 +19,13 @@ void UTransitionSubsystem::Initialize( FSubsystemCollectionBase& collection )
 	Super::Initialize( collection );
 
 	PostLoadMapHandle_ =
-	    FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject( this, &UTransitionSubsystem::HandlePostLoadMap );
+		FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject( this, &UTransitionSubsystem::HandlePostLoadMap );
+
+	if ( GEngine )
+	{
+		TravelFailureHandle_ =
+			GEngine->OnTravelFailure().AddUObject( this, &UTransitionSubsystem::HandleTravelFailure );
+	}
 }
 
 void UTransitionSubsystem::Deinitialize()
@@ -27,6 +34,15 @@ void UTransitionSubsystem::Deinitialize()
 	{
 		FCoreUObjectDelegates::PostLoadMapWithWorld.Remove( PostLoadMapHandle_ );
 		PostLoadMapHandle_.Reset();
+	}
+
+	if ( TravelFailureHandle_.IsValid() )
+	{
+		if ( GEngine )
+		{
+			GEngine->OnTravelFailure().Remove( TravelFailureHandle_ );
+		}
+		TravelFailureHandle_.Reset();
 	}
 
 	if ( UTransitionOverlayWidget* overlay = ActiveOverlay_.Get() )
@@ -154,9 +170,64 @@ void UTransitionSubsystem::PerformOpenLevel()
 	bPendingReveal_ = true;
 
 	// The start overlay lives on the world we are about to tear down; OpenLevel destroys it.
+	// Keep a weak reference in case the travel fails and the overlay has to be removed by hand.
+	TravelOverlay_ = ActiveOverlay_;
 	ActiveOverlay_.Reset();
 
+	if ( UWorld* world = GetWorld() )
+	{
+		constexpr float cTravelTimeoutSeconds = 10.0f;
+		world->GetTimerManager().SetTimer(
+			TravelTimeoutHandle_, FTimerDelegate::CreateUObject( this, &UTransitionSubsystem::HandleTravelTimeout ),
+			cTravelTimeoutSeconds, false
+		);
+	}
+
 	OpenPendingLevelNow();
+}
+
+void UTransitionSubsystem::HandleTravelFailure(
+	UWorld* world, ETravelFailure::Type failureType, const FString& errorString
+)
+{
+	if ( !bIsTransitioning_ && !bPendingReveal_ )
+	{
+		return;
+	}
+
+	UE_LOG(
+		LogTransition, Warning, TEXT( "Level travel failed (%s): %s" ), ETravelFailure::ToString( failureType ),
+		*errorString
+	);
+	RecoverFromFailedTravel();
+}
+
+void UTransitionSubsystem::HandleTravelTimeout()
+{
+	// Still on the old world after the timeout: the travel did not happen
+	if ( bPendingReveal_ )
+	{
+		UE_LOG( LogTransition, Warning, TEXT( "Level travel did not happen, cancelling the transition." ) );
+		RecoverFromFailedTravel();
+	}
+}
+
+void UTransitionSubsystem::RecoverFromFailedTravel()
+{
+	bPendingReveal_ = false;
+
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( TravelTimeoutHandle_ );
+	}
+
+	if ( UTransitionOverlayWidget* overlay = TravelOverlay_.Get() )
+	{
+		overlay->RemoveFromParent();
+	}
+	TravelOverlay_.Reset();
+
+	FinishTransition();
 }
 
 void UTransitionSubsystem::HandlePostLoadMap( UWorld* loadedWorld )
@@ -167,6 +238,7 @@ void UTransitionSubsystem::HandlePostLoadMap( UWorld* loadedWorld )
 	}
 
 	bPendingReveal_ = false;
+	TravelOverlay_.Reset();
 	UE_LOG( LogTransition, Log, TEXT( "Revealing new level '%s'." ), *GetNameSafe( loadedWorld ) );
 	HandleNewLevelReady();
 }

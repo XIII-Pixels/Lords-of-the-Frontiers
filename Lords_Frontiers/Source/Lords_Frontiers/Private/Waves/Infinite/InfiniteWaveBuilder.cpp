@@ -45,6 +45,22 @@ namespace
 		return out;
 	}
 
+	// Axis 3 is the attack cooldown: there a SMALLER multiplier makes the enemy stronger
+	constexpr int32 cCooldownAxis = 3;
+	constexpr float cMinCooldownMultiplier = 0.1f;
+
+	// Wave scaling must only make enemies stronger: multiplier >= 1 for most axes,
+	// but <= 1 for the cooldown. Max( 1.0 ) for every axis made the cooldown scaling
+	// unable to speed attacks up, and a positive cooldown delta actually slowed enemies down.
+	float ClampScalingValue( int32 axis, float value )
+	{
+		if ( axis == cCooldownAxis )
+		{
+			return FMath::Clamp( value, cMinCooldownMultiplier, 1.0f );
+		}
+		return FMath::Max( 1.0f, value );
+	}
+
 	FEnemyBuff ClampBuffToCap( const FEnemyBuff& value, const FEnemyBuff& cap )
 	{
 		FEnemyBuff out;
@@ -52,7 +68,12 @@ namespace
 		{
 			const float v = ScalarFromBuff( value, i );
 			const float c = ScalarFromBuff( cap, i );
-			if ( c > 0.f )
+			if ( i == cCooldownAxis )
+			{
+				// For the cooldown the cap is a lower bound (e.g. 0.5 = at most 2x faster attacks)
+				SetScalar( out, i, ( c > 0.f && c < 1.f ) ? FMath::Max( v, c ) : v );
+			}
+			else if ( c > 0.f )
 			{
 				SetScalar( out, i, FMath::Min( v, c ) );
 			}
@@ -150,7 +171,7 @@ FEnemyBuff UInfiniteWaveBuilder::ComputeScalingBuff( int32 waveIndex ) const
 		{
 			const float base = ScalarFromBuff( scaling.BaseBuff, i );
 			const float delta = ScalarFromBuff( scaling.PerWaveDelta, i );
-			SetScalar( result, i, FMath::Max( 1.0f, base + delta * curvedSteps ) );
+			SetScalar( result, i, ClampScalingValue( i, base + delta * curvedSteps ) );
 		}
 	}
 	else
@@ -182,7 +203,7 @@ FEnemyBuff UInfiniteWaveBuilder::ComputeScalingBuff( int32 waveIndex ) const
 				value += delta * static_cast<float>( steps );
 			}
 
-			SetScalar( result, i, FMath::Max( 1.0f, value ) );
+			SetScalar( result, i, ClampScalingValue( i, value ) );
 		}
 	}
 
@@ -729,19 +750,22 @@ UWaveData* UInfiniteWaveBuilder::BuildWave( int32 waveIndex, UObject* worldConte
 				return false;
 			}
 		}
-		if ( preset->HasTag( EEnemyTag::TargetsEconomy ) )
+		const bool bTargetsEconomy = preset->HasTag( EEnemyTag::TargetsEconomy );
+		if ( bTargetsEconomy && ecoHarassers >= Config->MaxEcoHarassersPerWave )
 		{
-			if ( ecoHarassers >= Config->MaxEcoHarassersPerWave )
-			{
-				return false;
-			}
-			++ecoHarassers;
+			return false;
 		}
 
 		const int32 wouldBe = totalEnemies + preset->Count;
 		if ( wouldBe > Config->MaxEnemiesPerWave )
 		{
 			return false;
+		}
+
+		// Count the harasser only once the purchase is accepted
+		if ( bTargetsEconomy )
+		{
+			++ecoHarassers;
 		}
 
 		FInfinitePurchase purchase;

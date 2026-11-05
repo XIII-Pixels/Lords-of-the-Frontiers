@@ -21,6 +21,7 @@
 #include "GameFramework/Actor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Math/UnrealMathUtility.h"
+#include "Misc/ScopeExit.h"
 #include "NavigationSystem.h"
 #include "UObject/ScriptDelegates.h"
 
@@ -51,7 +52,6 @@ void AWaveManager::BeginPlay()
 	{
 		StartWaves();
 	}
-	BuildSelectedWavePresetCache();
 }
 
 bool AWaveManager::HasInfiniteMode() const
@@ -221,6 +221,8 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 
 	RemainingEnemiesPerClass_ = GetNextWaveComposition( CurrentWaveIndex );
 	bIsWaveActive_ = true;
+	bWaveEndBroadcasted_ = false;
+	PendingSpawnCount_ = 0;
 	OnWaveStarted.Broadcast( CurrentWaveIndex );
 
 	if ( bLogSpawning )
@@ -245,11 +247,14 @@ void AWaveManager::StartWaveAtIndex( int32 waveIndex )
 			if ( const UGameLoopManager* loopManager = core->GetGameLoop() )
 			{
 				GetWorld()->GetTimerManager().SetTimer(
-				    WaveEndTimerHandle_, endDelegate, loopManager->GetCombatTotalTime(), false
+					WaveEndTimerHandle_, endDelegate, loopManager->GetCombatTotalTime(), false
 				);
 			}
 		}
 	}
+
+	// A wave without any scheduled spawn would otherwise wait for the whole combat timer
+	TryScheduleEarlyWaveEnd();
 }
 
 void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveIndex )
@@ -260,6 +265,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveInde
 	}
 
 	ClearActiveTimers();
+	PendingSpawnCount_ = 0;
 
 	for ( const TPair<TSubclassOf<AUnit>, FEnemySpawnSettings>& pair : waveData->EnemySpawnMap )
 	{
@@ -297,6 +303,7 @@ void AWaveManager::ScheduleWaveSpawns( const UWaveData* waveData, int32 waveInde
 				GetWorld()->GetTimerManager().SetTimer( timerHandle, spawnDelegate, timeFromWaveStart, false );
 
 				ActiveSpawnTimers_.Add( timerHandle );
+				++PendingSpawnCount_;
 			}
 		}
 	}
@@ -313,6 +320,20 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnP
 	{
 		return;
 	}
+
+	// This spawn timer has fired. Whatever happens below (spawned or failed),
+	// re-check whether the wave can end early: a failed last spawn used to leave
+	// the wave waiting for the full combat timer (#447).
+	PendingSpawnCount_ = FMath::Max( 0, PendingSpawnCount_ - 1 );
+	bool bSpawned = false;
+	ON_SCOPE_EXIT
+	{
+		if ( !bSpawned )
+		{
+			DecrementRemainingEnemies( enemyClass );
+		}
+		TryScheduleEarlyWaveEnd();
+	};
 
 	const bool bIsInfinite = IsInfiniteWaveIndex( waveIndex );
 	if ( !bIsInfinite && ( !WaveConfig_ || !WaveConfig_->Waves.IsValidIndex( waveIndex ) ) )
@@ -385,7 +406,8 @@ void AWaveManager::SpawnEnemy( int32 waveIndex, UClass* enemyClass, FName spawnP
 	}
 
 	SpawnedUnits_.Add( spawned );
-	spawned->OnDestroyed.AddDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
+	spawned->OnDestroyed.AddUniqueDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
+	bSpawned = true;
 
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
@@ -440,6 +462,7 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 
 	bIsWaveActive_ = false;
 	ClearActiveTimers();
+	PendingSpawnCount_ = 0;
 
 	RemainingEnemiesPerClass_.Empty();
 
@@ -448,7 +471,7 @@ void AWaveManager::OnWaveEndTimerElapsed( int32 waveIndex )
 		visuals->EndAllSticky();
 	}
 
-	OnWaveEnded.Broadcast( waveIndex );
+	BroadcastWaveEndedOnce( waveIndex );
 
 	if ( bLogSpawning )
 	{
@@ -502,14 +525,17 @@ void AWaveManager::AdvanceToNextWave()
 void AWaveManager::CancelCurrentWave()
 {
 	ClearActiveTimers();
+	PendingSpawnCount_ = 0;
+
+	// Mark the wave inactive before destroying units, so their OnDestroyed
+	// callbacks do not schedule another wave end.
+	bIsWaveActive_ = false;
 
 	int32 destroyedAmount = DestroyAllEnemies();
 	if ( bLogSpawning )
 	{
 		UE_LOG( LogTemp, Log, TEXT( "WaveManager: Destroyed %d enemies." ), destroyedAmount );
 	}
-
-	bIsWaveActive_ = false;
 
 	RemainingEnemiesPerClass_.Empty();
 
@@ -518,7 +544,8 @@ void AWaveManager::CancelCurrentWave()
 		visuals->EndAllSticky();
 	}
 
-	OnWaveEnded.Broadcast( CurrentWaveIndex );
+	// Only notifies if the wave has not already reported its end (early end / timer)
+	BroadcastWaveEndedOnce( CurrentWaveIndex );
 
 	if ( bLogSpawning )
 	{
@@ -650,84 +677,147 @@ void AWaveManager::BroadcastAllWavesCompleted()
 
 int32 AWaveManager::DestroyAllEnemies()
 {
+	// Work on a copy: destroying a unit fires OnDestroyed, which used to modify
+	// SpawnedUnits_ while it was being iterated.
+	TArray<TWeakObjectPtr<AUnit>> units = MoveTemp( SpawnedUnits_ );
+	SpawnedUnits_.Reset();
+
+	TGuardValue<bool> destroyingGuard( bIsDestroyingAllEnemies_, true );
+
 	int32 destroyed = 0;
-	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
+	for ( const TWeakObjectPtr<AUnit>& weakUnit : units )
 	{
-		AUnit* unit = SpawnedUnits_[i].Get();
-		if ( unit )
+		AUnit* unit = weakUnit.Get();
+		if ( !unit )
+		{
+			continue;
+		}
+
+		unit->OnDestroyed.RemoveDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
+		if ( !unit->IsActorBeingDestroyed() )
 		{
 			unit->Destroy();
 			++destroyed;
 		}
 	}
-	SpawnedUnits_.Empty();
 
 	return destroyed;
 }
 
-void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
+void AWaveManager::RegisterSpawnedUnit( AUnit* unit )
 {
-	if ( IsValid( destroyedActor ) )
+	if ( !IsValid( unit ) || unit->IsActorBeingDestroyed() )
+	{
+		return;
+	}
+
+	const bool bAlreadyTracked = SpawnedUnits_.ContainsByPredicate(
+		[unit]( const TWeakObjectPtr<AUnit>& tracked ) { return tracked.Get() == unit; }
+	);
+	if ( bAlreadyTracked )
+	{
+		return;
+	}
+
+	SpawnedUnits_.Add( unit );
+	unit->OnDestroyed.AddUniqueDynamic( this, &AWaveManager::HandleSpawnedDestroyed );
+
+	if ( bIsWaveActive_ )
+	{
+		RemainingEnemiesPerClass_.FindOrAdd( unit->GetClass() ) += 1;
+		OnWaveEnemiesUpdated.Broadcast();
+	}
+}
+
+void AWaveManager::DecrementRemainingEnemies( UClass* unitClass )
+{
+	if ( !unitClass || RemainingEnemiesPerClass_.IsEmpty() )
+	{
+		return;
+	}
+
+	if ( int32* exactCount = RemainingEnemiesPerClass_.Find( unitClass ) )
+	{
+		*exactCount = FMath::Max( 0, *exactCount - 1 );
+	}
+	else
 	{
 		for ( TPair<TSubclassOf<AUnit>, int32>& pair : RemainingEnemiesPerClass_ )
 		{
-			if ( destroyedActor->IsA( pair.Key ) )
+			if ( pair.Key && unitClass->IsChildOf( pair.Key.Get() ) )
 			{
 				pair.Value = FMath::Max( 0, pair.Value - 1 );
 				break;
 			}
 		}
-		OnWaveEnemiesUpdated.Broadcast();
-	}
-	for ( int32 i = SpawnedUnits_.Num() - 1; i >= 0; --i )
-	{
-		if ( SpawnedUnits_[i].Get() == destroyedActor )
-		{
-			SpawnedUnits_.RemoveAtSwap( i );
-			break;
-		}
 	}
 
-	if ( SpawnedUnits_.IsEmpty() )
-	{
-		bool bHasPendingSpawns = false;
-		if ( bIsWaveActive_ )
-		{
-			if ( UWorld* world = GetWorld() )
-			{
-				FTimerManager& tm = world->GetTimerManager();
-				for ( const FTimerHandle& h : ActiveSpawnTimers_ )
-				{
-					if ( tm.IsTimerActive( h ) )
-					{
-						bHasPendingSpawns = true;
-						break;
-					}
-				}
-			}
-		}
+	OnWaveEnemiesUpdated.Broadcast();
+}
 
-		if ( !bHasPendingSpawns )
-		{
-			if ( bIsWaveActive_ )
-			{
-				bIsWaveActive_ = false;
-				ClearActiveTimers();
-				if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
-				{
-					visuals->EndAllSticky();
-				}
-				OnWaveEnded.Broadcast( CurrentWaveIndex );
-			}
-			if ( UWorld* world = GetWorld() )
-			{
-				FTimerDelegate del =
-				    FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
-				world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
-				OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
-			}
-		}
+void AWaveManager::BroadcastWaveEndedOnce( int32 waveIndex )
+{
+	if ( bWaveEndBroadcasted_ )
+	{
+		return;
 	}
+
+	bWaveEndBroadcasted_ = true;
+	OnWaveEnded.Broadcast( waveIndex );
+}
+
+void AWaveManager::TryScheduleEarlyWaveEnd()
+{
+	if ( !bIsWaveActive_ || bIsDestroyingAllEnemies_ || PendingSpawnCount_ > 0 )
+	{
+		return;
+	}
+
+	SpawnedUnits_.RemoveAll(
+		[]( const TWeakObjectPtr<AUnit>& unit ) { return !unit.IsValid() || unit->IsActorBeingDestroyed(); }
+	);
+	if ( !SpawnedUnits_.IsEmpty() )
+	{
+		return;
+	}
+
+	bIsWaveActive_ = false;
+	ClearActiveTimers();
+
+	if ( UCardVisualSubsystem* visuals = UCardVisualSubsystem::Get( this ) )
+	{
+		visuals->EndAllSticky();
+	}
+
+	BroadcastWaveEndedOnce( CurrentWaveIndex );
+
+	if ( UWorld* world = GetWorld() )
+	{
+		FTimerDelegate del =
+			FTimerDelegate::CreateUObject( this, &AWaveManager::OnWaveEndTimerElapsed, CurrentWaveIndex );
+		world->GetTimerManager().SetTimer( WaveEndTimerHandle_, del, TIME_TO_END_WAVE_AFTER_LAST_DEATH, false );
+		OnWaveEndScheduled.Broadcast( TIME_TO_END_WAVE_AFTER_LAST_DEATH );
+	}
+}
+
+void AWaveManager::HandleSpawnedDestroyed( AActor* destroyedActor )
+{
+	SpawnedUnits_.RemoveAll(
+		[destroyedActor]( const TWeakObjectPtr<AUnit>& unit )
+		{ return !unit.IsValid() || unit.Get() == destroyedActor; }
+	);
+
+	if ( bIsDestroyingAllEnemies_ )
+	{
+		return;
+	}
+
+	if ( IsValid( destroyedActor ) )
+	{
+		DecrementRemainingEnemies( destroyedActor->GetClass() );
+	}
+
+	TryScheduleEarlyWaveEnd();
 }
 
 TMap<TSubclassOf<AUnit>, int32> AWaveManager::GetNextWaveComposition( int32 targetWaveIndex ) const

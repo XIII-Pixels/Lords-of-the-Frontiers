@@ -1,6 +1,7 @@
 #include "UI/Widgets/GameStateOverlayWidget.h"
 
 #include "Core/GameSessionController.h"
+#include "Core/Subsystems/LevelSubsystem/LevelSubsystem.h"
 #include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 #include "UI/AudioSettingsWidget.h"
 
@@ -60,6 +61,16 @@ void UGameStateOverlayWidget::OnNextLevelClicked()
 	if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 	{
 		session->EndGame( EGameResult::Abandoned );
+	}
+
+	// Next level from the LevelsDataAsset order (also keeps LevelSubsystem's current level index
+	// right). The hardcoded nextLevelName is only a fallback now.
+	if ( ULevelSubsystem* levelSubsystem = GetGameInstance()->GetSubsystem<ULevelSubsystem>() )
+	{
+		if ( levelSubsystem->LoadNextLevel() )
+		{
+			return;
+		}
 	}
 
 	if ( UTransitionSubsystem* transition = GetGameInstance()->GetSubsystem<UTransitionSubsystem>() )

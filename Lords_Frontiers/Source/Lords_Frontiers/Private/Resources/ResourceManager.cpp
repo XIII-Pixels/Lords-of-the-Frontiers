@@ -191,4 +191,5 @@ void UResourceManager::ResetResources()
 	OnResourceChanged.Broadcast( EResourceType::Gold, 0 );
 	OnResourceChanged.Broadcast( EResourceType::Food, 0 );
 	OnResourceChanged.Broadcast( EResourceType::Population, 0 );
+	OnResourceChanged.Broadcast( EResourceType::Progress, 0 );
 }

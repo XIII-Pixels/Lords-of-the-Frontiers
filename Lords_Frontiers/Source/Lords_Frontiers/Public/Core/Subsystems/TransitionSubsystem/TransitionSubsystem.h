@@ -5,7 +5,9 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 
 #include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
 #include "Engine/StreamableManager.h"
+#include "TimerManager.h"
 
 #include "TransitionSubsystem.generated.h"
 
@@ -72,6 +74,12 @@ private:
 	void HandleIdleSettledBeforeTravel();
 	void HandleEndFinished();
 
+	// OpenLevel can fail (missing map etc.): without this bIsTransitioning_ stayed true forever,
+	// every later transition was ignored and the cover overlay stayed on screen.
+	void HandleTravelFailure( UWorld* world, ETravelFailure::Type failureType, const FString& errorString );
+	void HandleTravelTimeout();
+	void RecoverFromFailedTravel();
+
 	FSoftObjectPath ResolvePendingLevelAsset() const;
 	void OpenPendingLevelNow() const;
 	bool UseOverlayPath() const;
@@ -91,6 +99,13 @@ private:
 	bool bPendingReveal_ = false;
 
 	FDelegateHandle PostLoadMapHandle_;
+	FDelegateHandle TravelFailureHandle_;
+
+	// Start overlay of the level we are leaving; removed if the travel fails
+	TWeakObjectPtr<UTransitionOverlayWidget> TravelOverlay_;
+
+	// Timer on the old world: it only fires if the travel did not happen
+	FTimerHandle TravelTimeoutHandle_;
 
 	/** Streams the target level package in while idle_screen animates, so the final OpenLevel
 	 *  doesn't block the game thread on disk IO. */

@@ -80,7 +80,9 @@ FGridCell* AGridManager::GetCell( const int32 x, const int32 y )
 {
 	if ( !IsValidCoords( x, y ) )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "GridManager::GetCell: coords out of bounds (%d, %d)" ), x, y );
+		// Verbose: out-of-bounds lookups are a normal case (neighbour scans, non-rectangular grids)
+		// and used to flood the log with hundreds of warnings
+		UE_LOG( LogTemp, Verbose, TEXT( "GridManager::GetCell: coords out of bounds (%d, %d)" ), x, y );
 		return nullptr;
 	}
 
@@ -91,7 +93,7 @@ const FGridCell* AGridManager::GetCell( const int32 x, const int32 y ) const
 {
 	if ( !IsValidCoords( x, y ) )
 	{
-		UE_LOG( LogTemp, Warning, TEXT( "GridManager::GetCell (const): coords out of bounds (%d, %d)" ), x, y );
+		UE_LOG( LogTemp, Verbose, TEXT( "GridManager::GetCell (const): coords out of bounds (%d, %d)" ), x, y );
 		return nullptr;
 	}
 
@@ -119,10 +121,8 @@ FIntPoint AGridManager::GetCellCoords( FVector location ) const
 {
 	const FIntPoint coords = GetCellCoordsRaw( location );
 
-	const int32 height = GetGridHeight();
-	const int32 width = GetRowWidth( 0 ); // assuming rectangular grid
-
-	if ( coords.X < 0 || coords.X >= width || coords.Y < 0 || coords.Y >= height )
+	// Per-row check: the grid can be non-rectangular (row 0 width was used for every row)
+	if ( !IsValidCoords( coords.X, coords.Y ) )
 	{
 		return { -1, -1 };
 	}
@@ -134,10 +134,11 @@ FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 	FIntPoint coords = GetCellCoordsRaw( location );
 
 	const int32 height = GetGridHeight();
-	const int32 width = GetRowWidth( 0 ); // assuming rectangular grid
+	coords.Y = FMath::Clamp( coords.Y, 0, FMath::Max( height, 1 ) - 1 );
 
-	coords.Y = FMath::Clamp( coords.Y, 0, height - 1 );
-	coords.X = FMath::Clamp( coords.X, 0, width - 1 );
+	// Width of the row we ended up in (the grid can be non-rectangular)
+	const int32 width = GetRowWidth( coords.Y );
+	coords.X = FMath::Clamp( coords.X, 0, FMath::Max( width, 1 ) - 1 );
 
 	return coords;
 }
@@ -145,7 +146,7 @@ FIntPoint AGridManager::GetClosestCellCoords( FVector location ) const
 FIntPoint AGridManager::FindClosestWalkableCellCoords( FVector location ) const
 {
 	FIntPoint currentCoords = GetClosestCellCoords( location );
-	if ( !IsValidCoords( currentCoords.X, currentCoords.Y ) )
+	if ( GetGridHeight() == 0 )
 	{
 		return { -1, -1 };
 	}
@@ -158,6 +159,11 @@ FIntPoint AGridManager::FindClosestWalkableCellCoords( FVector location ) const
 
 	auto processCell = [this, &closestCoords, &location, &distToClosest, &found]( const FIntPoint coords )
 	{
+		if ( !IsValidCoords( coords.X, coords.Y ) )
+		{
+			return;
+		}
+
 		const FGridCell* cell = GetCell( coords.X, coords.Y );
 		if ( cell && cell->bIsWalkable )
 		{
@@ -212,8 +218,10 @@ FIntPoint AGridManager::FindClosestWalkableCellCoords( FVector location ) const
 FIntPoint AGridManager::GetCellCoordsRaw( FVector location ) const
 {
 	location -= GetActorLocation();
-	const int32 y = static_cast<int32>( location.Y / CellSize_ );
-	const int32 x = static_cast<int32>( location.X / CellSize_ );
+	// Floor, not truncation toward zero: a point up to one cell left of / below the grid
+	// used to be reported as cell 0
+	const int32 y = FMath::FloorToInt32( location.Y / CellSize_ );
+	const int32 x = FMath::FloorToInt32( location.X / CellSize_ );
 	return FIntPoint( x, y );
 }
 

@@ -38,7 +38,8 @@ void UEnemyAggressionComponent::EndPlay( const EEndPlayReason::Type endPlayReaso
 
 	if ( Path_ )
 	{
-		Path_->ClearSpline();
+		// Destroy, not just clear: the spline actor would otherwise outlive the unit (#735)
+		Path_->DestroySpline();
 	}
 }
 
@@ -72,7 +73,8 @@ void UEnemyAggressionComponent::TickComponent(
 			if ( grid )
 			{
 				const FIntPoint cellCoords = grid->GetCellCoords( target->GetActorLocation() );
-				const TWeakObjectPtr<ABuilding> buildingOnCell = grid->GetCell( cellCoords.X, cellCoords.Y )->Occupant;
+				const FGridCell* cell = grid->GetCell( cellCoords.X, cellCoords.Y );
+				const TWeakObjectPtr<ABuilding> buildingOnCell = cell ? cell->Occupant : nullptr;
 				if ( !buildingOnCell.IsValid() || buildingOnCell->IsDestroyed() )
 				{
 					FollowNextPathTarget();
@@ -89,10 +91,11 @@ void UEnemyAggressionComponent::TickComponent(
 
 void UEnemyAggressionComponent::FollowNextPathTarget()
 {
-	if ( UnitAIManager_.IsValid() && Path_ && UnitAIManager_->MustDestroyReachedPoints() )
+	if ( UnitAIManager_.IsValid() && Path_ && UnitAIManager_->MustDestroyReachedPoints() &&
+		 Path_->GetPoints().IsValidIndex( PathPointIndex_ ) )
 	{
 		UnitAIManager_->PathPointsManager()->ReleasePathPoint(
-		    Path_->GetPoints()[PathPointIndex_], GetOwner()->GetClass()
+			Path_->GetPoints()[PathPointIndex_], GetOwner()->GetClass()
 		);
 		Path_->RemovePoint( PathPointIndex_ );
 	}
@@ -207,7 +210,8 @@ void UEnemyAggressionComponent::FindPathToClosestBuilding()
 		SetPath( nullptr );
 
 		UPath* path = NewObject<UPath>( unit );
-		const float emptyCellTravelTime = grid->GetCellSize() / unit->Stats().MaxSpeed();
+		// Guard against division by zero (speed can be reduced by slows / buffs)
+		const float emptyCellTravelTime = grid->GetCellSize() / FMath::Max( unit->Stats().MaxSpeed(), 1.0f );
 		path->Initialize( BuildPathConfig(
 		    *unit, unit->GetActorLocation(), unit->TargetBuilding()->GetTargetLocation(), emptyCellTravelTime
 		) );

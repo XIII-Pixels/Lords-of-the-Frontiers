@@ -83,7 +83,8 @@ void UPathPointsManager::RegisterPoint(
 			pointsOnCell.Points().Add( AUnit::StaticClass(), pathPoint );
 		}
 
-		PathPoints_.Add( point, pointsOnCell );
+		// pointsOnCell already lives in the map (FindOrAdd). Re-adding it copied the element from
+		// a reference into the map itself, which may dangle if the map reallocates.
 		pathPoint->IncreaseRefCount();
 	}
 }

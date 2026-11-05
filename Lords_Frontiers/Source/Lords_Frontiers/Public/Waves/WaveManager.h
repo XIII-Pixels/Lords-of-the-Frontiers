@@ -56,6 +56,10 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Settings|Wave" )
 	void RestartWaves();
 
+	// Registers an enemy that was spawned outside of the wave schedule (e.g. summoned by
+	// another enemy). Registered units keep the wave alive and are destroyed with it.
+	void RegisterSpawnedUnit( AUnit* unit );
+
 	// Returns whether a wave is currently active (spawning)
 	UFUNCTION( BlueprintPure, Category = "Settings|Wave" )
 	bool IsWaveActive() const
@@ -238,6 +242,22 @@ protected:
 private:
 	float RuntimeWaveEndSafetyMargin_ = 1.0f;
 	TMap<TSubclassOf<AUnit>, int32> RemainingEnemiesPerClass_;
+
+	// Number of scheduled spawn timers of the current wave that have not fired yet
+	int32 PendingSpawnCount_ = 0;
+
+	// OnWaveEnded is broadcast only once per wave (true while no wave is running)
+	bool bWaveEndBroadcasted_ = true;
+
+	// Guards HandleSpawnedDestroyed while the wave destroys its own units
+	bool bIsDestroyingAllEnemies_ = false;
+
+	// Ends the wave early when nothing is left to spawn and no tracked enemy is alive
+	void TryScheduleEarlyWaveEnd();
+
+	void BroadcastWaveEndedOnce( int32 waveIndex );
+
+	void DecrementRemainingEnemies( UClass* unitClass );
 
 	UPROPERTY( Transient )
 	TObjectPtr<UInfiniteWaveBuilder> InfiniteBuilder_ = nullptr;

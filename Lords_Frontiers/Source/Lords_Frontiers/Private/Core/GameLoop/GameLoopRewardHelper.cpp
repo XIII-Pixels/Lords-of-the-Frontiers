@@ -51,6 +51,10 @@ void UGameLoopRewardHelper::ApplyReward( FResourceReward& reward, bool starting 
 	{
 		ResourceManager_->AddResource( EResourceType::Population, reward.Population, noSound );
 	}
+	if ( reward.Progress > 0 )
+	{
+		ResourceManager_->AddResource( EResourceType::Progress, reward.Progress, noSound );
+	}
 }
 
 void UGameLoopRewardHelper::CollectBuildingIncome()
