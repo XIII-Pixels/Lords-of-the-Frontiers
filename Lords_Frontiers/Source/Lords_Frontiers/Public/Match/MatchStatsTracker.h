@@ -93,6 +93,9 @@ private:
 	void HandleWaveChanged( int32 currentWave, int32 totalWaves );
 
 	UFUNCTION()
+	void HandleLastWaveCompleted( int32 currentWave, bool bPerfectWave );
+
+	UFUNCTION()
 	void HandleBuildingConfirmed( ABuilding* building, FIntPoint cell );
 
 	UFUNCTION()

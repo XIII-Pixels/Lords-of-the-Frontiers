@@ -7,6 +7,7 @@
 #include "Core/Subsystems/TransitionSubsystem/TransitionSubsystem.h"
 
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 
 void ULevelSubsystem::LoadMainMenu( bool bUseTransition ) const
@@ -35,15 +36,38 @@ void ULevelSubsystem::LoadGameplayLevel( int index )
 	}
 }
 
-void ULevelSubsystem::LoadNextLevel()
+bool ULevelSubsystem::LoadNextLevel()
 {
-	if ( Levels_ && CurrentLevelIndex_ >= -1 && CurrentLevelIndex_ + 1 < Levels_->GameplayLevels.Num() )
+	const int32 nextIndex = ResolveCurrentLevelIndex() + 1;
+	if ( Levels_ && nextIndex >= 0 && nextIndex < Levels_->GameplayLevels.Num() )
 	{
-		++CurrentLevelIndex_;
+		CurrentLevelIndex_ = nextIndex;
 		LoadLevel(
-		    Levels_->GameplayLevels[CurrentLevelIndex_].Level, FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
+			Levels_->GameplayLevels[CurrentLevelIndex_].Level, FString::Printf( TEXT( "level %d" ), CurrentLevelIndex_ )
 		);
+		return true;
 	}
+	return false;
+}
+
+int32 ULevelSubsystem::ResolveCurrentLevelIndex() const
+{
+	const UWorld* world = GetWorld();
+	if ( !Levels_ || !world )
+	{
+		return CurrentLevelIndex_;
+	}
+
+	const FString mapName = UGameplayStatics::GetCurrentLevelName( world, /*bRemovePrefixString*/ true );
+	for ( int32 i = 0; i < Levels_->GameplayLevels.Num(); ++i )
+	{
+		if ( Levels_->GameplayLevels[i].Level.GetAssetName() == mapName )
+		{
+			return i;
+		}
+	}
+
+	return INDEX_NONE;
 }
 
 void ULevelSubsystem::SetLevels( TSoftObjectPtr<ULevelsDataAsset> levels )
@@ -71,8 +95,9 @@ void ULevelSubsystem::ResetSavedLevelStatuses() const
 		{
 			for ( const FGameplayLevelData& levelData : Levels_->GameplayLevels )
 			{
-				if ( gameSaver->GetLevelStatus( levelData.Level.ToSoftObjectPath().ToString() ) ==
-				     ELevelStatus::Undefined )
+				// Same key as UpdateLevelStatus / GetLevelStatus (the asset name). The full path was
+				// used here, so the check never found the saved status.
+				if ( gameSaver->GetLevelStatus( levelData.Level.GetAssetName() ) == ELevelStatus::Undefined )
 				{
 					gameSaver->UpdateLevelStatus(
 					    levelData.Level.GetAssetName(),
@@ -101,9 +126,10 @@ ELevelStatus ULevelSubsystem::GetLevelStatus( int index ) const
 
 bool ULevelSubsystem::GetCurrentLevelCameraConfig( FLevelCameraConfig& outConfig ) const
 {
-	if ( Levels_ && CurrentLevelIndex_ >= 0 && CurrentLevelIndex_ < Levels_->GameplayLevels.Num() )
+	const int32 index = ResolveCurrentLevelIndex();
+	if ( Levels_ && index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
-		outConfig = Levels_->GameplayLevels[CurrentLevelIndex_].CameraConfig;
+		outConfig = Levels_->GameplayLevels[index].CameraConfig;
 		return true;
 	}
 	return false;
@@ -115,7 +141,12 @@ void ULevelSubsystem::UnlockNextLevel() const
 	{
 		return;
 	}
-	int index = CurrentLevelIndex_ + 1;
+	const int32 currentIndex = ResolveCurrentLevelIndex();
+	if ( currentIndex < 0 )
+	{
+		return;
+	}
+	int index = currentIndex + 1;
 	if ( index >= 0 && index < Levels_->GameplayLevels.Num() )
 	{
 		if ( const auto* gameInstance = GetGameInstance() )

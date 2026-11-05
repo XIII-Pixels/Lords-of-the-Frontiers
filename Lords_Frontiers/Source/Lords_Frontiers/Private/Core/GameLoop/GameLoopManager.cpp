@@ -400,9 +400,8 @@ void UGameLoopManager::EnterRewardPhase()
 	RewardHelper_->GrantCombatReward( CurrentWave_, bPerfectWave_ );
 	RewardHelper_->RestoreBuildings();
 
-	SetPhase( EGameLoopPhase::Reward );
-	ClearSelectionForPhaseChange();
-
+	// Hide the finished wave's portals before the phase change: a phase listener may move
+	// the loop to the next wave synchronously, and that prepares the next wave's portals.
 	if ( UCoreManager* core = UCoreManager::Get( this ) )
 	{
 		if ( AWavePortalManager* portalManager = core->GetWavePortalManager() )
@@ -412,8 +411,21 @@ void UGameLoopManager::EnterRewardPhase()
 	}
 
 	Log( FString::Printf(
-	    TEXT( ">>> REWARD PHASE (Wave %d, Perfect: %s)" ), CurrentWave_, bPerfectWave_ ? TEXT( "YES" ) : TEXT( "NO" )
+		TEXT( ">>> REWARD PHASE (Wave %d, Perfect: %s)" ), CurrentWave_, bPerfectWave_ ? TEXT( "YES" ) : TEXT( "NO" )
 	) );
+
+	const int32 rewardWave = CurrentWave_;
+
+	SetPhase( EGameLoopPhase::Reward );
+	ClearSelectionForPhaseChange();
+
+	// CardSubsystem confirms the reward phase synchronously (inside SetPhase) when it has no
+	// cards to offer. The loop has then already moved to the next wave: continuing here
+	// used to skip a wave (or count a victory without the last wave).
+	if ( CurrentPhase_ != EGameLoopPhase::Reward || CurrentWave_ != rewardWave )
+	{
+		return;
+	}
 
 	if ( IsLastWave() )
 	{
@@ -548,8 +560,9 @@ bool UGameLoopManager::IsCardSelectionPending() const
 		return false;
 	}
 
-	UCardPoolConfig* poolConfig = cardSub->GetPoolConfig();
-	return poolConfig && poolConfig->HasEnoughCards();
+	// Wait only if a choice was actually offered. The pool size alone is not enough:
+	// BuildCardChoice can fail (locked / non-stackable cards exhausted) even when the pool is big.
+	return cardSub->IsSelectionInProgress();
 }
 
 void UGameLoopManager::BindToWaveManager()

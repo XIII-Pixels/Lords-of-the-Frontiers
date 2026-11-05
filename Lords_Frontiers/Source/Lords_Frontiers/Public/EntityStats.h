@@ -46,6 +46,10 @@ struct FEntityStats
 
 	explicit FEntityStats( int maxHealth, int attackDamage, float attackRange );
 
+	// Lower bound for the effective attack cooldown. Card modifiers stack additively
+	// (e.g. -0.25 s several times), without a floor the cooldown could reach 0 or below.
+	static constexpr float MinAttackCooldown = 0.1f;
+
 	// getters
 	int MaxHealth() const;
 
@@ -55,7 +59,11 @@ struct FEntityStats
 
 	int AttackDamage() const;
 
+	// Effective cooldown (never below MinAttackCooldown)
 	float AttackCooldown() const;
+
+	// Raw stored value, may be below MinAttackCooldown after stacked card modifiers
+	float AttackCooldownUnclamped() const;
 
 	float CooldownRemaining( float currentGameTime ) const;
 
@@ -139,7 +147,7 @@ private:
 	int MaxHealth_ = 100;
 
 	UPROPERTY( VisibleInstanceOnly, Category = "Settings|Stats" )
-	int Health_;
+	int Health_ = 0;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats|Attack", meta = ( CardModifiable, DisplayName = "Attack Range" ) )
 	float AttackRange_ = 200.0f;
@@ -176,7 +184,7 @@ private:
 	EBurstTargetMode BurstTargetMode_ = EBurstTargetMode::SameTarget;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Stats" )
-	ETeam Team_;
+	ETeam Team_ = ETeam::Dog;
 
 	float LastAttackGameTime_ = -999.0f;
 };

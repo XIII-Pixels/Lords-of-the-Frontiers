@@ -88,65 +88,77 @@ void UDStarLite::ComputeShortestPath()
 		return;
 	}
 
-	FDStarNode& startNode = Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
-	while ( !Open_.empty() && ( Open_.top().Key < CalculateKey( startNode ) || startNode.RHS > startNode.G ) )
+	// Never keep a reference into Nodes_ across a FindOrAdd that may insert: adding an element
+	// can reallocate the map storage and leave the reference dangling (undefined behaviour).
+	// Likewise Open_.top() is copied, because push() may reallocate the queue.
+	Nodes_.FindOrAdd( Start_, FDStarNode( Start_ ) );
+
+	auto startNeedsUpdate = [this]()
 	{
-		const FDStarQueueEntry& top = Open_.top();
-		FDStarNode& node = Nodes_.FindOrAdd( top.NodeCoord );
+		const FDStarNode& startNode = Nodes_.FindChecked( Start_ );
+		return Open_.top().Key < CalculateKey( startNode ) || startNode.RHS > startNode.G;
+	};
+
+	while ( !Open_.empty() && startNeedsUpdate() )
+	{
+		const FDStarQueueEntry top = Open_.top();
+		const FIntPoint coord = top.NodeCoord;
+
+		FDStarNode& node = Nodes_.FindOrAdd( coord, FDStarNode( coord ) );
 		if ( !node.bInOpen )
 		{
 			Open_.pop(); // lazy removal
 			continue;
 		}
 
-		const FDStarKey& key = top.Key;
-
-		FDStarKey newKey = CalculateKey( node );
-		if ( key < newKey )
+		const FDStarKey newKey = CalculateKey( node );
+		if ( top.Key < newKey )
 		{
 			Open_.pop();
-			Open_.push( { node.Coord, newKey } );
+			Open_.push( { coord, newKey } );
 			node.bInOpen = true;
 		}
 		else if ( node.G > node.RHS )
 		{
 			node.G = node.RHS;
 			node.bInOpen = false;
+			const float nodeG = node.G;
 			Open_.pop();
 
-			for ( const FIntPoint& pred : GetPredecessors( node.Coord ) )
+			for ( const FIntPoint& pred : GetPredecessors( coord ) )
 			{
 				FDStarNode& predNode = Nodes_.FindOrAdd( pred, FDStarNode( pred ) );
 				if ( pred != Goal_ )
 				{
-					predNode.RHS = FMath::Min( predNode.RHS, Cost( predNode.Coord, node.Coord ) + node.G );
+					predNode.RHS = FMath::Min( predNode.RHS, Cost( pred, coord ) + nodeG );
 				}
 				UpdateVertex( predNode );
 			}
 		}
 		else
 		{
-			float gOld = node.G;
+			const float gOld = node.G;
 			node.G = TNumericLimits<float>::Max();
-			TArray<FIntPoint> nodes = GetPredecessors( node.Coord );
-			nodes.Add( node.Coord );
+
+			TArray<FIntPoint> nodes = GetPredecessors( coord );
+			nodes.Add( coord );
 			for ( const FIntPoint& pred : nodes )
 			{
-				FDStarNode& predNode = Nodes_.FindOrAdd( pred, FDStarNode( pred ) );
+				Nodes_.FindOrAdd( pred, FDStarNode( pred ) );
 
-				if ( predNode.RHS == Cost( pred, node.Coord ) + gOld && pred != Goal_ )
+				if ( pred != Goal_ && Nodes_.FindChecked( pred ).RHS == Cost( pred, coord ) + gOld )
 				{
 					float minValue = TNumericLimits<float>::Max();
 
 					for ( const FIntPoint& succ : GetSuccessors( pred ) )
 					{
-						FDStarNode& succNode = Nodes_.FindOrAdd( succ, FDStarNode( succ ) );
-						minValue = FMath::Min( minValue, Cost( pred, succ ) + succNode.G );
+						const float succG = Nodes_.FindOrAdd( succ, FDStarNode( succ ) ).G;
+						minValue = FMath::Min( minValue, Cost( pred, succ ) + succG );
 					}
 
-					predNode.RHS = minValue;
+					Nodes_.FindChecked( pred ).RHS = minValue;
 				}
-				UpdateVertex( predNode );
+				UpdateVertex( Nodes_.FindChecked( pred ) );
 			}
 		}
 	}
@@ -225,7 +237,11 @@ float UDStarLite::Heuristic( const FIntPoint& a, const FIntPoint& b ) const
 {
 	const float dx = FMath::Abs( a.X - b.X );
 	const float dy = FMath::Abs( a.Y - b.Y );
-	return ( dx + dy ) + ( 1.41421356f - 2.0f ) * FMath::Min( dx, dy );
+	const float octileCells = ( dx + dy ) + ( 1.41421356f - 2.0f ) * FMath::Min( dx, dy );
+
+	// Cost() is measured in seconds (EmptyCellTravelTime_ per cell), so the heuristic must be too.
+	// In cells it overestimated the remaining cost (~3x) and produced non-optimal paths.
+	return octileCells * FMath::Max( EmptyCellTravelTime_, 0.0f );
 }
 
 TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
@@ -251,7 +267,14 @@ TArray<FIntPoint> UDStarLite::GetSuccessors( const FIntPoint& coord ) const
 			continue;
 		}
 
-		if ( !bIgnoreObstacles_ && !Grid_->GetCell( next.X, next.Y )->bIsWalkable )
+		// Non-rectangular grids (#342) have no cell at some in-bounds coordinates
+		const FGridCell* cell = Grid_->GetCell( next.X, next.Y );
+		if ( !cell )
+		{
+			continue;
+		}
+
+		if ( !bIgnoreObstacles_ && !cell->bIsWalkable )
 		{
 			continue;
 		}

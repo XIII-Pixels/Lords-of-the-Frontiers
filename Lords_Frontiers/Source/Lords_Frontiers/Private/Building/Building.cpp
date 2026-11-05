@@ -70,6 +70,13 @@ void ABuilding::BeginPlay()
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
+	if ( CollisionComponent_ )
+	{
+		OriginalCollisionResponses_ = CollisionComponent_->GetCollisionResponseToChannels();
+		OriginalCollisionEnabled_ = CollisionComponent_->GetCollisionEnabled();
+		bHasOriginalCollision_ = true;
+	}
+
 	// Save original maintenance for card reset on game restart
 	OriginalMaintenanceCost_ = MaintenanceCost_;
 
@@ -136,7 +143,8 @@ void ABuilding::UnsubscribeHealthBar()
 
 void ABuilding::OnDeath()
 {
-	if ( bIsRuined_ )
+	// Already ruined, or already waiting for the ruin delay
+	if ( bIsRuined_ || GetWorldTimerManager().IsTimerActive( RuinTimerHandle_ ) )
 	{
 		return;
 	}
@@ -157,7 +165,8 @@ void ABuilding::OnDeath()
 
 	if ( ResolvedRuinDelay_ > 0.0f )
 	{
-		GetWorldTimerManager().SetTimer( RuinTimerHandle_, this, &ABuilding::FinalizeRuin, ResolvedRuinDelay_, true );
+		// One-shot: a looping timer turned the building into ruins again every RuinDelay seconds
+		GetWorldTimerManager().SetTimer( RuinTimerHandle_, this, &ABuilding::FinalizeRuin, ResolvedRuinDelay_, false );
 	}
 	else
 	{
@@ -248,14 +257,17 @@ void ABuilding::SpawnConstructionVFX()
 	if ( ResolvedConstructionDelay_ > 0.0f )
 	{
 		GetWorldTimerManager().SetTimer(
-		    ConstructionVFXTimerHandle_,
-		    [this]()
-		    {
-			    UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			        GetWorld(), ResolvedConstructionVFX_, GetActorLocation(), GetActorRotation()
-			    );
-		    },
-		    ResolvedConstructionDelay_, false
+			ConstructionVFXTimerHandle_,
+			FTimerDelegate::CreateWeakLambda(
+				this,
+				[this]()
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+						GetWorld(), ResolvedConstructionVFX_, GetActorLocation(), GetActorRotation()
+					);
+				}
+			),
+			ResolvedConstructionDelay_, false
 		);
 	}
 	else
@@ -280,6 +292,13 @@ void ABuilding::SpawnDestructionVFX()
 
 void ABuilding::FinalizeRuin()
 {
+	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
+
+	if ( bIsRuined_ )
+	{
+		return;
+	}
+
 	bIsRuined_ = true;
 
 	ActivateRuinsMesh();
@@ -512,6 +531,7 @@ void ABuilding::RestoreFromRuins()
 	}
 
 	bIsRuined_ = false;
+	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
 
 	ActivateBuildingMesh();
 
@@ -519,34 +539,51 @@ void ABuilding::RestoreFromRuins()
 
 	Stats_.SetHealth( Stats_.MaxHealth() );
 
-	if ( CollisionComponent_ )
-	{
-		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
-		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
-	}
+	RestoreOriginalCollision();
+	SetCanAffectNavigationGeneration( true );
 
 	OnAudioEvent_.Broadcast( { AudioTags_.Resurrected, GetActorLocation() } );
-
-	ActivateBuildingMesh();
 
 	UpdateSelectionOverlay();
 
 	OnBuildingRestored.Broadcast( this );
+
+	if ( EconomyComponent_ )
+	{
+		EconomyComponent_->RecalculateAndBroadcastNetIncome();
+	}
+}
+
+void ABuilding::RestoreOriginalCollision()
+{
+	if ( !CollisionComponent_ )
+	{
+		return;
+	}
+
+	if ( bHasOriginalCollision_ )
+	{
+		CollisionComponent_->SetCollisionEnabled( OriginalCollisionEnabled_ );
+		CollisionComponent_->SetCollisionResponseToChannels( OriginalCollisionResponses_ );
+	}
+	else
+	{
+		CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
+		CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
+	}
 }
 
 void ABuilding::FullRestore()
 {
+	GetWorldTimerManager().ClearTimer( RuinTimerHandle_ );
+
 	if ( bIsRuined_ )
 	{
 		bIsRuined_ = false;
 
 		ActivateBuildingMesh();
 
-		if ( CollisionComponent_ )
-		{
-			CollisionComponent_->SetCollisionEnabled( ECollisionEnabled::QueryAndPhysics );
-			CollisionComponent_->SetCollisionResponseToAllChannels( ECR_Block );
-		}
+		RestoreOriginalCollision();
 
 		OnBuildingRestored.Broadcast( this );
 
@@ -568,20 +605,21 @@ void ABuilding::FullRestore()
 
 void ABuilding::ModifyMaintenanceCost( EResourceType type, int32 delta )
 {
-	MaintenanceCost_.ModifyByType( type, delta );
+	MaintenanceCost_.ModifyByTypeReversible( type, delta, MaintenanceClampDebt_ );
 }
 
 void ABuilding::ModifyMaintenanceCostAll( int32 delta )
 {
 	for ( EResourceType type : CardTypeHelpers::GetAllResourceTypes() )
 	{
-		MaintenanceCost_.ModifyByType( type, delta );
+		MaintenanceCost_.ModifyByTypeReversible( type, delta, MaintenanceClampDebt_ );
 	}
 }
 
 void ABuilding::ResetMaintenanceCostToDefaults()
 {
 	MaintenanceCost_ = OriginalMaintenanceCost_;
+	MaintenanceClampDebt_ = FResourceProduction();
 }
 
 UTexture2D* ABuilding::GetBuildingIconFromClass( TSubclassOf<ABuilding> buildingClass )

@@ -36,6 +36,9 @@ public:
 	void RebuildSpline();
 	void ClearSpline();
 
+	// Destroys the spline actor (ClearSpline only removes its points, the actor stayed in the level)
+	void DestroySpline();
+
 	const TArray<FIntPoint>& GetPoints() const;
 
 	// Delay time is configured in AUnitAIManager

@@ -483,7 +483,10 @@ void UCardEffectHostComponent::DispatchInternal( ECardTriggerReason reason, AAct
 		Active_.Num(),
 		*GetNameSafe( instigator ) );
 
-	for ( const FRegisteredCardEffect& rec : Active_ )
+	// Iterate over a copy: Execute() can register / clear effects on this host (e.g. a building
+	// dying or a card being applied), which would invalidate a range-for over Active_.
+	const TArray<FRegisteredCardEffect> activeSnapshot = Active_;
+	for ( const FRegisteredCardEffect& rec : activeSnapshot )
 	{
 		if ( !rec.Effect || !rec.SourceCard )
 		{

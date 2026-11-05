@@ -18,6 +18,12 @@ namespace CardStatReflection
 		return CastField<FNumericProperty>( prop );
 	}
 
+	inline const FName& MaxHealthStatName()
+	{
+		static const FName name( TEXT( "MaxHealth_" ) );
+		return name;
+	}
+
 	inline FString GetStatDisplayName( FName statName )
 	{
 		if ( statName.IsNone() )
@@ -80,8 +86,18 @@ namespace CardStatReflection
 
 		if ( prop->IsInteger() )
 		{
-			const int64 current = prop->GetSignedIntPropertyValue( addr );
 			const int64 rounded = static_cast<int64>( FMath::RoundToInt( delta ) );
+
+			if ( statName == MaxHealthStatName() )
+			{
+				// Go through FEntityStats so current health follows max health: writing the raw
+				// field made new buildings spawn "wounded" (e.g. 100/108) after +HP cards.
+				const int32 before = stats.MaxHealth();
+				stats.AddMaxHealth( static_cast<int32>( rounded ) );
+				return static_cast<float>( stats.MaxHealth() - before );
+			}
+
+			const int64 current = prop->GetSignedIntPropertyValue( addr );
 			prop->SetIntPropertyValue( addr, current + rounded );
 			return static_cast<float>( rounded );
 		}

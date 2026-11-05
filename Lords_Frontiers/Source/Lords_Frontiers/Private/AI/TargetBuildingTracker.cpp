@@ -80,21 +80,46 @@ bool UTargetBuildingTracker::BuildingIsUnitTarget(
 ) const
 {
 	TSet<TSoftClassPtr<ABuilding>> targetClasses;
-	if ( UBlueprintGeneratedClass* bpClass = Cast<UBlueprintGeneratedClass>( unitClass ) )
+	bool bFoundComponent = false;
+
+	// Walk up the Blueprint hierarchy: the component may be added in a parent Blueprint
+	// (only the unit's own SCS was checked before, so child Blueprints had no targets)
+	UBlueprintGeneratedClass* actualBpClass = Cast<UBlueprintGeneratedClass>( unitClass.Get() );
+	for ( UClass* cls = unitClass.Get(); cls && actualBpClass && !bFoundComponent; cls = cls->GetSuperClass() )
 	{
-		if ( bpClass && bpClass->SimpleConstructionScript )
+		const UBlueprintGeneratedClass* bpClass = Cast<UBlueprintGeneratedClass>( cls );
+		if ( !bpClass || !bpClass->SimpleConstructionScript )
 		{
-			TArray<USCS_Node*> nodes = bpClass->SimpleConstructionScript->GetAllNodes();
-			for ( const USCS_Node* node : nodes )
+			continue;
+		}
+
+		for ( const USCS_Node* node : bpClass->SimpleConstructionScript->GetAllNodes() )
+		{
+			if ( !node || !node->ComponentClass ||
+				 !node->ComponentClass->IsChildOf( UEnemyAggressionComponent::StaticClass() ) )
 			{
-				if ( node->ComponentClass->IsChildOf( UEnemyAggressionComponent::StaticClass() ) )
-				{
-					UActorComponent* found = node->GetActualComponentTemplate( bpClass );
-					if ( const UEnemyAggressionComponent* component = Cast<UEnemyAggressionComponent>( found ) )
-					{
-						targetClasses = component->TargetBuildingClasses();
-					}
-				}
+				continue;
+			}
+
+			// Template of the most derived class: includes property overrides made in child Blueprints
+			UActorComponent* found = node->GetActualComponentTemplate( actualBpClass );
+			if ( const UEnemyAggressionComponent* component = Cast<UEnemyAggressionComponent>( found ) )
+			{
+				targetClasses = component->TargetBuildingClasses();
+				bFoundComponent = true;
+				break;
+			}
+		}
+	}
+
+	// Component created in C++ (default subobject)
+	if ( !bFoundComponent && unitClass )
+	{
+		if ( const AUnit* unitCdo = unitClass->GetDefaultObject<AUnit>() )
+		{
+			if ( const UEnemyAggressionComponent* component = unitCdo->FindComponentByClass<UEnemyAggressionComponent>() )
+			{
+				targetClasses = component->TargetBuildingClasses();
 			}
 		}
 	}

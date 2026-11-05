@@ -26,7 +26,7 @@ struct FAmbientForLevel
 	float ZoomMinVolume = 0.0f;
 
 	UPROPERTY( EditAnywhere )
-	EAudioFaderCurve ZoomVolumeFaderCurve;
+	EAudioFaderCurve ZoomVolumeFaderCurve = EAudioFaderCurve::Linear;
 
 	UPROPERTY( EditAnywhere )
 	float AdjustVolumeDuration = 0.0f;

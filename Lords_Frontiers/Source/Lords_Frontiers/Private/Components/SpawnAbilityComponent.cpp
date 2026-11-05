@@ -14,12 +14,31 @@
 
 float USpawnAbilityComponent::TimeUntilGroupSpawnStart() const
 {
-	if ( GetWorld()->GetTimerManager().IsTimerActive( GroupSpawnTimer_ ) )
+	const UWorld* world = GetWorld();
+	if ( world && world->GetTimerManager().IsTimerActive( GroupSpawnTimer_ ) )
 	{
-		return GetWorld()->GetTimerManager().GetTimerRemaining( GroupSpawnTimer_ );
+		return world->GetTimerManager().GetTimerRemaining( GroupSpawnTimer_ );
 	}
 
 	return -1.0f;
+}
+
+void USpawnAbilityComponent::StopSpawning()
+{
+	if ( UWorld* world = GetWorld() )
+	{
+		FTimerManager& timerManager = world->GetTimerManager();
+		timerManager.ClearTimer( GroupSpawnTimer_ );
+		timerManager.ClearTimer( UnitSpawnTimer_ );
+		timerManager.ClearTimer( MovementTimer_ );
+	}
+	RemainingInGroup_ = 0;
+}
+
+void USpawnAbilityComponent::EndPlay( const EEndPlayReason::Type endPlayReason )
+{
+	StopSpawning();
+	Super::EndPlay( endPlayReason );
 }
 
 void USpawnAbilityComponent::BeginPlay()
@@ -78,50 +97,55 @@ void USpawnAbilityComponent::GroupSpawnTick()
 		}
 	}
 
+	if ( SpawnedCount_ <= 0 )
+	{
+		return;
+	}
+
 	if ( UnitSpawnInterval_ > 0 )
 	{
 		// Start spawning at an interval
+		RemainingInGroup_ = SpawnedCount_;
 		GetWorld()->GetTimerManager().SetTimer(
-		    UnitSpawnTimer_, this, &USpawnAbilityComponent::UnitSpawnTick, UnitSpawnInterval_, true,
-		    StopTimeBeforeSpawn_
+			UnitSpawnTimer_, this, &USpawnAbilityComponent::UnitSpawnTick, UnitSpawnInterval_, true,
+			StopTimeBeforeSpawn_
+		);
+	}
+	else if ( StopTimeBeforeSpawn_ > 0 )
+	{
+		// Spawn delayed. UObject delegate (not a lambda with raw this): it is skipped
+		// automatically if the component is destroyed before the timer fires.
+		GetWorld()->GetTimerManager().SetTimer(
+			UnitSpawnTimer_, this, &USpawnAbilityComponent::SpawnWholeGroup, StopTimeBeforeSpawn_, false
 		);
 	}
 	else
 	{
-		auto spawnAll = [this]()
-		{
-			for ( int i = 0; i < SpawnedCount_; ++i )
-			{
-				ProcessSpawn();
-			}
-		};
+		// Spawn immediately
+		SpawnWholeGroup();
+	}
+}
 
-		if ( StopTimeBeforeSpawn_ > 0 )
-		{
-			// Spawn delayed
-			GetWorld()->GetTimerManager().SetTimer(
-			    UnitSpawnTimer_, FTimerDelegate::CreateLambda( spawnAll ), StopTimeBeforeSpawn_, false
-			);
-		}
-		else
-		{
-			// Spawn immediately
-			spawnAll();
-		}
+void USpawnAbilityComponent::SpawnWholeGroup()
+{
+	for ( int32 i = 0; i < SpawnedCount_; ++i )
+	{
+		ProcessSpawn();
 	}
 }
 
 void USpawnAbilityComponent::UnitSpawnTick()
 {
-	static int remaining = SpawnedCount_;
+	ProcessSpawn();
+	--RemainingInGroup_;
 
-	SpawnUnit();
-	remaining--;
-
-	if ( remaining <= 0 )
+	if ( RemainingInGroup_ <= 0 )
 	{
-		GetWorld()->GetTimerManager().ClearTimer( UnitSpawnTimer_ );
-		remaining = SpawnedCount_;
+		if ( UWorld* world = GetWorld() )
+		{
+			world->GetTimerManager().ClearTimer( UnitSpawnTimer_ );
+		}
+		RemainingInGroup_ = 0;
 	}
 }
 
@@ -149,16 +173,40 @@ void USpawnAbilityComponent::SpawnUnit() const
 		return;
 	}
 
-	UnitBuilder_->CreateNewUnit( SpawnedClass_, FindValidTransform() );
-
-	if ( const auto* coreManager = UGameplayStatics::GetGameInstance( GetWorld() )->GetSubsystem<UCoreManager>() )
+	if ( !IsValid( UnitBuilder_ ) || !SpawnedClass_ )
 	{
-		if ( const auto* waveManager = coreManager->GetWaveManager() )
+		return;
+	}
+
+	// A dead summoner must not summon anymore
+	if ( const AUnit* ownerUnit = GetOwner<AUnit>() )
+	{
+		if ( ownerUnit->IsActorBeingDestroyed() || !ownerUnit->Stats().IsAlive() )
 		{
-			UnitBuilder_->ApplyBuff( waveManager->FindBuffForCurrentWave( SpawnedClass_ ) );
+			return;
 		}
 	}
-	UnitBuilder_->SpawnUnitAndFinish();
+
+	UnitBuilder_->CreateNewUnit( SpawnedClass_, FindValidTransform() );
+
+	AWaveManager* waveManager = nullptr;
+	if ( const UCoreManager* coreManager = UCoreManager::Get( this ) )
+	{
+		waveManager = coreManager->GetWaveManager();
+	}
+
+	if ( waveManager )
+	{
+		UnitBuilder_->ApplyBuff( waveManager->FindBuffForCurrentWave( SpawnedClass_ ) );
+	}
+
+	const TWeakObjectPtr<AUnit> spawned = UnitBuilder_->SpawnUnitAndFinish();
+
+	// Summoned units belong to the current wave: they keep it alive and are removed with it (#818, #735)
+	if ( waveManager && spawned.IsValid() )
+	{
+		waveManager->RegisterSpawnedUnit( spawned.Get() );
+	}
 }
 
 void USpawnAbilityComponent::StopUnitMovementAndAttack() const

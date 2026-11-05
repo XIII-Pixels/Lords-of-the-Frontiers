@@ -130,6 +130,13 @@ void AUnit::BeginPlay()
 
 void AUnit::EndPlay( const EEndPlayReason::Type endPlayReason )
 {
+	// Lambda timers are not cleared automatically for the owning object
+	if ( UWorld* world = GetWorld() )
+	{
+		world->GetTimerManager().ClearTimer( AttackTimerHandle_ );
+		world->GetTimerManager().ClearTimer( DeathTimerHandle_ );
+	}
+
 	Super::EndPlay( endPlayReason );
 
 	if ( const UGameInstance* gameInstance = UGameplayStatics::GetGameInstance( GetWorld() ) )
@@ -176,6 +183,12 @@ void AUnit::StopFollowing() const
 
 void AUnit::EnableMovement() const
 {
+	// Dead units must not start moving again (e.g. Animate -> PlayAnimationIdle after death)
+	if ( !Stats_.IsAlive() )
+	{
+		return;
+	}
+
 	if ( FollowComponent_ )
 	{
 		FollowComponent_->Activate();
@@ -192,6 +205,11 @@ void AUnit::DisableMovement() const
 
 void AUnit::EnableAttack()
 {
+	if ( !Stats_.IsAlive() )
+	{
+		return;
+	}
+
 	if ( const auto* world = GetWorld() )
 	{
 		Stats_.StartCooldown( world->GetTimeSeconds() );
@@ -216,8 +234,22 @@ void AUnit::Attack( TObjectPtr<AActor> hitActor )
 		if ( AttackPreHitDelay_ > 0.0f && !AttackComponent_->DidSeeTargetLastTick() &&
 		     Stats_.CooldownRemaining( GetWorld()->GetTimeSeconds() ) <= AttackPreHitDelay_ )
 		{
+			// Weak lambda: skipped if this unit is destroyed before the timer fires.
+			// The target is held weakly too, it can be destroyed during the delay.
+			TWeakObjectPtr<AActor> weakHitActor = hitActor.Get();
 			GetWorldTimerManager().SetTimer(
-			    AttackTimerHandle_, [this, hitActor]() { Attack( hitActor ); }, AttackPreHitDelay_, false
+				AttackTimerHandle_,
+				FTimerDelegate::CreateWeakLambda(
+					this,
+					[this, weakHitActor]()
+					{
+						if ( AActor* target = weakHitActor.Get() )
+						{
+							Attack( target );
+						}
+					}
+				),
+				AttackPreHitDelay_, false
 			);
 		}
 		else if ( !Stats_.OnCooldown( GetWorld()->GetTimeSeconds() ) )
@@ -335,6 +367,15 @@ void AUnit::OnDeath()
 {
 	FUnitEvents::OnUnitDied.Broadcast( this );
 
+	// Stop everything that could still act during the death delay
+	SetActorTickEnabled( false );
+	DisableAttack();
+	GetWorldTimerManager().ClearTimer( AttackTimerHandle_ );
+	if ( SpawnAbilityComponent_.IsValid() )
+	{
+		SpawnAbilityComponent_->StopSpawning();
+	}
+
 	if ( UStatusEffectTracker* tracker = FindComponentByClass<UStatusEffectTracker>() )
 	{
 		tracker->NotifyOwnerDied();
@@ -381,13 +422,16 @@ void AUnit::OnDeath()
 	if ( ResolvedDeathVFXDelay_ > 0.0f )
 	{
 		GetWorldTimerManager().SetTimer(
-		    DeathTimerHandle_,
-		    [this]()
-		    {
-			    SpawnDeathVFX();
-			    Destroy();
-		    },
-		    ResolvedDeathVFXDelay_, false
+			DeathTimerHandle_,
+			FTimerDelegate::CreateWeakLambda(
+				this,
+				[this]()
+				{
+					SpawnDeathVFX();
+					Destroy();
+				}
+			),
+			ResolvedDeathVFXDelay_, false
 		);
 	}
 	else

@@ -36,8 +36,9 @@ void UGameHUDWidget::NativeConstruct()
 
 	if ( ButtonEndTurn )
 	{
-		ButtonEndTurn->OnClicked.AddDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
-		ButtonEndTurn->OnHovered.AddDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
+		// AddUnique: NativeConstruct runs again every time the widget is re-added to the viewport
+		ButtonEndTurn->OnClicked.AddUniqueDynamic( this, &UGameHUDWidget::OnEndTurnClicked );
+		ButtonEndTurn->OnHovered.AddUniqueDynamic( this, &UGameHUDWidget::OnHoverEndTurn );
 	}
 	if ( EndTurnText )
 	{
@@ -47,7 +48,7 @@ void UGameHUDWidget::NativeConstruct()
 	if ( ABuildManager* buildManager =
 	         Cast<ABuildManager>( UGameplayStatics::GetActorOfClass( GetWorld(), ABuildManager::StaticClass() ) ) )
 	{
-		buildManager->OnBonusPreviewUpdated.AddDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
+		buildManager->OnBonusPreviewUpdated.AddUniqueDynamic( this, &UGameHUDWidget::HandleBonusPreviewUpdated );
 		buildManager->OnPlacingStarted.AddUniqueDynamic( this, &UGameHUDWidget::HandlePlacingStarted );
 		buildManager->OnPlacingCancelled.AddUniqueDynamic( this, &UGameHUDWidget::HandlePlacingEnded );
 	}
@@ -81,8 +82,8 @@ void UGameHUDWidget::NativeConstruct()
 	{
 		if ( UGameLoopManager* gL = core->GetGameLoop() )
 		{
-			gL->OnPhaseChanged.AddDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
-			gL->OnBuildTurnChanged.AddDynamic( this, &UGameHUDWidget::HandleTurnChanged );
+			gL->OnPhaseChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandlePhaseChanged );
+			gL->OnBuildTurnChanged.AddUniqueDynamic( this, &UGameHUDWidget::HandleTurnChanged );
 			if ( UGameSessionController* session = GetGameInstance()->GetSubsystem<UGameSessionController>() )
 			{
 				session->OnGameEndDelegate.AddUniqueDynamic( this, &UGameHUDWidget::HandleGameEnded );

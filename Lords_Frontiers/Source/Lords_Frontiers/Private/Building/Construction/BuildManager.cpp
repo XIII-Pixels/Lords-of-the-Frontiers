@@ -320,7 +320,10 @@ void ABuildManager::CancelPlacing()
 	HideBuildingTooltip();
 	CachedBonusIcons_.Empty();
 	OnBonusPreviewUpdated.Broadcast( CachedBonusIcons_ );
-	GridVisualizer_->HideBonusHighlight();
+	if ( GridVisualizer_ )
+	{
+		GridVisualizer_->HideBonusHighlight();
+	}
 	OnPlacingCancelled.Broadcast();
 }
 
@@ -428,12 +431,16 @@ bool ABuildManager::RelocateExistingBuilding( const FVector& cellWorldLocation )
 	newCell->bIsOccupied = true;
 	newCell->Occupant = RelocatedBuilding_;
 
-	const FResourceProduction relocationCost = RelocatedBuilding_->GetRelocationCost();
-	if ( UCoreManager* core = UCoreManager::Get( this ) )
+	// Putting the building back on its original cell is not a relocation: no charge
+	if ( CurrentCellCoords_ != OriginalCellCoords_ )
 	{
-		if ( UResourceManager* resManager = core->GetResourceManager() )
+		const FResourceProduction relocationCost = RelocatedBuilding_->GetRelocationCost();
+		if ( UCoreManager* core = UCoreManager::Get( this ) )
 		{
-			resManager->SpendResources( relocationCost );
+			if ( UResourceManager* resManager = core->GetResourceManager() )
+			{
+				resManager->SpendResources( relocationCost );
+			}
 		}
 	}
 
@@ -784,8 +791,11 @@ void ABuildManager::StartRelocatingBuilding( ABuilding* buildingToMove )
 
 			UClass* previewClass = PreviewActorClass_ ? *PreviewActorClass_ : ABuildPreviewActor::StaticClass();
 
-			PreviewActor_ =
-			    world->SpawnActor<ABuildPreviewActor>( FVector::ZeroVector, FRotator::ZeroRotator, spawnParams );
+			// previewClass was computed but not used: the base class has no preview materials
+			// and the preview stayed broken for the rest of the level
+			PreviewActor_ = world->SpawnActor<ABuildPreviewActor>(
+				previewClass, FVector::ZeroVector, FRotator::ZeroRotator, spawnParams
+			);
 
 			if ( !PreviewActor_ && GEngine )
 			{

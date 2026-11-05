@@ -352,8 +352,8 @@ void UGameSessionController::CycleSpeed()
 		next = 8.0f;
 	}
 
-	SetTimerScale( next );
-	OnSpeedChanged.Broadcast( next );
+	// Same as SetGameSpeed: remember the speed so it is restored on the next combat phase
+	SetGameSpeed( next );
 }
 
 void UGameSessionController::SetGameSpeed( float newSpeed )

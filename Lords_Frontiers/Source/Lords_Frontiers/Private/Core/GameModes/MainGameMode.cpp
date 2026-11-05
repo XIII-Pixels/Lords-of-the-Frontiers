@@ -131,6 +131,8 @@ void AMainGameMode::InitializeCardSystem()
 	}
 	else
 	{
+		// CardSubsystem lives in the GameInstance: without this the previous level's pool stayed active
+		cardSystem->SetPoolConfig( nullptr );
 		UE_LOG( LogTemp, Warning, TEXT( "MainGameMode: CardPoolConfig not set!" ) );
 	}
 }

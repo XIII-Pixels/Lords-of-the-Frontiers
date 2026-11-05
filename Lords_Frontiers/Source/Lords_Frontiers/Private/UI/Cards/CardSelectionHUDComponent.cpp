@@ -15,10 +15,9 @@ void UCardSelectionHUDComponent::BeginPlay()
 
 	if ( bAutoSubscribe )
 	{
-		GetWorld()->GetTimerManager().SetTimerForNextTick( [this]()
-		{
-			SubscribeToCardSubsystem();
-		} );
+		GetWorld()->GetTimerManager().SetTimerForNextTick(
+			FTimerDelegate::CreateWeakLambda( this, [this]() { SubscribeToCardSubsystem(); } )
+		);
 	}
 }
 

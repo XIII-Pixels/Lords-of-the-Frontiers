@@ -267,35 +267,32 @@ void UStatusEffectTracker::RecomputeStackedModifiers()
 		}
 	}
 
+	// Undo our previous modifications first, then re-apply from the current values.
+	// Restoring a cached "original" value used to wipe card modifiers applied meanwhile.
+	if ( !FMath::IsNearlyZero( AppliedMaxSpeedDelta_ ) )
+	{
+		stats.AddMaxSpeed( -AppliedMaxSpeedDelta_ );
+		AppliedMaxSpeedDelta_ = 0.f;
+	}
+	if ( !FMath::IsNearlyZero( AppliedAttackCooldownDelta_ ) )
+	{
+		stats.AddAttackCooldown( -AppliedAttackCooldownDelta_ );
+		AppliedAttackCooldownDelta_ = 0.f;
+	}
+
 	if ( slowSum > 0.f )
 	{
-		if ( CachedOriginalMaxSpeed_ < 0.f )
-		{
-			CachedOriginalMaxSpeed_ = stats.MaxSpeed();
-		}
 		const float clamped = FMath::Min( slowSum, slowCap );
-		const float newSpeed = CachedOriginalMaxSpeed_ * ( 1.f - clamped / 100.f );
-		stats.SetMaxSpeed( newSpeed );
-	}
-	else if ( CachedOriginalMaxSpeed_ >= 0.f )
-	{
-		stats.SetMaxSpeed( CachedOriginalMaxSpeed_ );
-		CachedOriginalMaxSpeed_ = -1.f;
+		const float speedBefore = stats.MaxSpeed();
+		stats.SetMaxSpeed( speedBefore * ( 1.f - clamped / 100.f ) );
+		AppliedMaxSpeedDelta_ = stats.MaxSpeed() - speedBefore;
 	}
 
 	if ( atkSlowSum > 0.f )
 	{
-		if ( CachedOriginalAttackCooldown_ < 0.f )
-		{
-			CachedOriginalAttackCooldown_ = stats.AttackCooldown();
-		}
 		const float clamped = FMath::Min( atkSlowSum, atkSlowCap );
-		stats.SetAttackCooldown( CachedOriginalAttackCooldown_ * ( 1.f + clamped / 100.f ) );
-	}
-	else if ( CachedOriginalAttackCooldown_ >= 0.f )
-	{
-		stats.SetAttackCooldown( CachedOriginalAttackCooldown_ );
-		CachedOriginalAttackCooldown_ = -1.f;
+		AppliedAttackCooldownDelta_ = stats.AttackCooldown() * ( clamped / 100.f );
+		stats.AddAttackCooldown( AppliedAttackCooldownDelta_ );
 	}
 }
 

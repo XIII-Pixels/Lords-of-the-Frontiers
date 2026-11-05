@@ -40,12 +40,16 @@ bool ULeaderboardSubsystem::AddEntry( const FLeaderboardEntry& entry, int32 maxE
 	Entries.Add( entry );
 	SortAndTrim( maxEntries );
 
+	// SortAndTrim may keep the newest player run outside the top N, it does not count as "made the board"
+	const int32 index = Entries.IndexOfByKey( entry );
+	const bool bMadeTheBoard = index != INDEX_NONE && ( maxEntries <= 0 || index < maxEntries );
+
 	if ( !LastSlotName.IsEmpty() )
 	{
 		Save( LastSlotName );
 	}
 
-	return Entries.Contains( entry );
+	return bMadeTheBoard;
 }
 
 bool ULeaderboardSubsystem::AddManualEntry( const FString& playerName, int64 score, int32 maxEntries )
@@ -227,6 +231,27 @@ void ULeaderboardSubsystem::SortAndTrim( int32 maxEntries )
 
 	if ( maxEntries > 0 && Entries.Num() > maxEntries )
 	{
-		Entries.SetNum( maxEntries );
+		// Keep the most recent run of the current player even when it is outside the top N:
+		// it used to be cut off, and "your result" then showed an older run.
+		int32 newestPlayerIndex = INDEX_NONE;
+		for ( int32 i = 0; i < Entries.Num(); ++i )
+		{
+			if ( Entries[i].bIsCurrentPlayer &&
+				 ( newestPlayerIndex == INDEX_NONE || Entries[i].Timestamp > Entries[newestPlayerIndex].Timestamp ) )
+			{
+				newestPlayerIndex = i;
+			}
+		}
+
+		if ( newestPlayerIndex >= maxEntries )
+		{
+			const FLeaderboardEntry newestPlayerEntry = Entries[newestPlayerIndex];
+			Entries.SetNum( maxEntries );
+			Entries.Add( newestPlayerEntry );
+		}
+		else
+		{
+			Entries.SetNum( maxEntries );
+		}
 	}
 }

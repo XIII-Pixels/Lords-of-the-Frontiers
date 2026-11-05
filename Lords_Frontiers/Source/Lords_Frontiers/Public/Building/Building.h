@@ -312,7 +312,17 @@ private:
 	FTimerHandle RuinTimerHandle_;
 	FTimerHandle ConstructionVFXTimerHandle_;
 
+	// Collision setup captured in BeginPlay, restored when the building is rebuilt from ruins
+	FCollisionResponseContainer OriginalCollisionResponses_;
+	TEnumAsByte<ECollisionEnabled::Type> OriginalCollisionEnabled_ = ECollisionEnabled::QueryAndPhysics;
+	bool bHasOriginalCollision_ = false;
+
+	void RestoreOriginalCollision();
+
 	FResourceProduction OriginalMaintenanceCost_;
+
+	// Part of negative maintenance modifiers cut off by the >= 0 clamp (keeps card Revert exact)
+	FResourceProduction MaintenanceClampDebt_;
 
 	UPROPERTY( EditAnywhere, Category = "Settings|Visuals" )
 	FText BuildingDisplayName_;

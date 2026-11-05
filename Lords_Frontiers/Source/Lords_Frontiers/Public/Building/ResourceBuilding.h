@@ -65,4 +65,7 @@ private:
 
 	/** Snapshot of ProductionConfig_ saved in BeginPlay for reset */
 	FResourceProduction OriginalProductionConfig_;
+
+	// Part of negative production modifiers cut off by the >= 0 clamp (keeps card Revert exact)
+	FResourceProduction ProductionClampDebt_;
 };

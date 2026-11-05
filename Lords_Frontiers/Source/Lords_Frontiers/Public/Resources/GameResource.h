@@ -99,6 +99,18 @@ struct FResourceProduction
 		}
 	}
 
+	/**
+	 * Like ModifyByType (result clamped to >= 0), but remembers in clampDebt the part that was
+	 * cut off by the clamp. Applying -delta afterwards then restores exactly the previous value
+	 * (e.g. maintenance 1, card -2 -> 0, revert +2 -> 1 instead of 2).
+	 */
+	void ModifyByTypeReversible( EResourceType type, int32 delta, FResourceProduction& clampDebt )
+	{
+		const int32 unclamped = GetByType( type ) - clampDebt.GetByType( type ) + delta;
+		SetByType( type, FMath::Max( 0, unclamped ) );
+		clampDebt.SetByType( type, FMath::Max( 0, -unclamped ) );
+	}
+
 	/** Sets value for the given resource type directly. */
 	void SetByType( EResourceType type, int32 value )
 	{

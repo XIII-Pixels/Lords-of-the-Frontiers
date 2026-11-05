@@ -70,6 +70,7 @@ void UCardSubsystem::SetPoolConfig( UCardPoolConfig* config )
 	}
 
 	PoolConfig_ = config;
+	bSelectionInProgress_ = false;
 
 	if ( !PoolConfig_ )
 	{
@@ -129,6 +130,7 @@ void UCardSubsystem::RequestCardSelection( int32 waveNumber )
 		}
 	}
 
+	bSelectionInProgress_ = true;
 	OnCardSelectionRequired.Broadcast( choice );
 }
 
@@ -489,6 +491,7 @@ void UCardSubsystem::ApplyCardEvent(
 					effect->Apply( ctx );
 				}
 			}
+			RecordAppliedEffect( card, nullptr, eventIndex, stackCount, waveNumber );
 			OnEconomyBonusesChanged.Broadcast( EconomyBonuses_ );
 		}
 	}
@@ -554,6 +557,11 @@ void UCardSubsystem::ApplyCardEvent(
 						visuals->PlayOneShot( effect->GetVisualConfig(), building, nullptr );
 					}
 				}
+			}
+
+			if ( bOneShotPassesConditions )
+			{
+				RecordAppliedEffect( card, building, eventIndex, stackCount, waveNumber );
 			}
 
 			affected++;
@@ -797,6 +805,7 @@ void UCardSubsystem::ResetCardHistory()
 	{
 		RevertAppliedRecord( AppliedCardHistory_[i] );
 	}
+	AppliedEffectRecords_.Empty();
 	InvalidateBuildingTooltipPreviewCache();
 
 	AppliedCardHistory_.Empty();
@@ -832,6 +841,57 @@ void UCardSubsystem::RevertAppliedRecord( const FAppliedCardRecord& record )
 		return;
 	}
 
+	// 1) Global and one-shot effects: revert exactly what was applied (newest first).
+	//    Reverting on every building of a matching class used to also "revert" buildings that
+	//    never got the effect (state/conditions did not match, or placed in another level),
+	//    pushing their stats below the base values.
+	for ( int32 i = AppliedEffectRecords_.Num() - 1; i >= 0; --i )
+	{
+		const FAppliedCardEffectRecord& applied = AppliedEffectRecords_[i];
+		if ( applied.Card.Get() != card || !card->Events.IsValidIndex( applied.EventIndex ) )
+		{
+			continue;
+		}
+
+		const FCardEvent& event = card->Events[applied.EventIndex];
+
+		if ( applied.bGlobal )
+		{
+			FCardEffectContext ctx =
+				MakeContext( card, applied.EventIndex, applied.StackCount, applied.WaveNumber, nullptr );
+			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+			{
+				if ( effect && effect->IsGlobalEffect() )
+				{
+					effect->Revert( ctx );
+				}
+			}
+			continue;
+		}
+
+		ABuilding* building = applied.Building.Get();
+		if ( !IsValid( building ) )
+		{
+			continue;
+		}
+
+		FCardEffectContext ctx =
+			MakeContext( card, applied.EventIndex, applied.StackCount, applied.WaveNumber, building );
+		for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
+		{
+			if ( effect && !effect->IsGlobalEffect() && !effect->RequiresRuntimeRegistration() )
+			{
+				effect->Revert( ctx );
+			}
+		}
+	}
+
+	AppliedEffectRecords_.RemoveAll(
+		[card]( const FAppliedCardEffectRecord& applied ) { return applied.Card.Get() == card; }
+	);
+
+	// 2) Runtime-registered effects track their own per-building state: revert them on every
+	//    matching building, as before.
 	TArray<ABuilding*> buildings = GetAllBuildings();
 
 	for ( int32 stackStep = record.StackCount; stackStep >= 1; --stackStep )
@@ -840,56 +900,52 @@ void UCardSubsystem::RevertAppliedRecord( const FAppliedCardRecord& record )
 		{
 			const FCardEvent& event = card->Events[eventIndex];
 
-			bool bHasGlobal = false;
-			bool bHasPerBuilding = false;
+			bool bHasRuntime = false;
 			for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 			{
-				if ( !effect )
+				if ( effect && !effect->IsGlobalEffect() && effect->RequiresRuntimeRegistration() )
 				{
-					continue;
-				}
-				if ( effect->IsGlobalEffect() )
-				{
-					bHasGlobal = true;
-				}
-				else
-				{
-					bHasPerBuilding = true;
+					bHasRuntime = true;
+					break;
 				}
 			}
 
-			if ( bHasGlobal )
+			if ( !bHasRuntime )
 			{
-				FCardEffectContext ctx = MakeContext( card, eventIndex, stackStep, record.WaveSelected, nullptr );
+				continue;
+			}
+
+			for ( ABuilding* building : buildings )
+			{
+				if ( !IsValid( building ) || !event.MatchesBuildingClass( building ) )
+				{
+					continue;
+				}
+				FCardEffectContext ctx = MakeContext( card, eventIndex, stackStep, record.WaveSelected, building );
 				for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
 				{
-					if ( effect && effect->IsGlobalEffect() )
+					if ( effect && !effect->IsGlobalEffect() && effect->RequiresRuntimeRegistration() )
 					{
 						effect->Revert( ctx );
 					}
 				}
 			}
-
-			if ( bHasPerBuilding )
-			{
-				for ( ABuilding* building : buildings )
-				{
-					if ( !IsValid( building ) || !event.MatchesBuildingClass( building ) )
-					{
-						continue;
-					}
-					FCardEffectContext ctx = MakeContext( card, eventIndex, stackStep, record.WaveSelected, building );
-					for ( const TObjectPtr<UCardEffect>& effect : event.Effects )
-					{
-						if ( effect && !effect->IsGlobalEffect() )
-						{
-							effect->Revert( ctx );
-						}
-					}
-				}
-			}
 		}
 	}
+}
+
+void UCardSubsystem::RecordAppliedEffect(
+	UCardDataAsset* card, ABuilding* building, int32 eventIndex, int32 stackCount, int32 waveNumber
+)
+{
+	FAppliedCardEffectRecord applied;
+	applied.Card = card;
+	applied.Building = building;
+	applied.EventIndex = eventIndex;
+	applied.StackCount = stackCount;
+	applied.WaveNumber = waveNumber;
+	applied.bGlobal = ( building == nullptr );
+	AppliedEffectRecords_.Add( applied );
 }
 
 TArray<ABuilding*> UCardSubsystem::GetAllBuildings() const
@@ -1051,6 +1107,11 @@ void UCardSubsystem::OnBuildingPlaced( ABuilding* building )
 						effect->Apply( ctx );
 					}
 				}
+
+				if ( bOneShotPassesConditions )
+				{
+					RecordAppliedEffect( card, building, eventIndex, stack + 1, record.WaveSelected );
+				}
 			}
 		}
 	}
@@ -1162,6 +1223,7 @@ void UCardSubsystem::HandlePhaseChanged( EGameLoopPhase oldPhase, EGameLoopPhase
 
 void UCardSubsystem::NotifyGameLoopToProceed()
 {
+	bSelectionInProgress_ = false;
 	if ( UGameLoopManager* gameLoop = CachedGameLoop_.Get() )
 	{
 		gameLoop->ConfirmRewardPhase();

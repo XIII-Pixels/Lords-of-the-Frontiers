@@ -43,6 +43,13 @@ private:
 	void Play2D( const FSoundEntry& entry, const FGameplayTag& tag, float volumeScale = 1.0f );
 	void Play3D( const FSoundEntry& entry, const FGameplayTag& tag, const FVector& worldLocation );
 
+	// Pooled audio components are created with the current world as outer. The pools live in
+	// the GameInstance, so they must drop the components of a world that is being torn down:
+	// otherwise they kept the old world alive and were reused in the next level.
+	void HandleWorldCleanup( UWorld* world, bool bSessionEnded, bool bCleanupResources );
+
+	FDelegateHandle WorldCleanupHandle_;
+
 	UPROPERTY()
 	TObjectPtr<USoundDataAsset> SoundData_;
 

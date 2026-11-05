@@ -106,6 +106,9 @@ protected:
 	// Look around
 	void Look();
 
+	// Keeps the sight sphere in sync with Stats().AttackRange() (range buffs, neighbour bonuses, cards)
+	void SyncSightRadius();
+
 	virtual void SetAttackMode(){};
 
 	// Template method pattern

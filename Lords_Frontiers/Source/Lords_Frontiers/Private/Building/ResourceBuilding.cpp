@@ -18,10 +18,12 @@ AResourceBuilding::AResourceBuilding()
 
 void AResourceBuilding::BeginPlay()
 {
-	Super::BeginPlay();
-
-	// Save original production for card reset on game restart
+	// Save original production for card reset on game restart. Must happen before
+	// Super::BeginPlay(), which already applies the active cards (OnBuildingPlaced).
 	OriginalProductionConfig_ = ProductionConfig_;
+	ProductionClampDebt_ = FResourceProduction();
+
+	Super::BeginPlay();
 
 	if ( IsValid( ResourceGenerator_ ) )
 	{
@@ -49,7 +51,7 @@ UResourceManager* AResourceBuilding::FindResourceManager() const
 
 void AResourceBuilding::ModifyProduction( EResourceType type, int32 delta )
 {
-	ProductionConfig_.ModifyByType( type, delta );
+	ProductionConfig_.ModifyByTypeReversible( type, delta, ProductionClampDebt_ );
 	SyncGeneratorConfig();
 }
 
@@ -57,7 +59,13 @@ void AResourceBuilding::ModifyProductionAll( int32 delta )
 {
 	for ( EResourceType resType : CardTypeHelpers::GetAllResourceTypes() )
 	{
-		ProductionConfig_.ModifyByType( resType, delta );
+		// Only resources this building actually produces: a farm must not start producing gold,
+		// population and progress because of an "all resources" bonus.
+		if ( OriginalProductionConfig_.GetByType( resType ) <= 0 )
+		{
+			continue;
+		}
+		ProductionConfig_.ModifyByTypeReversible( resType, delta, ProductionClampDebt_ );
 	}
 	SyncGeneratorConfig();
 }
@@ -65,6 +73,7 @@ void AResourceBuilding::ModifyProductionAll( int32 delta )
 void AResourceBuilding::ResetProductionToDefaults()
 {
 	ProductionConfig_ = OriginalProductionConfig_;
+	ProductionClampDebt_ = FResourceProduction();
 	SyncGeneratorConfig();
 }
 

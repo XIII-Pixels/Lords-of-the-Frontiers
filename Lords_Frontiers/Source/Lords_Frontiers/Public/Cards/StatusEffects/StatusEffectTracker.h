@@ -67,6 +67,8 @@ private:
 	UPROPERTY()
 	TArray<FActiveStatus> Active_;
 
-	float CachedOriginalMaxSpeed_ = -1.f;
-	float CachedOriginalAttackCooldown_ = -1.f;
+	// Deltas currently applied by slows. Removing a slow subtracts exactly these deltas,
+	// so stat changes made by cards while the slow was active are preserved.
+	float AppliedMaxSpeedDelta_ = 0.f;
+	float AppliedAttackCooldownDelta_ = 0.f;
 };
